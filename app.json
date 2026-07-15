@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "El Buen Pastor Himnario",
+    "slug": "ElBuenPastorHimnario",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/android-legacy-app-logo.png",
+    "scheme": "el-buen-pastor-himnario",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "icon": {
+        "light": "./assets/images/white-ios-logo.png",
+        "dark": "./assets/images/black-ios-logo.png",
+        "tinted": "./assets/images/tinted-ios-logo.png"
+      },
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.elbuenpastor"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF5EE",
+        "backgroundImage": "./assets/images/android-background-app-logo.png",
+        "foregroundImage": "./assets/images/android-foreground-app.png",
+        "monochromeImage": "./assets/images/android-monochrome-app-logo.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.ElBuenPastorHimnario",
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/EBP-LOGO1.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF5EE",
+          "dark": {
+            "backgroundColor": "#1A1108"
+          }
+        }
+      ],
+      "expo-audio",
+      "expo-build-properties",
+      "expo-asset",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
+      }
+    },
+    "owner": "isaacduran"
+  }
+}
