@@ -1,51 +1,67 @@
-# Welcome to EBP App 👋
+# Himnario El Buen Pastor 🎵📱
 
-This is an [Expo](https://expo.clear
-dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+[![React Native](https://img.shields.io/badge/React_Native-Expo_v52-blue?logo=react)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](#)
 
-## Get started
+Aplicación móvil oficial de **Himnario El Buen Pastor** para iOS y Android. Diseñada para ofrecer una experiencia fluida e intuitiva de lectura y reproducción de audio de himnos y alabanzas cristianas.
 
-1. Install dependencies
+---
 
+## 🌟 Características Principales
+
+* 📖 **Biblioteca de Himnos y Alabanzas:** Colección completa de himnos clasificados por número, categoría y título.
+* 🎧 **Reproducción de Audio en Segundo Plano:** Escucha las alabanzas mientras navegas por la app o con la pantalla bloqueada.
+* ❤️ **Favoritos y Listas Personalizadas:** Guarda tus himnos preferidos y crea listas para servicios o devocionales.
+* 🔍 **Búsqueda Avanzada:** Encuentra alabanzas rápidamente por número, título o palabras clave.
+* 🌐 **Soporte Multi-Idioma:** Cambia de idioma o dialecto sin perder tus configuraciones.
+* 📱 **Diseño Moderno y Adaptable:** Modo claro y oscuro optimizado para dispositivos móviles.
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+* **Framework:** [Expo](https://expo.dev) / React Native (Expo Router v4)
+* **Lenguaje:** TypeScript / JavaScript
+* **Audio Engine:** `expo-audio` & `react-native-track-player`
+* **Iconografía:** Lucide React Native Icons / FontAwesome
+
+---
+
+## 🚀 Instalación y Desarrollo Local
+
+### Prerrequisitos
+* [Node.js](https://nodejs.org/) (v18 o superior)
+* Expo Go app en tu dispositivo móvil o emulador Android/iOS
+
+### Pasos
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/lsaacd/EBP.git
+   cd EBP/himnario
+   ```
+
+2. **Instalar dependencias:**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. **Iniciar el servidor de desarrollo:**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📄 Políticas y Términos Legales
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+* **[Política de Privacidad](docs/privacy.html)**
+* **[Términos de Servicio](docs/terms.html)**
+* **[Centro de Políticas y Soporte](docs/index.html)**
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 👨‍💻 Autor y Licencia
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Desarrollado por **Isaac Durán**.  
+© 2026 Himnario El Buen Pastor. Todos los derechos reservados.
