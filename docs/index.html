@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himnario El Buen Pastor - Políticas y Soporte</title>
+    <style>
+        :root {
+            --primary: #1A365D;
+            --accent: #2B6CB0;
+            --bg: #FAFAFA;
+            --card-bg: #FFFFFF;
+            --text: #2D3748;
+            --muted: #718096;
+            --border: #E2E8F0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 3.5rem 1rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        header p {
+            margin: 0.75rem 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2.5rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .card p {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: white;
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #2C5282;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 1rem 2rem;
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Himnario El Buen Pastor</h1>
+        <p>Centro de Información Legal y Soporte</p>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h2>Política de Privacidad</h2>
+                <p>Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación.</p>
+                <a href="privacy.html" class="btn">Ver Política</a>
+            </div>
+            <div class="card">
+                <h2>Términos de Servicio</h2>
+                <p>Lee las condiciones de uso de la aplicación Himnario El Buen Pastor.</p>
+                <a href="terms.html" class="btn">Ver Términos</a>
+            </div>
+            <div class="card">
+                <h2>Soporte y Contacto</h2>
+                <p>¿Tienes dudas o comentarios? Ponte en contacto con nuestro equipo de soporte.</p>
+                <a href="mailto:soporte@elbuenpastor.com" class="btn">Enviar Correo</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Himnario El Buen Pastor. Todos los derechos reservados.
+    </footer>
+
+</body>
+</html>
