@@ -6,15 +6,16 @@
     <title>Himnario El Buen Pastor - Políticas y Soporte / Policies & Support</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #FAF5EE; /* App's warm cream background */
-            --text-main: #27272a;
-            --text-muted: #52525b;
-            --primary-dark: #1e3a8a; /* Deep elegant blue */
-            --accent-gold: #b45309;
-            --card-bg: rgba(255, 255, 255, 0.85);
+            --bg-color: #fcf9f2; /* App's Parchment cream background */
+            --text-main: #1c1c18;
+            --text-muted: #564240;
+            --primary-dark: #6e1619; /* Sacred Accent Burgundy */
+            --accent-gold: #e2c19b;
+            --card-bg: #ffffff;
+            --outline: #897170;
         }
 
         * {
@@ -24,15 +25,15 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Public Sans', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             line-height: 1.7;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background-image: radial-gradient(circle at top right, rgba(30, 58, 138, 0.05), transparent 40%),
-                              radial-gradient(circle at bottom left, rgba(180, 83, 9, 0.05), transparent 40%);
+            background-image: radial-gradient(circle at top right, rgba(110, 22, 25, 0.05), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(226, 193, 155, 0.1), transparent 40%);
         }
 
         .hero {
@@ -44,7 +45,7 @@
         }
 
         .hero h1 {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Newsreader', serif;
             font-size: 3rem;
             color: var(--primary-dark);
             margin-bottom: 0.5rem;
@@ -76,20 +77,20 @@
             padding: 0.6rem 1.2rem;
             border-radius: 24px;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.9rem;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Public Sans', sans-serif;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .lang-btn.active {
             background: var(--primary-dark);
             color: white;
-            box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+            box-shadow: 0 2px 8px rgba(110, 22, 25, 0.3);
         }
 
         .lang-btn:not(.active):hover {
-            background: rgba(30, 58, 138, 0.05);
+            background: rgba(110, 22, 25, 0.05);
             color: var(--primary-dark);
         }
 
@@ -134,7 +135,7 @@
         }
 
         .card h2 {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Newsreader', serif;
             color: var(--primary-dark);
             font-size: 1.5rem;
             margin-bottom: 1rem;
@@ -155,7 +156,7 @@
             color: white;
             padding: 0.8rem 1.5rem;
             border-radius: 12px;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.3s ease;
             font-size: 0.95rem;
@@ -163,9 +164,9 @@
         }
 
         .btn:hover {
-            background-color: #152c6b;
+            background-color: #8d2d2d;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+            box-shadow: 0 4px 12px rgba(110, 22, 25, 0.2);
         }
 
         footer {
