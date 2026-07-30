@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidad - Himnario El Buen Pastor</title>
+    <title>Política de Privacidad / Privacy Policy - Himnario El Buen Pastor</title>
     <style>
         :root {
             --primary: #1A365D;
@@ -27,7 +27,7 @@
         header {
             background-color: var(--primary);
             color: white;
-            padding: 2.5rem 1rem;
+            padding: 2.5rem 1rem 1.5rem;
             text-align: center;
         }
 
@@ -41,6 +41,30 @@
             margin: 0.5rem 0 0;
             opacity: 0.9;
             font-size: 1rem;
+        }
+
+        .lang-switch {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1.25rem;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active, .lang-btn:hover {
+            background: white;
+            color: var(--primary);
         }
 
         .container {
@@ -102,52 +126,122 @@
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
         }
+
+        .content-lang {
+            display: none;
+        }
+
+        .content-lang.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
     <header>
         <h1>Himnario El Buen Pastor</h1>
-        <p>Política de Privacidad</p>
+        <p id="header-subtitle">Política de Privacidad / Privacy Policy</p>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLanguage('es')">Español 🇲🇽</button>
+            <button class="lang-btn" onclick="setLanguage('en')">English 🇺🇸</button>
+        </div>
     </header>
 
     <div class="container">
         <div class="card">
-            <span class="last-updated">Última actualización: 30 de Julio de 2026</span>
 
-            <p>La aplicación <strong>Himnario El Buen Pastor</strong> ("nosotros", "nuestra aplicación") respeta la privacidad de sus usuarios. Esta Política de Privacidad explica cómo recopilamos, usamos y protegemos la información cuando utilizas nuestra aplicación móvil.</p>
+            <!-- SPANISH CONTENT -->
+            <div id="lang-es" class="content-lang active">
+                <span class="last-updated">Última actualización: 30 de Julio de 2026</span>
 
-            <h2>1. Recopilación de Información</h2>
-            <p><strong>Himnario El Buen Pastor está diseñada para proteger tu privacidad.</strong> No requerimos la creación de una cuenta ni el registro de datos personales para utilizar la aplicación.</p>
-            <ul>
-                <li><strong>Datos guardados en tu dispositivo:</strong> Tus selecciones de canciones favoritas, listas de reproducción personalizadas y preferencias de idioma/filtro se almacenan localmente en tu dispositivo mediante almacenamiento local. No se transmiten ni se guardan en servidores externos.</li>
-                <li><strong>Permisos del dispositivo:</strong> La aplicación puede solicitar permisos para la reproducción de audio en segundo plano para permitir la escucha fluida de los himnos y alabanzas.</li>
-            </ul>
+                <p>La aplicación <strong>Himnario El Buen Pastor</strong> ("nosotros", "nuestra aplicación") está comprometida con la protección de tu privacidad. Esta Política de Privacidad describe los datos que recopila la aplicación, cómo se almacenan y tus derechos como usuario.</p>
 
-            <h2>2. Uso de Información</h2>
-            <p>Dado que no recopilamos información de identificación personal, no vendemos, alquilamos ni compartimos ningún dato personal con terceros.</p>
+                <h2>1. Datos Recopilados por la Aplicación</h2>
+                <p><strong>Himnario El Buen Pastor funciona de manera orientada a la privacidad.</strong> La aplicación recopila y almacena únicamente los datos estrictamente necesarios para su funcionamiento local:</p>
+                <ul>
+                    <li><strong>Almacenamiento Local de Preferencias y Favoritos:</strong> Guardamos en el almacenamiento interno de tu dispositivo (AsyncStorage/almacenamiento local) tus himnos marcados como favoritos, listas de reproducción personalizadas, historial de himnos recientes y preferencias de idioma/tema. Estos datos nunca salen de tu dispositivo ni se transmiten a servidores externos.</li>
+                    <li><strong>Archivos de Audio y Caché Local:</strong> Para permitir la reproducción fluida de alabanzas, la app descarga y almacena en caché archivos de audio de los himnos en el almacenamiento de tu dispositivo.</li>
+                    <li><strong>Permisos de Audio y Reproducción en Segundo Plano:</strong> La aplicación solicita permisos del sistema operativo para gestionar la reproducción de audio en segundo plano (permitiendo escuchar alabanzas mientras la pantalla está apagada o usas otras aplicaciones) y modificar la configuración de audio para el control del volumen.</li>
+                </ul>
 
-            <h2>3. Servicios de Terceros</h2>
-            <p>La aplicación puede utilizar bibliotecas o servicios estándar de la plataforma (como las API del sistema operativo Android/iOS) para la reproducción de contenido multimedia. Estos servicios funcionan según sus propias políticas de privacidad de la plataforma correspondiente.</p>
+                <h2>2. Datos No Recopilados</h2>
+                <ul>
+                    <li><strong>Sin cuentas ni registro:</strong> No solicitamos tu nombre, teléfono, dirección ni correo electrónico para usar la app.</li>
+                    <li><strong>Sin seguimiento ni ubicación:</strong> No rastreamos tu ubicación GPS, dirección IP ni hábitos de navegación.</li>
+                    <li><strong>Sin venta de datos:</strong> No vendemos, alquilamos ni compartimos ningún dato de usuario con terceros ni anunciantes.</li>
+                </ul>
 
-            <h2>4. Seguridad de los Datos</h2>
-            <p>Valoramos tu confianza al usar nuestra aplicación. Dado que toda tu información personalizada (favoritos y configuraciones) reside exclusivamente en tu dispositivo local, tus datos permanecen bajo tu propio control.</p>
+                <h2>3. Servicios de Terceros</h2>
+                <p>La aplicación utiliza frameworks estándar de la industria ([Expo](https://expo.dev) / React Native) y APIs de reproducción de medios del sistema operativo (Android/iOS). Dichos servicios operan conforme a las políticas de privacidad estándar de Apple e Google.</p>
 
-            <h2>5. Cambios a esta Política de Privacidad</h2>
-            <p>Podemos actualizar nuestra Política de Privacidad periódicamente. Te recomendamos revisar esta página regularmente para estar al tanto de cualquier cambio. Los cambios son efectivos inmediatamente después de su publicación en esta página.</p>
+                <h2>4. Seguridad de los Datos</h2>
+                <p>Dado que toda la información guardada reside de forma aislada en el almacenamiento local de tu propio teléfono, tus datos se encuentran bajo tu control directo y se eliminan automáticamente si desinstalas la aplicación.</p>
 
-            <h2>6. Contacto y Soporte</h2>
-            <p>Si tienes preguntas, comentarios o inquietudes sobre esta Política de Privacidad o el funcionamiento de la aplicación, puedes ponerte en contacto con nosotros:</p>
-            <ul>
-                <li><strong>Correo de Soporte:</strong> <a href="mailto:soporte@elbuenpastor.com">soporte@elbuenpastor.com</a></li>
-                <li><strong>Desarrollador:</strong> Isaac Durán</li>
-            </ul>
+                <h2>5. Contacto y Soporte</h2>
+                <p>Si tienes preguntas o inquietudes sobre esta Política de Privacidad o la aplicación, puedes comunicarte directamente con el desarrollador:</p>
+                <ul>
+                    <li><strong>Correo Electrónico de Contacto:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
+                    <li><strong>Desarrollador:</strong> Isaac Durán</li>
+                </ul>
+            </div>
+
+            <!-- ENGLISH CONTENT -->
+            <div id="lang-en" class="content-lang">
+                <span class="last-updated">Last Updated: July 30, 2026</span>
+
+                <p>The <strong>Himnario El Buen Pastor</strong> application ("we", "our app") is committed to protecting your privacy. This Privacy Policy describes the data collected by the app, how it is stored, and your rights as a user.</p>
+
+                <h2>1. Data Collected by the App</h2>
+                <p><strong>Himnario El Buen Pastor is designed with a privacy-first approach.</strong> The app collects and stores only the data strictly required for its local functionality:</p>
+                <ul>
+                    <li><strong>Local Storage of Preferences & Favorites:</strong> We save your favorited hymns, custom playlists, recently viewed hymns, and language/theme preferences locally on your device's internal storage (AsyncStorage/local storage). This data never leaves your device and is not transmitted to external servers.</li>
+                    <li><strong>Audio Files & Local Cache:</strong> To allow smooth playback of hymns and worship songs, the app downloads and caches audio files locally on your device.</li>
+                    <li><strong>Audio Permissions & Background Playback:</strong> The app requests standard operating system permissions to handle background audio playback (allowing you to listen to hymns while your screen is off or while using other apps) and to adjust audio settings for volume control.</li>
+                </ul>
+
+                <h2>2. Data We Do NOT Collect</h2>
+                <ul>
+                    <li><strong>No User Accounts Required:</strong> We do not ask for your name, phone number, physical address, or email to use the app.</li>
+                    <li><strong>No Location or User Tracking:</strong> We do not track your GPS location, IP address, or browsing habits.</li>
+                    <li><strong>No Data Selling or Advertising Networks:</strong> We do not sell, rent, or share any user data with third parties or advertising networks.</li>
+                </ul>
+
+                <h2>3. Third-Party Services</h2>
+                <p>The app relies on industry-standard development frameworks ([Expo](https://expo.dev) / React Native) and system media playback APIs provided by Android and iOS. These operate under Apple's and Google's standard platform privacy policies.</p>
+
+                <h2>4. Data Security & Control</h2>
+                <p>Because all saved information resides exclusively inside your phone's isolated local storage, your data remains under your direct control and is automatically deleted if you uninstall the app.</p>
+
+                <h2>5. Contact & Support</h2>
+                <p>If you have any questions or concerns regarding this Privacy Policy or the app, please feel free to reach out to the developer directly:</p>
+                <ul>
+                    <li><strong>Contact Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
+                    <li><strong>Developer:</strong> Isaac Durán</li>
+                </ul>
+            </div>
+
         </div>
     </div>
 
     <footer>
-        &copy; 2026 Himnario El Buen Pastor. Todos los derechos reservados.
+        &copy; 2026 Himnario El Buen Pastor. All rights reserved / Todos los derechos reservados.
     </footer>
 
+    <script>
+        function setLanguage(lang) {
+            document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (lang === 'en') {
+                document.getElementById('lang-en').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Privacy Policy';
+            } else {
+                document.getElementById('lang-es').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Política de Privacidad';
+            }
+        }
+    </script>
 </body>
 </html>

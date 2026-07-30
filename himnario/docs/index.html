@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Himnario El Buen Pastor - Políticas y Soporte</title>
+    <title>Himnario El Buen Pastor - Políticas y Soporte / Policies & Support</title>
     <style>
         :root {
             --primary: #1A365D;
@@ -27,7 +27,7 @@
         header {
             background-color: var(--primary);
             color: white;
-            padding: 3.5rem 1rem;
+            padding: 3rem 1rem 2rem;
             text-align: center;
         }
 
@@ -41,6 +41,30 @@
             margin: 0.75rem 0 0;
             opacity: 0.9;
             font-size: 1.1rem;
+        }
+
+        .lang-switch {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1.25rem;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active, .lang-btn:hover {
+            background: white;
+            color: var(--primary);
         }
 
         .container {
@@ -104,38 +128,90 @@
             color: var(--muted);
             font-size: 0.875rem;
         }
+
+        .content-lang {
+            display: none;
+        }
+
+        .content-lang.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
     <header>
         <h1>Himnario El Buen Pastor</h1>
-        <p>Centro de Información Legal y Soporte</p>
+        <p id="header-subtitle">Centro de Información Legal y Soporte / Legal & Support Hub</p>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLanguage('es')">Español 🇲🇽</button>
+            <button class="lang-btn" onclick="setLanguage('en')">English 🇺🇸</button>
+        </div>
     </header>
 
     <div class="container">
-        <div class="grid">
-            <div class="card">
-                <h2>Política de Privacidad</h2>
-                <p>Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación.</p>
-                <a href="privacy.html" class="btn">Ver Política</a>
+        <!-- SPANISH -->
+        <div id="lang-es" class="content-lang active">
+            <div class="grid">
+                <div class="card">
+                    <h2>Política de Privacidad</h2>
+                    <p>Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación.</p>
+                    <a href="privacy.html" class="btn">Ver Política</a>
+                </div>
+                <div class="card">
+                    <h2>Términos de Servicio</h2>
+                    <p>Lee las condiciones de uso de la aplicación Himnario El Buen Pastor.</p>
+                    <a href="terms.html" class="btn">Ver Términos</a>
+                </div>
+                <div class="card">
+                    <h2>Soporte y Contacto</h2>
+                    <p>¿Tienes dudas o comentarios? Ponte en contacto con nuestro equipo de soporte.</p>
+                    <a href="mailto:isaacduran167@gmail.com" class="btn">Enviar Correo</a>
+                </div>
             </div>
-            <div class="card">
-                <h2>Términos de Servicio</h2>
-                <p>Lee las condiciones de uso de la aplicación Himnario El Buen Pastor.</p>
-                <a href="terms.html" class="btn">Ver Términos</a>
-            </div>
-            <div class="card">
-                <h2>Soporte y Contacto</h2>
-                <p>¿Tienes dudas o comentarios? Ponte en contacto con nuestro equipo de soporte.</p>
-                <a href="mailto:soporte@elbuenpastor.com" class="btn">Enviar Correo</a>
+        </div>
+
+        <!-- ENGLISH -->
+        <div id="lang-en" class="content-lang">
+            <div class="grid">
+                <div class="card">
+                    <h2>Privacy Policy</h2>
+                    <p>Learn how we protect your data and respect your privacy inside the app.</p>
+                    <a href="privacy.html" class="btn">View Policy</a>
+                </div>
+                <div class="card">
+                    <h2>Terms of Service</h2>
+                    <p>Read the terms and conditions for using Himnario El Buen Pastor.</p>
+                    <a href="terms.html" class="btn">View Terms</a>
+                </div>
+                <div class="card">
+                    <h2>Support & Contact</h2>
+                    <p>Have questions or feedback? Get in touch with our developer support team.</p>
+                    <a href="mailto:isaacduran167@gmail.com" class="btn">Send Email</a>
+                </div>
             </div>
         </div>
     </div>
 
     <footer>
-        &copy; 2026 Himnario El Buen Pastor. Todos los derechos reservados.
+        &copy; 2026 Himnario El Buen Pastor. All rights reserved / Todos los derechos reservados.
     </footer>
 
+    <script>
+        function setLanguage(lang) {
+            document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (lang === 'en') {
+                document.getElementById('lang-en').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Legal & Support Hub';
+            } else {
+                document.getElementById('lang-es').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Centro de Información Legal y Soporte';
+            }
+        }
+    </script>
 </body>
 </html>
