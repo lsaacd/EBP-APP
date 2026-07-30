@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos de Servicio / Terms of Service - Himnario El Buen Pastor</title>
+    <style>
+        :root {
+            --primary: #1A365D;
+            --accent: #2B6CB0;
+            --bg: #FAFAFA;
+            --card-bg: #FFFFFF;
+            --text: #2D3748;
+            --muted: #718096;
+            --border: #E2E8F0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 2.5rem 1rem 1.5rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        header p {
+            margin: 0.5rem 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .lang-switch {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1.25rem;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active, .lang-btn:hover {
+            background: white;
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            font-size: 1.35rem;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .last-updated {
+            display: inline-block;
+            background-color: #EDF2F7;
+            color: var(--muted);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-lang {
+            display: none;
+        }
+
+        .content-lang.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Himnario El Buen Pastor</h1>
+        <p id="header-subtitle">Términos de Servicio / Terms of Service</p>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLanguage('es')">Español 🇲🇽</button>
+            <button class="lang-btn" onclick="setLanguage('en')">English 🇺🇸</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+
+            <!-- SPANISH CONTENT -->
+            <div id="lang-es" class="content-lang active">
+                <span class="last-updated">Última actualización: 30 de Julio de 2026</span>
+
+                <p>Al descargar o utilizar la aplicación <strong>Himnario El Buen Pastor</strong>, aceptas cumplir con los siguientes Términos de Servicio. Por favor, léelos detenidamente antes de usar la aplicación.</p>
+
+                <h2>1. Uso de la Aplicación</h2>
+                <p>La aplicación está destinada al uso personal y no comercial con fines de adoración, edificación espiritual y consulta de himnos y cantos cristianos.</p>
+
+                <h2>2. Propiedad Intelectual</h2>
+                <p>El diseño, la interfaz de usuario, la estructura del código y los elementos gráficos de la aplicación son propiedad del desarrollador. Las letras de los himnos y audios se presentan con fines litúrgicos y de devoción.</p>
+
+                <h2>3. Disponibilidad del Servicio</h2>
+                <p>Nos esforzamos por ofrecer una experiencia fluida e ininterrumpida. Sin embargo, no garantizamos que la aplicación esté libre de errores ni que el servicio sea ininterrumpido en todo momento.</p>
+
+                <h2>4. Contacto y Soporte</h2>
+                <p>Si tienes alguna pregunta sobre estos Términos de Servicio, puedes comunicarte directamente con el desarrollador:</p>
+                <ul>
+                    <li><strong>Correo Electrónico:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
+                    <li><strong>Desarrollador:</strong> Isaac Durán</li>
+                </ul>
+            </div>
+
+            <!-- ENGLISH CONTENT -->
+            <div id="lang-en" class="content-lang">
+                <span class="last-updated">Last Updated: July 30, 2026</span>
+
+                <p>By downloading or using the <strong>Himnario El Buen Pastor</strong> application, you agree to comply with the following Terms of Service. Please read them carefully before using the app.</p>
+
+                <h2>1. Use of the Application</h2>
+                <p>The app is intended strictly for personal, non-commercial use for spiritual worship, devotion, and referencing Christian hymns and songs.</p>
+
+                <h2>2. Intellectual Property</h2>
+                <p>The layout, design, source code structure, and graphical elements of the application are owned by the developer. Hymn lyrics and audio recordings are presented for devotional purposes.</p>
+
+                <h2>3. Service Availability</h2>
+                <p>We strive to provide a seamless and continuous experience. However, we do not warrant that the application will be completely error-free or uninterrupted at all times.</p>
+
+                <h2>4. Contact & Support</h2>
+                <p>If you have any questions regarding these Terms of Service, please reach out directly:</p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
+                    <li><strong>Developer:</strong> Isaac Durán</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Himnario El Buen Pastor. All rights reserved / Todos los derechos reservados.
+    </footer>
+
+    <script>
+        function setLanguage(lang) {
+            document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (lang === 'en') {
+                document.getElementById('lang-en').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Terms of Service';
+            } else {
+                document.getElementById('lang-es').classList.add('active');
+                event.target.classList.add('active');
+                document.getElementById('header-subtitle').innerText = 'Términos de Servicio';
+            }
+        }
+    </script>
+</body>
+</html>
