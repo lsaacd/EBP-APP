@@ -22,18 +22,22 @@ import {
   PanResponder,
   LayoutChangeEvent,
   Animated,
+  Keyboard,
+  Pressable,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage, translateCategory, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useNowPlaying } from '../../context/NowPlayingContext';
+import { useHymnFilter } from '../../context/HymnFilterContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
 
 const hasAudio = (hymn: any) => hasHymnAudio(String(hymn.id));
@@ -48,10 +52,10 @@ const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 export default function HymnListScreen() {
   const router = useRouter();
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
+  const { search, setSearch, searchFilter, setSearchFilter, activeSubTab, setActiveSubTab } = useHymnFilter();
 
-  const [activeSubTab, setActiveSubTab] = useState<'himnos' | 'estribillos' | 'indice'>('himnos');
   const params = useLocalSearchParams<{ tab?: string; t?: string }>();
 
   React.useEffect(() => {
@@ -59,8 +63,6 @@ export default function HymnListScreen() {
       setActiveSubTab('himnos');
     }
   }, [params?.tab, params?.t]);
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('Todos');
   const [draggingLetter, setDraggingLetter] = useState<string | null>(null);
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const bubbleFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,10 +71,21 @@ export default function HymnListScreen() {
   const indiceListRef = useRef<any>(null);
   const searchRef = useRef<TextInput>(null);
   const chipsScrollRef = useRef<ScrollView>(null);
+  const overlayChipsScrollRef = useRef<ScrollView>(null);
   const sliderTrackRef = useRef<View>(null);
   const sidebarTrackRef = useRef<View>(null);
   const { openPlayer, currentHymnId } = useNowPlaying();
   const [isFocused, setIsFocused] = useState(false);
+  const blurAnim = useRef(new Animated.Value(0)).current;
+  const isSearchActive = isFocused || search.length > 0 || (searchFilter !== 'Todos' && searchFilter !== 'All');
+
+  React.useEffect(() => {
+    Animated.timing(blurAnim, {
+      toValue: isSearchActive ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [isSearchActive]);
   const contentHeight = useRef(0);
   const scrollViewHeight = useRef(0);
 
@@ -87,8 +100,21 @@ export default function HymnListScreen() {
         });
       }
     });
-    return ['Todos', ...Array.from(tags).sort((a, b) => a.localeCompare(b))];
-  }, [activeSubTab, hymnsData, estribillosData]);
+    const sorted = Array.from(tags).sort((a, b) => {
+      const labelA = translateCategory(a, language);
+      const labelB = translateCategory(b, language);
+      return labelA.localeCompare(labelB);
+    });
+    const allLabel = language === 'es' ? 'Todos' : 'All';
+    
+    // Bring the active searchFilter to the front if it's selected
+    if (searchFilter !== 'Todos' && searchFilter !== 'All' && sorted.includes(searchFilter)) {
+      const filteredSorted = sorted.filter(t => t !== searchFilter);
+      return [allLabel, searchFilter, ...filteredSorted];
+    }
+
+    return [allLabel, ...sorted];
+  }, [activeSubTab, hymnsData, estribillosData, language, searchFilter]);
 
   // ── Vertical scroll-position slider state ──────────────────────────────
   const [scrollFraction, setScrollFraction] = useState(0);
@@ -156,43 +182,37 @@ export default function HymnListScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    const dataSource = activeSubTab === 'estribillos' ? estribillosData : hymnsData;
-    return dataSource.filter((h) => {
-      const matchFilter =
-        activeFilter === 'Todos' ||
-        activeFilter === 'All' ||
-        (h.categories && h.categories.split('•').map((t: string) => t.trim()).includes(activeFilter));
-
-      const q = normalizeString(search);
-      const matchSearch =
-        !q ||
-        normalizeString(h.title).includes(q) ||
-        String(h.number).includes(q);
-
-      return matchFilter && matchSearch;
-    });
-  }, [search, activeFilter, activeSubTab, hymnsData, estribillosData]);
+    return activeSubTab === 'estribillos' ? estribillosData : hymnsData;
+  }, [activeSubTab, hymnsData, estribillosData]);
 
   const handleFilterChange = (f: string) => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: false });
-    }
-    const active = f === activeFilter;
-    setActiveFilter(active && f !== 'Todos' ? 'Todos' : f);
+    const isAll = f === 'Todos' || f === 'All';
+    const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
+    const active = f === searchFilter || (isAll && activeIsAll);
+    const defaultAll = language === 'es' ? 'Todos' : 'All';
+    setSearchFilter(active && !isAll ? defaultAll : f);
+    chipsScrollRef.current?.scrollTo({ x: 0, animated: true });
+    overlayChipsScrollRef.current?.scrollTo({ x: 0, animated: true });
   };
 
   const handleSearchChange = (text: string) => {
     setSearch(text);
-    // Delay scroll to allow FlashList to update its internal data layout first
-    setTimeout(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
-      }
-      if (indiceListRef.current) {
-        indiceListRef.current.scrollToOffset({ offset: 0, animated: false });
-      }
-    }, 100);
   };
+
+  const globalSearchResults = useMemo(() => {
+    const isAll = searchFilter === 'Todos' || searchFilter === 'All';
+    if (!search && isAll) return { himnos: [], estribillos: [] };
+    const q = normalizeString(search);
+    const filterFn = (h: any) => {
+      const matchSearch = !q || normalizeString(h.title).includes(q) || String(h.number).includes(q);
+      const matchCategory = isAll || (h.categories && h.categories.split('•').map((t: string) => t.trim()).some((cat: string) => cat === searchFilter || translateCategory(cat, language) === searchFilter));
+      return matchSearch && matchCategory;
+    };
+    return {
+      himnos: hymnsData.filter(filterFn),
+      estribillos: estribillosData.filter(filterFn),
+    };
+  }, [search, searchFilter, language, hymnsData, estribillosData]);
 
   // ── Índice Logic ─────────────────────────────────────────────
   const indiceData = useMemo(() => {
@@ -202,12 +222,9 @@ export default function HymnListScreen() {
     const grouped: any[] = [];
     
     // Header item (Título ÍNDICE ESTRIBILLOS)
-    grouped.push({ type: 'main_header', title: 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS Y CORITOS' });
+    grouped.push({ type: 'main_header', title: t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS Y CORITOS' });
     let currentLetter = '';
     sortedEstribillos.forEach(hymn => {
-      const q = normalizeString(search);
-      if (q && !normalizeString(hymn.title).includes(q) && !String(hymn.number).includes(q)) return;
-
       const letter = normalizeString(hymn.title).charAt(0).toUpperCase();
       const displayLetter = letter.match(/[A-Z]/) ? letter : (letter || 'A');
 
@@ -219,12 +236,9 @@ export default function HymnListScreen() {
     });
 
     // Header item (Título ÍNDICE HIMNOS)
-    grouped.push({ type: 'main_header', title: 'ÍNDICE ALFABÉTICO DE HIMNOS', marginTop: 24 });
+    grouped.push({ type: 'main_header', title: t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS', marginTop: 24 });
     currentLetter = '';
     sortedHimnos.forEach(hymn => {
-      const q = normalizeString(search);
-      if (q && !normalizeString(hymn.title).includes(q) && !String(hymn.number).includes(q)) return;
-
       const letter = normalizeString(hymn.title).charAt(0).toUpperCase();
       const displayLetter = letter.match(/[A-Z]/) ? letter : (letter || 'A');
 
@@ -236,7 +250,7 @@ export default function HymnListScreen() {
     });
 
     return grouped;
-  }, [search, hymnsData, estribillosData]);
+  }, [hymnsData, estribillosData, language, t]);
 
   const letterIndices = useMemo(() => {
     const indices: Record<string, number> = {};
@@ -343,8 +357,7 @@ export default function HymnListScreen() {
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setActiveSubTab(tab.key as any);
-              setSearch('');
-              setActiveFilter('Todos');
+              setSearchFilter('Todos');
               chipsScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
               if (flatListRef.current) {
                 flatListRef.current.scrollToOffset({ offset: 0, animated: false });
@@ -380,53 +393,21 @@ export default function HymnListScreen() {
         <FlashList
           ref={flatListRef}
           data={filtered}
+          extraData={language}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={[styles.scroll, { paddingRight: 24 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           scrollEventThrottle={16}
-          drawDistance={1500}
-          // @ts-ignore
-          estimatedItemSize={93}
           onScroll={handleScroll}
           onContentSizeChange={(_w, h) => { contentHeight.current = h; }}
           onLayout={(e) => { scrollViewHeight.current = e.nativeEvent.layout.height; }}
+          // @ts-ignore
+          estimatedItemSize={93}
+          drawDistance={5000}
           ListHeaderComponent={
-            <View style={styles.searchCluster}>
-              <View style={[styles.searchRow, { backgroundColor: theme.surfaceVariants.containerLow }]}>
-                <TouchableOpacity onPress={() => searchRef.current?.focus()} activeOpacity={0.4} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <MaterialIcons name="search" size={28} color={theme.outline} style={{ marginRight: 8 }} />
-                </TouchableOpacity>
-                <TextInput
-                  ref={searchRef}
-                  placeholder={t.searchPlaceholder}
-                  placeholderTextColor={theme.outlineVariant + 'AA'}
-                  style={[styles.searchInput, { color: theme.onSurface }]}
-                  value={search}
-                  onChangeText={handleSearchChange}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  returnKeyType="search"
-                  autoCorrect={true}
-                  spellCheck={true}
-                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                  enablesReturnKeyAutomatically={true}
-                />
-                {(isFocused || search.length > 0) && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      handleSearchChange('');
-                      searchRef.current?.blur();
-                    }}
-                    style={{ padding: 4 }}
-                  >
-                    <MaterialIcons name="cancel" size={22} color={theme.outline} />
-                  </TouchableOpacity>
-                )}
-              </View>
-
+            <View style={[styles.searchCluster, { marginTop: 0 }]}>
               <ScrollView
                 ref={chipsScrollRef}
                 horizontal
@@ -434,8 +415,10 @@ export default function HymnListScreen() {
                 contentContainerStyle={styles.chips}
               >
                 {currentFilters.map((f) => {
-                  const active = f === activeFilter;
-                  const displayLabel = f === 'Todos' ? t.filterAll : f;
+                  const isAll = f === 'Todos' || f === 'All';
+                  const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
+                  const active = f === searchFilter || (isAll && activeIsAll);
+                  const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
                   return (
                     <TouchableOpacity
                       key={f}
@@ -443,7 +426,7 @@ export default function HymnListScreen() {
                       style={[
                         styles.chip,
                         { backgroundColor: active ? theme.primary : theme.surfaceVariants.containerHighest },
-                        f === 'Todos' && !active && { borderWidth: 1, borderColor: theme.primary + '44', backgroundColor: 'transparent' }
+                        isAll && !active && { borderWidth: 1, borderColor: theme.primary + '44', backgroundColor: 'transparent' }
                       ]}
                     >
                       <Text style={[styles.chipText, { color: active ? theme.onPrimary : theme.onSurface }]}>
@@ -473,7 +456,7 @@ export default function HymnListScreen() {
                     {hymn.title}
                   </Text>
                   <Text style={[styles.listTags, { color: theme.onSurfaceVariant, opacity: 0.7 }]}>
-                    {hymn.categories}
+                    {translateCategories(hymn.categories, language)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -484,10 +467,10 @@ export default function HymnListScreen() {
             <View style={styles.quoteBlock}>
               <MaterialIcons name="auto-awesome" size={36} color={theme.primary} style={{ marginBottom: 16 }} />
               <Text style={[styles.quoteText, { color: theme.onSurface }]}>
-                "Cantad alegres a Dios, habitantes de toda la tierra."
+                {t.footerQuoteText}
               </Text>
               <Text style={[styles.quoteAuthor, { color: theme.outline }]}>
-                SALMO 100:1
+                {t.footerQuoteAuthor}
               </Text>
               <View style={{ height: Math.max(32, insets.bottom + (currentHymnId ? 100 : 20)) }} />
             </View>
@@ -534,12 +517,13 @@ export default function HymnListScreen() {
             <FlashList
               ref={indiceListRef}
               data={indiceData}
+              extraData={language}
               keyExtractor={(item, index) => item.type + '_' + (item.section || 'none') + '_' + (item.letter || item.hymn?.id || index)}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
               // @ts-ignore
               estimatedItemSize={40}
               drawDistance={1500}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => {
                 if (item.type === 'main_header') {
                   return (
@@ -580,39 +564,20 @@ export default function HymnListScreen() {
                   </TouchableOpacity>
                 );
               }}
-              ListFooterComponent={<View style={{ height: insets.bottom + (currentHymnId ? 152 : 82) + (Platform.OS === 'android' ? 50 : 0) }} />}
-              ListHeaderComponent={
-                <View style={styles.indiceSearchContainer}>
-                  <View style={[styles.searchRow, { backgroundColor: theme.surfaceVariants.containerLow, marginBottom: 0 }]}>
-                    <TouchableOpacity onPress={() => searchRef.current?.focus()} activeOpacity={0.4} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                      <MaterialIcons name="search" size={28} color={theme.outline} style={{ marginRight: 8 }} />
-                    </TouchableOpacity>
-                    <TextInput
-                      ref={searchRef}
-                      placeholder={t.searchPlaceholder}
-                      placeholderTextColor={theme.outlineVariant + 'AA'}
-                      style={[styles.searchInput, { color: theme.onSurface }]}
-                      value={search}
-                      onChangeText={handleSearchChange}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      returnKeyType="search"
-                      keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                    />
-                    {(isFocused || search.length > 0) && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          handleSearchChange('');
-                          searchRef.current?.blur();
-                        }}
-                        style={{ padding: 4 }}
-                      >
-                        <MaterialIcons name="cancel" size={22} color={theme.outline} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
+              ListFooterComponent={
+                <View style={styles.quoteBlock}>
+                  <MaterialIcons name="auto-awesome" size={36} color={theme.primary} style={{ marginBottom: 16 }} />
+                  <Text style={[styles.quoteText, { color: theme.onSurface }]}>
+                    {t.footerQuoteText}
+                  </Text>
+                  <Text style={[styles.quoteAuthor, { color: theme.outline }]}>
+                    {t.footerQuoteAuthor}
+                  </Text>
+                  <View style={{ height: Math.max(32, insets.bottom + (currentHymnId ? 100 : 20)) }} />
                 </View>
+              }
+              ListHeaderComponent={
+                <View style={{ height: 16 }} />
               }
             />
           </View>
@@ -695,13 +660,366 @@ export default function HymnListScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-        <View style={{ paddingTop: insets.top }}>
+        {/* Unified Top Search Bar */}
+        <View style={{ paddingTop: insets.top, zIndex: 10, paddingHorizontal: 16, paddingBottom: 4 }}>
+          <View style={[styles.searchRow, { backgroundColor: theme.surfaceVariants.containerLow, marginBottom: 0 }]}>
+            <TouchableOpacity onPress={() => searchRef.current?.focus()} activeOpacity={0.4} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <MaterialIcons name="search" size={28} color={theme.outline} style={{ marginRight: 8 }} />
+            </TouchableOpacity>
+            <TextInput
+              ref={searchRef}
+              placeholder={t.searchPlaceholder}
+              placeholderTextColor={theme.outlineVariant + 'AA'}
+              style={[styles.searchInput, { color: theme.onSurface }]}
+              value={search}
+              onChangeText={handleSearchChange}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              returnKeyType="search"
+              autoCorrect={true}
+              spellCheck={true}
+              keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+              enablesReturnKeyAutomatically={true}
+            />
+            {isSearchActive && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleSearchChange('');
+                  const defaultAll = language === 'es' ? 'Todos' : 'All';
+                  setSearchFilter(defaultAll);
+                  searchRef.current?.blur();
+                }}
+                style={{ padding: 4 }}
+              >
+                <MaterialIcons name="cancel" size={22} color={theme.outline} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Blur Overlay & Search Results */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { zIndex: 5, opacity: blurAnim, top: insets.top + 60 }
+          ]}
+          pointerEvents={isSearchActive ? 'auto' : 'none'}
+        >
+          <View style={{ flex: 1 }}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => {
+              Keyboard.dismiss();
+              handleSearchChange('');
+              const defaultAll = language === 'es' ? 'Todos' : 'All';
+              setSearchFilter(defaultAll);
+              searchRef.current?.blur();
+            }}>
+              <BlurView
+                intensity={Platform.OS === 'ios' ? 40 : 100}
+                tint={isDarkMode ? 'dark' : 'light'}
+                style={StyleSheet.absoluteFill}
+              />
+            </Pressable>
+            
+            <View style={{ flex: 1, zIndex: 10 }}>
+              {/* Category Chips Bar inside Search View */}
+              <View style={{ paddingTop: 8, paddingBottom: 6 }}>
+                <ScrollView
+                  ref={overlayChipsScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chips}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {currentFilters.map((f) => {
+                    const isAll = f === 'Todos' || f === 'All';
+                    const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
+                    const active = f === searchFilter || (isAll && activeIsAll);
+                    const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
+                    return (
+                      <TouchableOpacity
+                        key={`overlay-chip-${f}`}
+                        onPress={() => handleFilterChange(f)}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: active ? theme.primary : theme.surfaceVariants.containerHighest },
+                          isAll && !active && { borderWidth: 1, borderColor: theme.primary + '44', backgroundColor: 'transparent' }
+                        ]}
+                      >
+                        <Text style={[styles.chipText, { color: active ? theme.onPrimary : theme.onSurface }]}>
+                          {displayLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Results List */}
+              {(globalSearchResults.himnos.length > 0 || globalSearchResults.estribillos.length > 0) && (
+                <ScrollView 
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 350 }}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {/* Results count pill */}
+                  <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(110,22,25,0.08)',
+                      paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
+                    }}>
+                      <Text style={{
+                        fontFamily: 'PublicSans_500Medium', fontSize: 12, letterSpacing: 0.5,
+                        color: theme.primary,
+                      }}>
+                        {globalSearchResults.himnos.length + globalSearchResults.estribillos.length} {language === 'es'
+                          ? (globalSearchResults.himnos.length + globalSearchResults.estribillos.length !== 1 ? (t.searchResultsCount_other || 'resultados') : (t.searchResultsCount_one || 'resultado'))
+                          : (globalSearchResults.himnos.length + globalSearchResults.estribillos.length !== 1 ? (t.searchResultsCount_other || 'results') : (t.searchResultsCount_one || 'result'))}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {activeSubTab === 'estribillos' ? (
+                    <>
+                      {/* Estribillos first if in Choruses sub-tab */}
+                      {globalSearchResults.estribillos.length > 0 && (
+                        <View style={{ marginBottom: 28 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                            <MaterialIcons name="queue-music" size={18} color={theme.primary} />
+                            <Text style={{ fontFamily: 'PublicSans_700Bold', fontSize: 13, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.primary }}>
+                              {t.sectionEstribillos || 'Estribillos y Coritos'}
+                            </Text>
+                            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: theme.primary + '30', marginLeft: 8 }} />
+                          </View>
+                          {globalSearchResults.estribillos.map((hymn, index) => (
+                            <TouchableOpacity
+                              key={`estribillo-${hymn.id}`}
+                              activeOpacity={0.6}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center',
+                                paddingVertical: 14, paddingHorizontal: 14,
+                                backgroundColor: isDarkMode ? theme.surfaceVariants.containerLow : theme.surfaceVariants.containerLowest,
+                                borderTopLeftRadius: index === 0 ? 14 : 0,
+                                borderTopRightRadius: index === 0 ? 14 : 0,
+                                borderBottomLeftRadius: index === globalSearchResults.estribillos.length - 1 ? 14 : 0,
+                                borderBottomRightRadius: index === globalSearchResults.estribillos.length - 1 ? 14 : 0,
+                                borderBottomWidth: index < globalSearchResults.estribillos.length - 1 ? StyleSheet.hairlineWidth : 0,
+                                borderBottomColor: theme.outlineVariant + '40',
+                              }}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                Keyboard.dismiss();
+                                searchRef.current?.blur();
+                                router.push(`/hymn/${hymn.id}`);
+                              }}
+                            >
+                              <Text style={{
+                                fontFamily: fonts.bold, fontSize: 20, width: 48,
+                                color: theme.primary, textAlign: 'center',
+                              }}>{hymn.number}</Text>
+                              <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={{ fontFamily: fonts.regularItalic, fontSize: 17, color: theme.onSurface, lineHeight: 22 }} numberOfLines={1}>{hymn.title}</Text>
+                                {hymn.categories ? (
+                                  <Text style={{ fontFamily: 'PublicSans_400Regular', fontSize: 11, color: theme.onSurfaceVariant + 'AA', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 2 }} numberOfLines={1}>
+                                    {translateCategories(hymn.categories, language)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+
+                      {/* Himnos second */}
+                      {globalSearchResults.himnos.length > 0 && (
+                        <View style={{ marginBottom: 28 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                            <MaterialIcons name="music-note" size={18} color={theme.primary} />
+                            <Text style={{ fontFamily: 'PublicSans_700Bold', fontSize: 13, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.primary }}>
+                              {t.sectionHimnos || 'Himnos'}
+                            </Text>
+                            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: theme.primary + '30', marginLeft: 8 }} />
+                          </View>
+                          {globalSearchResults.himnos.map((hymn, index) => (
+                            <TouchableOpacity
+                              key={`himno-${hymn.id}`}
+                              activeOpacity={0.6}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center',
+                                paddingVertical: 14, paddingHorizontal: 14,
+                                backgroundColor: isDarkMode ? theme.surfaceVariants.containerLow : theme.surfaceVariants.containerLowest,
+                                borderTopLeftRadius: index === 0 ? 14 : 0,
+                                borderTopRightRadius: index === 0 ? 14 : 0,
+                                borderBottomLeftRadius: index === globalSearchResults.himnos.length - 1 ? 14 : 0,
+                                borderBottomRightRadius: index === globalSearchResults.himnos.length - 1 ? 14 : 0,
+                                borderBottomWidth: index < globalSearchResults.himnos.length - 1 ? StyleSheet.hairlineWidth : 0,
+                                borderBottomColor: theme.outlineVariant + '40',
+                              }}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                Keyboard.dismiss();
+                                searchRef.current?.blur();
+                                router.push(`/hymn/${hymn.id}`);
+                              }}
+                            >
+                              <Text style={{
+                                fontFamily: fonts.bold, fontSize: 20, width: 48,
+                                color: theme.primary, textAlign: 'center',
+                              }}>{hymn.number}</Text>
+                              <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={{ fontFamily: fonts.regularItalic, fontSize: 17, color: theme.onSurface, lineHeight: 22 }} numberOfLines={1}>{hymn.title}</Text>
+                                {hymn.categories ? (
+                                  <Text style={{ fontFamily: 'PublicSans_400Regular', fontSize: 11, color: theme.onSurfaceVariant + 'AA', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 2 }} numberOfLines={1}>
+                                    {translateCategories(hymn.categories, language)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {/* Himnos first if in Hymns or Index sub-tab */}
+                      {globalSearchResults.himnos.length > 0 && (
+                        <View style={{ marginBottom: 28 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                            <MaterialIcons name="music-note" size={18} color={theme.primary} />
+                            <Text style={{ fontFamily: 'PublicSans_700Bold', fontSize: 13, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.primary }}>
+                              {t.sectionHimnos || 'Himnos'}
+                            </Text>
+                            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: theme.primary + '30', marginLeft: 8 }} />
+                          </View>
+                          {globalSearchResults.himnos.map((hymn, index) => (
+                            <TouchableOpacity
+                              key={`himno-${hymn.id}`}
+                              activeOpacity={0.6}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center',
+                                paddingVertical: 14, paddingHorizontal: 14,
+                                backgroundColor: isDarkMode ? theme.surfaceVariants.containerLow : theme.surfaceVariants.containerLowest,
+                                borderTopLeftRadius: index === 0 ? 14 : 0,
+                                borderTopRightRadius: index === 0 ? 14 : 0,
+                                borderBottomLeftRadius: index === globalSearchResults.himnos.length - 1 ? 14 : 0,
+                                borderBottomRightRadius: index === globalSearchResults.himnos.length - 1 ? 14 : 0,
+                                borderBottomWidth: index < globalSearchResults.himnos.length - 1 ? StyleSheet.hairlineWidth : 0,
+                                borderBottomColor: theme.outlineVariant + '40',
+                              }}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                Keyboard.dismiss();
+                                searchRef.current?.blur();
+                                router.push(`/hymn/${hymn.id}`);
+                              }}
+                            >
+                              <Text style={{
+                                fontFamily: fonts.bold, fontSize: 20, width: 48,
+                                color: theme.primary, textAlign: 'center',
+                              }}>{hymn.number}</Text>
+                              <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={{ fontFamily: fonts.regularItalic, fontSize: 17, color: theme.onSurface, lineHeight: 22 }} numberOfLines={1}>{hymn.title}</Text>
+                                {hymn.categories ? (
+                                  <Text style={{ fontFamily: 'PublicSans_400Regular', fontSize: 11, color: theme.onSurfaceVariant + 'AA', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 2 }} numberOfLines={1}>
+                                    {translateCategories(hymn.categories, language)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+
+                      {/* Estribillos second */}
+                      {globalSearchResults.estribillos.length > 0 && (
+                        <View style={{ marginBottom: 28 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                            <MaterialIcons name="queue-music" size={18} color={theme.primary} />
+                            <Text style={{ fontFamily: 'PublicSans_700Bold', fontSize: 13, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.primary }}>
+                              {t.sectionEstribillos || 'Estribillos y Coritos'}
+                            </Text>
+                            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: theme.primary + '30', marginLeft: 8 }} />
+                          </View>
+                          {globalSearchResults.estribillos.map((hymn, index) => (
+                            <TouchableOpacity
+                              key={`estribillo-${hymn.id}`}
+                              activeOpacity={0.6}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center',
+                                paddingVertical: 14, paddingHorizontal: 14,
+                                backgroundColor: isDarkMode ? theme.surfaceVariants.containerLow : theme.surfaceVariants.containerLowest,
+                                borderTopLeftRadius: index === 0 ? 14 : 0,
+                                borderTopRightRadius: index === 0 ? 14 : 0,
+                                borderBottomLeftRadius: index === globalSearchResults.estribillos.length - 1 ? 14 : 0,
+                                borderBottomRightRadius: index === globalSearchResults.estribillos.length - 1 ? 14 : 0,
+                                borderBottomWidth: index < globalSearchResults.estribillos.length - 1 ? StyleSheet.hairlineWidth : 0,
+                                borderBottomColor: theme.outlineVariant + '40',
+                              }}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                Keyboard.dismiss();
+                                searchRef.current?.blur();
+                                router.push(`/hymn/${hymn.id}`);
+                              }}
+                            >
+                              <Text style={{
+                                fontFamily: fonts.bold, fontSize: 20, width: 48,
+                                color: theme.primary, textAlign: 'center',
+                              }}>{hymn.number}</Text>
+                              <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={{ fontFamily: fonts.regularItalic, fontSize: 17, color: theme.onSurface, lineHeight: 22 }} numberOfLines={1}>{hymn.title}</Text>
+                                {hymn.categories ? (
+                                  <Text style={{ fontFamily: 'PublicSans_400Regular', fontSize: 11, color: theme.onSurfaceVariant + 'AA', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 2 }} numberOfLines={1}>
+                                    {translateCategories(hymn.categories, language)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </ScrollView>
+              )}
+              
+              {globalSearchResults.himnos.length === 0 && globalSearchResults.estribillos.length === 0 && (
+                 <View style={{ flex: 1, alignItems: 'center', paddingTop: 80, zIndex: 10 }} pointerEvents="none">
+                   <View style={{
+                     width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center',
+                     backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(110,22,25,0.06)', marginBottom: 20,
+                   }}>
+                     <MaterialIcons name="search-off" size={40} color={theme.primary + '70'} />
+                   </View>
+                   <Text style={{ color: theme.onSurface, fontSize: 17, fontFamily: 'PublicSans_600SemiBold', marginBottom: 6 }}>
+                     {language === 'es' ? 'Sin resultados' : 'No results found'}
+                   </Text>
+                   <Text style={{ color: theme.onSurfaceVariant + '99', fontSize: 14, fontFamily: 'PublicSans_400Regular', textAlign: 'center', paddingHorizontal: 40 }}>
+                     {language === 'es'
+                       ? (search ? `No se encontraron himnos ni estribillos para "${search}"` : 'No se encontraron himnos ni estribillos para esta categoría')
+                       : (search ? `No hymns or choruses found for "${search}"` : 'No hymns or choruses found for this category')}
+                   </Text>
+                 </View>
+              )}
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Tabs */}
+        <View style={{ zIndex: 1 }}>
           {renderSubTabs()}
         </View>
 
-        {(activeSubTab === 'himnos' || (activeSubTab === 'estribillos' && estribillosData.length > 0)) && renderHimnos()}
-        {activeSubTab === 'indice' && renderIndice()}
-        {activeSubTab === 'estribillos' && estribillosData.length === 0 && renderEstribillos()}
+        <View style={{ flex: 1, zIndex: 1 }}>
+          {(activeSubTab === 'himnos' || (activeSubTab === 'estribillos' && estribillosData.length > 0)) && renderHimnos()}
+          {activeSubTab === 'indice' && renderIndice()}
+          {activeSubTab === 'estribillos' && estribillosData.length === 0 && renderEstribillos()}
+        </View>
       </SafeAreaView>
     </View>
   );

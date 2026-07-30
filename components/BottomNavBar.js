@@ -89,7 +89,7 @@ export default function BottomNavBar() {
 
   // Ref-based release handler — always holds a FRESH closure so the stale
   // PanResponder (created once via useRef) can call up-to-date logic.
-  const releaseHandlerRef = useRef(() => {});
+  const releaseHandlerRef = useRef(() => { });
   releaseHandlerRef.current = () => {
     const idx = hoveredIdx.current;
     if (idx >= 0) {
@@ -270,8 +270,8 @@ export default function BottomNavBar() {
         />
       )}
 
-      {/* ── Mini Player — floats above the pill ─────────────────── */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: pillBottom + 82 }}>
+      {/* ── Mini Player — floats directly on top of the pill with 0px gap ── */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: pillBottom + 61 }}>
         <MiniPlayer />
       </View>
 

@@ -16,6 +16,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { Tabs } from 'expo-router';
@@ -203,7 +204,8 @@ function AndroidTabs() {
   );
 }
 
-const PILL_RADIUS = 50;
+const { width: windowWidth } = Dimensions.get('window');
+const PILL_RADIUS = 100;
 
 const pillStyles = StyleSheet.create({
   overlay: {

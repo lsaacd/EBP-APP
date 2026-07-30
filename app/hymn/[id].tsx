@@ -107,7 +107,8 @@ export default function HymnDetail() {
 
   // When the mini player is visible, shift nav buttons up to avoid overlap
   const miniPlayerVisible = !!currentHymnId && !showFullPlayer;
-  const navBtnBottom = miniPlayerVisible ? 150 : 92;
+  const baseNavBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 22) + 78 + 6 : 92;
+  const navBtnBottom = miniPlayerVisible ? baseNavBottom + 70 : baseNavBottom;
 
   const hymnAudio = (h: any) => hasHymnAudio(String(h?.id ?? ''));
 
@@ -398,6 +399,7 @@ export default function HymnDetail() {
                 <Text style={[styles.footerReportText, { color: theme.primary }]}>
                   {t.reportHymnError}
                 </Text>
+                <MaterialIcons name="chevron-right" size={16} color={theme.primary} />
               </TouchableOpacity>
             </View>
 
@@ -407,7 +409,10 @@ export default function HymnDetail() {
       </PageFlipTransition>
 
       {/* ─── Floating Reading Controls (pill) ─────────── */}
-      <View style={styles.floatWrap}>
+      <View style={[
+        styles.floatWrap, 
+        { bottom: Math.max(insets.bottom, 22) } 
+      ]}>
         <View style={[
           styles.floatPill,
           {
@@ -697,12 +702,12 @@ const styles = StyleSheet.create({
   floatPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: Platform.OS === 'ios' ? 'space-between' : 'center',
-    width: Platform.OS === 'ios' ? windowWidth - 40 : undefined,
-    paddingHorizontal: Platform.OS === 'ios' ? 20 : 24,
-    paddingVertical: Platform.OS === 'ios' ? 8 : 12,
+    justifyContent: Platform.OS === 'ios' ? 'space-between' : 'space-evenly',
+    width: windowWidth - 40, // Match tab bar width on both platforms
+    paddingHorizontal: Platform.OS === 'ios' ? 20 : 8,
+    paddingVertical: 10.5, // 10.5 * 2 + 40 (icon height) = 61px exact tab bar height universally
     borderRadius: 100,
-    gap: Platform.OS === 'ios' ? 0 : 10,
+    gap: Platform.OS === 'ios' ? 0 : 0,
     // Platform split: elevation (Android only) vs shadow props (iOS only)
     // High elevation on Android adds a surface-overlay tint — keep it low.
     ...Platform.select({

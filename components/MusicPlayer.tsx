@@ -42,7 +42,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import TrackPlayer, { useProgress } from 'react-native-track-player';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeContext';
@@ -75,22 +75,20 @@ const formatTime = (ms: number): string => {
 // ProgressSection — isolated to prevent full-player re-renders
 // ─────────────────────────────────────────────────────────────
 const ProgressSection = React.memo(function ProgressSection({
-  player,
   audioAvailable,
 }: {
-  player: ReturnType<typeof useAudioPlayer>;
   audioAvailable: boolean;
 }) {
-  const status = useAudioPlayerStatus(player);
+  const { position, duration } = useProgress(250);
   
   // Use a Ref for instant locking to prevent "rubber-banding" on iOS
   const isSeekingRef = useRef(false);
   const [seekVal, setSeekVal] = useState(0);
   const [, forceUpdate] = useState({});
 
-  // Stabilize values to prevent scale-jitter (snap-back)
-  const currentMs = Math.floor((status.currentTime ?? 0) * 1000);
-  const durationMs = Math.floor((status.duration ?? 0) * 1000);
+  // Convert seconds to ms for display
+  const currentMs = Math.floor((position ?? 0) * 1000);
+  const durationMs = Math.floor((duration ?? 0) * 1000);
   
   const displayValue = isSeekingRef.current ? seekVal : currentMs;
 
@@ -110,7 +108,7 @@ const ProgressSection = React.memo(function ProgressSection({
           setSeekVal(Math.floor(v));
         }}
         onSlidingComplete={(v: number) => {
-          player.seekTo(v / 1000);
+          TrackPlayer.seekTo(v / 1000);
           // Tiny delay before unlocking prevents the "snap back" 
           // while the audio engine catches up to the new position
           setTimeout(() => {
@@ -167,11 +165,9 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // ── Global audio state from context ──────────────────────
   const {
     currentHymnId,
     isPlaying,
-    player,
     isShuffled,
     repeatMode,
     togglePlayPause,
@@ -360,7 +356,6 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
 
         {/* ─── Progress Bar (isolated component — own position state) ── */}
         <ProgressSection
-          player={player}
           audioAvailable={audioAvailable}
         />
 
@@ -472,9 +467,9 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
             id="music-player-favorite"
           >
             <MaterialIcons
-              name={isFavorite(String(hymn.id)) ? 'favorite' : 'favorite-border'}
+              name={isFavorite(String(hymn.id)) ? 'bookmark' : 'bookmark-border'}
               size={24}
-              color={isFavorite(String(hymn.id)) ? '#c0392b' : 'rgba(255,255,255,0.5)'}
+              color={isFavorite(String(hymn.id)) ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             />
           </TouchableOpacity>
 
@@ -535,7 +530,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
               >
                 <MaterialIcons name="close" size={22} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
-              <Text style={shareStyles.headerTitle}>Compartir</Text>
+              <Text style={shareStyles.headerTitle}>{t.shareModalTitle}</Text>
               <View style={{ width: 38 }} />
             </View>
 
@@ -580,7 +575,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 <View style={[shareStyles.actionIcon, { backgroundColor: '#34C759' }]}>
                   <MaterialIcons name="chat-bubble" size={24} color="#fff" />
                 </View>
-                <Text style={shareStyles.actionLabel}>Messages</Text>
+                <Text style={shareStyles.actionLabel}>{t.shareMessages}</Text>
               </TouchableOpacity>
 
               {/* WhatsApp */}
@@ -614,7 +609,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 <View style={[shareStyles.actionIcon, { backgroundColor: '#636366' }]}>
                   <MaterialIcons name="content-copy" size={22} color="#fff" />
                 </View>
-                <Text style={shareStyles.actionLabel}>Copiar</Text>
+                <Text style={shareStyles.actionLabel}>{t.shareCopy}</Text>
               </TouchableOpacity>
 
               {/* More (native share sheet) */}
@@ -633,7 +628,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 <View style={[shareStyles.actionIcon, { backgroundColor: '#636366' }]}>
                   <MaterialIcons name="more-horiz" size={24} color="#fff" />
                 </View>
-                <Text style={shareStyles.actionLabel}>Más</Text>
+                <Text style={shareStyles.actionLabel}>{t.shareMore}</Text>
               </TouchableOpacity>
             </ScrollView>
 

@@ -19,18 +19,18 @@ export const sendFeedbackEmail = (
   if (hymnNumber !== undefined && hymnTitle !== undefined) {
     if (language === 'es') {
       subject = `Reportar error en Alabanza #${hymnNumber} — ${hymnTitle}`;
-      body = `Hola,\n\nEncontré un detalle en la alabanza #${hymnNumber} ("${hymnTitle}"):\n\n[Por favor describe el error de letra o audio aquí]\n\n— Enviado desde Himnario El Buen Pastor`;
+      body = `Paz de Dios hermano,\n\nTe saludo en el amor de nuestro Señor Jesucristo. Encontré un detalle en la alabanza #${hymnNumber} ("${hymnTitle}"):\n\n[Por favor describe el error de letra o audio aquí]\n\nDios te bendiga,\n— Enviado desde Himnario El Buen Pastor`;
     } else {
       subject = `Report error in Hymn #${hymnNumber} — ${hymnTitle}`;
-      body = `Hello,\n\nI found an issue in hymn #${hymnNumber} ("${hymnTitle}"):\n\n[Please describe the lyric or audio error here]\n\n— Sent from El Buen Pastor Hymnal`;
+      body = `Peace of God brother,\n\nGreetings in the love of our Lord Jesus Christ. I found an issue in hymn #${hymnNumber} ("${hymnTitle}"):\n\n[Please describe the lyric or audio error here]\n\nMay God bless you,\n— Sent from El Buen Pastor Hymnal`;
     }
   } else {
     if (language === 'es') {
       subject = 'Reportar error o sugerencia en Himnario EBP';
-      body = `Hola,\n\nMe gustaría reportar el siguiente detalle o sugerencia:\n\nAlabanza # (si aplica):\nDetalle:\n\n— Enviado desde Himnario El Buen Pastor`;
+      body = `Paz de Dios hermano,\n\nTe saludo en el amor de nuestro Señor Jesucristo. Me gustaría compartir la siguiente observación o sugerencia:\n\nAlabanza # (si aplica):\nDetalle:\n\nDios te bendiga,\n— Enviado desde Himnario El Buen Pastor`;
     } else {
       subject = 'Report an error or suggestion in El Buen Pastor Hymnal';
-      body = `Hello,\n\nI would like to report the following issue or suggestion:\n\nHymn # (if applicable):\nDetails:\n\n— Sent from El Buen Pastor Hymnal`;
+      body = `Peace of God brother,\n\nGreetings in the love of our Lord Jesus Christ. I would like to share the following issue or suggestion:\n\nHymn # (if applicable):\nDetails:\n\nMay God bless you,\n— Sent from El Buen Pastor Hymnal`;
     }
   }
 

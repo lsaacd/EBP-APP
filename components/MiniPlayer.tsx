@@ -122,7 +122,6 @@ export default function MiniPlayer() {
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: 20,
-    paddingBottom: 8,
   },
   container: {
     borderRadius: 16,

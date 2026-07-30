@@ -6,13 +6,15 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "ios-simulator": {
       "extends": "development",
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "ios-simulator"
     },
     "preview": {
       "distribution": "internal",
@@ -21,7 +23,8 @@
       },
       "android": {
         "resourceClass": "large"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -30,7 +33,8 @@
       },
       "android": {
         "resourceClass": "large"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

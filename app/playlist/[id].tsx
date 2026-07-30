@@ -14,7 +14,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
 import { useFavorites } from '../../context/FavoritesContext';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -28,27 +28,27 @@ export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + 16;
   const { currentHymnId } = useNowPlaying();
-  
+
   const { playlists, deletePlaylist, removeHymnFromPlaylist } = usePlaylists();
   const { toggleFavorite } = useFavorites();
-  
+
   const playlist = playlists.find(p => p.id === id);
   const allHymns = [...hymnsData, ...estribillosData];
   const playlistHymns = playlist ? playlist.hymnIds.map(hId => allHymns.find(h => String(h.id) === hId)).filter(Boolean) : [];
 
   const handleDeletePlaylist = () => {
     Alert.alert(
-      "Eliminar lista",
-      "¿Estás seguro de que quieres eliminar esta lista de reproducción?",
+      t.deletePlaylistTitle,
+      t.deletePlaylistConfirm,
       [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Eliminar", 
-          style: "destructive", 
+        { text: t.cancel, style: "cancel" },
+        {
+          text: t.delete,
+          style: "destructive",
           onPress: () => {
             if (id) {
               deletePlaylist(String(id));
@@ -69,7 +69,7 @@ export default function PlaylistDetailScreen() {
   // ── Scroll & header states ────────────────────────────────────────────────
   const scrollRef = useRef<ScrollView>(null);
   const iosScrollRef = useRef<any>(null);
-  
+
   const [headerH, setHeaderH] = useState(0);
   const headerTranslate = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -126,9 +126,9 @@ export default function PlaylistDetailScreen() {
   if (!playlist) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: theme.onSurface, fontFamily: fonts.regular, fontSize: 18 }}>Lista no encontrada</Text>
+        <Text style={{ color: theme.onSurface, fontFamily: fonts.regular, fontSize: 18 }}>{t.playlistNotFound}</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: theme.primary, fontFamily: fonts.bold }}>Volver</Text>
+          <Text style={{ color: theme.primary, fontFamily: fonts.bold }}>{t.goBack}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -142,11 +142,11 @@ export default function PlaylistDetailScreen() {
         </View>
         <Text style={[styles.pageTitle, { color: theme.primary }]}>{playlist.name}</Text>
         <Text style={[styles.pageSubhead, { color: theme.onSurfaceVariant }]}>
-          {playlistHymns.length} {playlistHymns.length === 1 ? 'canción' : 'canciones'}
+          {playlistHymns.length} {playlistHymns.length === 1 ? t.songCount_one : t.songCount_other}
         </Text>
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDeletePlaylist}>
           <MaterialIcons name="delete-outline" size={20} color={theme.error || '#c0392b'} />
-          <Text style={[styles.deleteBtnText, { color: theme.error || '#c0392b' }]}>Eliminar Lista</Text>
+          <Text style={[styles.deleteBtnText, { color: theme.error || '#c0392b' }]}>{t.deletePlaylist}</Text>
         </TouchableOpacity>
       </View>
 
@@ -159,7 +159,7 @@ export default function PlaylistDetailScreen() {
             style={{ marginBottom: 24 }}
           />
           <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
-            Esta lista está vacía.
+            {t.playlistEmpty}
           </Text>
           <TouchableOpacity
             style={[styles.goBtn, { backgroundColor: theme.surfaceVariants.containerLow }]}
@@ -197,7 +197,7 @@ export default function PlaylistDetailScreen() {
                   </Text>
                   {hymn.categories ? (
                     <Text style={[styles.listTags, { color: theme.outline }]}>
-                      {hymn.categories}
+                      {translateCategories(hymn.categories, language)}
                     </Text>
                   ) : null}
                 </View>
@@ -250,7 +250,7 @@ export default function PlaylistDetailScreen() {
       <LinearGradient
         colors={[
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-          isDarkMode ? 'rgba(1,1,1,0.0)'  : 'rgba(250,245,238,0.0)',
+          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
         ]}
         style={[styles.statusBarScrim, { height: insets.top + 28 }]}
         pointerEvents="none"

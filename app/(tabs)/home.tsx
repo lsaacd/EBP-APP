@@ -28,7 +28,7 @@ import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRecentHymns } from '../../context/RecentHymnsContext';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import VerseCard from '../../components/VerseCard';
 import { useNowPlaying } from '../../context/NowPlayingContext';
@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode } = useTheme();
   const { recentIds, clearRecent } = useRecentHymns();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { currentHymnId } = useNowPlaying();
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
@@ -138,7 +138,7 @@ export default function HomeScreen() {
       {/* ─── Hero Card — "Ver todos los himnos" ───────── */}
       <View
         style={[styles.heroWrapper, {
-          shadowColor: isDarkMode ? '#ffffffff' : theme.primary,
+          shadowColor: isDarkMode ? '#ffffff44' : theme.primary,
           backgroundColor: isDarkMode ? '#1c1c1c' : theme.primary,
         }]}
       >
@@ -163,7 +163,7 @@ export default function HomeScreen() {
               {t.exploreAll}
             </Text>
             <Text
-              style={[styles.heroSub, { color: '#ffffff', opacity: 0.82 }]}
+              style={[styles.heroSub, { color: '#ffffff', opacity: 0.7 }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
@@ -171,6 +171,7 @@ export default function HomeScreen() {
               {t.exploreCollection}
             </Text>
           </View>
+          <MaterialIcons name="arrow-forward-ios" size={16} color="rgba(255,255,255,0.5)" />
         </TouchableOpacity>
       </View>
 
@@ -181,20 +182,21 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={[styles.doctrineCard, {
           backgroundColor: theme.surfaceVariants.containerLow,
-          borderWidth: 1,
-          borderColor: theme.primary + '18',
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: theme.primary + '20',
         }]}
         activeOpacity={0.82}
         onPress={() => setShowDoctrine(true)}
       >
+        <View style={[styles.doctrineCardIconWrap, { backgroundColor: theme.primary + '12' }]}>
+          <MaterialIcons name="history-edu" size={24} color={theme.primary} />
+        </View>
         <View style={styles.doctrineCardTextBlock}>
           <Text style={[styles.doctrineCardTitle, { color: theme.onSurface }]}>
             {t.doctrineCardTitle}
           </Text>
         </View>
-        <View style={[styles.doctrineCardIconWrap, { backgroundColor: theme.primary + '15' }]}>
-          <MaterialIcons name="history-edu" size={28} color={theme.primary} />
-        </View>
+        <MaterialIcons name="chevron-right" size={22} color={theme.outlineVariant} />
       </TouchableOpacity>
 
       {/* ─── Himnos Recientes ─────────────────── */}
@@ -245,7 +247,7 @@ export default function HomeScreen() {
                   </Text>
                   {hymn.categories ? (
                     <Text style={[styles.recentCat, { color: theme.outline }]}>
-                      {hymn.categories.toUpperCase()}
+                      {translateCategories(hymn.categories, language).toUpperCase()}
                     </Text>
                   ) : null}
                 </View>
@@ -522,46 +524,44 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     zIndex: 2,
     gap: 4,
-    alignItems: 'center',
   },
   heroHeadline: {
     fontFamily: fonts.bold,
-    fontSize: 28,
-    textAlign: 'center',
+    fontSize: 22,
   },
   heroSub: {
-    fontFamily: fonts.regular,
+    fontFamily: 'PublicSans_500Medium',
     fontSize: 10,
     letterSpacing: 1.8,
-    textAlign: 'center',
+    textTransform: 'uppercase',
   },
 
-  // Doctrine card (replaces cantos card)
+  // Doctrine card
   doctrineCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     borderRadius: 16,
     marginBottom: 40,
-    gap: 16,
+    gap: 14,
   },
   doctrineCardTextBlock: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   doctrineCardTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 17,
+    fontFamily: 'PublicSans_600SemiBold',
+    fontSize: 15,
   },
   doctrineCardSub: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
+    fontFamily: 'PublicSans_400Regular',
+    fontSize: 12,
   },
   doctrineCardIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

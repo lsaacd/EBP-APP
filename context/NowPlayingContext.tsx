@@ -1,12 +1,23 @@
 /**
  * NowPlayingContext — Global audio state for the entire app.
  *
- * Owns the `useAudioPlayer` hook so audio persists across screens.
+ * Uses react-native-track-player for native lock screen controls,
+ * Dynamic Island (iOS), Control Center (iOS), and notification
+ * media controls (Android).
+ *
  * Powers both the full-screen MusicPlayer modal and the floating MiniPlayer.
  */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+import TrackPlayer, {
+  Capability,
+  State,
+  AppKilledPlaybackBehavior,
+  useTrackPlayerEvents,
+  Event,
+  RepeatMode,
+} from 'react-native-track-player';
+import { Asset } from 'expo-asset';
 import { getHymnAudio, hasHymnAudio } from '../data/audioRegistry';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
 import * as Haptics from 'expo-haptics';
@@ -25,8 +36,6 @@ interface NowPlayingState {
   isShuffled: boolean;
   /** Repeat mode */
   repeatMode: 'off' | 'all' | 'one';
-  /** The expo-audio player instance (for ProgressSection / status) */
-  player: ReturnType<typeof useAudioPlayer>;
   /** Open the full-screen player for a specific hymn */
   openPlayer: (hymnId: string) => void;
   /** Close the full-screen player (audio keeps playing) */
@@ -56,170 +65,296 @@ export function useNowPlaying() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Track Player Setup (run once)
+// ─────────────────────────────────────────────────────────────
+let isPlayerReady = false;
+
+async function setupPlayer() {
+  if (isPlayerReady) return;
+  try {
+    await TrackPlayer.setupPlayer();
+    await TrackPlayer.updateOptions({
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.SeekTo,
+      ],
+      compactCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+      ],
+      android: {
+        appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+      },
+    });
+    isPlayerReady = true;
+  } catch (e) {
+    // Player might already be set up (e.g., after a hot reload)
+    console.warn('[TrackPlayer] Setup warning:', e);
+    isPlayerReady = true;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helper: resolve require() asset to a local file URI
+// ─────────────────────────────────────────────────────────────
+async function resolveAudioUri(requireSource: any): Promise<string | null> {
+  try {
+    const asset = Asset.fromModule(requireSource);
+    if (!asset.localUri) {
+      await asset.downloadAsync();
+    }
+    return asset.localUri || asset.uri;
+  } catch (e) {
+    console.warn('[TrackPlayer] Failed to resolve audio asset:', e);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Provider
 // ─────────────────────────────────────────────────────────────
 export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
-  const [currentHymnId, setCurrentHymnId] = useState<string | null>(null);
+  const [currentHymnId, setCurrentHymnIdState] = useState<string | null>(null);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
-  const handleFinishRef = useRef<() => void>(() => {});
 
-  // Resolve audio source from the current hymn ID
-  const audioSource = currentHymnId ? getHymnAudio(currentHymnId) : null;
-  const player = useAudioPlayer(audioSource ?? null);
+  const currentHymnIdRef = useRef<string | null>(null);
 
-  // Audio mode (run once)
+  // Initialize TrackPlayer once
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true });
+    setupPlayer();
   }, []);
 
+  // NOTE: We intentionally do NOT use the useIsPlaying() hook here.
+  // On Android, ExoPlayer can report State.Ready instead of State.Playing,
+  // causing the hook to return playing=false even when audio is playing.
+  // Instead, we track isPlaying manually via our own play/pause calls
+  // and also listen for native events as a safety net (see below).
 
-  // Track play state reactively
-  useEffect(() => {
-    const sub = player.addListener('playbackStatusUpdate', (status) => {
-      setIsPlaying((prev) => (prev !== status.playing ? status.playing : prev));
-      if (status.didJustFinish) handleFinishRef.current();
+  // Listen for track-ended and remote-control events
+  useTrackPlayerEvents(
+    [
+      Event.PlaybackQueueEnded,
+      Event.RemoteNext,
+      Event.RemotePrevious,
+      Event.RemotePlay,
+      Event.RemotePause,
+    ],
+    async (event) => {
+      if (event.type === Event.PlaybackQueueEnded) {
+        // Handle repeat / auto-advance
+        if (repeatMode === 'one') {
+          await TrackPlayer.seekTo(0);
+          await TrackPlayer.play();
+        } else {
+          handleSkipNext();
+        }
+      } else if (event.type === Event.RemoteNext) {
+        handleSkipNext();
+      } else if (event.type === Event.RemotePrevious) {
+        handleSkipPrev();
+      } else if (event.type === Event.RemotePlay) {
+        await TrackPlayer.play();
+        setIsPlaying(true);
+      } else if (event.type === Event.RemotePause) {
+        await TrackPlayer.pause();
+        setIsPlaying(false);
+      }
+    }
+  );
+
+  // ── Load & play a track ──────────────────────────────────
+  const loadAndPlay = useCallback(async (hymnId: string) => {
+    if (!isPlayerReady) await setupPlayer();
+
+    const audioSource = getHymnAudio(hymnId);
+    if (!audioSource) return;
+
+    const uri = await resolveAudioUri(audioSource);
+    if (!uri) return;
+
+    // Find hymn data for metadata
+    const activeData = hymnId.startsWith('E') ? estribillosData : hymnsData;
+    const hymn = activeData.find((h: any) => String(h.id) === String(hymnId));
+
+    // Resolve album artwork for lock screen / Control Center / Dynamic Island
+    let artworkUri: string | undefined;
+    try {
+      const coverAsset = Asset.fromModule(require('../assets/images/EBP_HYMN_COVER.png'));
+      if (!coverAsset.localUri) await coverAsset.downloadAsync();
+      artworkUri = coverAsset.localUri || coverAsset.uri;
+    } catch (e) {
+      console.warn('[TrackPlayer] Could not resolve artwork:', e);
+    }
+
+    await TrackPlayer.reset();
+    await TrackPlayer.add({
+      id: hymnId,
+      url: uri,
+      title: hymn?.title || `Himno ${hymnId}`,
+      artist: hymn?.author || 'Himnario El Buen Pastor',
+      artwork: artworkUri,
     });
-    return () => sub.remove();
-  }, [player]);
-
-  // Compute the current index for next/prev
-  const activeData = currentHymnId?.startsWith('E') ? estribillosData : hymnsData;
-  const currentIndex = currentHymnId
-    ? activeData.findIndex((h: any) => String(h.id) === String(currentHymnId))
-    : -1;
+    await TrackPlayer.play();
+    setIsPlaying(true);
+  }, []);
 
   // ── Controls ──────────────────────────────────────────────
 
+  const setCurrentHymnId = useCallback((id: string) => {
+    setCurrentHymnIdState(id);
+    currentHymnIdRef.current = id;
+    loadAndPlay(id);
+  }, [loadAndPlay]);
+
   const openPlayer = useCallback((hymnId: string) => {
-    setCurrentHymnId(hymnId);
+    const alreadyLoaded = currentHymnIdRef.current === hymnId;
+    setCurrentHymnIdState(hymnId);
+    currentHymnIdRef.current = hymnId;
     setShowFullPlayer(true);
-    // Auto-play is handled by the useEffect below that watches currentHymnId + player
-  }, []);
+    // Only reload the track if it's a different hymn — preserve position otherwise
+    if (!alreadyLoaded) {
+      loadAndPlay(hymnId);
+    }
+  }, [loadAndPlay]);
 
   const closeFullPlayer = useCallback(() => {
     setShowFullPlayer(false);
     // Audio keeps playing — mini-player shows
   }, []);
 
-  const clearNowPlaying = useCallback(() => {
-    player.pause();
-    setCurrentHymnId(null);
+  const clearNowPlaying = useCallback(async () => {
+    await TrackPlayer.reset();
+    setCurrentHymnIdState(null);
+    currentHymnIdRef.current = null;
     setShowFullPlayer(false);
     setIsPlaying(false);
-  }, [player]);
+  }, []);
 
-  const togglePlayPause = useCallback(() => {
+  const togglePlayPause = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (player.playing) { player.pause(); } else { player.play(); }
-  }, [player]);
+    // Always ask the native player for the real state to avoid
+    // any stale-closure or event-listener race on Android.
+    const currentlyPlaying = await TrackPlayer.getPlayWhenReady();
+    if (currentlyPlaying) {
+      await TrackPlayer.pause();
+      setIsPlaying(false);
+    } else {
+      await TrackPlayer.play();
+      setIsPlaying(true);
+    }
+  }, []);
 
   // Web: spacebar to toggle play / pause
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only act when a hymn is loaded
-      if (!currentHymnId) return;
-
-      // Don't hijack spacebar when the user is typing in an input field
+      if (!currentHymnIdRef.current) return;
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-      // Also skip contentEditable elements
       if ((e.target as HTMLElement)?.isContentEditable) return;
 
       if (e.code === 'Space' || e.key === ' ') {
-        e.preventDefault(); // prevent page scroll
+        e.preventDefault();
         togglePlayPause();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [currentHymnId, togglePlayPause]);
+  }, [togglePlayPause]);
 
-  const skipNext = useCallback(() => {
+  // Compute the current index for next/prev
+  const activeData = currentHymnIdRef.current?.startsWith('E') ? estribillosData : hymnsData;
+  const currentIndex = currentHymnIdRef.current
+    ? activeData.findIndex((h: any) => String(h.id) === String(currentHymnIdRef.current))
+    : -1;
+
+  const handleSkipNext = useCallback(() => {
+    const cId = currentHymnIdRef.current;
+    if (!cId) return;
+    const data = cId.startsWith('E') ? estribillosData : hymnsData;
+    const idx = data.findIndex((h: any) => String(h.id) === String(cId));
+
     if (isShuffled) {
-      // Shuffle: pick a random hymn that has audio
-      const others = activeData.filter(
-        (_: any, i: number) => i !== currentIndex && hasHymnAudio(String(_.id))
+      const others = data.filter(
+        (_: any, i: number) => i !== idx && hasHymnAudio(String(_.id))
       );
       if (others.length > 0) {
         const pick = others[Math.floor(Math.random() * others.length)];
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setCurrentHymnId(String(pick.id));
+        setCurrentHymnIdState(String(pick.id));
+        currentHymnIdRef.current = String(pick.id);
+        loadAndPlay(String(pick.id));
       }
       return;
     }
     // Scan forward for the next hymn that has audio available
-    for (let i = currentIndex + 1; i < activeData.length; i++) {
-      if (hasHymnAudio(String(activeData[i].id))) {
+    for (let i = idx + 1; i < data.length; i++) {
+      if (hasHymnAudio(String(data[i].id))) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setCurrentHymnId(String(activeData[i].id));
+        setCurrentHymnIdState(String(data[i].id));
+        currentHymnIdRef.current = String(data[i].id);
+        loadAndPlay(String(data[i].id));
         return;
       }
     }
-  }, [currentIndex, isShuffled]);
+  }, [isShuffled, loadAndPlay]);
 
-  const skipPrev = useCallback(() => {
-    // Scan backward for the previous hymn that has audio available
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      if (hasHymnAudio(String(activeData[i].id))) {
+  const handleSkipPrev = useCallback(() => {
+    const cId = currentHymnIdRef.current;
+    if (!cId) return;
+    const data = cId.startsWith('E') ? estribillosData : hymnsData;
+    const idx = data.findIndex((h: any) => String(h.id) === String(cId));
+
+    for (let i = idx - 1; i >= 0; i--) {
+      if (hasHymnAudio(String(data[i].id))) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setCurrentHymnId(String(activeData[i].id));
+        setCurrentHymnIdState(String(data[i].id));
+        currentHymnIdRef.current = String(data[i].id);
+        loadAndPlay(String(data[i].id));
         return;
       }
     }
-  }, [currentIndex]);
+  }, [loadAndPlay]);
 
-  // Auto-play when hymn ID changes (track switch)
-  // IMPORTANT: `player` is in the dep array so we always reference the FRESH
-  // player instance returned by useAudioPlayer after the source swap.
-  const prevIdRef = useRef(currentHymnId);
-  useEffect(() => {
-    if (currentHymnId && currentHymnId !== prevIdRef.current && audioSource) {
-      const t = setTimeout(() => {
-        try {
-          player.seekTo(0);
-          player.play();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        } catch (e) {
-          console.warn('[NowPlaying] auto-play failed (player not ready):', e);
-        }
-      }, 250);
-      prevIdRef.current = currentHymnId;
-      return () => clearTimeout(t);
-    }
-    prevIdRef.current = currentHymnId;
-  }, [currentHymnId, audioSource, player]);
-
-  // Auto-advance / repeat on finish
-  const handleFinish = useCallback(() => {
-    if (repeatMode === 'one') { player.seekTo(0); player.play(); return; }
-    skipNext();
-  }, [repeatMode, skipNext, player]);
-
-  useEffect(() => { handleFinishRef.current = handleFinish; }, [handleFinish]);
+  const skipNext = handleSkipNext;
+  const skipPrev = handleSkipPrev;
 
   const toggleShuffle = useCallback(() => {
     setIsShuffled((p) => !p);
   }, []);
 
-  const cycleRepeat = useCallback(() => {
-    setRepeatMode((m) => (m === 'off' ? 'all' : m === 'all' ? 'one' : 'off'));
+  const cycleRepeat = useCallback(async () => {
+    setRepeatMode((m) => {
+      const next = m === 'off' ? 'all' : m === 'all' ? 'one' : 'off';
+      // Also sync with TrackPlayer's native repeat mode
+      if (next === 'one') {
+        TrackPlayer.setRepeatMode(RepeatMode.Track);
+      } else if (next === 'all') {
+        TrackPlayer.setRepeatMode(RepeatMode.Queue);
+      } else {
+        TrackPlayer.setRepeatMode(RepeatMode.Off);
+      }
+      return next;
+    });
   }, []);
 
   return (
     <NowPlayingContext.Provider
       value={{
-        currentHymnId,
+        currentHymnId: currentHymnIdRef.current ?? null,
         isPlaying,
         showFullPlayer,
         isShuffled,
         repeatMode,
-        player,
         openPlayer,
         closeFullPlayer,
         clearNowPlaying,

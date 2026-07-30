@@ -28,18 +28,22 @@ import {
   PublicSans_700Bold,
 } from '@expo-google-fonts/public-sans';
 import { useEffect } from 'react';
-import { View, Image, StyleSheet, useColorScheme, Platform } from 'react-native';
+import { View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { PlaylistsProvider } from '../context/PlaylistsContext';
 import { RecentHymnsProvider } from '../context/RecentHymnsContext';
 import { NowPlayingProvider, useNowPlaying } from '../context/NowPlayingContext';
+import { HymnFilterProvider } from '../context/HymnFilterContext';
 import { LanguageProvider } from '../context/LanguageContext';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
+import TrackPlayer from 'react-native-track-player';
 import MiniPlayer from '../components/MiniPlayer';
 import MusicPlayer from '../components/MusicPlayer';
+
+// The background playback service is now registered in the root index.js
 
 // Keep the native splash visible while fonts load.
 // Track success so we only call hideAsync when it's safe.
@@ -83,21 +87,23 @@ function ThemedStack() {
   const router = useRouter();
   const pathname = usePathname();
   const { showFullPlayer, closeFullPlayer, currentHymnId } = useNowPlaying();
+  const insets = useSafeAreaInsets();
 
-  // On iOS, adjust mini-player bottom to close the gap based on the active screen
-  let miniPlayerBottom = 90;
-  if (Platform.OS === 'ios') {
-    if (pathname === '/available-songs') {
-      miniPlayerBottom = 20;
-    } else if (pathname.startsWith('/hymn/')) {
-      // floatPill top is 32 + 56 = 88. miniPlayer paddingBottom is 8.
-      // So 82 + 8 = 90. 2px gap to floatPill.
-      miniPlayerBottom = 82;
-    } else {
-      // For tabs, native tab bar is ~83.
-      // 75 + 8 = 83. 0px gap to TabBar.
-      miniPlayerBottom = 75;
-    }
+  const isIOS = Platform.OS === 'ios';
+  const isTabs = !pathname.startsWith('/hymn/');
+
+  const pillBottom = Math.max(insets.bottom, 22);
+  const pillHeight = 61; // Android floating tab bar & global hymn reading bar height
+
+  let miniPlayerBottom: number;
+
+  if (isIOS && isTabs) {
+    // iOS Main Tabs use NativeTabs (UITabBarController).
+    // Native tab bar is pinned to the absolute bottom: 49px + safe area inset.
+    miniPlayerBottom = 49 + insets.bottom;
+  } else {
+    // Android Tabs and all Hymn Lyrics pages use the floating pill bar
+    miniPlayerBottom = pillBottom + pillHeight;
   }
 
   return (
@@ -128,7 +134,6 @@ function ThemedStack() {
 
         {/* ── Hymn detail — has its own sub-layout (hymn/_layout.tsx) ───── */}
         <Stack.Screen name="hymn" options={{ animation: 'fade_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
-        <Stack.Screen name="available-songs" options={{ animation: 'fade_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
@@ -179,6 +184,17 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
+  // Handle TrackPlayer's automatic notification click deep link
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      if (url && url.includes('notification.click')) {
+        // Prevent Expo Router from navigating to an unmatched route.
+        // We just absorb the event so the app comes to foreground.
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   // Show branded splash while fonts load (visible on dev reloads & Expo Go)
   if (!fontsLoaded && !fontError) return <BrandedSplash />;
 
@@ -191,7 +207,9 @@ export default function RootLayout() {
             <PlaylistsProvider>
               <RecentHymnsProvider>
                 <NowPlayingProvider>
-                  <ThemedStack />
+                  <HymnFilterProvider>
+                    <ThemedStack />
+                  </HymnFilterProvider>
                 </NowPlayingProvider>
               </RecentHymnsProvider>
             </PlaylistsProvider>

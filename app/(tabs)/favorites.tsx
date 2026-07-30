@@ -24,7 +24,7 @@ import { useRouter, useNavigation } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useFavorites } from '../../context/FavoritesContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -39,7 +39,7 @@ export default function FavoritesScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode } = useTheme();
   const { favoriteIds, toggleFavorite } = useFavorites();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const { currentHymnId } = useNowPlaying();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
@@ -164,8 +164,8 @@ export default function FavoritesScreen() {
                 ? `${favoriteHymns.length} ${favoriteHymns.length !== 1 ? t.hymnsSaved_other : t.hymnsSaved_one}`
                 : t.savedForQuickAccess)
             : (playlists.length > 0
-                ? `${playlists.length} listas`
-                : "Tus listas de reproducción personalizadas")}
+                ? `${playlists.length} ${playlists.length !== 1 ? t.playlistsCount_other : t.playlistsCount_one}`
+                : t.yourCustomPlaylists)}
         </Text>
       </View>
 
@@ -219,7 +219,7 @@ export default function FavoritesScreen() {
                     </Text>
                     {hymn.categories ? (
                       <Text style={[styles.listTags, { color: theme.outline }]}>
-                        {hymn.categories}
+                        {translateCategories(hymn.categories, language)}
                       </Text>
                     ) : null}
                   </View>
@@ -275,7 +275,7 @@ export default function FavoritesScreen() {
                       {playlist.name}
                     </Text>
                     <Text style={[styles.listTags, { color: theme.outline, textTransform: 'none' }]}>
-                      {playlist.hymnIds.length} {playlist.hymnIds.length === 1 ? 'canción' : 'canciones'}
+                      {playlist.hymnIds.length} {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
                     </Text>
                   </View>
                   <MaterialIcons name="chevron-right" size={24} color={theme.outline} />

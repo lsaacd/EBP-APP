@@ -134,7 +134,7 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name={isDarkMode ? "light-mode" : "dark-mode"} size={24} color={theme.primary} />
-              <View>
+              <View style={styles.cardTextContainer}>
                 <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
                   {isDarkMode ? t.lightModeTitle : t.darkModeTitle}
                 </Text>
@@ -237,7 +237,7 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name="language" size={24} color={theme.primary} />
-              <View>
+              <View style={styles.cardTextContainer}>
                 <Text style={[styles.cardTitle, { color: theme.onSurface }]}>{t.language}</Text>
                 <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
                   {t.languageSub}
@@ -266,7 +266,7 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name="info" size={24} color={theme.primary} />
-              <View>
+              <View style={styles.cardTextContainer}>
                 <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
                   {t.about}
                 </Text>
@@ -292,7 +292,7 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name="feedback" size={24} color={theme.primary} />
-              <View>
+              <View style={styles.cardTextContainer}>
                 <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
                   {t.reportError}
                 </Text>
@@ -721,6 +721,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    flex: 1,
+    marginRight: 12,
+  },
+  cardTextContainer: {
     flex: 1,
   },
   cardTitle: {
