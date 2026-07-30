@@ -19,10 +19,12 @@ Aplicación móvil oficial de **Himnario El Buen Pastor** para iOS y Android. Di
 
 ---
 
-## 🛠️ Estructura del Proyecto
+## 🛠️ Tecnologías Utilizadas
 
-* **`himnario/`**: Código fuente principal de la aplicación en React Native / Expo.
-* **`himnario/docs/`**: Páginas de Políticas de Privacidad, Términos y Soporte publicadas en GitHub Pages.
+* **Framework:** [Expo](https://expo.dev) / React Native (Expo Router v4)
+* **Lenguaje:** TypeScript / JavaScript
+* **Audio Engine:** `expo-audio` & `react-native-track-player`
+* **Iconografía:** Lucide React Native Icons / FontAwesome
 
 ---
 
@@ -53,9 +55,9 @@ Aplicación móvil oficial de **Himnario El Buen Pastor** para iOS y Android. Di
 
 ## 📄 Políticas y Términos Legales
 
-* **[Política de Privacidad](himnario/docs/privacy.html)**
-* **[Términos de Servicio](himnario/docs/terms.html)**
-* **[Centro de Políticas y Soporte](himnario/docs/index.html)**
+* **[Política de Privacidad](docs/privacy.html)**
+* **[Términos de Servicio](docs/terms.html)**
+* **[Centro de Políticas y Soporte](docs/index.html)**
 
 ---
 
