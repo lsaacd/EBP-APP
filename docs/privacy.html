@@ -3,229 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidad / Privacy Policy - Himnario El Buen Pastor</title>
+    <title>Política de Privacidad - Himnario El Buen Pastor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1A365D;
-            --accent: #2B6CB0;
-            --bg: #FAFAFA;
-            --card-bg: #FFFFFF;
-            --text: #2D3748;
-            --muted: #718096;
-            --border: #E2E8F0;
+            --bg-color: #FAF5EE; 
+            --text-main: #27272a;
+            --text-muted: #52525b;
+            --primary-dark: #1e3a8a;
+            --card-bg: rgba(255, 255, 255, 0.95);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.8;
             margin: 0;
             padding: 0;
+            background-image: radial-gradient(circle at top right, rgba(30, 58, 138, 0.05), transparent 40%);
         }
 
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 2.5rem 1rem 1.5rem;
+        .header {
             text-align: center;
+            padding: 4rem 2rem 2rem;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        header p {
-            margin: 0.5rem 0 0;
-            opacity: 0.9;
-            font-size: 1rem;
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-dark);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
         }
 
         .lang-switch {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 1.25rem;
+            display: inline-flex;
+            gap: 12px;
+            margin-top: 1rem;
+            background: white;
+            padding: 6px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
         .lang-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 0.4rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
             border-radius: 20px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
         }
 
-        .lang-btn.active, .lang-btn:hover {
-            background: white;
-            color: var(--primary);
+        .lang-btn.active {
+            background: var(--primary-dark);
+            color: white;
+            box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
         }
 
         .container {
             max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border);
+        .content-card {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+            border: 1px solid rgba(255,255,255,0.6);
         }
+
+        .content-lang { display: none; animation: fadeIn 0.5s ease; }
+        .content-lang.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         h2 {
-            color: var(--primary);
-            border-bottom: 2px solid var(--border);
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-dark);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
             padding-bottom: 0.5rem;
+        }
+        
+        h2:first-child { margin-top: 0; }
+        p { margin-bottom: 1.2rem; color: var(--text-muted); }
+        ul { margin-bottom: 1.5rem; padding-left: 1.5rem; color: var(--text-muted); }
+        li { margin-bottom: 0.5rem; }
+        
+        .contact-box {
+            background: rgba(30, 58, 138, 0.03);
+            border-left: 4px solid var(--primary-dark);
+            padding: 1.5rem;
+            border-radius: 0 10px 10px 0;
             margin-top: 2rem;
-            font-size: 1.35rem;
         }
+        
+        a { color: var(--primary-dark); font-weight: 500; text-decoration: none; }
+        a:hover { text-decoration: underline; }
 
-        h2:first-of-type {
-            margin-top: 0;
-        }
-
-        ul {
-            padding-left: 1.5rem;
-        }
-
-        li {
-            margin-bottom: 0.5rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: var(--muted);
-            font-size: 0.875rem;
-        }
-
-        a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .last-updated {
+        .back-link {
             display: inline-block;
-            background-color: #EDF2F7;
-            color: var(--muted);
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.85rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
         }
 
-        .content-lang {
-            display: none;
-        }
-
-        .content-lang.active {
-            display: block;
+        @media (max-width: 768px) {
+            .content-card { padding: 2rem 1.5rem; }
+            .header { padding: 3rem 1.5rem 1.5rem; }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Himnario El Buen Pastor</h1>
-        <p id="header-subtitle">Política de Privacidad / Privacy Policy</p>
+    <div class="header">
+        <h1>Política de Privacidad / Privacy Policy</h1>
         <div class="lang-switch">
-            <button class="lang-btn active" onclick="setLanguage('es')">Español 🇲🇽</button>
-            <button class="lang-btn" onclick="setLanguage('en')">English 🇺🇸</button>
+            <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
+            <button class="lang-btn" onclick="setLanguage('en')">English</button>
         </div>
-    </header>
+    </div>
 
     <div class="container">
-        <div class="card">
-
-            <!-- SPANISH CONTENT -->
+        <a href="index.html" class="back-link">← Volver / Back</a>
+        <div class="content-card">
+            
+            <!-- SPANISH -->
             <div id="lang-es" class="content-lang active">
-                <span class="last-updated">Última actualización: 30 de Julio de 2026</span>
+                <h2>1. Introducción</h2>
+                <p>Bienvenido a <strong>Himnario El Buen Pastor</strong>. Su privacidad es fundamental para nosotros. Esta Política de Privacidad explica cómo recopilamos, usamos, divulgamos y salvaguardamos su información cuando utiliza nuestra aplicación móvil.</p>
 
-                <p>La aplicación <strong>Himnario El Buen Pastor</strong> ("nosotros", "nuestra aplicación") está comprometida con la protección de tu privacidad. Esta Política de Privacidad describe los datos que recopila la aplicación, cómo se almacenan y tus derechos como usuario.</p>
-
-                <h2>1. Datos Recopilados por la Aplicación</h2>
-                <p><strong>Himnario El Buen Pastor funciona de manera orientada a la privacidad.</strong> La aplicación recopila y almacena únicamente los datos estrictamente necesarios para su funcionamiento local:</p>
+                <h2>2. Información que Recopilamos</h2>
+                <p>Nuestra aplicación recopila cierta información para brindar una mejor experiencia y asegurar su correcto funcionamiento. Los datos recopilados incluyen:</p>
                 <ul>
-                    <li><strong>Almacenamiento Local de Preferencias y Favoritos:</strong> Guardamos en el almacenamiento interno de tu dispositivo (AsyncStorage/almacenamiento local) tus himnos marcados como favoritos, listas de reproducción personalizadas, historial de himnos recientes y preferencias de idioma/tema. Estos datos nunca salen de tu dispositivo ni se transmiten a servidores externos.</li>
-                    <li><strong>Archivos de Audio y Caché Local:</strong> Para permitir la reproducción fluida de alabanzas, la app descarga y almacena en caché archivos de audio de los himnos en el almacenamiento de tu dispositivo.</li>
-                    <li><strong>Permisos de Audio y Reproducción en Segundo Plano:</strong> La aplicación solicita permisos del sistema operativo para gestionar la reproducción de audio en segundo plano (permitiendo escuchar alabanzas mientras la pantalla está apagada o usas otras aplicaciones) y modificar la configuración de audio para el control del volumen.</li>
+                    <li><strong>Datos de Uso (Analytics):</strong> Información sobre cómo interactúa con la aplicación (por ejemplo, himnos más visitados, tiempo de uso, y errores o fallos en la app). Esto nos ayuda a mejorar el rendimiento.</li>
+                    <li><strong>Preferencias Locales:</strong> Datos guardados directamente en su dispositivo, como sus himnos favoritos, tamaño de letra preferido o configuración de tema (modo oscuro/claro).</li>
+                    <li><strong>Información del Dispositivo:</strong> Modelo del dispositivo, versión del sistema operativo (iOS/Android) y configuraciones básicas para asegurar la compatibilidad y optimización.</li>
                 </ul>
 
-                <h2>2. Datos No Recopilados</h2>
+                <h2>3. Uso de la Información</h2>
+                <p>Toda la información recopilada se utiliza exclusivamente para:</p>
                 <ul>
-                    <li><strong>Sin cuentas ni registro:</strong> No solicitamos tu nombre, teléfono, dirección ni correo electrónico para usar la app.</li>
-                    <li><strong>Sin seguimiento ni ubicación:</strong> No rastreamos tu ubicación GPS, dirección IP ni hábitos de navegación.</li>
-                    <li><strong>Sin venta de datos:</strong> No vendemos, alquilamos ni compartimos ningún dato de usuario con terceros ni anunciantes.</li>
+                    <li>Proporcionar y mantener las funcionalidades de la aplicación.</li>
+                    <li>Mejorar y personalizar la experiencia del usuario.</li>
+                    <li>Identificar y corregir errores técnicos (crash reports).</li>
                 </ul>
 
-                <h2>3. Servicios de Terceros</h2>
-                <p>La aplicación utiliza frameworks estándar de la industria ([Expo](https://expo.dev) / React Native) y APIs de reproducción de medios del sistema operativo (Android/iOS). Dichos servicios operan conforme a las políticas de privacidad estándar de Apple e Google.</p>
+                <h2>4. Compartir Información</h2>
+                <p>No vendemos, intercambiamos ni alquilamos su información personal a terceros. Solamente podemos compartir datos de uso anónimos con servicios de análisis (como Expo o Google Analytics) estrictamente para fines de rendimiento y métricas de la app.</p>
 
-                <h2>4. Seguridad de los Datos</h2>
-                <p>Dado que toda la información guardada reside de forma aislada en el almacenamiento local de tu propio teléfono, tus datos se encuentran bajo tu control directo y se eliminan automáticamente si desinstalas la aplicación.</p>
+                <h2>5. Privacidad Infantil</h2>
+                <p>Nuestra aplicación es segura para todas las edades. No recopilamos conscientemente información de identificación personal de niños menores de 13 años.</p>
 
-                <h2>5. Contacto y Soporte</h2>
-                <p>Si tienes preguntas o inquietudes sobre esta Política de Privacidad o la aplicación, puedes comunicarte directamente con el desarrollador:</p>
-                <ul>
-                    <li><strong>Correo Electrónico de Contacto:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
-                    <li><strong>Desarrollador:</strong> Isaac Durán</li>
-                </ul>
+                <h2>6. Cambios a esta Política</h2>
+                <p>Podemos actualizar nuestra Política de Privacidad periódicamente. Le notificaremos sobre cualquier cambio publicando la nueva Política de Privacidad en esta página.</p>
+
+                <div class="contact-box">
+                    <h2>7. Contacto</h2>
+                    <p>Si tiene alguna pregunta o sugerencia sobre nuestra Política de Privacidad, no dude en contactarnos a través de:</p>
+                    <p>📧 <strong>Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></p>
+                </div>
             </div>
 
-            <!-- ENGLISH CONTENT -->
+            <!-- ENGLISH -->
             <div id="lang-en" class="content-lang">
-                <span class="last-updated">Last Updated: July 30, 2026</span>
+                <h2>1. Introduction</h2>
+                <p>Welcome to <strong>Himnario El Buen Pastor</strong>. Your privacy is critically important to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.</p>
 
-                <p>The <strong>Himnario El Buen Pastor</strong> application ("we", "our app") is committed to protecting your privacy. This Privacy Policy describes the data collected by the app, how it is stored, and your rights as a user.</p>
-
-                <h2>1. Data Collected by the App</h2>
-                <p><strong>Himnario El Buen Pastor is designed with a privacy-first approach.</strong> The app collects and stores only the data strictly required for its local functionality:</p>
+                <h2>2. Information We Collect</h2>
+                <p>Our app collects certain information to provide a better user experience and ensure optimal functionality. The collected data includes:</p>
                 <ul>
-                    <li><strong>Local Storage of Preferences & Favorites:</strong> We save your favorited hymns, custom playlists, recently viewed hymns, and language/theme preferences locally on your device's internal storage (AsyncStorage/local storage). This data never leaves your device and is not transmitted to external servers.</li>
-                    <li><strong>Audio Files & Local Cache:</strong> To allow smooth playback of hymns and worship songs, the app downloads and caches audio files locally on your device.</li>
-                    <li><strong>Audio Permissions & Background Playback:</strong> The app requests standard operating system permissions to handle background audio playback (allowing you to listen to hymns while your screen is off or while using other apps) and to adjust audio settings for volume control.</li>
+                    <li><strong>Usage Data (Analytics):</strong> Information on how you interact with the app (e.g., most visited hymns, time spent in the app, and crash logs). This helps us improve app performance.</li>
+                    <li><strong>Local Preferences:</strong> Data saved locally on your device, such as your favorite hymns, preferred font sizes, or theme settings (dark/light mode).</li>
+                    <li><strong>Device Information:</strong> Device model, operating system version (iOS/Android), and basic configuration settings to ensure compatibility and optimization.</li>
                 </ul>
 
-                <h2>2. Data We Do NOT Collect</h2>
+                <h2>3. How We Use Your Information</h2>
+                <p>All gathered information is used exclusively to:</p>
                 <ul>
-                    <li><strong>No User Accounts Required:</strong> We do not ask for your name, phone number, physical address, or email to use the app.</li>
-                    <li><strong>No Location or User Tracking:</strong> We do not track your GPS location, IP address, or browsing habits.</li>
-                    <li><strong>No Data Selling or Advertising Networks:</strong> We do not sell, rent, or share any user data with third parties or advertising networks.</li>
+                    <li>Provide and maintain app functionalities.</li>
+                    <li>Improve and personalize the user experience.</li>
+                    <li>Identify, troubleshoot, and fix technical errors (crash reports).</li>
                 </ul>
 
-                <h2>3. Third-Party Services</h2>
-                <p>The app relies on industry-standard development frameworks ([Expo](https://expo.dev) / React Native) and system media playback APIs provided by Android and iOS. These operate under Apple's and Google's standard platform privacy policies.</p>
+                <h2>4. Sharing Your Information</h2>
+                <p>We do not sell, trade, or rent your personal information to third parties. We may only share anonymous usage data with trusted analytics services (like Expo or Google Analytics) strictly for app performance and metric tracking.</p>
 
-                <h2>4. Data Security & Control</h2>
-                <p>Because all saved information resides exclusively inside your phone's isolated local storage, your data remains under your direct control and is automatically deleted if you uninstall the app.</p>
+                <h2>5. Children's Privacy</h2>
+                <p>Our application is safe for all ages. We do not knowingly collect personal identifiable information from children under the age of 13.</p>
 
-                <h2>5. Contact & Support</h2>
-                <p>If you have any questions or concerns regarding this Privacy Policy or the app, please feel free to reach out to the developer directly:</p>
-                <ul>
-                    <li><strong>Contact Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></li>
-                    <li><strong>Developer:</strong> Isaac Durán</li>
-                </ul>
+                <h2>6. Changes to This Policy</h2>
+                <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
+
+                <div class="contact-box">
+                    <h2>7. Contact Us</h2>
+                    <p>If you have any questions or suggestions regarding our Privacy Policy, do not hesitate to contact us at:</p>
+                    <p>📧 <strong>Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></p>
+                </div>
             </div>
 
         </div>
     </div>
-
-    <footer>
-        &copy; 2026 Himnario El Buen Pastor. All rights reserved / Todos los derechos reservados.
-    </footer>
 
     <script>
         function setLanguage(lang) {
@@ -235,11 +223,9 @@
             if (lang === 'en') {
                 document.getElementById('lang-en').classList.add('active');
                 event.target.classList.add('active');
-                document.getElementById('header-subtitle').innerText = 'Privacy Policy';
             } else {
                 document.getElementById('lang-es').classList.add('active');
                 event.target.classList.add('active');
-                document.getElementById('header-subtitle').innerText = 'Política de Privacidad';
             }
         }
     </script>
