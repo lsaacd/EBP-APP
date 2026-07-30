@@ -4,200 +4,276 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Términos de Servicio - Himnario El Buen Pastor</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #fcf9f2; 
+            --sidebar-bg: #ffffff;
             --text-main: #1c1c18;
             --text-muted: #564240;
             --primary-dark: #6e1619;
-            --card-bg: #ffffff;
+            --border-color: #e5e2db;
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Public Sans', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            line-height: 1.8;
-            margin: 0;
-            padding: 0;
-            background-image: radial-gradient(circle at top right, rgba(110, 22, 25, 0.05), transparent 40%);
+            display: flex;
+            min-height: 100vh;
+            line-height: 1.7;
         }
 
-        .header {
-            text-align: center;
-            padding: 4rem 2rem 2rem;
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 2.5rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
         }
 
-        .header h1 {
+        .sidebar-title {
             font-family: 'Newsreader', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
             color: var(--primary-dark);
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .nav-section { margin-bottom: 2rem; }
+        
+        .nav-section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+            padding-left: 0.8rem;
+        }
+
+        .nav-link {
+            display: block;
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            margin-bottom: 0.2rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover { 
+            background-color: var(--bg-color); 
+            color: var(--primary-dark); 
+        }
+
+        .nav-link.active {
+            background-color: rgba(110, 22, 25, 0.06);
+            color: var(--primary-dark);
+            font-weight: 600;
+            border-left: 3px solid var(--primary-dark);
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 3.5rem 5rem;
+            max-width: 1000px;
+            background-image: radial-gradient(circle at top right, rgba(110, 22, 25, 0.03), transparent 50%);
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 3rem;
         }
 
         .lang-switch {
             display: inline-flex;
-            gap: 12px;
-            margin-top: 1rem;
             background: white;
-            padding: 6px;
-            border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.05);
+            padding: 4px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
         .lang-btn {
             background: transparent;
             border: none;
             color: var(--text-muted);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+            padding: 0.5rem 1.2rem;
+            border-radius: 16px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.85rem;
             font-family: 'Public Sans', sans-serif;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
         .lang-btn.active {
             background: var(--primary-dark);
             color: white;
-            box-shadow: 0 2px 8px rgba(110, 22, 25, 0.3);
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 2rem 4rem;
+        h1 {
+            font-family: 'Newsreader', serif;
+            font-size: 2.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
         }
 
-        .content-card {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
-            border: 1px solid rgba(255,255,255,0.6);
+        .effective-date {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .content-lang { display: none; animation: fadeIn 0.5s ease; }
+        .content-lang { display: none; animation: fadeIn 0.4s ease; }
         .content-lang.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         h2 {
             font-family: 'Newsreader', serif;
             color: var(--primary-dark);
+            font-size: 1.6rem;
             margin-top: 2.5rem;
             margin-bottom: 1rem;
-            font-size: 1.5rem;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            padding-bottom: 0.5rem;
         }
-        
-        h2:first-child { margin-top: 0; }
-        p { margin-bottom: 1.2rem; color: var(--text-muted); }
-        ul { margin-bottom: 1.5rem; padding-left: 1.5rem; color: var(--text-muted); }
+
+        p { margin-bottom: 1.2rem; color: var(--text-main); }
+        ul { margin-bottom: 1.5rem; padding-left: 1.5rem; color: var(--text-main); }
         li { margin-bottom: 0.5rem; }
-        
-        .contact-box {
-            background: rgba(30, 58, 138, 0.03);
-            border-left: 4px solid var(--primary-dark);
-            padding: 1.5rem;
-            border-radius: 0 10px 10px 0;
-            margin-top: 2rem;
-        }
-        
-        a { color: var(--primary-dark); font-weight: 500; text-decoration: none; }
-        a:hover { text-decoration: underline; }
 
-        .back-link {
-            display: inline-block;
-            margin-bottom: 2rem;
-            font-weight: 500;
+        a.contact-link {
+            color: var(--primary-dark);
+            font-weight: 600;
+            text-decoration: none;
         }
+        a.contact-link:hover { text-decoration: underline; }
 
-        @media (max-width: 768px) {
-            .content-card { padding: 2rem 1.5rem; }
-            .header { padding: 3rem 1.5rem 1.5rem; }
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 1.5rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .sidebar-title { margin-bottom: 1rem; padding-bottom: 1rem; }
+            .main-content { margin-left: 0; padding: 2rem 1.5rem; }
+            h1 { font-size: 2.2rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Términos de Servicio / Terms of Service</h1>
-        <div class="lang-switch">
-            <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
-            <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+        <div class="sidebar-title">Himnario<br>El Buen Pastor</div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" id="nav-title-general">General</div>
+            <a href="/" class="nav-link" id="nav-home">Inicio / Home</a>
         </div>
-    </div>
 
-    <div class="container">
-        <a href="index.html" class="back-link">← Volver / Back</a>
-        <div class="content-card">
-            
-            <!-- SPANISH -->
-            <div id="lang-es" class="content-lang active">
-                <h2>1. Aceptación de los Términos</h2>
-                <p>Al descargar o utilizar la aplicación <strong>Himnario El Buen Pastor</strong>, usted acepta automáticamente estos términos. Le recomendamos encarecidamente que los lea con atención antes de utilizar la aplicación.</p>
-
-                <h2>2. Uso de la Aplicación</h2>
-                <p>Esta aplicación es para uso personal, no comercial. Usted acepta no copiar ni modificar la aplicación, ni ninguna parte de la aplicación, o nuestras marcas comerciales de ninguna manera.</p>
-                <ul>
-                    <li>El contenido proporcionado (himnos, letras, interfaz) es para el enriquecimiento y beneficio espiritual.</li>
-                    <li>No debe intentar extraer el código fuente de la aplicación, traducir la aplicación a otros idiomas o crear versiones derivadas.</li>
-                </ul>
-
-                <h2>3. Disponibilidad y Actualizaciones</h2>
-                <p>Nos esforzamos por garantizar que la aplicación esté disponible y sea lo más útil y eficiente posible. Por esta razón, nos reservamos el derecho de realizar cambios en la aplicación o cobrar por sus servicios, en cualquier momento y por cualquier motivo, aunque las funciones principales siempre serán de acceso libre.</p>
-                <p>Es posible que requiramos que actualice la aplicación periódicamente por motivos de seguridad o para agregar nuevas funcionalidades.</p>
-
-                <h2>4. Contenido de Terceros y Responsabilidad</h2>
-                <p>Aunque nos esforzamos por mantener la aplicación actualizada y correcta, parte del contenido (como la letra de los himnos de dominio público) puede variar. No aceptamos responsabilidad por ninguna pérdida, directa o indirecta, que experimente como resultado de confiar totalmente en la funcionalidad de esta aplicación.</p>
-
-                <h2>5. Cambios en los Términos</h2>
-                <p>Podemos actualizar nuestros Términos de Servicio de vez en cuando. Por lo tanto, se recomienda revisar esta página periódicamente para ver si hay cambios.</p>
-
-                <div class="contact-box">
-                    <h2>6. Contacto</h2>
-                    <p>Si tiene preguntas sobre nuestros Términos de Servicio, por favor contáctenos:</p>
-                    <p>📧 <strong>Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></p>
-                </div>
-            </div>
-
-            <!-- ENGLISH -->
-            <div id="lang-en" class="content-lang">
-                <h2>1. Acceptance of Terms</h2>
-                <p>By downloading or using the <strong>Himnario El Buen Pastor</strong> app, these terms will automatically apply to you. You should make sure therefore that you read them carefully before using the app.</p>
-
-                <h2>2. Use of the App</h2>
-                <p>This app is for personal, non-commercial use. You agree not to copy, or modify the app, any part of the app, or our trademarks in any way.</p>
-                <ul>
-                    <li>The provided content (hymns, lyrics, interface) is for spiritual enrichment and benefit.</li>
-                    <li>You are not allowed to attempt to extract the source code of the app, translate the app into other languages, or make derivative versions.</li>
-                </ul>
-
-                <h2>3. Availability and Updates</h2>
-                <p>We are committed to ensuring that the app is as useful and efficient as possible. For that reason, we reserve the right to make changes to the app or to charge for its services, at any time and for any reason, though core features will remain freely accessible.</p>
-                <p>We may require you to download updates periodically for security reasons or to add new features.</p>
-
-                <h2>4. Third-Party Content and Liability</h2>
-                <p>Although we endeavor to keep the app updated and correct, some content (such as public domain hymn lyrics) might vary. We do not accept liability for any loss, direct or indirect, you experience as a result of relying wholly on this functionality of the app.</p>
-
-                <h2>5. Changes to the Terms</h2>
-                <p>We may update our Terms of Service from time to time. Thus, you are advised to review this page periodically for any changes.</p>
-
-                <div class="contact-box">
-                    <h2>6. Contact Us</h2>
-                    <p>If you have any questions or suggestions about our Terms of Service, please contact us:</p>
-                    <p>📧 <strong>Email:</strong> <a href="mailto:isaacduran167@gmail.com">isaacduran167@gmail.com</a></p>
-                </div>
-            </div>
-
+        <div class="nav-section">
+            <div class="nav-section-title" id="nav-title-policies">Políticas / Policies</div>
+            <a href="/privacy" class="nav-link" id="nav-privacy">Política de Privacidad</a>
+            <a href="/terms" class="nav-link active" id="nav-terms">Términos de Servicio</a>
         </div>
-    </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title" id="nav-title-support">Soporte / Support</div>
+            <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="nav-contact">Contacto / Contact</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        
+        <div class="header-controls">
+            <div class="lang-switch">
+                <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
+                <button class="lang-btn" onclick="setLanguage('en')">English</button>
+            </div>
+        </div>
+
+        <!-- SPANISH CONTENT -->
+        <div id="lang-es" class="content-lang active">
+            <h1>Términos de Servicio</h1>
+            <div class="effective-date">Última actualización: Julio 2026</div>
+
+            <h2>1. Aceptación de los Términos</h2>
+            <p>Al descargar o utilizar la aplicación <strong>Himnario El Buen Pastor</strong>, usted acepta automáticamente estos términos. Le recomendamos encarecidamente que los lea con atención antes de utilizar la aplicación.</p>
+
+            <h2>2. Uso de la Aplicación</h2>
+            <p>Esta aplicación es para uso personal, no comercial. Usted acepta no copiar ni modificar la aplicación, ni ninguna parte de la aplicación, o nuestras marcas comerciales de ninguna manera.</p>
+            <ul>
+                <li>El contenido proporcionado (himnos, letras, interfaz) es para el enriquecimiento y beneficio espiritual.</li>
+                <li>No debe intentar extraer el código fuente de la aplicación, traducir la aplicación a otros idiomas o crear versiones derivadas.</li>
+            </ul>
+
+            <h2>3. Disponibilidad y Actualizaciones</h2>
+            <p>Nos esforzamos por garantizar que la aplicación esté disponible y sea lo más útil y eficiente posible. Por esta razón, nos reservamos el derecho de realizar cambios en la aplicación o cobrar por sus servicios, en cualquier momento y por cualquier motivo, aunque las funciones principales siempre serán de acceso libre.</p>
+            <p>Es posible que requiramos que actualice la aplicación periódicamente por motivos de seguridad o para agregar nuevas funcionalidades.</p>
+
+            <h2>4. Contenido de Terceros y Responsabilidad</h2>
+            <p>Aunque nos esforzamos por mantener la aplicación actualizada y correcta, parte del contenido (como la letra de los himnos de dominio público) puede variar. No aceptamos responsabilidad por ninguna pérdida, directa o indirecta, que experimente como resultado de confiar totalmente en la funcionalidad de esta aplicación.</p>
+
+            <h2>5. Cambios en los Términos</h2>
+            <p>Podemos actualizar nuestros Términos de Servicio de vez en cuando. Por lo tanto, se recomienda revisar esta página periódicamente para ver si hay cambios.</p>
+
+            <h2>6. Contacto</h2>
+            <p>Si tiene preguntas sobre nuestros Términos de Servicio, por favor contáctenos a nuestro correo: <a href="mailto:isaacduran167@gmail.com" class="contact-link">isaacduran167@gmail.com</a>.</p>
+        </div>
+
+        <!-- ENGLISH CONTENT -->
+        <div id="lang-en" class="content-lang">
+            <h1>Terms of Service</h1>
+            <div class="effective-date">Last Updated: July 2026</div>
+
+            <h2>1. Acceptance of Terms</h2>
+            <p>By downloading or using the <strong>Himnario El Buen Pastor</strong> app, these terms will automatically apply to you. You should make sure therefore that you read them carefully before using the app.</p>
+
+            <h2>2. Use of the App</h2>
+            <p>This app is for personal, non-commercial use. You agree not to copy, or modify the app, any part of the app, or our trademarks in any way.</p>
+            <ul>
+                <li>The provided content (hymns, lyrics, interface) is for spiritual enrichment and benefit.</li>
+                <li>You are not allowed to attempt to extract the source code of the app, translate the app into other languages, or make derivative versions.</li>
+            </ul>
+
+            <h2>3. Availability and Updates</h2>
+            <p>We are committed to ensuring that the app is as useful and efficient as possible. For that reason, we reserve the right to make changes to the app or to charge for its services, at any time and for any reason, though core features will remain freely accessible.</p>
+            <p>We may require you to download updates periodically for security reasons or to add new features.</p>
+
+            <h2>4. Third-Party Content and Liability</h2>
+            <p>Although we endeavor to keep the app updated and correct, some content (such as public domain hymn lyrics) might vary. We do not accept liability for any loss, direct or indirect, you experience as a result of relying wholly on this functionality of the app.</p>
+
+            <h2>5. Changes to the Terms</h2>
+            <p>We may update our Terms of Service from time to time. Thus, you are advised to review this page periodically for any changes.</p>
+
+            <h2>6. Contact Us</h2>
+            <p>If you have any questions or suggestions about our Terms of Service, please contact us at: <a href="mailto:isaacduran167@gmail.com" class="contact-link">isaacduran167@gmail.com</a>.</p>
+        </div>
+
+    </main>
 
     <script>
         function setLanguage(lang) {
@@ -207,9 +283,27 @@
             if (lang === 'en') {
                 document.getElementById('lang-en').classList.add('active');
                 event.target.classList.add('active');
+                
+                // Update Sidebar Translations
+                document.getElementById('nav-title-general').innerText = 'General';
+                document.getElementById('nav-title-policies').innerText = 'Policies';
+                document.getElementById('nav-title-support').innerText = 'Support';
+                document.getElementById('nav-home').innerText = 'Home';
+                document.getElementById('nav-privacy').innerText = 'Privacy Policy';
+                document.getElementById('nav-terms').innerText = 'Terms of Service';
+                document.getElementById('nav-contact').innerText = 'Contact Support';
             } else {
                 document.getElementById('lang-es').classList.add('active');
                 event.target.classList.add('active');
+
+                // Update Sidebar Translations
+                document.getElementById('nav-title-general').innerText = 'General';
+                document.getElementById('nav-title-policies').innerText = 'Políticas';
+                document.getElementById('nav-title-support').innerText = 'Soporte';
+                document.getElementById('nav-home').innerText = 'Inicio';
+                document.getElementById('nav-privacy').innerText = 'Política de Privacidad';
+                document.getElementById('nav-terms').innerText = 'Términos de Servicio';
+                document.getElementById('nav-contact').innerText = 'Contacto';
             }
         }
     </script>
