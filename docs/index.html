@@ -2,285 +2,757 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Himnario El Buen Pastor - Políticas y Soporte / Policies & Support</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Himnario El Buen Pastor — Aplicación de himnos para la iglesia. Política de privacidad, términos de servicio y soporte.">
+    <title>Himnario El Buen Pastor — Centro Legal y Soporte</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #fcf9f2; /* App's Parchment cream background */
-            --text-main: #1c1c18;
-            --text-muted: #564240;
-            --primary-dark: #6e1619; /* Sacred Accent Burgundy */
-            --accent-gold: #e2c19b;
-            --card-bg: #ffffff;
-            --outline: #897170;
+            --bg: #fcf9f2;
+            --surface: #ffffff;
+            --text: #1c1c18;
+            --muted: #564240;
+            --primary: #6e1619;
+            --primary-light: rgba(110, 22, 25, 0.08);
+            --gold: #e2c19b;
+            --border: #e5e2db;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Public Sans', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.7;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-image: radial-gradient(circle at top right, rgba(110, 22, 25, 0.05), transparent 40%),
-                              radial-gradient(circle at bottom left, rgba(226, 193, 155, 0.1), transparent 40%);
+            font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .hero {
-            padding: 5rem 2rem 3rem;
-            text-align: center;
+        /* ── NAV ── */
+        nav {
+            position: sticky;
+            top: 0;
+            left: 0; right: 0;
+            background: rgba(252, 249, 242, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: calc(0px + var(--safe-top)) 0 0;
+            z-index: 100;
+        }
+
+        .nav-inner {
+            max-width: 1100px;
+            margin: 0 auto;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.5rem;
+        }
+
+        .nav-brand {
+            font-family: 'Newsreader', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .lang-pill {
+            display: flex;
+            background: var(--surface);
+            padding: 3px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-left: 1rem;
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            font-family: 'Public Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--muted);
+            padding: 0.35rem 0.85rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .nav-mobile-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            padding: 6rem 1.5rem 5rem;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(110,22,25,0.07) 0%, transparent 60%);
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
         }
 
         .hero h1 {
             font-family: 'Newsreader', serif;
-            font-size: 3rem;
-            color: var(--primary-dark);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            color: var(--primary);
+            line-height: 1.1;
+            letter-spacing: -1px;
+            margin-bottom: 1.2rem;
         }
 
-        .hero p {
+        .hero h1 em {
+            font-style: italic;
+            color: var(--primary);
+        }
+
+        .hero-sub {
             font-size: 1.1rem;
-            color: var(--text-muted);
-            max-width: 600px;
-            font-weight: 300;
+            color: var(--muted);
+            max-width: 520px;
+            margin: 0 auto 2.5rem;
+            font-weight: 400;
         }
 
-        .lang-switch {
+        .hero-cta {
             display: flex;
-            gap: 12px;
-            margin-top: 2rem;
-            background: white;
-            padding: 6px;
-            border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.05);
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .lang-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 0.6rem 1.2rem;
-            border-radius: 24px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: #fff;
             font-family: 'Public Sans', sans-serif;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.85rem 1.8rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.25s;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #8d2d2d;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(110,22,25,0.25);
         }
 
-        .lang-btn.active {
-            background: var(--primary-dark);
-            color: white;
-            box-shadow: 0 2px 8px rgba(110, 22, 25, 0.3);
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface);
+            color: var(--primary);
+            font-family: 'Public Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.85rem 1.8rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.25s;
+            border: 1.5px solid var(--border);
+        }
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-2px);
         }
 
-        .lang-btn:not(.active):hover {
-            background: rgba(110, 22, 25, 0.05);
-            color: var(--primary-dark);
-        }
-
-        .container {
-            flex: 1;
-            max-width: 1000px;
+        /* ── SECTION WRAPPER ── */
+        .section {
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 2rem;
-            width: 100%;
+            padding: 4rem 1.5rem;
         }
 
-        .grid {
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 0.7rem;
+        }
+
+        .section-title {
+            font-family: 'Newsreader', serif;
+            font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+            color: var(--text);
+            margin-bottom: 0.8rem;
+            letter-spacing: -0.4px;
+        }
+
+        .section-sub {
+            color: var(--muted);
+            max-width: 540px;
+            margin-bottom: 3rem;
+        }
+
+        /* ── DIVIDER ── */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 0;
+        }
+
+        /* ── CARDS GRID ── */
+        .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 1.5rem;
         }
 
         .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 2.5rem;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.4);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: 100%;
+            transition: box-shadow 0.3s, transform 0.3s;
         }
-
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.02);
+            box-shadow: 0 12px 32px rgba(110,22,25,0.08);
+            transform: translateY(-4px);
         }
 
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
+        .card-icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-light);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1.2rem;
         }
 
-        .card h2 {
+        .card h3 {
             font-family: 'Newsreader', serif;
-            color: var(--primary-dark);
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-bottom: 0.6rem;
         }
 
         .card p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
-            flex-grow: 1;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            flex: 1;
+            margin-bottom: 1.5rem;
         }
 
-        .btn {
+        .card-link {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            background-color: var(--primary-dark);
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
+            gap: 6px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--primary);
             text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-            width: 100%;
+            transition: gap 0.2s;
+        }
+        .card-link:hover { gap: 10px; }
+
+        /* ── APP FEATURE STRIP ── */
+        .features {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
         }
 
-        .btn:hover {
-            background-color: #8d2d2d;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(110, 22, 25, 0.2);
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0;
         }
 
-        footer {
+        .feature-item {
+            padding: 2.5rem 2rem;
+            border-right: 1px solid var(--border);
             text-align: center;
-            padding: 3rem 1rem;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            border-top: 1px solid rgba(0,0,0,0.05);
-            margin-top: 4rem;
         }
+        .feature-item:last-child { border-right: none; }
 
-        .content-lang {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .content-lang.active {
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
             display: block;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .feature-title {
+            font-family: 'Newsreader', serif;
+            font-size: 1.05rem;
+            color: var(--text);
+            margin-bottom: 0.3rem;
         }
 
+        .feature-desc {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        /* ── CONTACT BANNER ── */
+        .contact-banner {
+            background: var(--primary);
+            color: #fff;
+            text-align: center;
+            padding: 4rem 1.5rem;
+        }
+
+        .contact-banner h2 {
+            font-family: 'Newsreader', serif;
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+        }
+
+        .contact-banner p {
+            font-size: 1rem;
+            opacity: 0.85;
+            margin-bottom: 2rem;
+        }
+
+        .btn-white {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            color: var(--primary);
+            font-family: 'Public Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.85rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.25s;
+        }
+        .btn-white:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 2rem 1.5rem calc(1.5rem + var(--safe-bottom));
+            text-align: center;
+        }
+
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-brand {
+            font-family: 'Newsreader', serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .footer-links a {
+            font-size: 0.85rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer-links a:hover { color: var(--primary); }
+
+        .footer-copy {
+            font-size: 0.8rem;
+            color: var(--muted);
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        /* ── LANGUAGE TOGGLE ── */
+        .content-lang { display: none; animation: fadeIn 0.4s ease; }
+        .content-lang.active { display: contents; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ── MOBILE MENU ── */
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 200;
+        }
+        .mobile-nav-drawer {
+            display: none;
+            position: fixed;
+            top: calc(3.5rem + var(--safe-top));
+            left: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1.2rem;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+            z-index: 201;
+        }
+        .mobile-nav-drawer.open, .mobile-nav-overlay.open { display: block; }
+        .mobile-nav-drawer .nav-link {
+            display: block;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            border-radius: 10px;
+        }
+        .mobile-lang-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+        .mobile-lang-btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.65rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: none;
+            font-family: 'Public Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mobile-lang-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.2rem; }
-            .hero { padding: 4rem 1.5rem 2rem; }
-            .container { padding: 1.5rem; }
-            .card { padding: 2rem 1.5rem; }
+            .nav-links, .lang-pill { display: none; }
+            .nav-mobile-btn { display: block; }
+
+            .hero { padding: 3.5rem 1.2rem 3rem; }
+
+            .feature-item { border-right: none; border-bottom: 1px solid var(--border); }
+            .feature-item:last-child { border-bottom: none; }
+            .features-grid { grid-template-columns: 1fr; }
+
+            .footer-inner { justify-content: center; text-align: center; }
+            .footer-links { justify-content: center; }
         }
     </style>
 </head>
 <body>
 
-    <section class="hero">
-        <h1>Himnario El Buen Pastor</h1>
-        <p id="header-subtitle">Centro de Información Legal y Soporte / Legal & Support Hub</p>
-        
-        <div class="lang-switch">
-            <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
-            <button class="lang-btn" onclick="setLanguage('en')">English</button>
-        </div>
-    </section>
-
-    <main class="container">
-        <!-- SPANISH -->
-        <div id="lang-es" class="content-lang active">
-            <div class="grid">
-                <div class="card">
-                    <div class="card-icon">🛡️</div>
-                    <h2>Política de Privacidad</h2>
-                    <p>Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil.</p>
-                    <a href="privacy.html" class="btn">Ver Política</a>
-                </div>
-                <div class="card">
-                    <div class="card-icon">📜</div>
-                    <h2>Términos de Servicio</h2>
-                    <p>Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor.</p>
-                    <a href="terms.html" class="btn">Ver Términos</a>
-                </div>
-                <div class="card">
-                    <div class="card-icon">✉️</div>
-                    <h2>Soporte y Contacto</h2>
-                    <p>¿Tienes dudas, sugerencias o comentarios? Ponte en contacto con nuestro equipo de soporte.</p>
-                    <a href="mailto:isaacduran167@gmail.com" class="btn">Enviar Correo</a>
-                </div>
+<!-- ── NAVIGATION ── -->
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">Himnario El Buen Pastor</a>
+        <div class="nav-links">
+            <a href="/privacy" class="nav-link" id="nav-privacy-link">Privacidad</a>
+            <a href="/terms" class="nav-link" id="nav-terms-link">Términos</a>
+            <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="nav-contact-link">Contacto</a>
+            <div class="lang-pill">
+                <button class="lang-btn active" onclick="setLang('es')" id="nav-lang-es">Español</button>
+                <button class="lang-btn" onclick="setLang('en')" id="nav-lang-en">English</button>
             </div>
         </div>
+        <button class="nav-mobile-btn" onclick="toggleDrawer()" id="menuBtn" aria-label="Menú">☰</button>
+    </div>
+</nav>
 
-        <!-- ENGLISH -->
-        <div id="lang-en" class="content-lang">
-            <div class="grid">
-                <div class="card">
-                    <div class="card-icon">🛡️</div>
-                    <h2>Privacy Policy</h2>
-                    <p>Learn how we protect your data and respect your privacy inside the mobile application.</p>
-                    <a href="privacy.html" class="btn">View Policy</a>
-                </div>
-                <div class="card">
-                    <div class="card-icon">📜</div>
-                    <h2>Terms of Service</h2>
-                    <p>Read the terms, conditions, and guidelines for using Himnario El Buen Pastor.</p>
-                    <a href="terms.html" class="btn">View Terms</a>
-                </div>
-                <div class="card">
-                    <div class="card-icon">✉️</div>
-                    <h2>Support & Contact</h2>
-                    <p>Have questions, suggestions, or feedback? Get in touch with our developer support team.</p>
-                    <a href="mailto:isaacduran167@gmail.com" class="btn">Send Email</a>
-                </div>
-            </div>
+<!-- MOBILE DRAWER -->
+<div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleDrawer()"></div>
+<div class="mobile-nav-drawer" id="mobileDrawer">
+    <a href="/privacy" class="nav-link" id="m-nav-privacy">Política de Privacidad</a>
+    <a href="/terms" class="nav-link" id="m-nav-terms">Términos de Servicio</a>
+    <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="m-nav-contact">Contacto</a>
+    <div class="mobile-lang-row">
+        <button class="mobile-lang-btn active" onclick="setLang('es')" id="m-lang-es">Español</button>
+        <button class="mobile-lang-btn" onclick="setLang('en')" id="m-lang-en">English</button>
+    </div>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero">
+    <div class="content-lang active" id="hero-es">
+        <div class="hero-badge">✦ Aplicación de Himnos</div>
+        <h1>Himnario<br><em>El Buen Pastor</em></h1>
+        <p class="hero-sub">El compañero espiritual de tu iglesia. Himnos, letras y música en la palma de tu mano.</p>
+        <div class="hero-cta">
+            <a href="/privacy" class="btn-primary">🛡️ Política de Privacidad</a>
+            <a href="/terms" class="btn-secondary">📜 Términos de Servicio</a>
         </div>
-    </main>
+    </div>
+    <div class="content-lang" id="hero-en">
+        <div class="hero-badge">✦ Hymn Application</div>
+        <h1>Himnario<br><em>El Buen Pastor</em></h1>
+        <p class="hero-sub">Your church's spiritual companion. Hymns, lyrics, and music in the palm of your hand.</p>
+        <div class="hero-cta">
+            <a href="/privacy" class="btn-primary">🛡️ Privacy Policy</a>
+            <a href="/terms" class="btn-secondary">📜 Terms of Service</a>
+        </div>
+    </div>
+</section>
 
-    <footer>
-        &copy; 2026 Himnario El Buen Pastor. All rights reserved / Todos los derechos reservados.
-    </footer>
+<hr class="divider">
 
-    <script>
-        function setLanguage(lang) {
-            document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+<!-- ── APP FEATURES ── -->
+<div class="features">
+    <div class="features-grid">
+        <div class="feature-item">
+            <span class="feature-icon">📖</span>
+            <div class="feature-title" id="feat-1-title">+600 Himnos</div>
+            <div class="feature-desc" id="feat-1-desc">Biblioteca completa de himnos</div>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">🎵</span>
+            <div class="feature-title" id="feat-2-title">Audio Integrado</div>
+            <div class="feature-desc" id="feat-2-desc">Escucha cada himno con un toque</div>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">🌙</span>
+            <div class="feature-title" id="feat-3-title">Modo Oscuro</div>
+            <div class="feature-desc" id="feat-3-desc">Lectura cómoda a cualquier hora</div>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">🔖</span>
+            <div class="feature-title" id="feat-4-title">Favoritos</div>
+            <div class="feature-desc" id="feat-4-desc">Guarda tus himnos preferidos</div>
+        </div>
+    </div>
+</div>
 
-            if (lang === 'en') {
-                document.getElementById('lang-en').classList.add('active');
-                event.target.classList.add('active');
-                document.getElementById('header-subtitle').innerText = 'Legal & Support Hub';
-            } else {
-                document.getElementById('lang-es').classList.add('active');
-                event.target.classList.add('active');
-                document.getElementById('header-subtitle').innerText = 'Centro de Información Legal y Soporte';
+<hr class="divider">
+
+<!-- ── POLICY CARDS ── -->
+<section class="section">
+    <div class="section-label" id="section-label">Información Legal</div>
+    <h2 class="section-title" id="section-title">Transparencia y Confianza</h2>
+    <p class="section-sub" id="section-sub">Comprometidos con la privacidad y el uso responsable de tu información.</p>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-icon-wrap">🛡️</div>
+            <h3 id="card-privacy-title">Política de Privacidad</h3>
+            <p id="card-privacy-desc">Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura.</p>
+            <a href="/privacy" class="card-link" id="card-privacy-link">Leer política →</a>
+        </div>
+        <div class="card">
+            <div class="card-icon-wrap">📜</div>
+            <h3 id="card-terms-title">Términos de Servicio</h3>
+            <p id="card-terms-desc">Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.</p>
+            <a href="/terms" class="card-link" id="card-terms-link">Leer términos →</a>
+        </div>
+        <div class="card">
+            <div class="card-icon-wrap">✉️</div>
+            <h3 id="card-contact-title">Soporte y Contacto</h3>
+            <p id="card-contact-desc">¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.</p>
+            <a href="mailto:isaacduran167@gmail.com" class="card-link" id="card-contact-link">Enviar correo →</a>
+        </div>
+    </div>
+</section>
+
+<!-- ── CONTACT BANNER ── -->
+<div class="contact-banner">
+    <h2 id="banner-title">¿Tienes alguna pregunta?</h2>
+    <p id="banner-sub">Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.</p>
+    <a href="mailto:isaacduran167@gmail.com" class="btn-white" id="banner-btn">✉️ Contactar soporte</a>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-brand">Himnario El Buen Pastor</div>
+        <div class="footer-links">
+            <a href="/privacy" id="footer-privacy">Privacidad</a>
+            <a href="/terms" id="footer-terms">Términos</a>
+            <a href="mailto:isaacduran167@gmail.com" id="footer-contact">Contacto</a>
+        </div>
+        <p class="footer-copy" id="footer-copy">© 2026 Himnario El Buen Pastor. Todos los derechos reservados.</p>
+    </div>
+</footer>
+
+<script>
+    let currentLang = 'es';
+
+    function setLang(lang) {
+        currentLang = lang;
+
+        // Hero sections
+        document.getElementById('hero-es').classList.toggle('active', lang === 'es');
+        document.getElementById('hero-en').classList.toggle('active', lang === 'en');
+
+        // Nav lang buttons
+        document.getElementById('nav-lang-es').classList.toggle('active', lang === 'es');
+        document.getElementById('nav-lang-en').classList.toggle('active', lang === 'en');
+        document.getElementById('m-lang-es').classList.toggle('active', lang === 'es');
+        document.getElementById('m-lang-en').classList.toggle('active', lang === 'en');
+
+        // All translatable elements
+        const translations = {
+            es: {
+                'nav-privacy-link': 'Privacidad',
+                'nav-terms-link': 'Términos',
+                'nav-contact-link': 'Contacto',
+                'm-nav-privacy': 'Política de Privacidad',
+                'm-nav-terms': 'Términos de Servicio',
+                'm-nav-contact': 'Contacto',
+                'feat-1-title': '+600 Himnos',
+                'feat-1-desc': 'Biblioteca completa de himnos',
+                'feat-2-title': 'Audio Integrado',
+                'feat-2-desc': 'Escucha cada himno con un toque',
+                'feat-3-title': 'Modo Oscuro',
+                'feat-3-desc': 'Lectura cómoda a cualquier hora',
+                'feat-4-title': 'Favoritos',
+                'feat-4-desc': 'Guarda tus himnos preferidos',
+                'section-label': 'Información Legal',
+                'section-title': 'Transparencia y Confianza',
+                'section-sub': 'Comprometidos con la privacidad y el uso responsable de tu información.',
+                'card-privacy-title': 'Política de Privacidad',
+                'card-privacy-desc': 'Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura.',
+                'card-privacy-link': 'Leer política →',
+                'card-terms-title': 'Términos de Servicio',
+                'card-terms-desc': 'Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.',
+                'card-terms-link': 'Leer términos →',
+                'card-contact-title': 'Soporte y Contacto',
+                'card-contact-desc': '¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.',
+                'card-contact-link': 'Enviar correo →',
+                'banner-title': '¿Tienes alguna pregunta?',
+                'banner-sub': 'Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.',
+                'banner-btn': '✉️ Contactar soporte',
+                'footer-privacy': 'Privacidad',
+                'footer-terms': 'Términos',
+                'footer-contact': 'Contacto',
+                'footer-copy': '© 2026 Himnario El Buen Pastor. Todos los derechos reservados.',
+            },
+            en: {
+                'nav-privacy-link': 'Privacy',
+                'nav-terms-link': 'Terms',
+                'nav-contact-link': 'Contact',
+                'm-nav-privacy': 'Privacy Policy',
+                'm-nav-terms': 'Terms of Service',
+                'm-nav-contact': 'Contact',
+                'feat-1-title': '600+ Hymns',
+                'feat-1-desc': 'Complete hymn library',
+                'feat-2-title': 'Built-in Audio',
+                'feat-2-desc': 'Listen to every hymn with one tap',
+                'feat-3-title': 'Dark Mode',
+                'feat-3-desc': 'Comfortable reading at any hour',
+                'feat-4-title': 'Favorites',
+                'feat-4-desc': 'Save your preferred hymns',
+                'section-label': 'Legal Information',
+                'section-title': 'Transparency & Trust',
+                'section-sub': 'Committed to privacy and responsible use of your information.',
+                'card-privacy-title': 'Privacy Policy',
+                'card-privacy-desc': 'Learn how we protect your data and respect your privacy inside the mobile application. Your information is safe.',
+                'card-privacy-link': 'Read policy →',
+                'card-terms-title': 'Terms of Service',
+                'card-terms-desc': 'Read the terms, conditions, and guidelines for using Himnario El Buen Pastor before using it.',
+                'card-terms-link': 'Read terms →',
+                'card-contact-title': 'Support & Contact',
+                'card-contact-desc': 'Have questions, suggestions, or feedback? Our team is ready to help you.',
+                'card-contact-link': 'Send email →',
+                'banner-title': 'Have a question?',
+                'banner-sub': 'We are here to help you with any questions about the app or our policies.',
+                'banner-btn': '✉️ Contact Support',
+                'footer-privacy': 'Privacy',
+                'footer-terms': 'Terms',
+                'footer-contact': 'Contact',
+                'footer-copy': '© 2026 Himnario El Buen Pastor. All rights reserved.',
             }
+        };
+
+        const t = translations[lang];
+        for (const [id, text] of Object.entries(t)) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
         }
-    </script>
+    }
+
+    function toggleDrawer() {
+        const drawer = document.getElementById('mobileDrawer');
+        const overlay = document.getElementById('mobileOverlay');
+        const btn = document.getElementById('menuBtn');
+        const isOpen = drawer.classList.contains('open');
+        drawer.classList.toggle('open', !isOpen);
+        overlay.classList.toggle('open', !isOpen);
+        btn.innerText = isOpen ? '☰' : '✕';
+    }
+</script>
 </body>
 </html>
