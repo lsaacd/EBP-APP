@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Términos de Servicio - Himnario El Buen Pastor</title>
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     <style>
@@ -13,20 +13,24 @@
             --text-muted: #564240;
             --primary-dark: #6e1619;
             --border-color: #e5e2db;
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         body {
-            font-family: 'Public Sans', sans-serif;
+            font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
             min-height: 100vh;
             line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
-        /* Sidebar Navigation */
+        /* Desktop Sidebar Navigation */
         .sidebar {
             width: 280px;
             background-color: var(--sidebar-bg);
@@ -35,6 +39,7 @@
             position: fixed;
             height: 100vh;
             overflow-y: auto;
+            z-index: 90;
         }
 
         .sidebar-title {
@@ -65,7 +70,7 @@
             text-decoration: none;
             color: var(--text-muted);
             padding: 0.6rem 0.8rem;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 0.2rem;
             font-size: 0.95rem;
             transition: all 0.2s;
@@ -78,11 +83,16 @@
         }
 
         .nav-link.active {
-            background-color: rgba(110, 22, 25, 0.06);
+            background-color: rgba(110, 22, 25, 0.08);
             color: var(--primary-dark);
-            font-weight: 600;
+            font-weight: 700;
             border-left: 3px solid var(--primary-dark);
-            border-radius: 0 6px 6px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Mobile Sticky iOS Header */
+        .mobile-header {
+            display: none;
         }
 
         /* Main Content Area */
@@ -97,7 +107,7 @@
         .header-controls {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 3rem;
+            margin-bottom: 2.5rem;
         }
 
         .lang-switch {
@@ -138,7 +148,7 @@
         .effective-date {
             color: var(--text-muted);
             font-size: 0.95rem;
-            margin-bottom: 3rem;
+            margin-bottom: 2.5rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--border-color);
         }
@@ -166,25 +176,123 @@
         }
         a.contact-link:hover { text-decoration: underline; }
 
+        /* 📱 iOS & Mobile Responsive Layout (< 900px) */
         @media (max-width: 900px) {
             body { flex-direction: column; }
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                padding: 1.5rem;
-                border-right: none;
+
+            .sidebar { display: none; }
+
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: sticky;
+                top: 0;
+                left: 0;
+                right: 0;
+                background-color: rgba(252, 249, 242, 0.92);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
                 border-bottom: 1px solid var(--border-color);
+                padding: calc(0.8rem + var(--safe-area-top)) 1.2rem 0.8rem;
+                z-index: 1000;
             }
-            .sidebar-title { margin-bottom: 1rem; padding-bottom: 1rem; }
-            .main-content { margin-left: 0; padding: 2rem 1.5rem; }
-            h1 { font-size: 2.2rem; }
+
+            .mobile-brand {
+                font-family: 'Newsreader', serif;
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: var(--primary-dark);
+                text-decoration: none;
+            }
+
+            .menu-toggle {
+                background: none;
+                border: none;
+                font-size: 1.4rem;
+                color: var(--primary-dark);
+                cursor: pointer;
+                padding: 4px 8px;
+                border-radius: 8px;
+            }
+
+            .mobile-nav-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 998;
+            }
+
+            .mobile-nav-menu {
+                display: none;
+                position: fixed;
+                top: calc(3.5rem + var(--safe-area-top));
+                left: 1rem;
+                right: 1rem;
+                background: #ffffff;
+                border-radius: 16px;
+                padding: 1.5rem;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+                border: 1px solid var(--border-color);
+                z-index: 999;
+                animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .mobile-nav-menu.open, .mobile-nav-overlay.open {
+                display: block;
+            }
+
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem 1.2rem calc(2rem + var(--safe-area-bottom));
+            }
+
+            .header-controls {
+                justify-content: flex-end;
+                margin-bottom: 1.5rem;
+            }
+
+            h1 { font-size: 2.1rem; }
+            h2 { font-size: 1.4rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR NAVIGATION -->
+    <!-- STICKY iOS MOBILE HEADER -->
+    <header class="mobile-header">
+        <a href="/" class="mobile-brand">Himnario El Buen Pastor</a>
+        <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
+    </header>
+
+    <!-- MOBILE NAVIGATION DROPDOWN MENU -->
+    <div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="nav-section">
+            <div class="nav-section-title" id="m-nav-title-general">General</div>
+            <a href="/" class="nav-link" id="m-nav-home">Inicio / Home</a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title" id="m-nav-title-policies">Políticas / Policies</div>
+            <a href="/privacy" class="nav-link" id="m-nav-privacy">Política de Privacidad</a>
+            <a href="/terms" class="nav-link active" id="m-nav-terms">Términos de Servicio</a>
+        </div>
+        <div class="nav-section" style="margin-bottom:0;">
+            <div class="nav-section-title" id="m-nav-title-support">Soporte / Support</div>
+            <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="m-nav-contact">Contacto / Contact</a>
+        </div>
+    </div>
+
+    <!-- DESKTOP SIDEBAR NAVIGATION -->
     <aside class="sidebar">
         <div class="sidebar-title">Himnario<br>El Buen Pastor</div>
         
@@ -276,6 +384,23 @@
     </main>
 
     <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const overlay = document.getElementById('mobileOverlay');
+            const toggleBtn = document.querySelector('.menu-toggle');
+            
+            const isOpen = menu.classList.contains('open');
+            if (isOpen) {
+                menu.classList.remove('open');
+                overlay.classList.remove('open');
+                toggleBtn.innerText = '☰';
+            } else {
+                menu.classList.add('open');
+                overlay.classList.add('open');
+                toggleBtn.innerText = '✕';
+            }
+        }
+
         function setLanguage(lang) {
             document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
@@ -284,26 +409,26 @@
                 document.getElementById('lang-en').classList.add('active');
                 event.target.classList.add('active');
                 
-                // Update Sidebar Translations
-                document.getElementById('nav-title-general').innerText = 'General';
-                document.getElementById('nav-title-policies').innerText = 'Policies';
-                document.getElementById('nav-title-support').innerText = 'Support';
-                document.getElementById('nav-home').innerText = 'Home';
-                document.getElementById('nav-privacy').innerText = 'Privacy Policy';
-                document.getElementById('nav-terms').innerText = 'Terms of Service';
-                document.getElementById('nav-contact').innerText = 'Contact Support';
+                // Update Desktop & Mobile Sidebar Translations
+                ['nav-title-general', 'm-nav-title-general'].forEach(id => document.getElementById(id).innerText = 'General');
+                ['nav-title-policies', 'm-nav-title-policies'].forEach(id => document.getElementById(id).innerText = 'Policies');
+                ['nav-title-support', 'm-nav-title-support'].forEach(id => document.getElementById(id).innerText = 'Support');
+                ['nav-home', 'm-nav-home'].forEach(id => document.getElementById(id).innerText = 'Home');
+                ['nav-privacy', 'm-nav-privacy'].forEach(id => document.getElementById(id).innerText = 'Privacy Policy');
+                ['nav-terms', 'm-nav-terms'].forEach(id => document.getElementById(id).innerText = 'Terms of Service');
+                ['nav-contact', 'm-nav-contact'].forEach(id => document.getElementById(id).innerText = 'Contact Support');
             } else {
                 document.getElementById('lang-es').classList.add('active');
                 event.target.classList.add('active');
 
-                // Update Sidebar Translations
-                document.getElementById('nav-title-general').innerText = 'General';
-                document.getElementById('nav-title-policies').innerText = 'Políticas';
-                document.getElementById('nav-title-support').innerText = 'Soporte';
-                document.getElementById('nav-home').innerText = 'Inicio';
-                document.getElementById('nav-privacy').innerText = 'Política de Privacidad';
-                document.getElementById('nav-terms').innerText = 'Términos de Servicio';
-                document.getElementById('nav-contact').innerText = 'Contacto';
+                // Update Desktop & Mobile Sidebar Translations
+                ['nav-title-general', 'm-nav-title-general'].forEach(id => document.getElementById(id).innerText = 'General');
+                ['nav-title-policies', 'm-nav-title-policies'].forEach(id => document.getElementById(id).innerText = 'Políticas');
+                ['nav-title-support', 'm-nav-title-support'].forEach(id => document.getElementById(id).innerText = 'Soporte');
+                ['nav-home', 'm-nav-home'].forEach(id => document.getElementById(id).innerText = 'Inicio');
+                ['nav-privacy', 'm-nav-privacy'].forEach(id => document.getElementById(id).innerText = 'Política de Privacidad');
+                ['nav-terms', 'm-nav-terms'].forEach(id => document.getElementById(id).innerText = 'Términos de Servicio');
+                ['nav-contact', 'm-nav-contact'].forEach(id => document.getElementById(id).innerText = 'Contacto');
             }
         }
     </script>
