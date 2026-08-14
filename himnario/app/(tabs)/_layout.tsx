@@ -59,6 +59,11 @@ function IOSTabs() {
         <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
         <Label>{t.tabSettings}</Label>
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="playlist/[id]" href={null as any}>
+        <Icon sf={{ default: 'music.note.list', selected: 'music.note.list' }} />
+        <Label>Playlist</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -157,7 +162,7 @@ function FloatingPillBar({ state, descriptors, navigation }: any) {
                 >
                   <MaterialIcons
                     name={config?.icon ?? 'circle'}
-                    size={28}
+                    size={22}
                     color={iconColor}
                   />
                   <Text
@@ -200,6 +205,7 @@ function AndroidTabs() {
       <Tabs.Screen name="hymns" options={{ title: t.tabHymns }} />
       <Tabs.Screen name="favorites" options={{ title: t.tabFavorites }} />
       <Tabs.Screen name="settings" options={{ title: t.tabSettings }} />
+      <Tabs.Screen name="playlist/[id]" options={{ href: null, title: 'Playlist' }} />
     </Tabs>
   );
 }
@@ -235,7 +241,7 @@ const pillStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingHorizontal: 8,
     backgroundColor: 'transparent',
   },
@@ -243,12 +249,12 @@ const pillStyles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: 2,
+    paddingVertical: 2,
   },
   label: {
     fontFamily: 'PublicSans_700Bold',
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: -0.1,
   },
 });

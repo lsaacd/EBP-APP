@@ -11,7 +11,6 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { Platform } from 'react-native';
 import TrackPlayer, {
   Capability,
-  State,
   AppKilledPlaybackBehavior,
   useTrackPlayerEvents,
   Event,
@@ -36,8 +35,12 @@ interface NowPlayingState {
   isShuffled: boolean;
   /** Repeat mode */
   repeatMode: 'off' | 'all' | 'one';
+  /** The list of hymn IDs currently in the playback queue (for playlists) */
+  currentQueueIds: string[] | null;
+  /** Set a custom playback queue */
+  setQueue: (ids: string[] | null) => void;
   /** Open the full-screen player for a specific hymn */
-  openPlayer: (hymnId: string) => void;
+  openPlayer: (hymnId: string, queueIds?: string[] | null) => void;
   /** Close the full-screen player (audio keeps playing) */
   closeFullPlayer: () => void;
   /** Fully stop and clear now-playing state */
@@ -49,7 +52,7 @@ interface NowPlayingState {
   /** Skip to previous track */
   skipPrev: () => void;
   /** Change the current track (used internally by the full player) */
-  setCurrentHymnId: (id: string) => void;
+  setCurrentHymnId: (id: string, queueIds?: string[] | null) => void;
   /** Toggle shuffle */
   toggleShuffle: () => void;
   /** Cycle repeat mode */
@@ -118,13 +121,20 @@ async function resolveAudioUri(requireSource: any): Promise<string | null> {
 // Provider
 // ─────────────────────────────────────────────────────────────
 export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
-  const [currentHymnId, setCurrentHymnIdState] = useState<string | null>(null);
+  const [, setCurrentHymnIdState] = useState<string | null>(null);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
+  const [currentQueueIds, setCurrentQueueIds] = useState<string[] | null>(null);
 
   const currentHymnIdRef = useRef<string | null>(null);
+  const currentQueueRef = useRef<string[] | null>(null);
+
+  const setQueue = useCallback((ids: string[] | null) => {
+    setCurrentQueueIds(ids);
+    currentQueueRef.current = ids;
+  }, []);
 
   // Initialize TrackPlayer once
   useEffect(() => {
@@ -207,13 +217,15 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
 
   // ── Controls ──────────────────────────────────────────────
 
-  const setCurrentHymnId = useCallback((id: string) => {
+  const setCurrentHymnId = useCallback((id: string, queueIds?: string[] | null) => {
+    if (queueIds !== undefined) setQueue(queueIds);
     setCurrentHymnIdState(id);
     currentHymnIdRef.current = id;
     loadAndPlay(id);
-  }, [loadAndPlay]);
+  }, [loadAndPlay, setQueue]);
 
-  const openPlayer = useCallback((hymnId: string) => {
+  const openPlayer = useCallback((hymnId: string, queueIds?: string[] | null) => {
+    if (queueIds !== undefined) setQueue(queueIds);
     const alreadyLoaded = currentHymnIdRef.current === hymnId;
     setCurrentHymnIdState(hymnId);
     currentHymnIdRef.current = hymnId;
@@ -235,7 +247,8 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
     currentHymnIdRef.current = null;
     setShowFullPlayer(false);
     setIsPlaying(false);
-  }, []);
+    setQueue(null);
+  }, [setQueue]);
 
   const togglePlayPause = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -271,15 +284,39 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [togglePlayPause]);
 
-  // Compute the current index for next/prev
-  const activeData = currentHymnIdRef.current?.startsWith('E') ? estribillosData : hymnsData;
-  const currentIndex = currentHymnIdRef.current
-    ? activeData.findIndex((h: any) => String(h.id) === String(currentHymnIdRef.current))
-    : -1;
-
   const handleSkipNext = useCallback(() => {
     const cId = currentHymnIdRef.current;
     if (!cId) return;
+
+    if (currentQueueRef.current && currentQueueRef.current.length > 0) {
+      const q = currentQueueRef.current;
+      const idx = q.findIndex(id => String(id) === String(cId));
+      
+      if (isShuffled) {
+        const others = q.filter((id, i) => i !== idx && hasHymnAudio(String(id)));
+        if (others.length > 0) {
+          const pick = others[Math.floor(Math.random() * others.length)];
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCurrentHymnIdState(String(pick));
+          currentHymnIdRef.current = String(pick);
+          loadAndPlay(String(pick));
+        }
+        return;
+      }
+
+      for (let i = idx + 1; i < q.length; i++) {
+        if (hasHymnAudio(String(q[i]))) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCurrentHymnIdState(String(q[i]));
+          currentHymnIdRef.current = String(q[i]);
+          loadAndPlay(String(q[i]));
+          return;
+        }
+      }
+      return; // end of custom queue
+    }
+
+    // Fallback to global data
     const data = cId.startsWith('E') ? estribillosData : hymnsData;
     const idx = data.findIndex((h: any) => String(h.id) === String(cId));
 
@@ -311,6 +348,23 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
   const handleSkipPrev = useCallback(() => {
     const cId = currentHymnIdRef.current;
     if (!cId) return;
+
+    if (currentQueueRef.current && currentQueueRef.current.length > 0) {
+      const q = currentQueueRef.current;
+      const idx = q.findIndex(id => String(id) === String(cId));
+      
+      for (let i = idx - 1; i >= 0; i--) {
+        if (hasHymnAudio(String(q[i]))) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCurrentHymnIdState(String(q[i]));
+          currentHymnIdRef.current = String(q[i]);
+          loadAndPlay(String(q[i]));
+          return;
+        }
+      }
+      return;
+    }
+
     const data = cId.startsWith('E') ? estribillosData : hymnsData;
     const idx = data.findIndex((h: any) => String(h.id) === String(cId));
 
@@ -355,6 +409,8 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
         showFullPlayer,
         isShuffled,
         repeatMode,
+        currentQueueIds,
+        setQueue,
         openPlayer,
         closeFullPlayer,
         clearNowPlaying,

@@ -30,11 +30,6 @@ npm install
 npx expo start
 ```
 
-### 📄 Políticas y Términos Legales
-* 🛡️ **[Política de Privacidad](docs/privacy.html)**
-* 📜 **[Términos de Servicio](docs/terms.html)**
-* 🌐 **[Centro de Políticas y Soporte](docs/index.html)**
-
 ---
 
 <a name="-himnario-el-buen-pastor-english"></a>
@@ -54,11 +49,6 @@ Official mobile application for **Himnario El Buen Pastor** available on iOS and
 npm install
 npx expo start
 ```
-
-### 📄 Legal Policies & Support
-* 🛡️ **[Privacy Policy](docs/privacy.html)**
-* 📜 **[Terms of Service](docs/terms.html)**
-* 🌐 **[Policies & Support Hub](docs/index.html)**
 
 ---
 

@@ -200,23 +200,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <FavoritesProvider>
-            <PlaylistsProvider>
-              <RecentHymnsProvider>
-                <NowPlayingProvider>
-                  <HymnFilterProvider>
-                    <ThemedStack />
-                  </HymnFilterProvider>
-                </NowPlayingProvider>
-              </RecentHymnsProvider>
-            </PlaylistsProvider>
-          </FavoritesProvider>
-        </ThemeProvider>
-      </LanguageProvider>
-    </SafeAreaProvider>
+      <SafeAreaProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <FavoritesProvider>
+              <PlaylistsProvider>
+                <RecentHymnsProvider>
+                  <NowPlayingProvider>
+                    <HymnFilterProvider>
+                      <ThemedStack />
+                    </HymnFilterProvider>
+                  </NowPlayingProvider>
+                </RecentHymnsProvider>
+              </PlaylistsProvider>
+            </FavoritesProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

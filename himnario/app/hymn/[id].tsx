@@ -10,7 +10,7 @@
  *
  * @returns {React.JSX.Element} The rendered Hymn Detail screen.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useRecentHymns } from '../../context/RecentHymnsContext';
+import { usePlaylists } from '../../context/PlaylistsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import MusicPlayer from '../../components/MusicPlayer';
@@ -45,11 +46,12 @@ const CORO_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo|er\.|do\.|ro\.|to\.)?\s*)?coro)[:
 type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: string };
 
 export default function HymnDetail() {
-  const { id } = useLocalSearchParams();
+  const { id, playlistId } = useLocalSearchParams();
   const router = useRouter();
   const { theme, isDarkMode, fontSizeMultiplier, toggleTheme, changeFontSize } = useTheme();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addRecent } = useRecentHymns();
+  const { playlists } = usePlaylists();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
 
@@ -61,12 +63,26 @@ export default function HymnDetail() {
     return isEstribillo ? estribillosData : hymnsData;
   }, [id]);
 
+  const activePlaylist = useMemo(() => {
+    if (!playlistId) return null;
+    return playlists.find(p => String(p.id) === String(playlistId)) || null;
+  }, [playlistId, playlists]);
+
+  const hymnList = useMemo(() => {
+    if (activePlaylist) {
+      return activePlaylist.hymnIds.map((hId: string) => {
+        return allHymns.find(h => String(h.id) === hId);
+      }).filter(Boolean);
+    }
+    return allHymns;
+  }, [activePlaylist, allHymns]);
+
   const currentIndex = useMemo(
-    () => allHymns.findIndex((h) => h.id === id || h.id === String(id)),
-    [id, allHymns],
+    () => hymnList.findIndex((h: any) => String(h.id) === String(id)),
+    [id, hymnList],
   );
-  const prevHymn = currentIndex > 0 ? allHymns[currentIndex - 1] : null;
-  const nextHymn = currentIndex < allHymns.length - 1 ? allHymns[currentIndex + 1] : null;
+  const prevHymn = currentIndex > 0 ? hymnList[currentIndex - 1] : null;
+  const nextHymn = currentIndex >= 0 && currentIndex < hymnList.length - 1 ? hymnList[currentIndex + 1] : null;
 
   // ── Page-flip navigation ────────────────────────────────────
   const [flipDirection, setFlipDirection] = useState<FlipDirection>('right');
@@ -80,18 +96,26 @@ export default function HymnDetail() {
     setNavDisabled(true);
     setFlipDirection('left');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace(`/hymn/${prevHymn.id}`);
+    if (playlistId) {
+      router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, playlistId } });
+    } else {
+      router.replace(`/hymn/${prevHymn.id}`);
+    }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [prevHymn, navDisabled, router]);
+  }, [prevHymn, navDisabled, router, playlistId]);
 
   const goToNext = useCallback(() => {
     if (!nextHymn || navDisabled) return;
     setNavDisabled(true);
     setFlipDirection('right');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace(`/hymn/${nextHymn.id}`);
+    if (playlistId) {
+      router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, playlistId } });
+    } else {
+      router.replace(`/hymn/${nextHymn.id}`);
+    }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [nextHymn, navDisabled, router]);
+  }, [nextHymn, navDisabled, router, playlistId]);
 
   /** Handle swipe-to-flip gestures from the PageFlipTransition component */
   const handleSwipeFlip = useCallback((dir: FlipDirection) => {
@@ -120,7 +144,11 @@ export default function HymnDetail() {
   const handlePlayAudio = (h: any) => {
     if (!hymnAudio(h)) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    openPlayer(String(h.id));
+    if (activePlaylist) {
+      openPlayer(String(h.id), activePlaylist.hymnIds);
+    } else {
+      openPlayer(String(h.id), null);
+    }
   };
 
   const handleBookmark = (h: any) => {
@@ -141,7 +169,7 @@ export default function HymnDetail() {
   // Record this hymn as recently viewed
   useEffect(() => {
     if (hymn) addRecent(String(hymn.id));
-  }, [hymn?.id]);
+  }, [hymn, addRecent]);
 
   const lyricFontSize = Math.round(22 * fontSizeMultiplier);
   // Theme-reactive coro label colour: Sacred Ink burgundy in light, pure white in dark
@@ -215,7 +243,7 @@ export default function HymnDetail() {
         </ScrollView>
       </View>
     );
-  }, [theme, lyricFontSize, CORO_COLOR, isDarkMode]);
+  }, [theme, lyricFontSize, CORO_COLOR]);
 
   if (!hymn) {
     return (

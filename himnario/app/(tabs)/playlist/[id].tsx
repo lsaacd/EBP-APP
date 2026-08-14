@@ -11,16 +11,16 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useTheme } from '../../theme/ThemeContext';
-import { usePlaylists } from '../../context/PlaylistsContext';
-import { useFavorites } from '../../context/FavoritesContext';
-import { useLanguage, translateCategories } from '../../context/LanguageContext';
-import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
-import { fonts } from '../../theme/theme';
+import { useTheme } from '../../../theme/ThemeContext';
+import { usePlaylists } from '../../../context/PlaylistsContext';
+import { useFavorites } from '../../../context/FavoritesContext';
+import { useLanguage, translateCategories } from '../../../context/LanguageContext';
+import { hymnsData, estribillosData } from '../../../data/alabanzasPaginas';
+import { fonts } from '../../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNowPlaying } from '../../context/NowPlayingContext';
+import { useNowPlaying } from '../../../context/NowPlayingContext';
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -31,10 +31,7 @@ export default function PlaylistDetailScreen() {
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + 16;
-  const { currentHymnId } = useNowPlaying();
-
   const { playlists, deletePlaylist, removeHymnFromPlaylist } = usePlaylists();
-  const { toggleFavorite } = useFavorites();
 
   const playlist = playlists.find(p => p.id === id);
   const allHymns = [...hymnsData, ...estribillosData];
@@ -117,12 +114,6 @@ export default function PlaylistDetailScreen() {
     extrapolate: 'clamp',
   });
 
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, -1],
-    extrapolate: 'clamp',
-  });
-
   if (!playlist) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
@@ -180,7 +171,7 @@ export default function PlaylistDetailScreen() {
                 activeOpacity={0.8}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push(`/hymn/${hymn.id}`);
+                  router.push({ pathname: '/hymn/[id]', params: { id: hymn.id, playlistId: playlist.id } });
                 }}
               >
                 <Text
