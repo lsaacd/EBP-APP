@@ -59,11 +59,6 @@ function IOSTabs() {
         <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
         <Label>{t.tabSettings}</Label>
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="playlist/[id]" hidden={true}>
-        <Icon sf={{ default: 'music.note.list', selected: 'music.note.list' }} />
-        <Label>Playlist</Label>
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -205,7 +200,6 @@ function AndroidTabs() {
       <Tabs.Screen name="hymns" options={{ title: t.tabHymns }} />
       <Tabs.Screen name="favorites" options={{ title: t.tabFavorites }} />
       <Tabs.Screen name="settings" options={{ title: t.tabSettings }} />
-      <Tabs.Screen name="playlist/[id]" options={{ href: null, title: 'Playlist' }} />
     </Tabs>
   );
 }

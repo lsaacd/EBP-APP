@@ -264,7 +264,7 @@ export default function FavoritesScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     // @ts-ignore
-                    router.push({ pathname: '/(tabs)/playlist/[id]', params: { id: playlist.id } });
+                    router.push({ pathname: '/playlist/[id]', params: { id: playlist.id } });
                   }}
                 >
                   <View style={[styles.iconBox, { backgroundColor: theme.primary + '1A', width: 44, height: 44, borderRadius: 10, marginRight: 8 }]}>
@@ -286,6 +286,17 @@ export default function FavoritesScreen() {
           </View>
         )
       )}
+
+      {/* ── Scripture Quote ────────────────────────────────────── */}
+      <View style={styles.quoteBlock}>
+        <MaterialIcons name="auto-awesome" size={36} color={theme.primary} style={{ marginBottom: 16 }} />
+        <Text style={[styles.quoteText, { color: theme.onSurface }]}>
+          {t.favoritesQuoteText}
+        </Text>
+        <Text style={[styles.quoteAuthor, { color: theme.outline }]}>
+          {t.favoritesQuoteAuthor}
+        </Text>
+      </View>
 
       <View style={{ height: bottomClearance }} />
     </>
@@ -537,5 +548,24 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     width: '100%',
+  },
+  quoteBlock: {
+    alignItems: 'center',
+    paddingVertical: 80,
+    opacity: 0.3,
+  },
+  quoteText: {
+    fontFamily: fonts.regularItalic,
+    fontSize: 18,
+    textAlign: 'center',
+    maxWidth: 280,
+    marginBottom: 8,
+    lineHeight: 26,
+  },
+  quoteAuthor: {
+    fontFamily: 'PublicSans_400Regular',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });

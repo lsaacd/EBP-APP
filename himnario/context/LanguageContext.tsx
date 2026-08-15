@@ -154,6 +154,8 @@ export const strings = {
     searchResultsCount_other: 'resultados',
     footerQuoteText: '"Cantad alegres a Dios, habitantes de toda la tierra."',
     footerQuoteAuthor: 'SALMO 100:1',
+    favoritesQuoteText: '"Alabad á Jehová, porque es bueno; Porque para siempre es su misericordia."',
+    favoritesQuoteAuthor: 'SALMOS 136:1',
   },
   en: {
     appName: 'El Buen Pastor Hymnal',
@@ -162,7 +164,7 @@ export const strings = {
     exploreCollection: 'BROWSE FULL COLLECTION',
     availableSongs: 'Available Hymns',
     availableSongsSub: 'Play hymns with audio',
-    recentHymns: 'Recent Songs',
+    recentHymns: 'Recent Hymns',
     clearHistory: 'CLEAR',
     recentEmpty: 'Hymns you open will appear here.',
     // Hymn list
@@ -302,6 +304,8 @@ export const strings = {
     searchResultsCount_other: 'results',
     footerQuoteText: '"Make a joyful noise unto God, all ye lands."',
     footerQuoteAuthor: 'PSALM 100:1',
+    favoritesQuoteText: '"O give thanks unto the LORD; for He is good: for His mercy endureth for ever."',
+    favoritesQuoteAuthor: 'PSALM 136:1',
   },
 };
 
