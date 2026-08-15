@@ -59,6 +59,11 @@ function IOSTabs() {
         <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
         <Label>{t.tabSettings}</Label>
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="playlist/[id]" hidden={true}>
+        <Icon sf={{ default: 'music.note.list', selected: 'music.note.list' }} />
+        <Label>Playlist</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

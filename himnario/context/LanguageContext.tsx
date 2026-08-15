@@ -162,7 +162,7 @@ export const strings = {
     exploreCollection: 'BROWSE FULL COLLECTION',
     availableSongs: 'Available Hymns',
     availableSongsSub: 'Play hymns with audio',
-    recentHymns: 'Recent Hymns',
+    recentHymns: 'Recent Songs',
     clearHistory: 'CLEAR',
     recentEmpty: 'Hymns you open will appear here.',
     // Hymn list
