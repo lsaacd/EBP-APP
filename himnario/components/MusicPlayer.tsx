@@ -640,7 +640,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
       <AddToPlaylistModal
         visible={playlistModalVisible}
         onClose={() => setPlaylistModalVisible(false)}
-        hymnId={hymnId}
+        hymnId={currentId}
       />
     </Modal>
   );

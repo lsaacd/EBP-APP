@@ -1480,7 +1480,7 @@ export const hymnsData = [
   {
     id: '58',
     number: 58,
-    title: 'El Grande Amor De Un Salvador Hebp Audio',
+    title: 'El Grande Amor De Un Salvador',
     categories: 'Amor',
     author: '',
     reference: '',
