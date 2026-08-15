@@ -8,7 +8,7 @@
  * Powers both the full-screen MusicPlayer modal and the floating MiniPlayer.
  */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import TrackPlayer, {
   Capability,
   AppKilledPlaybackBehavior,
@@ -147,37 +147,7 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
   // Instead, we track isPlaying manually via our own play/pause calls
   // and also listen for native events as a safety net (see below).
 
-  // Listen for track-ended and remote-control events
-  useTrackPlayerEvents(
-    [
-      Event.PlaybackQueueEnded,
-      Event.RemoteNext,
-      Event.RemotePrevious,
-      Event.RemotePlay,
-      Event.RemotePause,
-    ],
-    async (event) => {
-      if (event.type === Event.PlaybackQueueEnded) {
-        // Handle repeat / auto-advance
-        if (repeatMode === 'one') {
-          await TrackPlayer.seekTo(0);
-          await TrackPlayer.play();
-        } else {
-          handleSkipNext();
-        }
-      } else if (event.type === Event.RemoteNext) {
-        handleSkipNext();
-      } else if (event.type === Event.RemotePrevious) {
-        handleSkipPrev();
-      } else if (event.type === Event.RemotePlay) {
-        await TrackPlayer.play();
-        setIsPlaying(true);
-      } else if (event.type === Event.RemotePause) {
-        await TrackPlayer.pause();
-        setIsPlaying(false);
-      }
-    }
-  );
+
 
   // ── Load & play a track ──────────────────────────────────
   const loadAndPlay = useCallback(async (hymnId: string) => {
@@ -400,6 +370,55 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
       return next;
     });
   }, []);
+
+  // Listen for track-ended and remote-control events
+  useTrackPlayerEvents(
+    [
+      Event.PlaybackQueueEnded,
+      Event.RemoteNext,
+      Event.RemotePrevious,
+      Event.RemotePlay,
+      Event.RemotePause,
+    ],
+    async (event) => {
+      if (event.type === Event.PlaybackQueueEnded) {
+        // Handle repeat / auto-advance
+        if (repeatMode === 'one') {
+          await TrackPlayer.seekTo(0);
+          await TrackPlayer.play();
+        } else {
+          handleSkipNext();
+        }
+      } else if (event.type === Event.RemoteNext) {
+        handleSkipNext();
+      } else if (event.type === Event.RemotePrevious) {
+        handleSkipPrev();
+      } else if (event.type === Event.RemotePlay) {
+        await TrackPlayer.play();
+        setIsPlaying(true);
+      } else if (event.type === Event.RemotePause) {
+        await TrackPlayer.pause();
+        setIsPlaying(false);
+      }
+    }
+  );
+
+  // Fallback listener for Android background controls routed via service.js
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    
+    const nextSub = DeviceEventEmitter.addListener('CustomRemoteNext', () => {
+      handleSkipNext();
+    });
+    const prevSub = DeviceEventEmitter.addListener('CustomRemotePrev', () => {
+      handleSkipPrev();
+    });
+    
+    return () => {
+      nextSub.remove();
+      prevSub.remove();
+    };
+  }, [handleSkipNext, handleSkipPrev]);
 
   return (
     <NowPlayingContext.Provider

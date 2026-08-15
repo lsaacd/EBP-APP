@@ -1,14 +1,20 @@
 # dependencies
-node_modules
+node_modules/
+node_modules/**/*
 
 # Expo
-.expo
-dist
-web-build
+.expo/
+.expo/**/*
+dist/
+dist/**/*
+web-build/
+web-build/**/*
 
 # Native build folders (these are HUGE and not needed for cloud builds)
-android
-ios
+android/
+android/**/*
+ios/
+ios/**/*
 
 # Build artifacts
 .kotlin

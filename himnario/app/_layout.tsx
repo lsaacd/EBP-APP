@@ -93,7 +93,7 @@ function ThemedStack() {
   const isTabs = !pathname.startsWith('/hymn/');
 
   const pillBottom = Math.max(insets.bottom, 22);
-  const pillHeight = 61; // Android floating tab bar & global hymn reading bar height
+  const pillHeight = 55; // Android floating tab bar & global hymn reading bar height
 
   let miniPlayerBottom: number;
 
