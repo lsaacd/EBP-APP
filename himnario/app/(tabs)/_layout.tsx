@@ -200,7 +200,6 @@ function AndroidTabs() {
       <Tabs.Screen name="hymns" options={{ title: t.tabHymns }} />
       <Tabs.Screen name="favorites" options={{ title: t.tabFavorites }} />
       <Tabs.Screen name="settings" options={{ title: t.tabSettings }} />
-      <Tabs.Screen name="playlist/[id]" options={{ href: null, title: 'Playlist' }} />
     </Tabs>
   );
 }

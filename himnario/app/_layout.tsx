@@ -90,14 +90,18 @@ function ThemedStack() {
   const insets = useSafeAreaInsets();
 
   const isIOS = Platform.OS === 'ios';
-  const isTabs = !pathname.startsWith('/hymn/');
+  const isPlaylist = pathname.startsWith('/playlist');
+  const isHymn = pathname.startsWith('/hymn');
 
   const pillBottom = Math.max(insets.bottom, 22);
   const pillHeight = 55; // Android floating tab bar & global hymn reading bar height
 
   let miniPlayerBottom: number;
 
-  if (isIOS && isTabs) {
+  if (isPlaylist) {
+    // Playlist page has no bottom tab bar or tool bar at all
+    miniPlayerBottom = pillBottom;
+  } else if (isIOS && !isHymn) {
     // iOS Main Tabs use NativeTabs (UITabBarController).
     // Native tab bar is pinned to the absolute bottom: 49px + safe area inset.
     miniPlayerBottom = 49 + insets.bottom;

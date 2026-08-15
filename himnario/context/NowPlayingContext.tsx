@@ -283,7 +283,18 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
           return;
         }
       }
-      return; // end of custom queue
+      
+      // If we didn't find any after the current one, wrap around to the beginning
+      for (let i = 0; i <= idx; i++) {
+        if (hasHymnAudio(String(q[i]))) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCurrentHymnIdState(String(q[i]));
+          currentHymnIdRef.current = String(q[i]);
+          loadAndPlay(String(q[i]));
+          return;
+        }
+      }
+      return; // end of custom queue (even after wrapping around)
     }
 
     // Fallback to global data
@@ -324,6 +335,17 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
       const idx = q.findIndex(id => String(id) === String(cId));
       
       for (let i = idx - 1; i >= 0; i--) {
+        if (hasHymnAudio(String(q[i]))) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCurrentHymnIdState(String(q[i]));
+          currentHymnIdRef.current = String(q[i]);
+          loadAndPlay(String(q[i]));
+          return;
+        }
+      }
+
+      // If we didn't find any before the current one, wrap around to the end
+      for (let i = q.length - 1; i >= idx; i--) {
         if (hasHymnAudio(String(q[i]))) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setCurrentHymnIdState(String(q[i]));
