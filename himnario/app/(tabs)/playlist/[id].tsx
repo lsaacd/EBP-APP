@@ -11,16 +11,16 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useTheme } from '../../theme/ThemeContext';
-import { usePlaylists } from '../../context/PlaylistsContext';
-import { useFavorites } from '../../context/FavoritesContext';
-import { useLanguage, translateCategories } from '../../context/LanguageContext';
-import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
-import { fonts } from '../../theme/theme';
+import { useTheme } from '../../../theme/ThemeContext';
+import { usePlaylists } from '../../../context/PlaylistsContext';
+import { useFavorites } from '../../../context/FavoritesContext';
+import { useLanguage, translateCategories } from '../../../context/LanguageContext';
+import { hymnsData, estribillosData } from '../../../data/alabanzasPaginas';
+import { fonts } from '../../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNowPlaying } from '../../context/NowPlayingContext';
+import { useNowPlaying } from '../../../context/NowPlayingContext';
 
 const IS_IOS = Platform.OS === 'ios';
 

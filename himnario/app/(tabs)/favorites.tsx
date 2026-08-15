@@ -264,7 +264,7 @@ export default function FavoritesScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     // @ts-ignore
-                    router.push({ pathname: '/playlist/[id]', params: { id: playlist.id } });
+                    router.push({ pathname: '/(tabs)/playlist/[id]', params: { id: playlist.id } });
                   }}
                 >
                   <View style={[styles.iconBox, { backgroundColor: theme.primary + '1A', width: 44, height: 44, borderRadius: 10, marginRight: 8 }]}>
