@@ -14,6 +14,7 @@ import TrackPlayer, {
   AppKilledPlaybackBehavior,
   useTrackPlayerEvents,
   Event,
+  State,
   RepeatMode,
 } from 'react-native-track-player';
 import { Asset } from 'expo-asset';
@@ -393,14 +394,16 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
-  // Listen for track-ended and remote-control events
+  // Listen for track-ended, remote skip, and playback state changes.
+  // NOTE: RemotePlay / RemotePause are handled ONLY in service.js
+  // (Android background service). We sync isPlaying via PlaybackState.
   useTrackPlayerEvents(
     [
       Event.PlaybackQueueEnded,
       Event.RemoteNext,
       Event.RemotePrevious,
-      Event.RemotePlay,
-      Event.RemotePause,
+      Event.PlaybackState,
+      Event.PlaybackActiveTrackChanged,
     ],
     async (event) => {
       if (event.type === Event.PlaybackQueueEnded) {
@@ -415,12 +418,15 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
         handleSkipNext();
       } else if (event.type === Event.RemotePrevious) {
         handleSkipPrev();
-      } else if (event.type === Event.RemotePlay) {
-        await TrackPlayer.play();
-        setIsPlaying(true);
-      } else if (event.type === Event.RemotePause) {
-        await TrackPlayer.pause();
-        setIsPlaying(false);
+      } else if (event.type === Event.PlaybackState) {
+        // Sync isPlaying state from the native player (covers service.js
+        // RemotePlay/RemotePause, audio ducking, and all native controls).
+        const state = (event as any).state;
+        if (state === State.Playing) {
+          setIsPlaying(true);
+        } else if (state === State.Paused || state === State.Stopped || state === State.None) {
+          setIsPlaying(false);
+        }
       }
     }
   );
