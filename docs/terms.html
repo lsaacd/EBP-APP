@@ -3,436 +3,778 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Términos de Servicio - Himnario El Buen Pastor</title>
+    <meta name="description" content="Términos de Servicio de Himnario El Buen Pastor. Condiciones de uso de la aplicación.">
+    <title>Términos de Servicio — Himnario El Buen Pastor</title>
     <link rel="icon" type="image/x-icon" href="fav-ebp.ico">
     <link rel="shortcut icon" type="image/x-icon" href="fav-ebp.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #fcf9f2; 
-            --sidebar-bg: #ffffff;
-            --text-main: #1c1c18;
-            --text-muted: #564240;
-            --primary-dark: #6e1619;
-            --border-color: #e5e2db;
-            --safe-area-top: env(safe-area-inset-top, 0px);
-            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --bg: #faf9f7;
+            --surface: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999999;
+            --primary: #6e1619;
+            --primary-soft: rgba(110, 22, 25, 0.06);
+            --border: #e8e8e8;
+            --border-light: #f0f0f0;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-w: 280px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.7;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
         }
 
-        /* Desktop Sidebar Navigation */
-        .sidebar {
-            width: 280px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
-            padding: 2.5rem 1.5rem;
+        /* ── TOP NAV BAR ── */
+        .topbar {
             position: fixed;
-            height: 100vh;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: rgba(250,249,247,0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            z-index: 100;
+            padding-top: var(--safe-top);
+            display: flex;
+            align-items: center;
+        }
+
+        .topbar-inner {
+            max-width: 100%;
+            width: 100%;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .topbar-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+
+        .topbar-text {
+            font-family: 'Newsreader', serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-toggle {
+            display: flex;
+            background: var(--surface);
+            padding: 3px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .lang-btn.active {
+            background: var(--text);
+            color: #fff;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: var(--text);
+            font-size: 1.2rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed;
+            top: calc(56px + var(--safe-top));
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-w);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
             overflow-y: auto;
             z-index: 90;
         }
 
-        .sidebar-title {
-            font-family: 'Newsreader', serif;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
+        .sidebar-section {
+            margin-bottom: 1.8rem;
         }
 
-        .nav-section { margin-bottom: 2rem; }
-        
-        .nav-section-title {
-            font-size: 0.8rem;
+        .sidebar-section-title {
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: 0.8rem;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.6rem;
             font-weight: 700;
-            padding-left: 0.8rem;
+            padding-left: 12px;
         }
 
-        .nav-link {
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 2px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+        }
+        .sidebar-link:hover {
+            background: var(--bg);
+            color: var(--primary);
+        }
+        .sidebar-link.active {
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .sidebar-link-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        .sli-home { background: rgba(0,0,0,0.04); }
+        .sli-privacy { background: rgba(110,22,25,0.08); }
+        .sli-terms { background: rgba(232,196,154,0.2); }
+        .sli-contact { background: rgba(59,130,246,0.08); }
+
+        /* ── TABLE OF CONTENTS ── */
+        .toc {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .toc-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.6rem;
+            font-weight: 700;
+            padding-left: 12px;
+        }
+
+        .toc-link {
             display: block;
             text-decoration: none;
-            color: var(--text-muted);
-            padding: 0.6rem 0.8rem;
-            border-radius: 8px;
-            margin-bottom: 0.2rem;
-            font-size: 0.95rem;
-            transition: all 0.2s;
+            color: var(--text-tertiary);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
             font-weight: 500;
+            transition: all var(--transition-fast);
+            border-left: 2px solid transparent;
         }
-
-        .nav-link:hover { 
-            background-color: var(--bg-color); 
-            color: var(--primary-dark); 
+        .toc-link:hover {
+            color: var(--primary);
+            background: var(--primary-soft);
         }
-
-        .nav-link.active {
-            background-color: rgba(110, 22, 25, 0.08);
-            color: var(--primary-dark);
-            font-weight: 700;
-            border-left: 3px solid var(--primary-dark);
-            border-radius: 0 8px 8px 0;
-        }
-
-        /* Mobile Sticky iOS Header */
-        .mobile-header {
-            display: none;
-        }
-
-        /* Main Content Area */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 3.5rem 5rem;
-            max-width: 1000px;
-            background-image: radial-gradient(circle at top right, rgba(110, 22, 25, 0.03), transparent 50%);
-        }
-
-        .header-controls {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 2.5rem;
-        }
-
-        .lang-switch {
-            display: inline-flex;
-            background: white;
-            padding: 4px;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-
-        .lang-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 0.5rem 1.2rem;
-            border-radius: 16px;
-            cursor: pointer;
+        .toc-link.active-toc {
+            color: var(--primary);
+            border-left-color: var(--primary);
             font-weight: 600;
-            font-size: 0.85rem;
-            font-family: 'Public Sans', sans-serif;
-            transition: all 0.2s;
         }
 
-        .lang-btn.active {
-            background: var(--primary-dark);
-            color: white;
+        /* ── MAIN ── */
+        .main {
+            margin-left: var(--sidebar-w);
+            padding: calc(56px + var(--safe-top) + 3rem) 4rem 4rem;
+            max-width: calc(var(--sidebar-w) + 820px);
         }
 
-        h1 {
-            font-family: 'Newsreader', serif;
-            font-size: 2.8rem;
-            color: var(--primary-dark);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
+        /* ── DOC HEADER ── */
+        .doc-header {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
         }
 
-        .effective-date {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-bottom: 2.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .content-lang { display: none; animation: fadeIn 0.4s ease; }
-        .content-lang.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        h2 {
-            font-family: 'Newsreader', serif;
-            color: var(--primary-dark);
-            font-size: 1.6rem;
-            margin-top: 2.5rem;
+        .doc-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
             margin-bottom: 1rem;
         }
+        .doc-breadcrumb a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        .doc-breadcrumb a:hover { color: var(--primary); }
+        .doc-breadcrumb .sep { opacity: 0.4; }
 
-        p { margin-bottom: 1.2rem; color: var(--text-main); }
-        ul { margin-bottom: 1.5rem; padding-left: 1.5rem; color: var(--text-main); }
-        li { margin-bottom: 0.5rem; }
+        .doc-title {
+            font-family: 'Newsreader', serif;
+            font-size: 2.8rem;
+            color: var(--text);
+            letter-spacing: -1px;
+            margin-bottom: 0.8rem;
+            font-weight: 500;
+            line-height: 1.1;
+        }
 
-        a.contact-link {
-            color: var(--primary-dark);
+        .doc-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .doc-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            color: var(--text-tertiary);
+        }
+
+        .doc-meta-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        /* ── ARTICLE ── */
+        .article {
+            animation: fadeUp 0.5s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .article h2 {
+            font-family: 'Newsreader', serif;
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            scroll-margin-top: calc(56px + var(--safe-top) + 2rem);
+            padding-top: 0.5rem;
+        }
+
+        .article h2 .section-num {
+            color: var(--primary);
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .article p {
+            margin-bottom: 1.2rem;
+            color: var(--text);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .article ul {
+            margin-bottom: 1.5rem;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .article li {
+            margin-bottom: 0.7rem;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.93rem;
+            line-height: 1.7;
+        }
+
+        .article li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            opacity: 0.5;
+        }
+
+        .article strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .article a.contact-link {
+            color: var(--primary);
             font-weight: 600;
             text-decoration: none;
+            border-bottom: 1px dashed rgba(110,22,25,0.3);
+            transition: border-color var(--transition-fast);
         }
-        a.contact-link:hover { text-decoration: underline; }
+        .article a.contact-link:hover {
+            border-bottom-color: var(--primary);
+        }
 
-        /* 📱 iOS & Mobile Responsive Layout (< 900px) */
+        /* Callout */
+        .callout {
+            background: rgba(232,196,154,0.1);
+            border-left: 3px solid var(--primary);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .callout p {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* ── MOBILE MENU ── */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+        }
+        .mobile-overlay.open { display: block; }
+
+        .mobile-drawer {
+            display: none;
+            position: fixed;
+            top: calc(56px + var(--safe-top));
+            left: 12px;
+            right: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+            z-index: 201;
+            animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .mobile-drawer.open { display: block; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .mobile-drawer .m-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        .mobile-drawer .m-link:hover,
+        .mobile-drawer .m-link.active {
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .mobile-drawer .m-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 6px 0;
+        }
+
+        .mobile-lang-row {
+            display: flex;
+            gap: 8px;
+            padding-top: 8px;
+        }
+
+        .mobile-lang-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            background: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .mobile-lang-btn.active {
+            background: var(--text);
+            color: #fff;
+            border-color: var(--text);
+        }
+
+        /* ── RESPONSIVE ── */
         @media (max-width: 900px) {
-            body { flex-direction: column; }
-
             .sidebar { display: none; }
+            .menu-toggle { display: flex; }
 
-            .mobile-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                position: sticky;
-                top: 0;
-                left: 0;
-                right: 0;
-                background-color: rgba(252, 249, 242, 0.92);
-                backdrop-filter: blur(15px);
-                -webkit-backdrop-filter: blur(15px);
-                border-bottom: 1px solid var(--border-color);
-                padding: calc(0.8rem + var(--safe-area-top)) 1.2rem 0.8rem;
-                z-index: 1000;
-            }
-
-            .mobile-brand {
-                font-family: 'Newsreader', serif;
-                font-size: 1.2rem;
-                font-weight: 700;
-                color: var(--primary-dark);
-                text-decoration: none;
-            }
-
-            .menu-toggle {
-                background: none;
-                border: none;
-                font-size: 1.4rem;
-                color: var(--primary-dark);
-                cursor: pointer;
-                padding: 4px 8px;
-                border-radius: 8px;
-            }
-
-            .mobile-nav-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.4);
-                z-index: 998;
-            }
-
-            .mobile-nav-menu {
-                display: none;
-                position: fixed;
-                top: calc(3.5rem + var(--safe-area-top));
-                left: 1rem;
-                right: 1rem;
-                background: #ffffff;
-                border-radius: 16px;
-                padding: 1.5rem;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-                border: 1px solid var(--border-color);
-                z-index: 999;
-                animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-
-            .mobile-nav-menu.open, .mobile-nav-overlay.open {
-                display: block;
-            }
-
-            @keyframes slideDown {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-
-            .main-content {
+            .main {
                 margin-left: 0;
-                padding: 1.5rem 1.2rem calc(2rem + var(--safe-area-bottom));
+                padding: calc(56px + var(--safe-top) + 1.5rem) 1.2rem calc(2rem + var(--safe-bottom));
+                max-width: 100%;
             }
 
-            .header-controls {
-                justify-content: flex-end;
-                margin-bottom: 1.5rem;
-            }
-
-            h1 { font-size: 2.1rem; }
-            h2 { font-size: 1.4rem; }
+            .doc-title { font-size: 2rem; }
+            .article h2 { font-size: 1.3rem; }
+            .topbar-right .lang-toggle { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- STICKY iOS MOBILE HEADER -->
-    <header class="mobile-header">
-        <a href="/" class="mobile-brand">Himnario El Buen Pastor</a>
-        <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
-    </header>
-
-    <!-- MOBILE NAVIGATION DROPDOWN MENU -->
-    <div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
-    <div class="mobile-nav-menu" id="mobileMenu">
-        <div class="nav-section">
-            <div class="nav-section-title" id="m-nav-title-general">General</div>
-            <a href="/" class="nav-link" id="m-nav-home">Inicio / Home</a>
-        </div>
-        <div class="nav-section">
-            <div class="nav-section-title" id="m-nav-title-policies">Políticas / Policies</div>
-            <a href="/privacy" class="nav-link" id="m-nav-privacy">Política de Privacidad</a>
-            <a href="/terms" class="nav-link active" id="m-nav-terms">Términos de Servicio</a>
-        </div>
-        <div class="nav-section" style="margin-bottom:0;">
-            <div class="nav-section-title" id="m-nav-title-support">Soporte / Support</div>
-            <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="m-nav-contact">Contacto / Contact</a>
+<!-- ── TOP BAR ── -->
+<header class="topbar">
+    <div class="topbar-inner">
+        <a href="index.html" class="topbar-brand">
+            <div class="topbar-icon">EP</div>
+            <span class="topbar-text">Himnario El Buen Pastor</span>
+        </a>
+        <div class="topbar-right">
+            <div class="lang-toggle">
+                <button class="lang-btn active" onclick="setLanguage('es')">ES</button>
+                <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+            </div>
+            <button class="menu-toggle" onclick="toggleMobileMenu()" id="menuToggle" aria-label="Menu">☰</button>
         </div>
     </div>
+</header>
 
-    <!-- DESKTOP SIDEBAR NAVIGATION -->
-    <aside class="sidebar">
-        <div class="sidebar-title">Himnario<br>El Buen Pastor</div>
-        
-        <div class="nav-section">
-            <div class="nav-section-title" id="nav-title-general">General</div>
-            <a href="/" class="nav-link" id="nav-home">Inicio / Home</a>
+<!-- ── MOBILE MENU ── -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+    <a href="index.html" class="m-link" id="m-nav-home">🏠 Inicio</a>
+    <div class="m-divider"></div>
+    <a href="privacy.html" class="m-link" id="m-nav-privacy">🛡️ Política de Privacidad</a>
+    <a href="terms.html" class="m-link active" id="m-nav-terms">📜 Términos de Servicio</a>
+    <div class="m-divider"></div>
+    <a href="mailto:isaacduran167@gmail.com" class="m-link" id="m-nav-contact">✉️ Contacto</a>
+    <div class="m-divider"></div>
+    <div class="mobile-lang-row">
+        <button class="mobile-lang-btn active" onclick="setLanguage('es')" id="m-lang-es">Español</button>
+        <button class="mobile-lang-btn" onclick="setLanguage('en')" id="m-lang-en">English</button>
+    </div>
+</div>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+    <div class="sidebar-section">
+        <div class="sidebar-section-title" id="nav-title-general">General</div>
+        <a href="index.html" class="sidebar-link" id="nav-home">
+            <span class="sidebar-link-icon sli-home">🏠</span>Inicio
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title" id="nav-title-policies">Políticas</div>
+        <a href="privacy.html" class="sidebar-link" id="nav-privacy">
+            <span class="sidebar-link-icon sli-privacy">🛡️</span>Política de Privacidad
+        </a>
+        <a href="terms.html" class="sidebar-link active" id="nav-terms">
+            <span class="sidebar-link-icon sli-terms">📜</span>Términos de Servicio
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title" id="nav-title-support">Soporte</div>
+        <a href="mailto:isaacduran167@gmail.com" class="sidebar-link" id="nav-contact">
+            <span class="sidebar-link-icon sli-contact">✉️</span>Contacto
+        </a>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc" id="toc-container">
+        <div class="toc-title" id="toc-title">En esta página</div>
+        <div id="toc-es">
+            <a href="#acceptance" class="toc-link" data-section="acceptance">Aceptación de los Términos</a>
+            <a href="#usage" class="toc-link" data-section="usage">Uso de la Aplicación</a>
+            <a href="#availability" class="toc-link" data-section="availability">Disponibilidad y Actualizaciones</a>
+            <a href="#liability" class="toc-link" data-section="liability">Contenido de Terceros</a>
+            <a href="#changes" class="toc-link" data-section="changes">Cambios en los Términos</a>
+            <a href="#contact" class="toc-link" data-section="contact">Contacto</a>
         </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title" id="nav-title-policies">Políticas / Policies</div>
-            <a href="/privacy" class="nav-link" id="nav-privacy">Política de Privacidad</a>
-            <a href="/terms" class="nav-link active" id="nav-terms">Términos de Servicio</a>
+        <div id="toc-en" style="display:none;">
+            <a href="#acceptance" class="toc-link" data-section="acceptance">Acceptance of Terms</a>
+            <a href="#usage" class="toc-link" data-section="usage">Use of the App</a>
+            <a href="#availability" class="toc-link" data-section="availability">Availability & Updates</a>
+            <a href="#liability" class="toc-link" data-section="liability">Third-Party Content</a>
+            <a href="#changes" class="toc-link" data-section="changes">Changes to the Terms</a>
+            <a href="#contact" class="toc-link" data-section="contact">Contact Us</a>
         </div>
+    </div>
+</aside>
 
-        <div class="nav-section">
-            <div class="nav-section-title" id="nav-title-support">Soporte / Support</div>
-            <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="nav-contact">Contacto / Contact</a>
-        </div>
-    </aside>
+<!-- ── MAIN CONTENT ── -->
+<main class="main">
 
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-        
-        <div class="header-controls">
-            <div class="lang-switch">
-                <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
-                <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    <!-- SPANISH CONTENT -->
+    <div id="lang-es" class="content-lang active">
+        <div class="doc-header">
+            <div class="doc-breadcrumb">
+                <a href="index.html">Inicio</a>
+                <span class="sep">/</span>
+                <span>Términos de Servicio</span>
+            </div>
+            <h1 class="doc-title">Términos de Servicio</h1>
+            <div class="doc-meta">
+                <div class="doc-meta-item">
+                    <span class="doc-meta-dot"></span>
+                    Vigente
+                </div>
+                <div class="doc-meta-item">Última actualización: Julio 2026</div>
             </div>
         </div>
 
-        <!-- SPANISH CONTENT -->
-        <div id="lang-es" class="content-lang active">
-            <h1>Términos de Servicio</h1>
-            <div class="effective-date">Última actualización: Julio 2026</div>
+        <article class="article">
+            <div class="callout">
+                <p><strong>Resumen:</strong> Himnario El Buen Pastor es gratuito y para uso personal. El contenido es para enriquecimiento espiritual. Las funciones principales siempre serán de acceso libre.</p>
+            </div>
 
-            <h2>1. Aceptación de los Términos</h2>
+            <h2 id="acceptance"><span class="section-num">1.</span> Aceptación de los Términos</h2>
             <p>Al descargar o utilizar la aplicación <strong>Himnario El Buen Pastor</strong>, usted acepta automáticamente estos términos. Le recomendamos encarecidamente que los lea con atención antes de utilizar la aplicación.</p>
 
-            <h2>2. Uso de la Aplicación</h2>
+            <h2 id="usage"><span class="section-num">2.</span> Uso de la Aplicación</h2>
             <p>Esta aplicación es para uso personal, no comercial. Usted acepta no copiar ni modificar la aplicación, ni ninguna parte de la aplicación, o nuestras marcas comerciales de ninguna manera.</p>
             <ul>
                 <li>El contenido proporcionado (himnos, letras, interfaz) es para el enriquecimiento y beneficio espiritual.</li>
                 <li>No debe intentar extraer el código fuente de la aplicación, traducir la aplicación a otros idiomas o crear versiones derivadas.</li>
             </ul>
 
-            <h2>3. Disponibilidad y Actualizaciones</h2>
+            <h2 id="availability"><span class="section-num">3.</span> Disponibilidad y Actualizaciones</h2>
             <p>Nos esforzamos por garantizar que la aplicación esté disponible y sea lo más útil y eficiente posible. Por esta razón, nos reservamos el derecho de realizar cambios en la aplicación o cobrar por sus servicios, en cualquier momento y por cualquier motivo, aunque las funciones principales siempre serán de acceso libre.</p>
             <p>Es posible que requiramos que actualice la aplicación periódicamente por motivos de seguridad o para agregar nuevas funcionalidades.</p>
 
-            <h2>4. Contenido de Terceros y Responsabilidad</h2>
+            <h2 id="liability"><span class="section-num">4.</span> Contenido de Terceros y Responsabilidad</h2>
             <p>Aunque nos esforzamos por mantener la aplicación actualizada y correcta, parte del contenido (como la letra de los himnos de dominio público) puede variar. No aceptamos responsabilidad por ninguna pérdida, directa o indirecta, que experimente como resultado de confiar totalmente en la funcionalidad de esta aplicación.</p>
 
-            <h2>5. Cambios en los Términos</h2>
+            <h2 id="changes"><span class="section-num">5.</span> Cambios en los Términos</h2>
             <p>Podemos actualizar nuestros Términos de Servicio de vez en cuando. Por lo tanto, se recomienda revisar esta página periódicamente para ver si hay cambios.</p>
 
-            <h2>6. Contacto</h2>
+            <h2 id="contact"><span class="section-num">6.</span> Contacto</h2>
             <p>Si tiene preguntas sobre nuestros Términos de Servicio, por favor contáctenos a nuestro correo: <a href="mailto:isaacduran167@gmail.com" class="contact-link">isaacduran167@gmail.com</a>.</p>
+        </article>
+    </div>
+
+    <!-- ENGLISH CONTENT -->
+    <div id="lang-en" class="content-lang">
+        <div class="doc-header">
+            <div class="doc-breadcrumb">
+                <a href="index.html">Home</a>
+                <span class="sep">/</span>
+                <span>Terms of Service</span>
+            </div>
+            <h1 class="doc-title">Terms of Service</h1>
+            <div class="doc-meta">
+                <div class="doc-meta-item">
+                    <span class="doc-meta-dot"></span>
+                    Active
+                </div>
+                <div class="doc-meta-item">Last Updated: July 2026</div>
+            </div>
         </div>
 
-        <!-- ENGLISH CONTENT -->
-        <div id="lang-en" class="content-lang">
-            <h1>Terms of Service</h1>
-            <div class="effective-date">Last Updated: July 2026</div>
+        <article class="article">
+            <div class="callout">
+                <p><strong>Summary:</strong> Himnario El Buen Pastor is free and for personal use. Content is for spiritual enrichment. Core features will always remain freely accessible.</p>
+            </div>
 
-            <h2>1. Acceptance of Terms</h2>
+            <h2 id="acceptance-en"><span class="section-num">1.</span> Acceptance of Terms</h2>
             <p>By downloading or using the <strong>Himnario El Buen Pastor</strong> app, these terms will automatically apply to you. You should make sure therefore that you read them carefully before using the app.</p>
 
-            <h2>2. Use of the App</h2>
+            <h2 id="usage-en"><span class="section-num">2.</span> Use of the App</h2>
             <p>This app is for personal, non-commercial use. You agree not to copy, or modify the app, any part of the app, or our trademarks in any way.</p>
             <ul>
                 <li>The provided content (hymns, lyrics, interface) is for spiritual enrichment and benefit.</li>
                 <li>You are not allowed to attempt to extract the source code of the app, translate the app into other languages, or make derivative versions.</li>
             </ul>
 
-            <h2>3. Availability and Updates</h2>
+            <h2 id="availability-en"><span class="section-num">3.</span> Availability and Updates</h2>
             <p>We are committed to ensuring that the app is as useful and efficient as possible. For that reason, we reserve the right to make changes to the app or to charge for its services, at any time and for any reason, though core features will remain freely accessible.</p>
             <p>We may require you to download updates periodically for security reasons or to add new features.</p>
 
-            <h2>4. Third-Party Content and Liability</h2>
+            <h2 id="liability-en"><span class="section-num">4.</span> Third-Party Content and Liability</h2>
             <p>Although we endeavor to keep the app updated and correct, some content (such as public domain hymn lyrics) might vary. We do not accept liability for any loss, direct or indirect, you experience as a result of relying wholly on this functionality of the app.</p>
 
-            <h2>5. Changes to the Terms</h2>
+            <h2 id="changes-en"><span class="section-num">5.</span> Changes to the Terms</h2>
             <p>We may update our Terms of Service from time to time. Thus, you are advised to review this page periodically for any changes.</p>
 
-            <h2>6. Contact Us</h2>
+            <h2 id="contact-en"><span class="section-num">6.</span> Contact Us</h2>
             <p>If you have any questions or suggestions about our Terms of Service, please contact us at: <a href="mailto:isaacduran167@gmail.com" class="contact-link">isaacduran167@gmail.com</a>.</p>
-        </div>
+        </article>
+    </div>
 
-    </main>
+</main>
 
-    <script>
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobileMenu');
-            const overlay = document.getElementById('mobileOverlay');
-            const toggleBtn = document.querySelector('.menu-toggle');
-            
-            const isOpen = menu.classList.contains('open');
-            if (isOpen) {
-                menu.classList.remove('open');
-                overlay.classList.remove('open');
-                toggleBtn.innerText = '☰';
-            } else {
-                menu.classList.add('open');
-                overlay.classList.add('open');
-                toggleBtn.innerText = '✕';
-            }
+<script>
+    function toggleMobileMenu() {
+        const drawer = document.getElementById('mobileDrawer');
+        const overlay = document.getElementById('mobileOverlay');
+        const btn = document.getElementById('menuToggle');
+        const isOpen = drawer.classList.contains('open');
+        drawer.classList.toggle('open', !isOpen);
+        overlay.classList.toggle('open', !isOpen);
+        btn.innerText = isOpen ? '☰' : '✕';
+    }
+
+    function setLanguage(lang) {
+        document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.mobile-lang-btn').forEach(btn => btn.classList.remove('active'));
+
+        if (lang === 'en') {
+            document.getElementById('lang-en').classList.add('active');
+            document.getElementById('toc-en').style.display = 'block';
+            document.getElementById('toc-es').style.display = 'none';
+            document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            document.getElementById('m-lang-en').classList.add('active');
+
+            // Update sidebar
+            document.getElementById('nav-title-general').innerText = 'General';
+            document.getElementById('nav-title-policies').innerText = 'Policies';
+            document.getElementById('nav-title-support').innerText = 'Support';
+            document.getElementById('nav-home').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Home';
+            document.getElementById('nav-privacy').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Privacy Policy';
+            document.getElementById('nav-terms').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Terms of Service';
+            document.getElementById('nav-contact').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Contact';
+            document.getElementById('toc-title').innerText = 'On this page';
+
+            // Mobile
+            document.getElementById('m-nav-home').innerText = '🏠 Home';
+            document.getElementById('m-nav-privacy').innerText = '🛡️ Privacy Policy';
+            document.getElementById('m-nav-terms').innerText = '📜 Terms of Service';
+            document.getElementById('m-nav-contact').innerText = '✉️ Contact';
+        } else {
+            document.getElementById('lang-es').classList.add('active');
+            document.getElementById('toc-es').style.display = 'block';
+            document.getElementById('toc-en').style.display = 'none';
+            document.querySelectorAll('.lang-btn')[0].classList.add('active');
+            document.getElementById('m-lang-es').classList.add('active');
+
+            // Update sidebar
+            document.getElementById('nav-title-general').innerText = 'General';
+            document.getElementById('nav-title-policies').innerText = 'Políticas';
+            document.getElementById('nav-title-support').innerText = 'Soporte';
+            document.getElementById('nav-home').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Inicio';
+            document.getElementById('nav-privacy').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Política de Privacidad';
+            document.getElementById('nav-terms').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Términos de Servicio';
+            document.getElementById('nav-contact').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Contacto';
+            document.getElementById('toc-title').innerText = 'En esta página';
+
+            // Mobile
+            document.getElementById('m-nav-home').innerText = '🏠 Inicio';
+            document.getElementById('m-nav-privacy').innerText = '🛡️ Política de Privacidad';
+            document.getElementById('m-nav-terms').innerText = '📜 Términos de Servicio';
+            document.getElementById('m-nav-contact').innerText = '✉️ Contacto';
         }
+    }
 
-        function setLanguage(lang) {
-            document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+    // TOC highlight on scroll
+    const tocLinks = document.querySelectorAll('.toc-link');
+    const sectionIds = ['acceptance', 'usage', 'availability', 'liability', 'changes', 'contact'];
 
-            if (lang === 'en') {
-                document.getElementById('lang-en').classList.add('active');
-                event.target.classList.add('active');
-                
-                // Update Desktop & Mobile Sidebar Translations
-                ['nav-title-general', 'm-nav-title-general'].forEach(id => document.getElementById(id).innerText = 'General');
-                ['nav-title-policies', 'm-nav-title-policies'].forEach(id => document.getElementById(id).innerText = 'Policies');
-                ['nav-title-support', 'm-nav-title-support'].forEach(id => document.getElementById(id).innerText = 'Support');
-                ['nav-home', 'm-nav-home'].forEach(id => document.getElementById(id).innerText = 'Home');
-                ['nav-privacy', 'm-nav-privacy'].forEach(id => document.getElementById(id).innerText = 'Privacy Policy');
-                ['nav-terms', 'm-nav-terms'].forEach(id => document.getElementById(id).innerText = 'Terms of Service');
-                ['nav-contact', 'm-nav-contact'].forEach(id => document.getElementById(id).innerText = 'Contact Support');
-            } else {
-                document.getElementById('lang-es').classList.add('active');
-                event.target.classList.add('active');
+    function updateTocHighlight() {
+        const scrollPos = window.scrollY + 120;
+        let currentSection = sectionIds[0];
 
-                // Update Desktop & Mobile Sidebar Translations
-                ['nav-title-general', 'm-nav-title-general'].forEach(id => document.getElementById(id).innerText = 'General');
-                ['nav-title-policies', 'm-nav-title-policies'].forEach(id => document.getElementById(id).innerText = 'Políticas');
-                ['nav-title-support', 'm-nav-title-support'].forEach(id => document.getElementById(id).innerText = 'Soporte');
-                ['nav-home', 'm-nav-home'].forEach(id => document.getElementById(id).innerText = 'Inicio');
-                ['nav-privacy', 'm-nav-privacy'].forEach(id => document.getElementById(id).innerText = 'Política de Privacidad');
-                ['nav-terms', 'm-nav-terms'].forEach(id => document.getElementById(id).innerText = 'Términos de Servicio');
-                ['nav-contact', 'm-nav-contact'].forEach(id => document.getElementById(id).innerText = 'Contacto');
+        sectionIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.offsetTop <= scrollPos) {
+                currentSection = id;
             }
-        }
-    </script>
+        });
+
+        tocLinks.forEach(link => {
+            link.classList.toggle('active-toc', link.dataset.section === currentSection);
+        });
+    }
+
+    window.addEventListener('scroll', updateTocHighlight, { passive: true });
+    updateTocHighlight();
+</script>
 </body>
 </html>

@@ -9,155 +9,249 @@
     <link rel="shortcut icon" type="image/x-icon" href="fav-ebp.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #fcf9f2;
+            --bg: #faf9f7;
             --surface: #ffffff;
-            --text: #1c1c18;
-            --muted: #564240;
+            --surface-elevated: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999999;
             --primary: #6e1619;
-            --primary-light: rgba(110, 22, 25, 0.08);
-            --gold: #e2c19b;
-            --border: #e5e2db;
+            --primary-hover: #8b2225;
+            --primary-soft: rgba(110, 22, 25, 0.06);
+            --primary-glow: rgba(110, 22, 25, 0.12);
+            --accent-warm: #e8c49a;
+            --accent-warm-soft: rgba(232, 196, 154, 0.15);
+            --border: #e8e8e8;
+            --border-light: #f0f0f0;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+            --shadow-xl: 0 20px 60px rgba(0,0,0,0.1);
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         *, *::before, *::after {
             box-sizing: border-box;
-            margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
             -webkit-tap-highlight-color: transparent;
         }
 
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg);
             color: var(--text);
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* ── SCROLL REVEAL ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* ── NAV ── */
         nav {
-            position: sticky;
+            position: fixed;
             top: 0;
-            left: 0; right: 0;
-            background: rgba(252, 249, 242, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            padding: calc(0px + var(--safe-top)) 0 0;
+            left: 0;
+            right: 0;
+            background: rgba(250, 249, 247, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            padding: var(--safe-top) 0 0;
             z-index: 100;
+            transition: background var(--transition-smooth);
         }
 
         .nav-inner {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.85rem 1.5rem;
+            padding: 0 2rem;
+            height: 60px;
         }
 
         .nav-brand {
-            font-family: 'Newsreader', serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
             text-decoration: none;
+        }
+
+        .nav-brand-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-brand-text {
+            font-family: 'Newsreader', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
             letter-spacing: -0.3px;
         }
 
-        .nav-links {
+        .nav-center {
             display: flex;
-            gap: 0.3rem;
+            gap: 4px;
             align-items: center;
         }
 
         .nav-link {
             font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--muted);
+            font-weight: 500;
+            color: var(--text-secondary);
             text-decoration: none;
-            padding: 0.45rem 0.9rem;
-            border-radius: 8px;
-            transition: all 0.2s;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+            position: relative;
         }
         .nav-link:hover {
-            background: var(--primary-light);
+            background: var(--primary-soft);
             color: var(--primary);
         }
 
-        .lang-pill {
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-toggle {
             display: flex;
             background: var(--surface);
             padding: 3px;
             border-radius: 20px;
             border: 1px solid var(--border);
-            margin-left: 1rem;
         }
 
         .lang-btn {
             background: none;
             border: none;
-            font-family: 'Public Sans', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--muted);
-            padding: 0.35rem 0.85rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            padding: 5px 14px;
             border-radius: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--transition-fast);
         }
         .lang-btn.active {
-            background: var(--primary);
+            background: var(--text);
             color: #fff;
+        }
+        .lang-btn:hover:not(.active) {
+            color: var(--text);
         }
 
         .nav-mobile-btn {
             display: none;
             background: none;
             border: none;
-            font-size: 1.4rem;
-            color: var(--primary);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            padding: 4px;
+            color: var(--text);
+            font-size: 1.2rem;
+            transition: background var(--transition-fast);
+        }
+        .nav-mobile-btn:hover {
+            background: var(--primary-soft);
         }
 
         /* ── HERO ── */
         .hero {
-            padding: 6rem 1.5rem 5rem;
-            text-align: center;
-            max-width: 800px;
+            padding: calc(60px + 6rem) 2rem 5rem;
+            max-width: 1200px;
             margin: 0 auto;
-            background-image: radial-gradient(ellipse at 50% 0%, rgba(110,22,25,0.07) 0%, transparent 60%);
+            position: relative;
         }
 
-        .hero-badge {
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             font-size: 0.8rem;
-            font-weight: 700;
+            font-weight: 600;
             color: var(--primary);
-            background: var(--primary-light);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
+            background: var(--primary-soft);
+            padding: 6px 16px;
+            border-radius: 100px;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.02em;
+        }
+
+        .hero-eyebrow-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
         }
 
         .hero h1 {
             font-family: 'Newsreader', serif;
-            font-size: clamp(2.5rem, 6vw, 4rem);
-            color: var(--primary);
-            line-height: 1.1;
-            letter-spacing: -1px;
-            margin-bottom: 1.2rem;
+            font-size: clamp(2.8rem, 5vw, 4.2rem);
+            color: var(--text);
+            line-height: 1.08;
+            letter-spacing: -1.5px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
         }
 
         .hero h1 em {
@@ -165,248 +259,530 @@
             color: var(--primary);
         }
 
-        .hero-sub {
+        .hero-desc {
             font-size: 1.1rem;
-            color: var(--muted);
-            max-width: 520px;
-            margin: 0 auto 2.5rem;
+            color: var(--text-secondary);
+            max-width: 460px;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
             font-weight: 400;
         }
 
-        .hero-cta {
+        .hero-actions {
             display: flex;
-            gap: 1rem;
-            justify-content: center;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
-        .btn-primary {
+        .btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: var(--primary);
-            color: #fff;
-            font-family: 'Public Sans', sans-serif;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.85rem 1.8rem;
-            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
             text-decoration: none;
-            transition: all 0.25s;
+            transition: all var(--transition-smooth);
             border: none;
+            cursor: pointer;
         }
-        .btn-primary:hover {
-            background: #8d2d2d;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(110,22,25,0.25);
+        .btn svg { width: 16px; height: 16px; }
+
+        .btn-filled {
+            background: var(--text);
+            color: #fff;
+        }
+        .btn-filled:hover {
+            background: #333;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
         }
 
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+        .btn-outline {
             background: var(--surface);
-            color: var(--primary);
-            font-family: 'Public Sans', sans-serif;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.85rem 1.8rem;
-            border-radius: 12px;
-            text-decoration: none;
-            transition: all 0.25s;
+            color: var(--text);
             border: 1.5px solid var(--border);
         }
-        .btn-secondary:hover {
-            border-color: var(--primary);
-            background: var(--primary-light);
-            transform: translateY(-2px);
+        .btn-outline:hover {
+            border-color: var(--text);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
 
-        /* ── SECTION WRAPPER ── */
-        .section {
-            max-width: 1100px;
+        /* Hero Visual */
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-card-stack {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .hero-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, rgba(110,22,25,0.1), transparent 50%, rgba(232,196,154,0.1));
+            z-index: -1;
+            padding: 1px;
+        }
+
+        .hero-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .hero-card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-soft);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .hero-card-header-text h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .hero-card-header-text span {
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+        }
+
+        .hero-card-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hero-card-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-fast);
+        }
+        .hero-card-item:hover {
+            background: var(--bg);
+        }
+
+        .hero-card-item-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .item-shield { background: rgba(110,22,25,0.08); }
+        .item-scroll { background: rgba(232,196,154,0.2); }
+        .item-mail { background: rgba(59,130,246,0.08); }
+
+        .hero-card-item-text {
+            font-size: 0.88rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .hero-card-item-arrow {
+            margin-left: auto;
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+            transition: transform var(--transition-fast);
+        }
+        .hero-card-item:hover .hero-card-item-arrow {
+            transform: translateX(3px);
+            color: var(--primary);
+        }
+
+        /* Floating accent behind hero visual */
+        .hero-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(110,22,25,0.08), transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── METRICS STRIP ── */
+        .metrics {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 4rem 1.5rem;
+            padding: 0 2rem;
         }
 
-        .section-label {
+        .metrics-inner {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .metric {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            border-right: 1px solid var(--border-light);
+            transition: background var(--transition-fast);
+        }
+        .metric:last-child { border-right: none; }
+        .metric:hover { background: var(--bg); }
+
+        .metric-value {
+            font-family: 'Newsreader', serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.82rem;
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+
+        /* ── BENTO SECTION ── */
+        .bento-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-eyebrow {
             font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
+            font-weight: 700;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
             color: var(--primary);
-            margin-bottom: 0.7rem;
+            margin-bottom: 0.8rem;
         }
 
         .section-title {
             font-family: 'Newsreader', serif;
-            font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+            font-size: clamp(1.8rem, 3.5vw, 2.6rem);
             color: var(--text);
+            letter-spacing: -0.8px;
             margin-bottom: 0.8rem;
-            letter-spacing: -0.4px;
+            font-weight: 500;
         }
 
-        .section-sub {
-            color: var(--muted);
-            max-width: 540px;
-            margin-bottom: 3rem;
+        .section-desc {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.7;
         }
 
-        /* ── DIVIDER ── */
-        .divider {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 0;
-        }
-
-        /* ── CARDS GRID ── */
-        .cards {
+        .bento-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
         }
 
-        .card {
+        .bento-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 18px;
+            border-radius: var(--radius-xl);
             padding: 2rem;
             display: flex;
             flex-direction: column;
-            transition: box-shadow 0.3s, transform 0.3s;
+            transition: all var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
         }
-        .card:hover {
-            box-shadow: 0 12px 32px rgba(110,22,25,0.08);
-            transform: translateY(-4px);
+        .bento-card:hover {
+            border-color: rgba(110,22,25,0.2);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
         }
 
-        .card-icon-wrap {
-            width: 48px;
-            height: 48px;
-            background: var(--primary-light);
-            border-radius: 12px;
+        .bento-card-featured {
+            grid-column: span 2;
+            grid-row: span 2;
+            padding: 2.5rem;
+        }
+
+        .bento-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             margin-bottom: 1.2rem;
+            flex-shrink: 0;
         }
 
-        .card h3 {
+        .icon-privacy { background: linear-gradient(135deg, rgba(110,22,25,0.1), rgba(110,22,25,0.05)); }
+        .icon-terms { background: linear-gradient(135deg, rgba(232,196,154,0.3), rgba(232,196,154,0.1)); }
+        .icon-support { background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.05)); }
+
+        .bento-card h3 {
             font-family: 'Newsreader', serif;
-            font-size: 1.25rem;
+            font-size: 1.3rem;
             color: var(--text);
             margin-bottom: 0.6rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
         }
 
-        .card p {
-            color: var(--muted);
+        .bento-card p {
+            color: var(--text-secondary);
             font-size: 0.9rem;
-            line-height: 1.6;
+            line-height: 1.7;
             flex: 1;
             margin-bottom: 1.5rem;
         }
 
-        .card-link {
+        .bento-card-featured h3 {
+            font-size: 1.6rem;
+        }
+        .bento-card-featured p {
+            font-size: 0.95rem;
+            max-width: 420px;
+        }
+
+        .bento-card-link {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.875rem;
-            font-weight: 700;
+            font-size: 0.85rem;
+            font-weight: 600;
             color: var(--primary);
             text-decoration: none;
-            transition: gap 0.2s;
+            transition: gap var(--transition-fast);
         }
-        .card-link:hover { gap: 10px; }
+        .bento-card-link:hover { gap: 10px; }
 
-        /* ── APP FEATURE STRIP ── */
-        .features {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
+        /* Featured card internal decoration */
+        .bento-card-featured::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            right: -40px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--primary-soft), transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .bento-card-featured .bento-card-visual {
+            margin-top: auto;
+            padding: 1.5rem;
+            background: var(--bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+        }
+
+        .visual-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .visual-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .visual-check {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.6rem;
+            flex-shrink: 0;
+        }
+
+        /* ── FEATURES ROW ── */
+        .features-row {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 5rem;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 0;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
         }
 
-        .feature-item {
-            padding: 2.5rem 2rem;
-            border-right: 1px solid var(--border);
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 1.8rem;
             text-align: center;
+            transition: all var(--transition-smooth);
         }
-        .feature-item:last-child { border-right: none; }
+        .feature-card:hover {
+            border-color: rgba(110,22,25,0.15);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
 
-        .feature-icon {
-            font-size: 2rem;
+        .feature-emoji {
+            font-size: 1.8rem;
             margin-bottom: 0.8rem;
             display: block;
         }
 
         .feature-title {
-            font-family: 'Newsreader', serif;
-            font-size: 1.05rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
             color: var(--text);
             margin-bottom: 0.3rem;
         }
 
         .feature-desc {
-            font-size: 0.82rem;
-            color: var(--muted);
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            line-height: 1.5;
         }
 
-        /* ── CONTACT BANNER ── */
-        .contact-banner {
-            background: var(--primary);
-            color: #fff;
+        /* ── CONTACT CTA ── */
+        .cta-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 5rem;
+        }
+
+        .cta-banner {
+            background: var(--text);
+            border-radius: var(--radius-2xl);
+            padding: 4rem 3rem;
             text-align: center;
-            padding: 4rem 1.5rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        .contact-banner h2 {
+        .cta-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -20%;
+            width: 60%;
+            height: 200%;
+            background: radial-gradient(ellipse, rgba(110,22,25,0.3), transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-banner::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: radial-gradient(ellipse, rgba(232,196,154,0.15), transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-banner h2 {
             font-family: 'Newsreader', serif;
             font-size: clamp(1.6rem, 3vw, 2.2rem);
+            color: #fff;
             margin-bottom: 0.8rem;
-            font-weight: 600;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
         }
 
-        .contact-banner p {
+        .cta-banner p {
             font-size: 1rem;
-            opacity: 0.85;
+            color: rgba(255,255,255,0.6);
             margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .btn-white {
+        .btn-cta {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             background: #fff;
-            color: var(--primary);
-            font-family: 'Public Sans', sans-serif;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.85rem 2rem;
-            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 12px 28px;
+            border-radius: var(--radius-md);
             text-decoration: none;
-            transition: all 0.25s;
+            transition: all var(--transition-smooth);
+            position: relative;
+            z-index: 1;
         }
-        .btn-white:hover {
+        .btn-cta:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
 
         /* ── FOOTER ── */
         footer {
-            background: var(--surface);
             border-top: 1px solid var(--border);
-            padding: 2rem 1.5rem calc(1.5rem + var(--safe-bottom));
-            text-align: center;
+            padding: 2rem 2rem calc(1.5rem + var(--safe-bottom));
         }
 
         .footer-inner {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -415,11 +791,30 @@
             gap: 1rem;
         }
 
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-logo {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+        }
+
         .footer-brand {
             font-family: 'Newsreader', serif;
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
         .footer-links {
@@ -428,17 +823,19 @@
         }
 
         .footer-links a {
-            font-size: 0.85rem;
-            color: var(--muted);
+            font-size: 0.82rem;
+            color: var(--text-tertiary);
             text-decoration: none;
             font-weight: 500;
+            transition: color var(--transition-fast);
         }
         .footer-links a:hover { color: var(--primary); }
 
         .footer-copy {
-            font-size: 0.8rem;
-            color: var(--muted);
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
             width: 100%;
+            text-align: center;
             margin-top: 0.5rem;
         }
 
@@ -447,102 +844,742 @@
         .content-lang.active { display: contents; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ── MOBILE MENU ── */
+        /* ── MOBILE DRAWER ── */
         .mobile-nav-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
             z-index: 200;
+            opacity: 0;
+            transition: opacity var(--transition-smooth);
         }
+        .mobile-nav-overlay.open { display: block; opacity: 1; }
+
         .mobile-nav-drawer {
             display: none;
             position: fixed;
-            top: calc(3.5rem + var(--safe-top));
-            left: 1rem;
-            right: 1rem;
+            top: calc(60px + var(--safe-top));
+            left: 12px;
+            right: 12px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 1.2rem;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+            border-radius: var(--radius-xl);
+            padding: 16px;
+            box-shadow: var(--shadow-xl);
             z-index: 201;
+            animation: slideDrawer 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .mobile-nav-drawer.open, .mobile-nav-overlay.open { display: block; }
-        .mobile-nav-drawer .nav-link {
+        .mobile-nav-drawer.open { display: block; }
+
+        @keyframes slideDrawer {
+            from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .mobile-nav-drawer .mobile-link {
             display: block;
-            padding: 0.8rem 1rem;
-            font-size: 1rem;
-            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
         }
+        .mobile-nav-drawer .mobile-link:hover {
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .mobile-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 8px 0;
+        }
+
         .mobile-lang-row {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 0.8rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid var(--border);
+            gap: 8px;
+            padding: 8px 0 0;
         }
+
         .mobile-lang-btn {
             flex: 1;
             text-align: center;
-            padding: 0.65rem;
-            border-radius: 10px;
+            padding: 10px;
+            border-radius: var(--radius-sm);
             border: 1.5px solid var(--border);
             background: none;
-            font-family: 'Public Sans', sans-serif;
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: var(--muted);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--transition-fast);
         }
         .mobile-lang-btn.active {
-            background: var(--primary);
+            background: var(--text);
             color: #fff;
-            border-color: var(--primary);
+            border-color: var(--text);
         }
 
         /* ── RESPONSIVE ── */
-        @media (max-width: 768px) {
-            .nav-links, .lang-pill { display: none; }
-            .nav-mobile-btn { display: block; }
+        @media (max-width: 900px) {
+            .nav-center, .nav-right .lang-toggle { display: none; }
+            .nav-mobile-btn { display: flex; align-items: center; justify-content: center; }
 
-            .hero { padding: 3.5rem 1.2rem 3rem; }
+            .hero { padding: calc(60px + 3rem) 1.2rem 3rem; }
+            .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+            .hero-visual { order: -1; }
+            .hero-card-stack { max-width: 100%; }
+            .hero h1 { font-size: 2.4rem; }
 
-            .feature-item { border-right: none; border-bottom: 1px solid var(--border); }
-            .feature-item:last-child { border-bottom: none; }
-            .features-grid { grid-template-columns: 1fr; }
+            .metrics { padding: 0 1.2rem; }
+            .metrics-inner { grid-template-columns: repeat(2, 1fr); }
+            .metric { border-bottom: 1px solid var(--border-light); }
+            .metric:nth-child(2n) { border-right: none; }
+            .metric:nth-last-child(-n+2) { border-bottom: none; }
+
+            .bento-section { padding: 3rem 1.2rem; }
+            .bento-grid { grid-template-columns: 1fr; }
+            .bento-card-featured { grid-column: span 1; grid-row: span 1; }
+
+            .features-row { padding: 0 1.2rem 3rem; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+
+            .cta-section { padding: 0 1.2rem 3rem; }
+            .cta-banner { padding: 3rem 1.5rem; }
 
             .footer-inner { justify-content: center; text-align: center; }
             .footer-links { justify-content: center; }
         }
+
+        @media (max-width: 480px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2rem; }
+        }
+    
+        /* --- HYMNS CSS --- */
+        
+        
+
+        
+
+        
+
+        /* ── TOP NAV ── */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding-top: var(--safe-top);
+            display: flex;
+            align-items: center;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+
+        .brand-text {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color var(--transition-fast);
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            font-weight: 600;
+            position: relative;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -24px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all var(--transition-fast);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+
+        /* ── HERO ── */
+        .hymns-hero {
+            height: 350px;
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.8), rgba(26, 26, 26, 0.4)), url('') center/cover no-repeat;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            position: relative;
+        }
+
+        .hymns-hero-title {
+            font-family: var(--font-serif);
+            font-size: 2.8rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            max-width: 800px;
+            line-height: 1.2;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .hymns-hero-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            font-weight: 300;
+        }
+
+        .hymns-hero-stats {
+            position: absolute;
+            bottom: -30px;
+            display: flex;
+            gap: 2rem;
+            background: var(--surface);
+            padding: 1rem 3rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            color: var(--text);
+            border: 1px solid var(--border-light);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* ── MAIN CONTENT ── */
+        .main {
+            max-width: 1000px;
+            margin: 5rem auto 4rem;
+            padding: 0 1.5rem;
+        }
+
+        /* ── TABS ── */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            font-family: inherit;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* ── CATEGORY FILTER ── */
+        .filter-container {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        .filter-container.active {
+            display: flex;
+        }
+
+        .filter-tag {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-tag:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-tag.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* ── HYMNS LIST ── */
+        .hymn-list {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .hymn-row {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .hymn-row:last-child {
+            border-bottom: none;
+        }
+
+        .hymn-row:hover {
+            background: var(--bg);
+        }
+
+        .hymn-number {
+            width: 50px;
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            color: var(--text-tertiary);
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .hymn-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hymn-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hymn-preview {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hymn-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-left: 16px;
+        }
+
+        .badge-category {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            display: none;
+            /* hidden on small screens */
+        }
+
+        .audio-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-soft);
+            color: var(--primary);
+            transition: all var(--transition-fast);
+        }
+
+        .hymn-row:hover .audio-icon {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .modal-title-group {
+            flex: 1;
+        }
+
+        .modal-num {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .modal-title {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            font-weight: 500;
+            line-height: 1.1;
+            color: var(--text);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .close-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .modal-body {
+            padding: 32px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .lyrics {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .lyrics-stanza {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 20px 32px;
+            border-top: 1px solid var(--border);
+            background: var(--bg);
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .audio-player-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+            outline: none;
+        }
+
+        .no-audio-msg {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+
+        /* ── LOADING ── */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (min-width: 768px) {
+            .badge-category {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .header-inner {
+                gap: 1rem;
+            }
+
+            .hymns-hero-title {
+                font-size: 2rem;
+            }
+
+            .hymns-hero-stats {
+                bottom: -20px;
+                padding: 0.8rem 1.5rem;
+                gap: 1.5rem;
+            }
+
+            .stat-num {
+                font-size: 1.2rem;
+            }
+
+            .stat-label {
+                font-size: 0.7rem;
+            }
+
+            .main {
+                margin-top: 4rem;
+            }
+
+            .hymn-row {
+                padding: 12px 16px;
+            }
+
+            .modal-content {
+                max-height: 100vh;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .modal-overlay {
+                padding: 0;
+            }
+        }
+    
     </style>
+    <script src="hymnsData.js"></script>
 </head>
 <body>
 
 <!-- ── NAVIGATION ── -->
 <nav>
     <div class="nav-inner">
-        <a href="/" class="nav-brand">Himnario El Buen Pastor</a>
-        <div class="nav-links">
-            <a href="/privacy" class="nav-link" id="nav-privacy-link">Privacidad</a>
-            <a href="/terms" class="nav-link" id="nav-terms-link">Términos</a>
+        <a href="index.html" class="nav-brand">
+            <div class="nav-brand-icon">EP</div>
+            <span class="nav-brand-text">Himnario El Buen Pastor</span>
+        </a>
+        <div class="nav-center">
+            <a href="#hymns-app" class="nav-link" id="nav-hymns-link">Himnos</a>
+            <a href="privacy.html" class="nav-link" id="nav-privacy-link">Privacidad</a>
+            <a href="terms.html" class="nav-link" id="nav-terms-link">Términos</a>
             <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="nav-contact-link">Contacto</a>
-            <div class="lang-pill">
-                <button class="lang-btn active" onclick="setLang('es')" id="nav-lang-es">Español</button>
-                <button class="lang-btn" onclick="setLang('en')" id="nav-lang-en">English</button>
-            </div>
         </div>
-        <button class="nav-mobile-btn" onclick="toggleDrawer()" id="menuBtn" aria-label="Menú">☰</button>
+        <div class="nav-right">
+            <div class="lang-toggle">
+                <button class="lang-btn active" onclick="setLang('es')" id="nav-lang-es">ES</button>
+                <button class="lang-btn" onclick="setLang('en')" id="nav-lang-en">EN</button>
+            </div>
+            <button class="nav-mobile-btn" onclick="toggleDrawer()" id="menuBtn" aria-label="Menú">☰</button>
+        </div>
     </div>
 </nav>
 
 <!-- MOBILE DRAWER -->
 <div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleDrawer()"></div>
 <div class="mobile-nav-drawer" id="mobileDrawer">
-    <a href="/privacy" class="nav-link" id="m-nav-privacy">Política de Privacidad</a>
-    <a href="/terms" class="nav-link" id="m-nav-terms">Términos de Servicio</a>
-    <a href="mailto:isaacduran167@gmail.com" class="nav-link" id="m-nav-contact">Contacto</a>
+    <a href="#hymns-app" class="mobile-link" id="m-nav-hymns">Himnos</a>
+    <a href="privacy.html" class="mobile-link" id="m-nav-privacy">Política de Privacidad</a>
+    <a href="terms.html" class="mobile-link" id="m-nav-terms">Términos de Servicio</a>
+    <div class="mobile-divider"></div>
+    <a href="mailto:isaacduran167@gmail.com" class="mobile-link" id="m-nav-contact">Contacto</a>
+    <div class="mobile-divider"></div>
     <div class="mobile-lang-row">
         <button class="mobile-lang-btn active" onclick="setLang('es')" id="m-lang-es">Español</button>
         <button class="mobile-lang-btn" onclick="setLang('en')" id="m-lang-en">English</button>
@@ -550,99 +1587,274 @@
 </div>
 
 <!-- ── HERO ── -->
-<section class="hero">
-    <div class="content-lang active" id="hero-es">
-        <div class="hero-badge">✦ Aplicación de Himnos</div>
-        <h1>Himnario<br><em>El Buen Pastor</em></h1>
-        <p class="hero-sub">El compañero espiritual de tu iglesia. Himnos, letras y música en la palma de tu mano.</p>
-        <div class="hero-cta">
-            <a href="/privacy" class="btn-primary">🛡️ Política de Privacidad</a>
-            <a href="/terms" class="btn-secondary">📜 Términos de Servicio</a>
+<section class="hero reveal">
+    <div class="hero-grid">
+        <div class="hero-content">
+            <div class="content-lang active" id="hero-es">
+                <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Centro de Documentación</div>
+                <h1>Transparencia y<br><em>confianza</em></h1>
+                <p class="hero-desc">Conoce nuestras políticas, términos de uso y cómo protegemos tu información dentro de la aplicación Himnario El Buen Pastor.</p>
+                <div class="hero-actions">
+                    <a href="privacy.html" class="btn btn-filled">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                        Política de Privacidad
+                    </a>
+                    <a href="terms.html" class="btn btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                        Términos de Servicio
+                    </a>
+                </div>
+            </div>
+            <div class="content-lang" id="hero-en">
+                <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Documentation Center</div>
+                <h1>Transparency &<br><em>trust</em></h1>
+                <p class="hero-desc">Learn about our policies, terms of use, and how we protect your information inside the Himnario El Buen Pastor application.</p>
+                <div class="hero-actions">
+                    <a href="privacy.html" class="btn btn-filled">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                        Privacy Policy
+                    </a>
+                    <a href="terms.html" class="btn btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                        Terms of Service
+                    </a>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="content-lang" id="hero-en">
-        <div class="hero-badge">✦ Hymn Application</div>
-        <h1>Himnario<br><em>El Buen Pastor</em></h1>
-        <p class="hero-sub">Your church's spiritual companion. Hymns, lyrics, and music in the palm of your hand.</p>
-        <div class="hero-cta">
-            <a href="/privacy" class="btn-primary">🛡️ Privacy Policy</a>
-            <a href="/terms" class="btn-secondary">📜 Terms of Service</a>
+        <div class="hero-visual">
+            <div class="hero-glow"></div>
+            <div class="hero-card-stack">
+                <div class="hero-card">
+                    <div class="hero-card-header">
+                        <div class="hero-card-icon">📋</div>
+                        <div class="hero-card-header-text">
+                            <h3 id="hc-title">Documentos Legales</h3>
+                            <span id="hc-subtitle">Acceso rápido</span>
+                        </div>
+                    </div>
+                    <div class="hero-card-items">
+                        <a href="privacy.html" class="hero-card-item" style="text-decoration:none;color:inherit;">
+                            <div class="hero-card-item-icon item-shield">🛡️</div>
+                            <span class="hero-card-item-text" id="hc-item-1">Política de Privacidad</span>
+                            <span class="hero-card-item-arrow">→</span>
+                        </a>
+                        <a href="terms.html" class="hero-card-item" style="text-decoration:none;color:inherit;">
+                            <div class="hero-card-item-icon item-scroll">📜</div>
+                            <span class="hero-card-item-text" id="hc-item-2">Términos de Servicio</span>
+                            <span class="hero-card-item-arrow">→</span>
+                        </a>
+                        <a href="mailto:isaacduran167@gmail.com" class="hero-card-item" style="text-decoration:none;color:inherit;">
+                            <div class="hero-card-item-icon item-mail">✉️</div>
+                            <span class="hero-card-item-text" id="hc-item-3">Contactar Soporte</span>
+                            <span class="hero-card-item-arrow">→</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<hr class="divider">
+<!-- ── METRICS ── -->
+<section class="metrics reveal">
+    <div class="metrics-inner">
+        <div class="metric">
+            <div class="metric-value" id="met-1-val">+600</div>
+            <div class="metric-label" id="met-1-lbl">Himnos disponibles</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="met-2-val">🎵</div>
+            <div class="metric-label" id="met-2-lbl">Audio integrado</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="met-3-val">🌙</div>
+            <div class="metric-label" id="met-3-lbl">Modo oscuro</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="met-4-val">🔖</div>
+            <div class="metric-label" id="met-4-lbl">Favoritos</div>
+        </div>
+    </div>
+</section>
+
+<!-- ── BENTO CARDS ── -->
+<section class="bento-section reveal">
+    <div class="section-header">
+        <div class="section-eyebrow" id="section-label">Información Legal</div>
+        <h2 class="section-title" id="section-title">Todo lo que necesitas saber</h2>
+        <p class="section-desc" id="section-desc">Comprometidos con la transparencia y el uso responsable de tu información.</p>
+    </div>
+
+    <div class="bento-grid">
+        <!-- Featured Privacy Card -->
+        <div class="bento-card bento-card-featured">
+            <div class="bento-card-icon icon-privacy">🛡️</div>
+            <h3 id="card-privacy-title">Política de Privacidad</h3>
+            <p id="card-privacy-desc">Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura con nosotros.</p>
+            <div class="bento-card-visual">
+                <div class="visual-list">
+                    <div class="visual-list-item">
+                        <span class="visual-check">✓</span>
+                        <span id="vis-1">Sin venta de datos personales</span>
+                    </div>
+                    <div class="visual-list-item">
+                        <span class="visual-check">✓</span>
+                        <span id="vis-2">Datos almacenados localmente</span>
+                    </div>
+                    <div class="visual-list-item">
+                        <span class="visual-check">✓</span>
+                        <span id="vis-3">Seguro para todas las edades</span>
+                    </div>
+                    <div class="visual-list-item">
+                        <span class="visual-check">✓</span>
+                        <span id="vis-4">Analytics anónimos solamente</span>
+                    </div>
+                </div>
+            </div>
+            <a href="privacy.html" class="bento-card-link" style="margin-top:1.5rem;" id="card-privacy-link">Leer política completa →</a>
+        </div>
+
+        <!-- Terms Card -->
+        <div class="bento-card">
+            <div class="bento-card-icon icon-terms">📜</div>
+            <h3 id="card-terms-title">Términos de Servicio</h3>
+            <p id="card-terms-desc">Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.</p>
+            <a href="terms.html" class="bento-card-link" id="card-terms-link">Leer términos →</a>
+        </div>
+
+        <!-- Contact Card -->
+        <div class="bento-card">
+            <div class="bento-card-icon icon-support">✉️</div>
+            <h3 id="card-contact-title">Soporte y Contacto</h3>
+            <p id="card-contact-desc">¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.</p>
+            <a href="mailto:isaacduran167@gmail.com" class="bento-card-link" id="card-contact-link">Enviar correo →</a>
+        </div>
+    </div>
+</section>
 
 <!-- ── APP FEATURES ── -->
-<div class="features">
+<section class="features-row reveal">
     <div class="features-grid">
-        <div class="feature-item">
-            <span class="feature-icon">📖</span>
+        <div class="feature-card">
+            <span class="feature-emoji">📖</span>
             <div class="feature-title" id="feat-1-title">+600 Himnos</div>
             <div class="feature-desc" id="feat-1-desc">Biblioteca completa de himnos</div>
         </div>
-        <div class="feature-item">
-            <span class="feature-icon">🎵</span>
+        <div class="feature-card">
+            <span class="feature-emoji">🎵</span>
             <div class="feature-title" id="feat-2-title">Audio Integrado</div>
             <div class="feature-desc" id="feat-2-desc">Escucha cada himno con un toque</div>
         </div>
-        <div class="feature-item">
-            <span class="feature-icon">🌙</span>
+        <div class="feature-card">
+            <span class="feature-emoji">🌙</span>
             <div class="feature-title" id="feat-3-title">Modo Oscuro</div>
             <div class="feature-desc" id="feat-3-desc">Lectura cómoda a cualquier hora</div>
         </div>
-        <div class="feature-item">
-            <span class="feature-icon">🔖</span>
+        <div class="feature-card">
+            <span class="feature-emoji">🔖</span>
             <div class="feature-title" id="feat-4-title">Favoritos</div>
             <div class="feature-desc" id="feat-4-desc">Guarda tus himnos preferidos</div>
         </div>
     </div>
-</div>
+</section>
 
-<hr class="divider">
-
-<!-- ── POLICY CARDS ── -->
-<section class="section">
-    <div class="section-label" id="section-label">Información Legal</div>
-    <h2 class="section-title" id="section-title">Transparencia y Confianza</h2>
-    <p class="section-sub" id="section-sub">Comprometidos con la privacidad y el uso responsable de tu información.</p>
-
-    <div class="cards">
-        <div class="card">
-            <div class="card-icon-wrap">🛡️</div>
-            <h3 id="card-privacy-title">Política de Privacidad</h3>
-            <p id="card-privacy-desc">Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura.</p>
-            <a href="/privacy" class="card-link" id="card-privacy-link">Leer política →</a>
-        </div>
-        <div class="card">
-            <div class="card-icon-wrap">📜</div>
-            <h3 id="card-terms-title">Términos de Servicio</h3>
-            <p id="card-terms-desc">Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.</p>
-            <a href="/terms" class="card-link" id="card-terms-link">Leer términos →</a>
-        </div>
-        <div class="card">
-            <div class="card-icon-wrap">✉️</div>
-            <h3 id="card-contact-title">Soporte y Contacto</h3>
-            <p id="card-contact-desc">¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.</p>
-            <a href="mailto:isaacduran167@gmail.com" class="card-link" id="card-contact-link">Enviar correo →</a>
-        </div>
+<!-- ── CONTACT CTA ── -->
+<section class="cta-section reveal">
+    <div class="cta-banner">
+        <h2 id="banner-title">¿Tienes alguna pregunta?</h2>
+        <p id="banner-sub">Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.</p>
+        <a href="mailto:isaacduran167@gmail.com" class="btn-cta" id="banner-btn">✉️ Contactar soporte</a>
     </div>
 </section>
 
-<!-- ── CONTACT BANNER ── -->
-<div class="contact-banner">
-    <h2 id="banner-title">¿Tienes alguna pregunta?</h2>
-    <p id="banner-sub">Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.</p>
-    <a href="mailto:isaacduran167@gmail.com" class="btn-white" id="banner-btn">✉️ Contactar soporte</a>
-</div>
-
 <!-- ── FOOTER ── -->
+
+    <!-- HYMNS APP -->
+    <div class="hymns-app-container" id="hymns-app">
+
+
+    <!-- HEADER -->
+    
+
+    <!-- HERO -->
+    <section class="hymns-hero">
+        <h1 class="hymns-hero-title">"Cantaré a Jehová en mi vida; a mi Dios cantaré salmos mientras viva."</h1>
+        <p class="hymns-hero-subtitle">Salmos 104:33</p>
+
+        <div class="hymns-hero-stats" id="heroStats">
+            <div class="stat-item">
+                <div class="stat-num">--</div>
+                <div class="stat-label">Himnos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">--</div>
+                <div class="stat-label">Con Audio</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="number">Por Número</button>
+            <button class="tab-btn" data-tab="alpha">Alfabético</button>
+            <button class="tab-btn" data-tab="category">Categorías</button>
+        </div>
+
+        <div id="categoryFilter" class="filter-container">
+            <!-- Categories injected here -->
+        </div>
+
+        <div id="hymnList" class="hymn-list">
+            <div class="loading">
+                <div class="spinner"></div>
+                Cargando himnos...
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div id="hymnModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-num" id="modalNum">Himno --</div>
+                    <h2 class="modal-title" id="modalTitle">Título del Himno</h2>
+                </div>
+                <button class="close-btn" id="closeModalBtn" aria-label="Cerrar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body" id="modalBody">
+                <div class="lyrics" id="modalLyrics"></div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="audio-player-container" id="audioContainer">
+                    <!-- Audio player injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    
+    </div>
+
 <footer>
     <div class="footer-inner">
-        <div class="footer-brand">Himnario El Buen Pastor</div>
+        <div class="footer-left">
+            <div class="footer-logo">EP</div>
+            <div class="footer-brand">Himnario El Buen Pastor</div>
+        </div>
         <div class="footer-links">
-            <a href="/privacy" id="footer-privacy">Privacidad</a>
-            <a href="/terms" id="footer-terms">Términos</a>
+            <a href="privacy.html" id="footer-privacy">Privacidad</a>
+            <a href="terms.html" id="footer-terms">Términos</a>
             <a href="mailto:isaacduran167@gmail.com" id="footer-contact">Contacto</a>
         </div>
         <p class="footer-copy" id="footer-copy">© 2026 Himnario El Buen Pastor. Todos los derechos reservados.</p>
@@ -665,7 +1877,6 @@
         document.getElementById('m-lang-es').classList.toggle('active', lang === 'es');
         document.getElementById('m-lang-en').classList.toggle('active', lang === 'en');
 
-        // All translatable elements
         const translations = {
             es: {
                 'nav-privacy-link': 'Privacidad',
@@ -674,6 +1885,31 @@
                 'm-nav-privacy': 'Política de Privacidad',
                 'm-nav-terms': 'Términos de Servicio',
                 'm-nav-contact': 'Contacto',
+                'hc-title': 'Documentos Legales',
+                'hc-subtitle': 'Acceso rápido',
+                'hc-item-1': 'Política de Privacidad',
+                'hc-item-2': 'Términos de Servicio',
+                'hc-item-3': 'Contactar Soporte',
+                'met-1-lbl': 'Himnos disponibles',
+                'met-2-lbl': 'Audio integrado',
+                'met-3-lbl': 'Modo oscuro',
+                'met-4-lbl': 'Favoritos',
+                'section-label': 'Información Legal',
+                'section-title': 'Todo lo que necesitas saber',
+                'section-desc': 'Comprometidos con la transparencia y el uso responsable de tu información.',
+                'card-privacy-title': 'Política de Privacidad',
+                'card-privacy-desc': 'Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura con nosotros.',
+                'card-privacy-link': 'Leer política completa →',
+                'vis-1': 'Sin venta de datos personales',
+                'vis-2': 'Datos almacenados localmente',
+                'vis-3': 'Seguro para todas las edades',
+                'vis-4': 'Analytics anónimos solamente',
+                'card-terms-title': 'Términos de Servicio',
+                'card-terms-desc': 'Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.',
+                'card-terms-link': 'Leer términos →',
+                'card-contact-title': 'Soporte y Contacto',
+                'card-contact-desc': '¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.',
+                'card-contact-link': 'Enviar correo →',
                 'feat-1-title': '+600 Himnos',
                 'feat-1-desc': 'Biblioteca completa de himnos',
                 'feat-2-title': 'Audio Integrado',
@@ -682,18 +1918,6 @@
                 'feat-3-desc': 'Lectura cómoda a cualquier hora',
                 'feat-4-title': 'Favoritos',
                 'feat-4-desc': 'Guarda tus himnos preferidos',
-                'section-label': 'Información Legal',
-                'section-title': 'Transparencia y Confianza',
-                'section-sub': 'Comprometidos con la privacidad y el uso responsable de tu información.',
-                'card-privacy-title': 'Política de Privacidad',
-                'card-privacy-desc': 'Conoce cómo protegemos tus datos y respetamos tu privacidad dentro de la aplicación móvil. Tu información está segura.',
-                'card-privacy-link': 'Leer política →',
-                'card-terms-title': 'Términos de Servicio',
-                'card-terms-desc': 'Lee las condiciones de uso y directrices de la aplicación Himnario El Buen Pastor antes de utilizarla.',
-                'card-terms-link': 'Leer términos →',
-                'card-contact-title': 'Soporte y Contacto',
-                'card-contact-desc': '¿Tienes dudas, sugerencias o comentarios? Nuestro equipo está listo para ayudarte.',
-                'card-contact-link': 'Enviar correo →',
                 'banner-title': '¿Tienes alguna pregunta?',
                 'banner-sub': 'Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.',
                 'banner-btn': '✉️ Contactar soporte',
@@ -709,6 +1933,31 @@
                 'm-nav-privacy': 'Privacy Policy',
                 'm-nav-terms': 'Terms of Service',
                 'm-nav-contact': 'Contact',
+                'hc-title': 'Legal Documents',
+                'hc-subtitle': 'Quick access',
+                'hc-item-1': 'Privacy Policy',
+                'hc-item-2': 'Terms of Service',
+                'hc-item-3': 'Contact Support',
+                'met-1-lbl': 'Hymns available',
+                'met-2-lbl': 'Built-in audio',
+                'met-3-lbl': 'Dark mode',
+                'met-4-lbl': 'Favorites',
+                'section-label': 'Legal Information',
+                'section-title': 'Everything you need to know',
+                'section-desc': 'Committed to transparency and responsible use of your information.',
+                'card-privacy-title': 'Privacy Policy',
+                'card-privacy-desc': 'Learn how we protect your data and respect your privacy inside the mobile application. Your information is safe with us.',
+                'card-privacy-link': 'Read full policy →',
+                'vis-1': 'No personal data sales',
+                'vis-2': 'Data stored locally',
+                'vis-3': 'Safe for all ages',
+                'vis-4': 'Anonymous analytics only',
+                'card-terms-title': 'Terms of Service',
+                'card-terms-desc': 'Read the terms, conditions, and guidelines for using Himnario El Buen Pastor before using it.',
+                'card-terms-link': 'Read terms →',
+                'card-contact-title': 'Support & Contact',
+                'card-contact-desc': 'Have questions, suggestions, or feedback? Our team is ready to help you.',
+                'card-contact-link': 'Send email →',
                 'feat-1-title': '600+ Hymns',
                 'feat-1-desc': 'Complete hymn library',
                 'feat-2-title': 'Built-in Audio',
@@ -717,18 +1966,6 @@
                 'feat-3-desc': 'Comfortable reading at any hour',
                 'feat-4-title': 'Favorites',
                 'feat-4-desc': 'Save your preferred hymns',
-                'section-label': 'Legal Information',
-                'section-title': 'Transparency & Trust',
-                'section-sub': 'Committed to privacy and responsible use of your information.',
-                'card-privacy-title': 'Privacy Policy',
-                'card-privacy-desc': 'Learn how we protect your data and respect your privacy inside the mobile application. Your information is safe.',
-                'card-privacy-link': 'Read policy →',
-                'card-terms-title': 'Terms of Service',
-                'card-terms-desc': 'Read the terms, conditions, and guidelines for using Himnario El Buen Pastor before using it.',
-                'card-terms-link': 'Read terms →',
-                'card-contact-title': 'Support & Contact',
-                'card-contact-desc': 'Have questions, suggestions, or feedback? Our team is ready to help you.',
-                'card-contact-link': 'Send email →',
                 'banner-title': 'Have a question?',
                 'banner-sub': 'We are here to help you with any questions about the app or our policies.',
                 'banner-btn': '✉️ Contact Support',
@@ -755,6 +1992,248 @@
         overlay.classList.toggle('open', !isOpen);
         btn.innerText = isOpen ? '☰' : '✕';
     }
+
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 </script>
+
+    <!-- HYMNS LOGIC -->
+    <script>
+
+        let appHymns = [];
+        let currentSort = 'number';
+        let currentCategory = null;
+        let searchQuery = '';
+
+        // DOM Elements
+        const listEl = document.getElementById('hymnList');
+        const searchInput = document.getElementById('searchInput');
+        const tabs = document.querySelectorAll('.tab-btn');
+        const categoryFilter = document.getElementById('categoryFilter');
+
+        // Modal Elements
+        const modal = document.getElementById('hymnModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalNum = document.getElementById('modalNum');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalLyrics = document.getElementById('modalLyrics');
+        const audioContainer = document.getElementById('audioContainer');
+        const modalBody = document.getElementById('modalBody');
+
+        // Fetch Data
+        async function loadData() {
+            try {
+                
+                // Read from the global variables loaded by hymnsData.js
+                // Combine main hymns and estribillos (extras)
+                let combined = [];
+                if (typeof hymnsData !== 'undefined') {
+                    const mainHymns = hymnsData.sort((a, b) => a.number - b.number);
+                    const extraHymns = (typeof estribillosData !== 'undefined' ? estribillosData : []).sort((a, b) => a.number - b.number);
+                    combined = [...mainHymns, ...extraHymns];
+                }
+                
+                // Add hasAudio property and format categories as array
+                combined = combined.map(h => {
+                    const audioFileName = 'hymn_' + h.id + '.m4a';
+                    const catsArray = typeof h.categories === 'string' 
+                        ? h.categories.split(',').map(c => c.trim()).filter(Boolean) 
+                        : (h.categories || []);
+                    return { ...h, categories: catsArray, hasAudio: true, audioFile: audioFileName };
+                });
+                
+                appHymns = combined;
+
+
+                // Update stats
+                const stats = document.querySelectorAll('.stat-num');
+                if (stats.length === 2) {
+                    stats[0].innerText = appHymns.length;
+                    stats[1].innerText = appHymns.filter(h => h.hasAudio).length;
+                }
+
+                // Render categories
+                // Render categories (get unique categories)
+                const allCats = new Set();
+                appHymns.forEach(h => h.categories.forEach(c => allCats.add(c)));
+                renderCategories(Array.from(allCats).sort());
+
+                renderList();
+            } catch (err) {
+                listEl.innerHTML = `<div class="loading">Error al cargar los himnos. Intente recargar.</div>`;
+                console.error(err);
+            }
+        }
+
+        // Render List
+        function renderList() {
+            let filtered = appHymns;
+
+            // Apply category filter
+            if (currentCategory) {
+                filtered = filtered.filter(h => h.categories.includes(currentCategory));
+            }
+
+            // Apply search filter
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(h =>
+                    h.title.toLowerCase().includes(q) ||
+                    h.id.toLowerCase() === q ||
+                    (h.lyrics && h.lyrics.toLowerCase().includes(q))
+                );
+            }
+
+            // Apply sort
+            filtered = [...filtered]; // clone
+            if (currentSort === 'alpha') {
+                filtered.sort((a, b) => a.title.localeCompare(b.title));
+            } else {
+                // By number (handle E-prefixes)
+                filtered.sort((a, b) => {
+                    const isAE = a.id.startsWith('E');
+                    const isBE = b.id.startsWith('E');
+                    if (isAE && !isBE) return 1;
+                    if (!isAE && isBE) return -1;
+                    return a.number - b.number;
+                });
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="loading">No se encontraron resultados para "${searchQuery}"</div>`;
+                return;
+            }
+
+            // Build HTML efficiently
+            let html = '';
+            filtered.forEach(h => {
+                const firstLine = h.lyrics ? h.lyrics.split('\n')[0].replace(/\/:/g, '').replace(/:\//g, '').substring(0, 50) + '...' : '';
+                const mainCategory = h.categories.length > 0 ? h.categories[0] : '';
+
+                html += `
+                    <div class="hymn-row" onclick="openHymn('${h.id}')">
+                        <div class="hymn-number">${h.id}</div>
+                        <div class="hymn-info">
+                            <div class="hymn-title">${h.title}</div>
+                            <div class="hymn-preview">${firstLine}</div>
+                        </div>
+                        <div class="hymn-actions">
+                            ${mainCategory ? `<span class="badge-category">${mainCategory}</span>` : ''}
+                            ${h.hasAudio ? `
+                                <div class="audio-icon" title="Tiene audio">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        function renderCategories(cats) {
+            categoryFilter.innerHTML = `<button class="filter-tag active" onclick="setCategory(null, this)">Todos</button>` +
+                cats.map(c => `<button class="filter-tag" onclick="setCategory('${c}', this)">${c}</button>`).join('');
+        }
+
+        window.setCategory = (cat, btnEl) => {
+            currentCategory = cat;
+            document.querySelectorAll('.filter-tag').forEach(el => el.classList.remove('active'));
+            btnEl.classList.add('active');
+            renderList();
+        };
+
+        // Tab Handling
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                tabs.forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const mode = e.target.dataset.tab;
+                if (mode === 'category') {
+                    categoryFilter.classList.add('active');
+                    currentSort = 'number';
+                } else {
+                    categoryFilter.classList.remove('active');
+                    currentCategory = null;
+                    document.querySelectorAll('.filter-tag').forEach(el => el.classList.remove('active'));
+                    document.querySelector('.filter-tag').classList.add('active'); // reset to Todos
+                    currentSort = mode;
+                }
+                renderList();
+            });
+        });
+
+        // Search Handling
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchQuery = e.target.value.trim();
+                renderList();
+            }, 300);
+        });
+
+        // Modal Handling
+        window.openHymn = (id) => {
+            const hymn = appHymns.find(h => h.id === id);
+            if (!hymn) return;
+
+            modalNum.innerText = `Himno ${hymn.id}`;
+            modalTitle.innerText = hymn.title;
+
+            // Format lyrics (stanza paragraphs)
+            const formattedLyrics = hymn.lyrics
+                .replace(/\n\n/g, '</div><div class="lyrics-stanza">')
+                .replace(/\n/g, '<br>');
+
+            modalLyrics.innerHTML = `<div class="lyrics-stanza">${formattedLyrics}</div>`;
+
+            // Setup Audio
+            if (hymn.hasAudio) {
+                audioContainer.innerHTML = `
+                    <audio controls controlsList="nodownload">
+                        <source src="audio/${hymn.audioFile}" type="audio/mp4">
+                        Tu navegador no soporta el elemento de audio.
+                    </audio>
+                `;
+            } else {
+                audioContainer.innerHTML = `<span class="no-audio-msg">Audio no disponible para este himno.</span>`;
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            modalBody.scrollTop = 0;
+        };
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            // stop audio
+            const audio = audioContainer.querySelector('audio');
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Initialize
+        loadData();
+    
+    </script>
 </body>
 </html>
