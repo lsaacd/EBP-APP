@@ -1795,6 +1795,18 @@
 
     <!-- MAIN -->
     <main class="main">
+        <div class="search-container" style="margin: 0 auto 2rem; width: 100%;">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por número, título o letra...">
+        </div>
+
+        <p class="audio-notice" id="audio-notice-text" style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin: -1.5rem auto 2rem; max-width: 600px; line-height: 1.4;">
+            * Nota: Los audios se están agregando gradualmente. Si deseas colaborar con un audio faltante, envíanoslo al abrir el himno.
+        </p>
+
         <div class="tabs">
             <button class="tab-btn active" data-tab="number">Por Número</button>
             <button class="tab-btn" data-tab="alpha">Alfabético</button>
@@ -1921,6 +1933,7 @@
                 'banner-title': '¿Tienes alguna pregunta?',
                 'banner-sub': 'Estamos aquí para ayudarte con cualquier duda sobre la aplicación o nuestras políticas.',
                 'banner-btn': '✉️ Contactar soporte',
+                'audio-notice-text': '* Nota: Los audios se están agregando gradualmente. Si deseas colaborar con un audio faltante, envíanoslo al abrir el himno.',
                 'footer-privacy': 'Privacidad',
                 'footer-terms': 'Términos',
                 'footer-contact': 'Contacto',
@@ -1969,6 +1982,7 @@
                 'banner-title': 'Have a question?',
                 'banner-sub': 'We are here to help you with any questions about the app or our policies.',
                 'banner-btn': '✉️ Contact Support',
+                'audio-notice-text': '* Note: Audio files are being added gradually. If you wish to contribute a missing audio, send it to us when opening the hymn.',
                 'footer-privacy': 'Privacy',
                 'footer-terms': 'Terms',
                 'footer-contact': 'Contact',
@@ -2166,7 +2180,8 @@
                     categoryFilter.classList.remove('active');
                     currentCategory = null;
                     document.querySelectorAll('.filter-tag').forEach(el => el.classList.remove('active'));
-                    document.querySelector('.filter-tag').classList.add('active'); // reset to Todos
+                    const firstTag = document.querySelector('.filter-tag');
+                    if (firstTag) firstTag.classList.add('active'); // reset to Todos
                     currentSort = mode;
                 }
                 renderList();
@@ -2203,11 +2218,32 @@
                 audioContainer.innerHTML = `
                     <audio controls controlsList="nodownload">
                         <source src="audio/${hymn.audioFile}" type="audio/mp4">
-                        Tu navegador no soporta el elemento de audio.
+                        ${currentLang === 'es' ? 'Tu navegador no soporta el elemento de audio.' : 'Your browser does not support the audio element.'}
                     </audio>
                 `;
             } else {
-                audioContainer.innerHTML = `<span class="no-audio-msg">Audio no disponible para este himno.</span>`;
+                const msg = currentLang === 'es' 
+                    ? 'Audio no disponible para este himno.' 
+                    : 'Audio not available for this hymn.';
+                const linkText = currentLang === 'es'
+                    ? '✉️ ¿Tienes el audio? Envíalo aquí'
+                    : '✉️ Do you have the audio? Send it here';
+                const subject = encodeURIComponent(currentLang === 'es' ? `Colaboración de Audio - Himno ${hymn.id}` : `Audio Collaboration - Hymn ${hymn.id}`);
+                const body = encodeURIComponent(currentLang === 'es' 
+                    ? `Paz de Dios hermano,\n\nAdjunto el audio para el Himno #${hymn.id} ("${hymn.title}").\n\nDios te bendiga.` 
+                    : `Peace of God brother,\n\nI attach the audio for Hymn #${hymn.id} ("${hymn.title}").\n\nGod bless you.`);
+                
+                audioContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding: 0.5rem 0;">
+                        <span class="no-audio-msg" style="color: var(--text-secondary); font-size: 0.9rem;">${msg}</span>
+                        <a href="mailto:isaacduran167@gmail.com?subject=${subject}&body=${body}" 
+                           style="color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: color var(--transition-fast);"
+                           onmouseover="this.style.color='var(--primary-hover)'"
+                           onmouseout="this.style.color='var(--primary)'">
+                           ${linkText}
+                        </a>
+                    </div>
+                `;
             }
 
             modal.classList.add('active');
