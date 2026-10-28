@@ -144,8 +144,11 @@ export default function HomeScreen() {
       >
         <TouchableOpacity
           style={[styles.heroSurface, { backgroundColor: isDarkMode ? '#1F1F1F' : theme.primary }]}
-          activeOpacity={0.92}
-          onPress={() => router.push({ pathname: '/hymns', params: { tab: 'himnos', t: Date.now() } })}
+          activeOpacity={0.8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push({ pathname: '/hymns', params: { tab: 'himnos', t: Date.now() } });
+          }}
         >
           <MaterialIcons
             name="auto-stories"
@@ -185,8 +188,11 @@ export default function HomeScreen() {
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: theme.primary + '20',
         }]}
-        activeOpacity={0.82}
-        onPress={() => setShowDoctrine(true)}
+        activeOpacity={0.8}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setShowDoctrine(true);
+        }}
       >
         <View style={[styles.doctrineCardIconWrap, { backgroundColor: theme.primary + '12' }]}>
           <MaterialIcons name="history-edu" size={24} color={theme.primary} />
