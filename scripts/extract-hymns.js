@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SOURCE = path.join(__dirname, '..', 'himnario', 'data', 'alabanzasPaginas.js');
-const OUTPUT = path.join(__dirname, '..', 'docs', 'hymns-data.js');
+const OUTPUT = path.join(__dirname, '..', 'docs', 'data/hymns-data.js');
 
 console.log('Reading source file...');
 const raw = fs.readFileSync(SOURCE, 'utf8');
@@ -123,7 +123,7 @@ if (estribillosStart !== -1) {
 hymnsData = [...hymnsData, ...estribillosData];
 
 // ── Step 3: Check which audio files exist ──────────────────────────
-const audioDir = path.join(__dirname, '..', 'himnario', 'assets', 'audio');
+const audioDir = path.join(__dirname, '..', 'docs', 'audio');
 const audioFiles = new Set(fs.readdirSync(audioDir).filter(f => f.endsWith('.m4a')));
 
 // ── Step 4: Build the output JSON ──────────────────────────────────
@@ -131,7 +131,7 @@ const allCategories = new Set();
 
 const hymns = hymnsData.map(h => {
   const cats = h.categories
-    ? h.categories.split(',').map(c => c.trim()).filter(Boolean)
+    ? (Array.isArray(h.categories) ? h.categories : h.categories.split(/[•,]/)).map(c => c.trim()).filter(Boolean)
     : [];
   cats.forEach(c => allCategories.add(c));
 
@@ -146,6 +146,7 @@ const hymns = hymnsData.map(h => {
     categories: cats,
     author: h.author || '',
     reference: h.reference || '',
+    audioCredit: h.audioCredit?.name ? { name: h.audioCredit.name, url: h.audioCredit.url || '' } : null,
     lyrics: h.lyrics || '',
     hasAudio,
     audioFile: hasAudio ? audioFileName : null,
@@ -172,6 +173,7 @@ const output = {
 const outputDir = path.dirname(OUTPUT);
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
+fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
 fs.writeFileSync(OUTPUT, "window.HYMNS_DB = " + JSON.stringify(output, null, 0) + ";", 'utf8');
 
 const fileSizeMB = (fs.statSync(OUTPUT).size / (1024 * 1024)).toFixed(2);

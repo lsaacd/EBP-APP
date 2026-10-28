@@ -1,10 +1,132 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/docs/index.html" },
-    { "source": "/privacy", "destination": "/docs/privacy.html" },
-    { "source": "/terms", "destination": "/docs/terms.html" },
-    { "source": "/privacy.html", "destination": "/docs/privacy.html" },
-    { "source": "/terms.html", "destination": "/docs/terms.html" },
-    { "source": "/hymns", "destination": "/docs/hymns/index.html" }
+    {
+      "source": "/index.html",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/docs/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/docs/terms.html"
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/docs/privacy.html"
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/docs/terms.html"
+    },
+    {
+      "source": "/hymns",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/library.css",
+      "destination": "/docs/css/library.css"
+    },
+    {
+      "source": "/website.css",
+      "destination": "/docs/css/website.css"
+    },
+    {
+      "source": "/refinements.css",
+      "destination": "/docs/css/refinements.css"
+    },
+    {
+      "source": "/reading-player.css",
+      "destination": "/docs/css/reading-player.css"
+    },
+    {
+      "source": "/catalog.css",
+      "destination": "/docs/css/catalog.css"
+    },
+    {
+      "source": "/dark_theme_webpage_ebp.svg",
+      "destination": "/docs/images/branding/dark_theme_webpage_ebp.svg"
+    },
+    {
+      "source": "/og_ebp.svg",
+      "destination": "/docs/images/branding/og_ebp.svg"
+    },
+    {
+      "source": "/library.js",
+      "destination": "/docs/js/library.js"
+    },
+    {
+      "source": "/search-engine.js",
+      "destination": "/docs/js/search-engine.js"
+    },
+    {
+      "source": "/mockups.js",
+      "destination": "/docs/js/mockups.js"
+    },
+    {
+      "source": "/audio-player.js",
+      "destination": "/docs/js/audio-player.js"
+    },
+    {
+      "source": "/page-flip.js",
+      "destination": "/docs/js/page-flip.js"
+    },
+    {
+      "source": "/images/:path*",
+      "destination": "/docs/images/:path*"
+    },
+    {
+      "source": "/mockups/:path*",
+      "destination": "/docs/mockups/:path*"
+    },
+    {
+      "source": "/hymns-data.js",
+      "destination": "/docs/data/hymns-data.js"
+    },
+    {
+      "source": "/fav-ebp.ico",
+      "destination": "/docs/images/branding/fav-ebp.ico"
+    },
+    {
+      "source": "/downloads/:path*",
+      "destination": "/docs/downloads/:path*"
+    },
+    {
+      "source": "/audio/:path*",
+      "destination": "/docs/audio/:path*"
+    },
+    {
+      "source": "/css/:path*",
+      "destination": "/docs/css/:path*"
+    },
+    {
+      "source": "/js/:path*",
+      "destination": "/docs/js/:path*"
+    },
+    {
+      "source": "/data/:path*",
+      "destination": "/docs/data/:path*"
+    },
+    {
+      "source": "/feedback",
+      "destination": "/docs/feedback.html"
+    },
+    {
+      "source": "/feedback.html",
+      "destination": "/docs/feedback.html"
+    },
+    {
+      "source": "/projection.css",
+      "destination": "/docs/css/projection.css"
+    },
+    {
+      "source": "/projection.js",
+      "destination": "/docs/js/projection.js"
+    }
   ]
 }

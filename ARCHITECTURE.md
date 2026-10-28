@@ -31,10 +31,10 @@ EBP APP/
 │   ├── index.html                   # Web hymn reader & legal/support landing page
 │   ├── privacy.html                 # Official Privacy Policy
 │   ├── terms.html                   # Official Terms of Service
-│   ├── hymnsData.js                 # Exported web hymn dataset
+│   ├── data/hymns-data.js                 # Exported web hymn dataset
 │   └── audio/                       # Public audio files for web streaming
 ├── scripts/
-│   └── extract-hymns.js             # Parses mobile dataset to generate web hymnsData.js
+│   └── extract-hymns.js             # Parses mobile dataset to generate web data/hymns-data.js
 └── himnario/                        # MAIN EXPO / REACT NATIVE APPLICATION ROOT
     ├── package.json                 # Dependencies (Expo 54, React 19, RN 0.81, Reanimated 4)
     ├── app.json                     # Expo configuration, bundle IDs, permissions, plugins
@@ -119,7 +119,7 @@ All hymns and choruses are centrally stored in [`himnario/data/alabanzasPaginas.
 4. **`audioRegistry.ts`**: Static asset mapping associating each song ID with its bundled audio file.
 
 > **When modifying lyrics or hymn metadata:**  
-> Run `node scripts/extract-hymns.js` to automatically synchronize the mobile data changes into `docs/hymns-data.js` for the web portal.
+> Run `node scripts/extract-hymns.js` to automatically synchronize the mobile data changes into `docs/data/hymns-data.js` for the web portal.
 
 ---
 
