@@ -1,0 +1,4 @@
+# Revalidate website files so releases do not mix old controls with new markup.
+# Recordings are hosted separately in R2 and are unaffected.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
