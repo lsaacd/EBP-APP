@@ -24,6 +24,14 @@ def main():
         embedded_image_ratio=0.18,
     ).get_image().convert("RGB")
     branded.save(OUTPUT / "ebp-app-store-qr-branded.png")
+    dark = branded_qr.make_image(
+        image_factory=StyledPilImage,
+        module_drawer=CircleModuleDrawer(),
+        eye_drawer=SquareModuleDrawer(),
+        embedded_image_path=str(OUTPUT / "ebp-app-icon-dark.png"),
+        embedded_image_ratio=0.18,
+    ).get_image().convert("RGB")
+    dark.save(OUTPUT / "ebp-app-store-qr-branded-dark.png")
     print(f"Destination: {APP_STORE_URL}")
     print(f"PNG size: {branded.size[0]} x {branded.size[1]}")
     print(f"Saved branded QR in {OUTPUT}")
