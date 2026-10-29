@@ -7,7 +7,7 @@ Este directorio contiene el sitio estático. Abre este README primero al continu
 | Ruta | Utilidad |
 | --- | --- |
 | `index.html` | Página principal, catálogo, índice, favoritos y lector de letras. |
-| `feedback.html` | Página de comentarios con el formulario de Google incrustado. |
+| `feedback.html` | Página de comentarios con pestañas para los dos formularios de Google. |
 | `privacy.html` | Política de privacidad en español e inglés. |
 | `terms.html` | Términos de servicio en español e inglés. |
 | `css/` | Hojas de estilo del sitio. Mantener el orden de carga en `index.html`. |
@@ -17,7 +17,7 @@ Este directorio contiene el sitio estático. Abre este README primero al continu
 | `images/` | Portada del reproductor y recursos visuales. |
 | `images/branding/` | Logotipos para ambos temas y favicon. |
 | `mockups/` | Capturas promocionales de la app utilizadas en Inicio. |
-| `downloads/` | Código QR descargable, versiones de impresión/vista previa e icono fuente para generarlo. |
+| `downloads/` | Código QR con logo utilizado por el sitio e icono fuente para regenerarlo. |
 | `guides/` | Documentación técnica y trabajo pendiente. |
 | `.nojekyll` | Desactiva el procesamiento Jekyll al publicar en GitHub Pages; conservar. |
 
@@ -27,6 +27,8 @@ Este directorio contiene el sitio estático. Abre este README primero al continu
 | --- | --- |
 | Catálogo, categorías, favoritos, navegación y preferencias | `js/library.js` |
 | Búsqueda local y relevancia | `js/search-engine.js` |
+| Compartir alabanzas, exportar TXT e imprimir / guardar como PDF | `js/sharing.js`, `css/sharing.css` |
+| PDF de una página con vista previa, tamaño de letra y columnas | `js/pdf-export.js` (exportación directa sin fecha ni ruta local) |
 | Reproductor, cola y listas de reproducción | `js/audio-player.js` |
 | Efecto de pasar página en el lector | `js/page-flip.js` |
 | Presentación para proyectar estrofas y coros | `js/projection.js`, `css/projection.css` |
@@ -36,7 +38,8 @@ Este directorio contiene el sitio estático. Abre este README primero al continu
 | Ajustes visuales, temas y tarjeta QR | `css/refinements.css` |
 | Lector y controles de audio | `css/reading-player.css` |
 | Catálogo, índice y favoritos | `css/catalog.css` |
-| Comentarios | `feedback.html` (estructura, estilos y script de esta página) |
+| Comentarios | `feedback.html` y `css/feedback.css` (pestañas, formularios y diseño) |
+| Privacidad y términos | `privacy.html`, `terms.html`, `css/legal.css`, `js/legal.js` (diseño compartido, índice, idioma y tema) |
 
 Las hojas de estilo actuales se complementan y contienen ajustes en cascada. Todas se utilizan; no eliminarlas por parecer similares. Las rutas dentro de los scripts se resuelven desde las páginas HTML, no desde `js/`.
 
@@ -72,11 +75,12 @@ GitHub Pages sirve `docs/`. Vercel utiliza `../vercel.json`: actualizar sus ruta
 
 Los enlaces de alabanzas usan `index.html#himno=1` o `index.html#himno=E124`. Favoritos, listas, tema y tamaño de letra se guardan en este navegador; no se sincronizan con la app móvil.
 
-El enlace «Enviar comentarios» y los reportes del lector abren `feedback.html`. El formulario envía respuestas a Google Forms. El número y título del himno aparecen como contexto en la página; no rellenan automáticamente campos del formulario.
+El enlace «Enviar comentarios» abre `feedback.html` en la pestaña «Sitio web y proyector». Los reportes del lector abren la misma página en «Alabanzas y audio» y muestran el número y título como contexto. El contexto ayuda al usuario, pero no rellena campos de Google Forms automáticamente. Cada pestaña tiene su propio enlace para abrir el formulario directamente en Google.
 
 ## Continuar en otro IDE
 
 - [Mantenimiento e implementación](guides/MAINTENANCE.md): funcionamiento y decisiones existentes.
+- [Publicar en Cloudflare Pages y R2](guides/CLOUDFLARE-DEPLOYMENT.md): configuración inicial y comandos para publicar el sitio y sus grabaciones.
 - [Pendiente: compartir alabanzas y previsualizaciones](guides/SHARING-HANDOFF.md): plan de implementación y decisiones pendientes.
 - `../scripts/`: generadores y comprobaciones que se ejecutan desde la raíz.
 - `../himnario/`: aplicación móvil; su código es independiente de esta reorganización del sitio.
@@ -84,3 +88,8 @@ El enlace «Enviar comentarios» y los reportes del lector abren `feedback.html`
 ## Limpieza realizada
 
 Se agruparon CSS, JavaScript, catálogo y recursos de marca en sus directorios. Se eliminó `hymnsData.js`, el catálogo antiguo que ninguna página ni script utilizaba. Se conservó el catálogo activo, todas las grabaciones, las imágenes utilizadas y los recursos fuente del generador QR. Las notas anteriores se conservaron en `guides/MAINTENANCE.md`.
+
+### Identidad de la Iglesia
+- identidad.html: página con Nombre, Lema, Fundamento y Finalidad; contenido tomado de himnario/context/LanguageContext.tsx (doctrine* en español).
+- css/identity.css: diseño adaptable de esta página. El enlace Ver más se encuentra debajo del lema en Inicio.
+

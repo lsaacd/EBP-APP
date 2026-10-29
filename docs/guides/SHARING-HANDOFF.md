@@ -1,7 +1,15 @@
 # Hymn sharing — implementation handoff
 
 Updated: 2026-10-28
-Status: Planned for later. This document does not mean the feature has been implemented or deployed.
+Status: Website sharing menu implemented locally. Public preview pages and mobile deep links remain planned; no deployment is implied.
+
+## Website sharing update
+
+PDF export now uses `docs/js/pdf-export.js`: a one-page Letter PDF generated directly from a 288-dpi canvas rendering, with a preview, font-size controls, one/two columns, and automatic shrinking to fit. It preserves all lyrics and adds the title, hymn/chorus number, and optional author/reference once. It contains no browser date, filesystem URL, or page counter. Download PDF saves directly; Open for printing opens the generated PDF in the browser viewer. Text in this PDF is rendered as an image rather than selectable PDF text. No PDF library or remote export service is used. The earlier HTML print-sheet description below is superseded by this implementation.
+
+`docs/js/sharing.js` and `docs/css/sharing.css` provide the shared menu used by the reader and full audio player. It offers WhatsApp, Facebook for public HTTP(S) URLs, copying lyrics, downloading UTF-8 TXT, device sharing when supported, and a clean print sheet that can be saved as PDF through the browser. Printing uses the selected catalog entry's number, title, author/reference when present, and full lyrics. Local file and localhost URLs are not shared; WhatsApp and TXT include the lyrics instead, and Facebook is disabled with an explanation. Device file sharing falls back to text when file sharing is unavailable. Buttons receive native title tooltips based on their accessible labels.
+
+The notes below about the earlier clipboard-only share handlers are historical. Both handlers now call `EBPSharing.open(hymn)`. The final production domain, social preview metadata and mobile link associations still need the work described below.
 
 ## Goal
 

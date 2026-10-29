@@ -13,9 +13,23 @@ desktop.ini
 *.log
 logcat.txt
 scratch/
+.cloudflare-pages-stage/
+.wrangler-cache/
+__pycache__/
+*.pyc
+
 
 # Native build folders
 android/
 ios/
 himnario/android/
 himnario/ios/
+
+# Google API Credentials & Tokens
+credentials.json
+token.json
+scripts/credentials.json
+scripts/token.json
+scripts/auth_url.txt
+
+

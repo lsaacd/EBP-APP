@@ -61,3 +61,41 @@ body.dark .book-art{background:radial-gradient(ellipse at center,#f6e8cb2b,trans
 body.dark .book-cover img{filter:brightness(1.13) drop-shadow(0 0 8px #fff2)}
 
 @media(max-width:600px){.welcome{padding-top:24px;padding-bottom:18px}.book-art{height:270px;padding:0;grid-template-rows:minmax(0,1fr)}}
+
+.app-store-badge-link{display:inline-flex;align-items:center;justify-content:center;line-height:0;border-radius:9px;transition:transform .18s ease,opacity .18s ease}.app-store-badge-link:hover{transform:translateY(-2px);opacity:.9}.app-store-badge-link:focus-visible{outline:3px solid var(--accent);outline-offset:4px}.app-store-badge{display:block;width:190px;height:auto;max-width:100%;border-radius:8px}
+.app-preview-copy .app-title-accent{color:var(--accent)}
+.book-link{display:block;color:inherit;text-decoration:none;cursor:pointer;border-radius:12px}.book-link:hover .book-cover{filter:brightness(1.07)}.book-link:focus-visible{outline:3px solid var(--accent);outline-offset:10px}.book-link:focus-visible .book-cover{outline-color:var(--accent)}
+.welcome-title-accent{color:inherit}
+
+/* Keep the two intended hero lines together on desktop, while allowing the
+   heading to wrap naturally on narrower screens. */
+@media(min-width:1101px){
+  .welcome{grid-template-columns:minmax(0,1.6fr) minmax(250px,.8fr);gap:clamp(28px,4vw,60px)}
+  .welcome-copy{min-width:0}
+  .welcome h1{font-size:clamp(42px,4.1vw,58px);letter-spacing:-.025em;line-height:1.08}
+}
+@media(min-width:601px) and (max-width:1100px){
+  .welcome{grid-template-columns:minmax(0,1.45fr) minmax(220px,.8fr);gap:24px}
+  .welcome h1{font-size:clamp(38px,4.5vw,49px);letter-spacing:-.025em}
+}
+
+/* The cover remains a link, with a gentle lift and tilt for pointer users. */
+.hero-app-download{margin-top:28px}
+.book-link{perspective:900px}
+.book-link .book-cover{transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s ease;will-change:transform}
+@media(hover:hover) and (pointer:fine){
+  .book-link:hover .book-cover{transform:translateY(-14px) rotate(-3deg) rotateY(-9deg) scale(1.18);filter:brightness(1.06)}
+  .book-link:active .book-cover{transform:translateY(-5px) rotate(-3deg) scale(1.12)}
+}
+@media(max-width:1100px) and (hover:hover) and (pointer:fine){.book-link:hover .book-cover{transform:translateY(-10px) rotate(-3deg) rotateY(-7deg) scale(1.03)}}
+@media(prefers-reduced-motion:reduce){.book-link .book-cover{transition:none;will-change:auto}.book-link:hover .book-cover,.book-link:active .book-cover{transform:rotate(-7deg)}}
+
+.welcome .hero-description{font-size:15px;line-height:1.7;color:var(--muted);max-width:540px;margin:20px 0 0}.welcome .hero-description+.hero-app-download{margin-top:22px}
+
+
+.scripture .identity-more{display:block;width:fit-content;margin:16px auto 0;font:600 13px/1.5 'Public Sans',sans-serif;color:var(--accent);text-decoration:none}.scripture .identity-more:hover{text-decoration:underline}.scripture .identity-more:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+
+
+.scripture{position:relative}
+.scripture .identity-more{position:absolute;right:clamp(80px,28%,520px);top:50%;transform:translateY(-50%);margin:0}
+@media(max-width:700px){.scripture .identity-more{position:static;transform:none;margin:14px auto 0}}

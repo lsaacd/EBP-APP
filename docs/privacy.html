@@ -1,629 +1,23 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Política de Privacidad de Himnario El Buen Pastor. Conoce cómo protegemos tus datos.">
-    <title>Política de Privacidad — Himnario El Buen Pastor</title>
-    <link rel="icon" type="image/x-icon" href="images/branding/fav-ebp.ico">
-    <link rel="shortcut icon" type="image/x-icon" href="images/branding/fav-ebp.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #faf9f7;
-            --surface: #ffffff;
-            --text: #1a1a1a;
-            --text-secondary: #6b6b6b;
-            --text-tertiary: #999999;
-            --primary: #6e1619;
-            --primary-soft: rgba(110, 22, 25, 0.06);
-            --border: #e8e8e8;
-            --border-light: #f0f0f0;
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 20px;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
-            --safe-top: env(safe-area-inset-top, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --sidebar-w: 280px;
-        }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html { scroll-behavior: smooth; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.7;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow-x: hidden;
-        }
-
-        /* ── TOP NAV BAR ── */
-        .topbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 56px;
-            background: rgba(250,249,247,0.75);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid rgba(0,0,0,0.06);
-            z-index: 100;
-            padding-top: var(--safe-top);
-            display: flex;
-            align-items: center;
-        }
-
-        .topbar-inner {
-            max-width: 100%;
-            width: 100%;
-            padding: 0 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .topbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-        }
-
-        .topbar-icon {
-            width: 28px;
-            height: 28px;
-            background: var(--primary);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 0.7rem;
-            font-weight: 800;
-        }
-
-        .topbar-text {
-            font-family: 'Newsreader', serif;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .lang-toggle {
-            display: flex;
-            background: var(--surface);
-            padding: 3px;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-        }
-
-        .lang-btn {
-            background: none;
-            border: none;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-tertiary);
-            padding: 4px 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-        .lang-btn.active {
-            background: var(--text);
-            color: #fff;
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            color: var(--text);
-            font-size: 1.2rem;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            position: fixed;
-            top: calc(56px + var(--safe-top));
-            left: 0;
-            bottom: 0;
-            width: var(--sidebar-w);
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            padding: 1.5rem;
-            overflow-y: auto;
-            z-index: 90;
-        }
-
-        .sidebar-section {
-            margin-bottom: 1.8rem;
-        }
-
-        .sidebar-section-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-tertiary);
-            margin-bottom: 0.6rem;
-            font-weight: 700;
-            padding-left: 12px;
-        }
-
-        .sidebar-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            color: var(--text-secondary);
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 2px;
-            font-size: 0.88rem;
-            font-weight: 500;
-            transition: all var(--transition-fast);
-        }
-        .sidebar-link:hover {
-            background: var(--bg);
-            color: var(--primary);
-        }
-        .sidebar-link.active {
-            background: var(--primary-soft);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .sidebar-link-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-        .sli-home { background: rgba(0,0,0,0.04); }
-        .sli-privacy { background: rgba(110,22,25,0.08); }
-        .sli-terms { background: rgba(232,196,154,0.2); }
-        .sli-contact { background: rgba(59,130,246,0.08); }
-
-        /* ── TABLE OF CONTENTS (inside sidebar) ── */
-        .toc {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .toc-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-tertiary);
-            margin-bottom: 0.6rem;
-            font-weight: 700;
-            padding-left: 12px;
-        }
-
-        .toc-link {
-            display: block;
-            text-decoration: none;
-            color: var(--text-tertiary);
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: all var(--transition-fast);
-            border-left: 2px solid transparent;
-        }
-        .toc-link:hover {
-            color: var(--primary);
-            background: var(--primary-soft);
-        }
-        .toc-link.active-toc {
-            color: var(--primary);
-            border-left-color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* ── MAIN ── */
-        .main {
-            margin-left: var(--sidebar-w);
-            padding: calc(56px + var(--safe-top) + 3rem) 4rem 4rem;
-            max-width: calc(var(--sidebar-w) + 820px);
-        }
-
-        /* ── DOC HEADER ── */
-        .doc-header {
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .doc-breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--text-tertiary);
-            margin-bottom: 1rem;
-        }
-        .doc-breadcrumb a {
-            color: var(--text-tertiary);
-            text-decoration: none;
-            transition: color var(--transition-fast);
-        }
-        .doc-breadcrumb a:hover { color: var(--primary); }
-        .doc-breadcrumb .sep { opacity: 0.4; }
-
-        .doc-title {
-            font-family: 'Newsreader', serif;
-            font-size: 2.8rem;
-            color: var(--text);
-            letter-spacing: -1px;
-            margin-bottom: 0.8rem;
-            font-weight: 500;
-            line-height: 1.1;
-        }
-
-        .doc-meta {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .doc-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.82rem;
-            color: var(--text-tertiary);
-        }
-
-        .doc-meta-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #22c55e;
-        }
-
-        /* ── ARTICLE CONTENT ── */
-        .article {
-            animation: fadeUp 0.5s ease;
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .article h2 {
-            font-family: 'Newsreader', serif;
-            font-size: 1.5rem;
-            color: var(--text);
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-            scroll-margin-top: calc(56px + var(--safe-top) + 2rem);
-            padding-top: 0.5rem;
-        }
-
-        .article h2 .section-num {
-            color: var(--primary);
-            font-weight: 500;
-            margin-right: 4px;
-        }
-
-        .article p {
-            margin-bottom: 1.2rem;
-            color: var(--text);
-            font-size: 0.95rem;
-            line-height: 1.8;
-        }
-
-        .article ul {
-            margin-bottom: 1.5rem;
-            padding-left: 0;
-            list-style: none;
-        }
-
-        .article li {
-            margin-bottom: 0.7rem;
-            padding-left: 1.5rem;
-            position: relative;
-            font-size: 0.93rem;
-            line-height: 1.7;
-        }
-
-        .article li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 10px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--primary);
-            opacity: 0.5;
-        }
-
-        .article strong {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .article a.contact-link {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-            border-bottom: 1px dashed rgba(110,22,25,0.3);
-            transition: border-color var(--transition-fast);
-        }
-        .article a.contact-link:hover {
-            border-bottom-color: var(--primary);
-        }
-
-        /* Info callout */
-        .callout {
-            background: var(--primary-soft);
-            border-left: 3px solid var(--primary);
-            border-radius: 0 var(--radius-md) var(--radius-md) 0;
-            padding: 1.2rem 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .callout p {
-            margin-bottom: 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        /* ── MOBILE MENU ── */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.3);
-            backdrop-filter: blur(4px);
-            z-index: 200;
-        }
-        .mobile-overlay.open { display: block; }
-
-        .mobile-drawer {
-            display: none;
-            position: fixed;
-            top: calc(56px + var(--safe-top));
-            left: 12px;
-            right: 12px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xl);
-            padding: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-            z-index: 201;
-            animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .mobile-drawer.open { display: block; }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .mobile-drawer .m-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            font-size: 0.92rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: var(--radius-sm);
-            transition: all var(--transition-fast);
-        }
-        .mobile-drawer .m-link:hover,
-        .mobile-drawer .m-link.active {
-            background: var(--primary-soft);
-            color: var(--primary);
-        }
-
-        .mobile-drawer .m-divider {
-            height: 1px;
-            background: var(--border-light);
-            margin: 6px 0;
-        }
-
-        .mobile-lang-row {
-            display: flex;
-            gap: 8px;
-            padding-top: 8px;
-        }
-
-        .mobile-lang-btn {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            border: 1.5px solid var(--border);
-            background: none;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            font-size: 0.82rem;
-            color: var(--text-tertiary);
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-        .mobile-lang-btn.active {
-            background: var(--text);
-            color: #fff;
-            border-color: var(--text);
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) {
-            .sidebar { display: none; }
-            .menu-toggle { display: flex; }
-
-            .main {
-                margin-left: 0;
-                padding: calc(56px + var(--safe-top) + 1.5rem) 1.2rem calc(2rem + var(--safe-bottom));
-                max-width: 100%;
-            }
-
-            .doc-title { font-size: 2rem; }
-            .article h2 { font-size: 1.3rem; }
-            .topbar-right .lang-toggle { display: none; }
-        }
-    </style>
-</head>
-<body>
-
-<!-- ── TOP BAR ── -->
-<header class="topbar">
-    <div class="topbar-inner">
-        <a href="index.html" class="topbar-brand">
-            <div class="topbar-icon">EP</div>
-            <span class="topbar-text">Himnario El Buen Pastor</span>
-        </a>
-        <div class="topbar-right">
-            <div class="lang-toggle">
-                <button class="lang-btn active" onclick="setLanguage('es')">ES</button>
-                <button class="lang-btn" onclick="setLanguage('en')">EN</button>
-            </div>
-            <button class="menu-toggle" onclick="toggleMobileMenu()" id="menuToggle" aria-label="Menu">☰</button>
-        </div>
-    </div>
-</header>
-
-<!-- ── MOBILE MENU ── -->
-<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
-<div class="mobile-drawer" id="mobileDrawer">
-    <a href="index.html" class="m-link" id="m-nav-home">🏠 Inicio</a>
-    <div class="m-divider"></div>
-    <a href="privacy.html" class="m-link active" id="m-nav-privacy">🛡️ Política de Privacidad</a>
-    <a href="terms.html" class="m-link" id="m-nav-terms">📜 Términos de Servicio</a>
-    <div class="m-divider"></div>
-    <a href="mailto:isaacduran167@gmail.com" class="m-link" id="m-nav-contact">✉️ Contacto</a>
-    <div class="m-divider"></div>
-    <div class="mobile-lang-row">
-        <button class="mobile-lang-btn active" onclick="setLanguage('es')" id="m-lang-es">Español</button>
-        <button class="mobile-lang-btn" onclick="setLanguage('en')" id="m-lang-en">English</button>
-    </div>
-</div>
-
-<!-- ── SIDEBAR ── -->
-<aside class="sidebar">
-    <div class="sidebar-section">
-        <div class="sidebar-section-title" id="nav-title-general">General</div>
-        <a href="index.html" class="sidebar-link" id="nav-home">
-            <span class="sidebar-link-icon sli-home">🏠</span>Inicio
-        </a>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-section-title" id="nav-title-policies">Políticas</div>
-        <a href="privacy.html" class="sidebar-link active" id="nav-privacy">
-            <span class="sidebar-link-icon sli-privacy">🛡️</span>Política de Privacidad
-        </a>
-        <a href="terms.html" class="sidebar-link" id="nav-terms">
-            <span class="sidebar-link-icon sli-terms">📜</span>Términos de Servicio
-        </a>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-section-title" id="nav-title-support">Soporte</div>
-        <a href="mailto:isaacduran167@gmail.com" class="sidebar-link" id="nav-contact">
-            <span class="sidebar-link-icon sli-contact">✉️</span>Contacto
-        </a>
-    </div>
-
-    <!-- Table of Contents -->
-    <div class="toc" id="toc-container">
-        <div class="toc-title" id="toc-title">En esta página</div>
-        <div id="toc-es">
-            <a href="#intro" class="toc-link" data-section="intro">Introducción</a>
-            <a href="#info-collect" class="toc-link" data-section="info-collect">Información que Recopilamos</a>
-            <a href="#info-use" class="toc-link" data-section="info-use">Uso de la Información</a>
-            <a href="#info-share" class="toc-link" data-section="info-share">Compartir Información</a>
-            <a href="#children" class="toc-link" data-section="children">Privacidad Infantil</a>
-            <a href="#changes" class="toc-link" data-section="changes">Cambios a esta Política</a>
-            <a href="#contact" class="toc-link" data-section="contact">Contacto</a>
-        </div>
-        <div id="toc-en" style="display:none;">
-            <a href="#intro" class="toc-link" data-section="intro">Introduction</a>
-            <a href="#info-collect" class="toc-link" data-section="info-collect">Information We Collect</a>
-            <a href="#info-use" class="toc-link" data-section="info-use">How We Use Your Info</a>
-            <a href="#info-share" class="toc-link" data-section="info-share">Sharing Your Info</a>
-            <a href="#children" class="toc-link" data-section="children">Children's Privacy</a>
-            <a href="#changes" class="toc-link" data-section="changes">Changes to This Policy</a>
-            <a href="#contact" class="toc-link" data-section="contact">Contact Us</a>
-        </div>
-    </div>
-</aside>
-
-<!-- ── MAIN CONTENT ── -->
-<main class="main">
-
-    <!-- SPANISH CONTENT -->
-    <div id="lang-es" class="content-lang active">
-        <div class="doc-header">
-            <div class="doc-breadcrumb">
-                <a href="index.html">Inicio</a>
-                <span class="sep">/</span>
-                <span>Política de Privacidad</span>
-            </div>
-            <h1 class="doc-title">Declaración de Privacidad</h1>
-            <div class="doc-meta">
-                <div class="doc-meta-item">
-                    <span class="doc-meta-dot"></span>
-                    Vigente
-                </div>
-                <div class="doc-meta-item">Última actualización: Octubre 2026</div>
-            </div>
-        </div>
-
-        <article class="article">
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de privacidad — Himnario El Buen Pastor</title><meta name="description" content="Conoce cómo se guardan tus preferencias y cómo se utilizan los servicios del Himnario."><link rel="icon" href="images/branding/fav-ebp.ico"><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/library.css"><link rel="stylesheet" href="css/website.css"><link rel="stylesheet" href="css/legal.css"><script defer src="js/legal.js"></script></head>
+<body><a class="skip" href="#legal-content">Ir al contenido</a><header class="website-header legal-header"><a class="brand" href="index.html#inicio" aria-label="El Buen Pastor, inicio"><img class="church-logo" src="images/branding/og_ebp.svg" alt=""><span>El Buen Pastor<small>HIMNARIO DIGITAL</small></span></a><nav aria-label="Navegación principal"><a href="index.html#inicio">Inicio</a><a href="index.html#himnos">Himnos</a><a href="index.html#indice">Índice</a><a href="index.html#favoritos">Favoritos</a></nav><div class="legal-tools"><label class="sr-only" for="legal-language">Idioma / Language</label><select id="legal-language"><option value="es">Español</option><option value="en">English</option></select><button id="theme" type="button" aria-label="Cambiar apariencia">◐</button></div></header>
+<main id="legal-content" class="legal-main"><nav class="legal-pages" aria-label="Información del Himnario"><a href="privacy.html" aria-current="page">Privacidad</a><a href="terms.html">Términos de servicio</a><a href="feedback.html">Contacto y comentarios ↗</a></nav><section id="lang-es" class="legal-language"><div class="legal-heading"><p class="eyebrow">HIMNARIO EL BUEN PASTOR</p><h1>Política de privacidad</h1><p class="legal-lead">Conoce cómo se guardan tus preferencias y cómo se utilizan los servicios del Himnario.</p><p class="legal-date">Última actualización: octubre de 2026</p></div><div class="legal-layout"><aside class="legal-outline"><p>En esta página</p><nav aria-label="Índice del documento" data-toc="es"></nav></aside><article class="legal-article">
             <div class="callout">
-                <p><strong>En resumen:</strong> La biblioteca web no requiere una cuenta ni envía tus favoritos, listas, búsquedas o preferencias a nuestros servidores. Tus datos guardados permanecen en el almacenamiento de este navegador.</p>
+            <p><strong>En resumen:</strong> El himnario web no requiere una cuenta. Tus favoritos, listas y preferencias se guardan en este navegador y no se envían a nuestros servidores.</p>
             </div>
 
-            <h2>Privacidad de la biblioteca web</h2>
-            <p>Esta página describe la biblioteca web de <strong>Himnario El Buen Pastor</strong>. La aplicación móvil puede tener prácticas distintas; consulta la información de privacidad publicada en la tienda de aplicaciones para esa versión.</p>
+            <h2>Tu privacidad al usar el himnario</h2>
+            <p class="section-intro">Esta declaración explica qué información utiliza el sitio para ofrecer el catálogo de alabanzas, guardar tus preferencias y recibir comentarios.</p>
+            <div class="privacy-facts" aria-label="Resumen de privacidad">
+                <div class="privacy-fact"><strong>Sin registro</strong><span>Puedes buscar y leer alabanzas sin crear una cuenta.</span></div>
+                <div class="privacy-fact"><strong>Guardado local</strong><span>Favoritos, listas y ajustes permanecen en este navegador.</span></div>
+                <div class="privacy-fact"><strong>Servicios externos</strong><span>Google Forms recibe los datos que decidas enviar en un comentario.</span></div>
+            </div>
             <h2 id="intro"><span class="section-num">1.</span> Introducción</h2>
-            <p>La biblioteca está diseñada para consultar himnos y estribillos en el navegador. No pide registro ni datos personales para buscar, leer letras o escuchar grabaciones. Si decides enviar comentarios, el formulario se carga desde Google Forms y cualquier dato que escribas se envía a Google y al propietario del formulario.</p>
+            <p>El sitio permite consultar himnos y estribillos, leer sus letras y escuchar las grabaciones disponibles. No pide registro ni datos personales para estas funciones. La aplicación móvil puede tener prácticas distintas; consulta la información de privacidad publicada para esa versión.</p>
 
-            <h2 id="info-collect"><span class="section-num">2.</span> Información que Recopilamos</h2>
-            <p>La biblioteca web guarda algunos ajustes en el almacenamiento local de tu navegador para recordar tus elecciones:</p>
+            <h2 id="info-collect"><span class="section-num">2.</span> Datos guardados en tu navegador</h2>
+            <p>Para recordar tus elecciones, el himnario guarda localmente:</p>
             <ul>
                 <li>Favoritos, listas personales y alabanzas recientes.</li>
                 <li>Preferencia de tema y tamaño de letra.</li>
@@ -632,56 +26,42 @@
             <p>Estos datos no se sincronizan con la aplicación móvil ni con otros dispositivos. Puedes borrarlos desde los ajustes del navegador al eliminar los datos de este sitio.</p>
 
             <h2 id="info-use"><span class="section-num">3.</span> Uso de la Información</h2>
-            <p>El almacenamiento local se usa únicamente para que funcionen las preferencias y colecciones de esta biblioteca en el mismo navegador. El sitio no incorpora herramientas de analítica web.</p>
+            <p>Estos datos permiten que tus preferencias y colecciones estén disponibles cuando vuelvas a usar el himnario en el mismo navegador. El sitio no incorpora herramientas de analítica web.</p>
             <ul>
                 <li>Recordar los favoritos, listas, tema y tamaño de letra que eliges.</li>
                 <li>Mostrar el catálogo y reproducir las grabaciones que solicitas.</li>
             </ul>
 
-            <h2 id="info-share"><span class="section-num">4.</span> Compartir Información</h2>
-            <p>El sitio no vende ni comparte los datos guardados localmente. Para mostrar la web y servir audio, el navegador realiza solicitudes al proveedor de alojamiento; esas solicitudes pueden incluir la dirección IP y datos técnicos habituales de conexión, sujetos a las prácticas del proveedor. La tipografía se carga desde Google Fonts. El formulario de comentarios está alojado por Google Forms: las respuestas se envían a Google y al propietario del formulario, y Google las procesa conforme a sus propias prácticas de privacidad. Evita incluir datos sensibles o información personal innecesaria. Si usas el enlace de contacto, tu aplicación de correo gestiona el mensaje; si compartes una alabanza, el servicio elegido gestiona lo que envías.</p>
+            <h2 id="info-share"><span class="section-num">4.</span> Servicios externos</h2>
+            <p>El sitio no vende ni comparte los datos guardados localmente. Para mostrar la web y servir audio, el navegador realiza solicitudes al proveedor de alojamiento; esas solicitudes pueden incluir la dirección IP y datos técnicos habituales de conexión, sujetos a las prácticas del proveedor. La tipografía se carga desde Google Fonts.</p>
+            <p>Los formularios de comentarios están alojados por Google Forms. Las respuestas que envías se comparten con Google y con el propietario del formulario, y Google las procesa conforme a sus propias prácticas de privacidad. El número y título de una alabanza reportada solo se muestran como contexto en esta página y no se envían como respuesta prellenada. Evita incluir datos sensibles o información personal innecesaria.</p>
+            <p>Si usas el enlace de contacto, tu aplicación de correo gestiona el mensaje. Si compartes una alabanza, el servicio elegido gestiona lo que envías.</p>
 
             <h2 id="children"><span class="section-num">5.</span> Privacidad Infantil</h2>
-            <p>La biblioteca web no está dirigida a recopilar datos de menores. El formulario externo permite enviar respuestas; evita incluir información personal de niños o datos innecesarios.</p>
+            <p>El himnario web no está diseñado para recopilar datos de menores. Si usas un formulario externo, evita incluir información personal de niños o datos innecesarios.</p>
 
             <h2 id="changes"><span class="section-num">6.</span> Cambios a esta Política</h2>
-            <p>Podemos actualizar esta política cuando cambien la biblioteca o sus servicios. Publicaremos aquí la versión vigente e indicaremos la fecha de actualización.</p>
+            <p>Podemos actualizar esta política cuando cambien el himnario o sus servicios. Publicaremos aquí la versión vigente e indicaremos la fecha de actualización.</p>
 
             <h2 id="contact"><span class="section-num">7.</span> Contacto</h2>
             <p>Si tienes preguntas sobre esta política, escríbenos a <a href="mailto:isaacduran167@gmail.com?subject=Privacidad%20de%20Himnario%20El%20Buen%20Pastor" class="contact-link">isaacduran167@gmail.com</a>.</p>
-        </article>
-    </div>
-
-    <!-- ENGLISH CONTENT -->
-    <div id="lang-en" class="content-lang">
-        <div class="doc-header">
-            <div class="doc-breadcrumb">
-                <a href="index.html">Home</a>
-                <span class="sep">/</span>
-                <span>Privacy Policy</span>
-            </div>
-            <h1 class="doc-title">Privacy Statement</h1>
-            <div class="doc-meta">
-                <div class="doc-meta-item">
-                    <span class="doc-meta-dot"></span>
-                    Active
-                </div>
-                <div class="doc-meta-item">Last Updated: October 2026</div>
-            </div>
-        </div>
-
-        <article class="article">
+        </article></div></section><section id="lang-en" class="legal-language" hidden><div class="legal-heading"><p class="eyebrow">HIMNARIO EL BUEN PASTOR</p><h1>Privacy policy</h1><p class="legal-lead">Learn how your preferences are stored and how the hymnal uses external services.</p><p class="legal-date">Last updated: October 2026</p></div><div class="legal-layout"><aside class="legal-outline"><p>On this page</p><nav aria-label="Document contents" data-toc="en"></nav></aside><article class="legal-article">
             <div class="callout">
-                <p><strong>In short:</strong> The web library does not require an account or send your favorites, playlists, searches, or preferences to our servers. Saved data stays in this browser’s storage.</p>
+            <p><strong>In short:</strong> The web hymnal does not require an account. Your favorites, playlists, and preferences stay in this browser and are not sent to our servers.</p>
             </div>
 
-            <h2>Web library privacy</h2>
-            <p>This page describes the <strong>Himnario El Buen Pastor</strong> web library. The mobile app may follow different practices; consult the privacy information published in its app store listing for that version.</p>
+            <h2>Your privacy while using the hymnal</h2>
+            <p class="section-intro">This statement explains what information the site uses to provide the hymn catalog, remember your preferences, and receive feedback.</p>
+            <div class="privacy-facts" aria-label="Privacy summary">
+                <div class="privacy-fact"><strong>No account</strong><span>Browse and read hymns without creating an account.</span></div>
+                <div class="privacy-fact"><strong>Saved locally</strong><span>Favorites, playlists, and settings stay in this browser.</span></div>
+                <div class="privacy-fact"><strong>External services</strong><span>Google Forms receives information you choose to submit.</span></div>
+            </div>
             <h2 id="intro-en"><span class="section-num">1.</span> Introduction</h2>
-            <p>The library is designed for browsing hymns and choruses in your browser. It does not require registration or personal information to search, read lyrics, or listen to recordings. If you choose to send feedback, the form is served by Google Forms and information you enter is sent to Google and the form owner.</p>
+            <p>The site lets you browse hymns and choruses, read lyrics, and listen to available recordings. These features do not require registration or personal information. The mobile app may follow different practices; consult the privacy information published for that version.</p>
 
-            <h2 id="info-collect-en"><span class="section-num">2.</span> Information We Collect</h2>
-            <p>The web library saves a few settings in your browser’s local storage so it can remember your choices:</p>
+            <h2 id="info-collect-en"><span class="section-num">2.</span> Data Saved in Your Browser</h2>
+            <p>To remember your choices, the hymnal stores these items locally:</p>
             <ul>
                 <li>Favorites, personal playlists, and recently viewed hymns.</li>
                 <li>Theme and text-size preferences.</li>
@@ -690,114 +70,23 @@
             <p>This data does not sync with the mobile app or other devices. You can remove it in your browser settings by clearing this site’s stored data.</p>
 
             <h2 id="info-use-en"><span class="section-num">3.</span> How We Use Your Information</h2>
-            <p>Local storage is used only to make this library’s preferences and collections work in the same browser. The site does not include web analytics tools.</p>
+            <p>This data keeps your preferences and collections available when you return to the hymnal in the same browser. The site does not include web analytics tools.</p>
             <ul>
                 <li>Remember your favorites, playlists, theme, and text size.</li>
                 <li>Display the catalog and play recordings you request.</li>
             </ul>
 
-            <h2 id="info-share-en"><span class="section-num">4.</span> Sharing Your Information</h2>
-            <p>The site does not sell or share data stored locally. To display the website and serve audio, your browser makes requests to the hosting provider; those requests may include your IP address and ordinary technical connection data, subject to the provider’s practices. Fonts load from Google Fonts. The feedback form is hosted by Google Forms; responses are sent to Google and the form owner, and Google handles them under its own privacy practices. Avoid including sensitive or unnecessary personal information. If you use the contact link, your email app handles the message; if you share a hymn, the service you choose handles what you send.</p>
+            <h2 id="info-share-en"><span class="section-num">4.</span> External Services</h2>
+            <p>The site does not sell or share data stored locally. To display the website and serve audio, your browser makes requests to the hosting provider; those requests may include your IP address and ordinary technical connection data, subject to the provider’s practices. Fonts load from Google Fonts.</p>
+            <p>Feedback forms are hosted by Google Forms. Responses you submit are shared with Google and the form owner, and Google handles them under its own privacy practices. A reported hymn’s number and title appear only as context on this page and are not sent as prefilled form answers. Avoid including sensitive or unnecessary personal information.</p>
+            <p>If you use the contact link, your email app handles the message. If you share a hymn, the service you choose handles what you send.</p>
 
             <h2 id="children-en"><span class="section-num">5.</span> Children's Privacy</h2>
-            <p>The web library is not designed to collect information from children. The external form allows visitors to submit responses; avoid including children's personal information or other unnecessary details.</p>
+            <p>The web hymnal is not designed to collect information from children. If you use an external form, avoid including children’s personal information or other unnecessary details.</p>
 
             <h2 id="changes-en"><span class="section-num">6.</span> Changes to This Policy</h2>
-            <p>We may update this policy when the library or its services change. We will publish the current version here and show its update date.</p>
+            <p>We may update this policy when the hymnal or its services change. We will publish the current version here and show its update date.</p>
 
             <h2 id="contact-en"><span class="section-num">7.</span> Contact Us</h2>
             <p>For questions about this policy, email <a href="mailto:isaacduran167@gmail.com?subject=Himnario%20El%20Buen%20Pastor%20privacy" class="contact-link">isaacduran167@gmail.com</a>.</p>
-        </article>
-    </div>
-
-</main>
-
-<script>
-    function toggleMobileMenu() {
-        const drawer = document.getElementById('mobileDrawer');
-        const overlay = document.getElementById('mobileOverlay');
-        const btn = document.getElementById('menuToggle');
-        const isOpen = drawer.classList.contains('open');
-        drawer.classList.toggle('open', !isOpen);
-        overlay.classList.toggle('open', !isOpen);
-        btn.innerText = isOpen ? '☰' : '✕';
-    }
-
-    function setLanguage(lang) {
-        document.documentElement.lang = lang;
-        document.querySelectorAll('.content-lang').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.mobile-lang-btn').forEach(btn => btn.classList.remove('active'));
-
-        if (lang === 'en') {
-            document.getElementById('lang-en').classList.add('active');
-            document.getElementById('toc-en').style.display = 'block';
-            document.getElementById('toc-es').style.display = 'none';
-            document.querySelectorAll('.lang-btn')[1].classList.add('active');
-            document.getElementById('m-lang-en').classList.add('active');
-
-            // Update sidebar
-            document.getElementById('nav-title-general').innerText = 'General';
-            document.getElementById('nav-title-policies').innerText = 'Policies';
-            document.getElementById('nav-title-support').innerText = 'Support';
-            document.getElementById('nav-home').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Home';
-            document.getElementById('nav-privacy').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Privacy Policy';
-            document.getElementById('nav-terms').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Terms of Service';
-            document.getElementById('nav-contact').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Contact';
-            document.getElementById('toc-title').innerText = 'On this page';
-
-            // Mobile
-            document.getElementById('m-nav-home').innerText = '🏠 Home';
-            document.getElementById('m-nav-privacy').innerText = '🛡️ Privacy Policy';
-            document.getElementById('m-nav-terms').innerText = '📜 Terms of Service';
-            document.getElementById('m-nav-contact').innerText = '✉️ Contact';
-        } else {
-            document.getElementById('lang-es').classList.add('active');
-            document.getElementById('toc-es').style.display = 'block';
-            document.getElementById('toc-en').style.display = 'none';
-            document.querySelectorAll('.lang-btn')[0].classList.add('active');
-            document.getElementById('m-lang-es').classList.add('active');
-
-            // Update sidebar
-            document.getElementById('nav-title-general').innerText = 'General';
-            document.getElementById('nav-title-policies').innerText = 'Políticas';
-            document.getElementById('nav-title-support').innerText = 'Soporte';
-            document.getElementById('nav-home').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Inicio';
-            document.getElementById('nav-privacy').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Política de Privacidad';
-            document.getElementById('nav-terms').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Términos de Servicio';
-            document.getElementById('nav-contact').querySelector('.sidebar-link-icon').nextSibling.textContent = 'Contacto';
-            document.getElementById('toc-title').innerText = 'En esta página';
-
-            // Mobile
-            document.getElementById('m-nav-home').innerText = '🏠 Inicio';
-            document.getElementById('m-nav-privacy').innerText = '🛡️ Política de Privacidad';
-            document.getElementById('m-nav-terms').innerText = '📜 Términos de Servicio';
-            document.getElementById('m-nav-contact').innerText = '✉️ Contacto';
-        }
-    }
-
-    // TOC highlight on scroll
-    const tocLinks = document.querySelectorAll('.toc-link');
-    const sectionIds = ['intro', 'info-collect', 'info-use', 'info-share', 'children', 'changes', 'contact'];
-
-    function updateTocHighlight() {
-        const scrollPos = window.scrollY + 120;
-        let currentSection = sectionIds[0];
-
-        sectionIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && el.offsetTop <= scrollPos) {
-                currentSection = id;
-            }
-        });
-
-        tocLinks.forEach(link => {
-            link.classList.toggle('active-toc', link.dataset.section === currentSection);
-        });
-    }
-
-    window.addEventListener('scroll', updateTocHighlight, { passive: true });
-    updateTocHighlight();
-</script>
-</body>
-</html>
+        </article></div></section></main><footer class="legal-footer"><a class="brand" href="index.html#inicio"><img class="church-logo" src="images/branding/og_ebp.svg" alt=""><span>El Buen Pastor<small>HIMNARIO DIGITAL</small></span></a><nav aria-label="Enlaces del pie de página"><a href="index.html#himnos">Abrir el Himnario →</a><a href="privacy.html">Privacidad</a><a href="terms.html">Términos</a></nav></footer></body></html>

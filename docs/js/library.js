@@ -181,7 +181,7 @@
  document.addEventListener('pointerdown',e=>{if(!$('reader-text-settings').hidden&&!$('reader-text-settings').contains(e.target)&&!$('reader-text').contains(e.target))closeTextSettings();if(!$('advanced-filters').hidden&&!$('advanced-filters').contains(e.target)&&!$('filter-toggle').contains(e.target)){$('advanced-filters').hidden=true;$('filter-toggle').setAttribute('aria-expanded','false');}});
  $('reader-theme').onclick=()=>{$('theme').click();$('reader-theme').textContent=document.body.classList.contains('dark')?'☀ Claro':'☾ Oscuro';};
  $('reader-add-list').onclick=()=>desktopPlayer?.openLists(active);
- $('share').onclick=async()=>{const url=location.href;try{if(navigator.share)await navigator.share({title:byId.get(active).title,url});else{await navigator.clipboard.writeText(url);$('feedback').textContent='Enlace copiado.';}}catch(e){if(e.name!=='AbortError')$('feedback').textContent=`Comparte este enlace: ${url}`;}};
+ $('share').onclick=()=>window.EBPSharing.open(byId.get(active));
  document.querySelectorAll('[data-collection]').forEach(b=>b.onclick=()=>{collection=b.dataset.collection;letter='';page=0;$('category').value='';$('category-chips').scrollLeft=0;chips();render();});
  ['search','category','audio-only'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',()=>{page=0;letter='';chips();render();}));
  fieldSelect.onchange=()=>render();$('search').addEventListener('keydown',e=>{if(e.key==='Enter'&&filtered.length){e.preventDefault();sequence=filtered.map(h=>h.id);show(filtered[0].id,$('search'));}else if(e.key==='Escape'&&$('search').value){$('search').value='';render();}});

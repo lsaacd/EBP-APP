@@ -3,61 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Envía comentarios, reporta errores o comparte una grabación para Himnario El Buen Pastor.">
+  <meta name="description" content="Reporta errores en alabanzas, comparte grabaciones o envía comentarios sobre el sitio y la proyección.">
   <title>Comentarios — Himnario El Buen Pastor</title>
   <link rel="icon" href="images/branding/fav-ebp.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/library.css">
   <link rel="stylesheet" href="css/website.css">
-  <style>
-    .feedback-main{min-height:70vh;padding-top:54px;padding-bottom:72px}
-    .feedback-head{max-width:760px;margin:0 auto 30px}
-    .feedback-head h1{font-size:clamp(38px,5vw,58px);margin-bottom:14px}
-    .feedback-head>p:not(.eyebrow){color:var(--muted);line-height:1.8;font-size:14px}
-    .feedback-context{display:none;margin-top:22px;padding:14px 18px;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:var(--surface);color:var(--muted)}
-    .feedback-context strong{color:var(--ink)}
-    .feedback-open{display:inline-flex;align-items:center;margin-top:5px;padding:11px 16px;border-radius:7px;background:var(--accent);color:var(--bg);font-size:12px;font-weight:600}
-    .feedback-open:hover{color:var(--bg);opacity:.86}
-    .feedback-form{max-width:760px;margin:auto;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 44px #33271912}
-    .feedback-form iframe{display:block;width:100%;height:min(1050px,calc(100vh + 150px));min-height:780px;border:0;border-radius:10px;background:var(--bg)}
-    .feedback-note{max-width:760px;margin:18px auto 0;color:var(--muted);font-size:11px;line-height:1.8}
-    .feedback-note a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
-    @media(max-width:600px){.feedback-main{padding:32px 18px 54px}.feedback-form{padding:5px;border-radius:12px}.feedback-form iframe{min-height:820px;height:1100px}.feedback-head>p:not(.eyebrow){font-size:13px}}
-  </style>
+  <link rel="stylesheet" href="css/feedback.css">
 </head>
 <body>
   <header class="website-header">
     <a class="brand" href="index.html#inicio" aria-label="El Buen Pastor, inicio"><img class="church-logo" src="images/branding/og_ebp.svg" alt=""><span>El Buen Pastor<small>HIMNARIO DIGITAL</small></span></a>
     <nav aria-label="Navegación principal"><a href="index.html#himnos">Himnario</a><a href="index.html#inicio">Inicio</a></nav>
   </header>
+
   <main class="feedback-main">
     <section class="feedback-head" aria-labelledby="feedback-title">
       <p class="eyebrow">TE ESCUCHAMOS</p>
       <h1 id="feedback-title">Comentarios y colaboración</h1>
-      <p>Reporta un error en una letra, comparte una grabación o cuéntanos cómo podemos mejorar el himnario.</p>
-      <p class="feedback-context" id="feedback-context"></p>
-      <a class="feedback-open" href="https://docs.google.com/forms/d/e/1FAIpQLSfa-ffzevxUuu9MhejG2Z2epwSmVobiEmyhPMZREQdfEXlciQ/viewform" target="_blank" rel="noopener noreferrer">Abrir formulario en Google ↗</a>
+      <p>Elige el tema que quieres compartir. Puedes reportar una letra o grabación, o contarnos cómo mejorar el sitio y la proyección.</p>
+
+      <div class="feedback-tabs" role="tablist" aria-label="Tipo de comentario">
+        <button id="tab-audio" class="feedback-tab" type="button" role="tab" aria-controls="feedback-panel" aria-selected="false" tabindex="-1" data-form="audio">Alabanzas y audio</button>
+        <button id="tab-site" class="feedback-tab" type="button" role="tab" aria-controls="feedback-panel" aria-selected="false" tabindex="-1" data-form="site">Sitio web y proyector</button>
+      </div>
+
+      <p class="feedback-context" id="feedback-context" hidden></p>
+      <div class="feedback-form-heading">
+        <div>
+          <h2 id="form-title">Comentarios del sitio y proyección</h2>
+          <p id="form-description">Comparte una sugerencia sobre el sitio web, el lector o la presentación para la iglesia.</p>
+        </div>
+        <a class="feedback-open" id="feedback-open" href="https://docs.google.com/forms/d/e/1FAIpQLScrfIf92Nya4WM8mlOHDhQhHeUjYqJtvF6kuBMOxzdPCim4ug/viewform" target="_blank" rel="noopener noreferrer">Abrir en Google <span aria-hidden="true">↗</span></a>
+      </div>
     </section>
-    <section class="feedback-form" aria-label="Formulario de comentarios de Google">
-      <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfa-ffzevxUuu9MhejG2Z2epwSmVobiEmyhPMZREQdfEXlciQ/viewform?embedded=true" title="Formulario de comentarios de Himnario El Buen Pastor" loading="lazy" referrerpolicy="strict-origin-when-cross-origin">Cargando formulario…</iframe>
+
+    <section class="feedback-form" id="feedback-panel" role="tabpanel" aria-labelledby="tab-site">
+      <iframe id="feedback-iframe" src="https://docs.google.com/forms/d/e/1FAIpQLScrfIf92Nya4WM8mlOHDhQhHeUjYqJtvF6kuBMOxzdPCim4ug/viewform?embedded=true" title="Formulario de comentarios del sitio y proyección" loading="lazy" referrerpolicy="strict-origin-when-cross-origin">Cargando formulario…</iframe>
     </section>
-    <p class="feedback-note">El formulario lo proporciona Google. La información que envíes se recibe y procesa mediante Google Forms según sus <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">prácticas de privacidad</a>. Consulta también nuestra <a href="privacy.html">Política de privacidad</a>.</p>
+
+    <p class="feedback-note">Los formularios los proporciona Google. Las respuestas se envían a Google y al propietario del formulario. Consulta las <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">prácticas de privacidad de Google</a> y nuestra <a href="privacy.html">Política de privacidad</a>. No incluyas información sensible.</p>
   </main>
+
   <footer><a class="brand" href="index.html#inicio"><img class="church-logo" src="images/branding/og_ebp.svg" alt=""><span>El Buen Pastor<small>Unidos en una misma alabanza.</small></span></a><div><a href="privacy.html">Política de privacidad</a><a href="terms.html">Términos de servicio</a><a href="mailto:isaacduran167@gmail.com">Contacto y soporte</a></div><p>© 2026 Himnario El Buen Pastor</p></footer>
+
   <script>
-    try {
-      const savedTheme = JSON.parse(localStorage.getItem('ebp-dark'));
-      if (savedTheme === true || (savedTheme === null && matchMedia('(prefers-color-scheme: dark)').matches)) document.body.classList.add('dark');
-    } catch {}
-    const query = new URLSearchParams(location.search);
-    const hymn = query.get('hymn');
-    const title = query.get('title');
-    if (hymn || title) {
+    (() => {
+      const forms = {
+        audio: {
+          title: 'Reporte de alabanzas y audio',
+          description: 'Reporta un error en una letra o comparte una grabación para añadirla al himnario.',
+          view: 'https://docs.google.com/forms/d/e/1FAIpQLSer2vbP4s5ajecjodSOpitPWR_w58MtiOOv3e8pbvYPG95AoQ/viewform',
+          embed: 'https://docs.google.com/forms/d/e/1FAIpQLSer2vbP4s5ajecjodSOpitPWR_w58MtiOOv3e8pbvYPG95AoQ/viewform?embedded=true',
+          tab: 'tab-audio'
+        },
+        site: {
+          title: 'Comentarios del sitio y proyección',
+          description: 'Comparte una sugerencia sobre el sitio web, el lector o la presentación para la iglesia.',
+          view: 'https://docs.google.com/forms/d/e/1FAIpQLScrfIf92Nya4WM8mlOHDhQhHeUjYqJtvF6kuBMOxzdPCim4ug/viewform',
+          embed: 'https://docs.google.com/forms/d/e/1FAIpQLScrfIf92Nya4WM8mlOHDhQhHeUjYqJtvF6kuBMOxzdPCim4ug/viewform?embedded=true',
+          tab: 'tab-site'
+        }
+      };
+      const query = new URLSearchParams(location.search);
+      const hymn = query.get('hymn');
+      const title = query.get('title');
+      const requestedForm = query.get('form');
+      const initialForm = hymn || title ? 'audio' : requestedForm === 'audio' ? 'audio' : 'site';
       const context = document.getElementById('feedback-context');
-      context.textContent = `Alabanza relacionada: ${[hymn, title].filter(Boolean).join(' · ')}. Incluye este título en tu comentario si tu respuesta se refiere a ella.`;
-      context.style.display = 'block';
-    }
+      const iframe = document.getElementById('feedback-iframe');
+      const openLink = document.getElementById('feedback-open');
+      const heading = document.getElementById('form-title');
+      const description = document.getElementById('form-description');
+      const panel = document.getElementById('feedback-panel');
+      const tabs = [...document.querySelectorAll('.feedback-tab')];
+
+      function selectForm(name, focusTab = false) {
+        const form = forms[name] || forms.site;
+        tabs.forEach(tab => {
+          const selected = tab.dataset.form === name;
+          tab.setAttribute('aria-selected', String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+          if (selected && focusTab) tab.focus();
+        });
+        panel.setAttribute('aria-labelledby', form.tab);
+        heading.textContent = form.title;
+        description.textContent = form.description;
+        openLink.href = form.view;
+        iframe.title = `Formulario de ${form.title.toLowerCase()}`;
+        if (iframe.dataset.form !== name) {
+          iframe.dataset.form = name;
+          iframe.src = form.embed;
+        }
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectForm(tab.dataset.form));
+        tab.addEventListener('keydown', event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+          selectForm(tabs[next].dataset.form, true);
+        });
+      });
+
+      if (hymn || title) {
+        const reference = [hymn, title].filter(Boolean).join(' · ');
+        context.textContent = `Alabanza relacionada: ${reference}. Incluye este título en tu comentario si tu respuesta se refiere a ella.`;
+        context.hidden = false;
+      }
+
+      try {
+        const savedTheme = JSON.parse(localStorage.getItem('ebp-dark'));
+        if (savedTheme === true || (savedTheme === null && matchMedia('(prefers-color-scheme: dark)').matches)) document.body.classList.add('dark');
+      } catch {
+        if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
+      }
+
+      selectForm(initialForm);
+    })();
   </script>
 </body>
 </html>
