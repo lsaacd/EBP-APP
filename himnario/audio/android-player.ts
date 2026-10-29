@@ -1,7 +1,8 @@
 import TrackPlayer, { AppKilledPlaybackBehavior, Capability, Event, RepeatMode, State } from 'react-native-track-player';
 import { Asset } from 'expo-asset';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
-import { getHymnAudio, hasHymnAudio } from '../data/audioRegistry';
+import { hasHymnAudio } from '../data/audioRegistry';
+import { resolvePlaybackUri } from './offline-audio';
 import { createAndroidPlaybackController } from './android-playback-controller';
 
 let ready = false;
@@ -36,9 +37,8 @@ async function assetUri(source: number) {
 export const androidPlayer = createAndroidPlaybackController({
   prepare,
   async load(id) {
-    const source = getHymnAudio(id);
-    if (!source) throw new Error(`No recording registered for ${id}`);
-    const url = await assetUri(source);
+    // Saved copy when available; otherwise stream (and save for next time).
+    const url = await resolvePlaybackUri(id);
     const data = id.startsWith('E') ? estribillosData : hymnsData;
     const hymn = data.find((item: { id: string | number }) => String(item.id) === id);
     let artwork: string | undefined;

@@ -32,6 +32,7 @@ import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import { useNowPlaying } from '../../context/NowPlayingContext';
+import OfflineAudioCard from '../../components/OfflineAudioCard';
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -222,6 +223,9 @@ export default function SettingsScreen() {
           </View>
         </View>
       </View>
+
+      {/* ─── Section: Offline audio (Android only) ───── */}
+      <OfflineAudioCard />
 
       {/* ─── Section: General ──────────────────────── */}
       <View style={styles.section}>

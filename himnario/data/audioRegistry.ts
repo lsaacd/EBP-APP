@@ -9,6 +9,11 @@
 //   1. Drop the .m4a file in: assets/audio/hymn_{id}.m4a
 //   2. Uncomment or add a line below following the same pattern.
 //   3. The EBP Hymn Automator (EXE) handles this automatically.
+//
+// ANDROID: Android does not bundle these files (Google Play's 500 MB
+// limit). It streams them from Cloudflare R2 using the ID list in
+// audioRegistry.android.ts. When adding a recording, also add its ID
+// there and upload hymn_{id}.m4a to R2 (scripts/deploy-cloudflare.ps1).
 // ============================================================
 
 const audioRegistry: Record<string, any> = {

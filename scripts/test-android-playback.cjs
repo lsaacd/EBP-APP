@@ -144,6 +144,7 @@ test('native adapter registers each notification handler once and retries a fail
     '../data/alabanzasPaginas': { hymnsData: [{ id: '1' }, { id: '2' }], estribillosData: [] },
     '../data/audioRegistry': { getHymnAudio: () => 1, hasHymnAudio: () => true },
     './android-playback-controller': core,
+    './offline-audio': { resolvePlaybackUri: async id => `https://audio.example/hymn_${id}.m4a` },
     '../assets/images/EBP_HYMN_COVER.png': 1,
   });
   adapter.registerAndroidPlaybackService(); adapter.registerAndroidPlaybackService();
@@ -157,4 +158,82 @@ test('native adapter registers each notification handler once and retries a fail
   await events.get('RemotePrevious')(); assert.equal(activeId, '1');
   await events.get('RemoteStop')(); assert.equal(activeId, null);
   assert.ok(resets >= 4);
+});
+
+function offlineFixture({ failIds = [] } = {}) {
+  const files = new Map(); // path -> size
+  const downloads = [];
+  const fsMock = {
+    documentDirectory: 'file:///docs/',
+    async makeDirectoryAsync() {},
+    async getInfoAsync(path) {
+      if (path.endsWith('/')) return { exists: true, isDirectory: true };
+      return files.has(path) ? { exists: true, isDirectory: false, size: files.get(path) } : { exists: false };
+    },
+    async downloadAsync(url, path) {
+      downloads.push(url);
+      await new Promise(resolve => setImmediate(resolve));
+      if (failIds.some(id => url.endsWith(`hymn_${id}.m4a`))) throw new Error('offline');
+      files.set(path, 1000);
+      return { status: 200 };
+    },
+    async deleteAsync(path) {
+      for (const key of [...files.keys()]) if (key === path || (path.endsWith('/') && key.startsWith(path))) files.delete(key);
+    },
+    async moveAsync({ from, to }) { files.set(to, files.get(from)); files.delete(from); },
+    async readDirectoryAsync(dir) {
+      return [...files.keys()].filter(key => key.startsWith(dir)).map(key => key.slice(dir.length));
+    },
+  };
+  const ids = ['1', '2', '3', 'E1'];
+  const offline = loadTS('audio/offline-audio.ts', {
+    'expo-file-system/legacy': fsMock,
+    '../data/audioRegistry.android': {
+      getAllAudioIds: () => ids,
+      getHymnAudio: id => (ids.includes(id) ? `https://audio.example/hymn_${id}.m4a` : null),
+    },
+  });
+  return { offline, files, downloads };
+}
+
+test('first play streams and saves; later plays use the saved file', async () => {
+  const { offline, files } = offlineFixture();
+  assert.equal(await offline.resolvePlaybackUri('1'), 'https://audio.example/hymn_1.m4a');
+  await offline.saveHymnAudio('1'); // joins the background save
+  assert.equal(await offline.resolvePlaybackUri('1'), 'file:///docs/hymn-audio/hymn_1.m4a');
+  assert.ok(![...files.keys()].some(key => key.endsWith('.part')));
+  await assert.rejects(offline.resolvePlaybackUri('999'));
+});
+
+test('a failed save leaves no partial file and playback still streams', async () => {
+  const { offline, files } = offlineFixture({ failIds: ['2'] });
+  assert.equal(await offline.saveHymnAudio('2'), false);
+  assert.equal(files.size, 0);
+  assert.equal(await offline.resolvePlaybackUri('2'), 'https://audio.example/hymn_2.m4a');
+});
+
+test('download all saves each recording once, reports failures, and delete clears everything', async () => {
+  const { offline, downloads } = offlineFixture({ failIds: ['3'] });
+  await offline.saveHymnAudio('1');
+  await offline.downloadAllHymnAudio();
+  let snap = offline.offlineAudio.getSnapshot();
+  assert.equal(snap.status, 'error');
+  assert.equal(snap.failed, 1);
+  assert.equal(snap.saved, 3);
+  assert.equal(downloads.filter(url => url.endsWith('hymn_1.m4a')).length, 1);
+  await offline.deleteSavedHymnAudio();
+  snap = offline.offlineAudio.getSnapshot();
+  assert.equal(snap.saved, 0);
+  await offline.refreshOfflineAudio();
+  assert.equal(offline.offlineAudio.getSnapshot().saved, 0);
+});
+
+test('cancelling download all stops before every recording is saved', async () => {
+  const { offline } = offlineFixture();
+  const run = offline.downloadAllHymnAudio();
+  offline.cancelDownloadAll();
+  await run;
+  const snap = offline.offlineAudio.getSnapshot();
+  assert.equal(snap.status, 'idle');
+  assert.ok(snap.saved < 4);
 });
