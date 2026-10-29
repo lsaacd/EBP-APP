@@ -20,7 +20,9 @@
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:alt" content="Portada del Himnario El Buen Pastor">
   <meta property="og:locale" content="es_ES">
-  
+  <meta property="og:audio" content="https://pub-81f518709acd4b4c8d0344f474c2d629.r2.dev/hymn_315.m4a">
+  <meta property="og:audio:type" content="audio/mp4">
+  <meta property="music:musician" content="Himnario El Buen Pastor">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
@@ -85,6 +87,32 @@
     </article>
 
     
+    <!-- Audio Player Card -->
+    <div class="audio-player-card">
+      <div class="audio-header">
+        <span class="audio-status-label"><span class="audio-status-dot"></span> Grabación disponible</span>
+        <span id="audio-duration">--:--</span>
+      </div>
+      <div class="audio-controls-row">
+        <button id="audio-play-btn" class="audio-play-btn" type="button" aria-label="Reproducir grabación">
+          <svg id="play-icon" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+          <svg id="pause-icon" viewBox="0 0 24 24" style="display:none;"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+        </button>
+        <div class="audio-timeline">
+          <input id="audio-seeker" class="audio-seeker" type="range" min="0" max="100" value="0" aria-label="Posición de audio">
+          <div class="audio-times">
+            <span id="audio-current">0:00</span>
+            <span id="audio-remain">-:--</span>
+          </div>
+        </div>
+      </div>
+      <audio id="hymn-audio" preload="metadata" src="https://pub-81f518709acd4b4c8d0344f474c2d629.r2.dev/hymn_315.m4a"></audio>
+      
+      <div class="audio-credit">
+        <span>Voz: Himnario El Buen Pastor Cantado</span>
+        <a href="https://www.youtube.com/channel/UCZVYXt5W2L__e8wXWxmDFfA" target="_blank" rel="noopener noreferrer">YouTube ↗</a>
+      </div>
+    </div>
 
     <!-- Lyrics Container -->
     <section class="lyrics-container" aria-label="Letra de la alabanza">

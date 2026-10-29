@@ -126,6 +126,12 @@ hymnsData = [...hymnsData, ...estribillosData];
 const audioDir = path.join(__dirname, '..', 'docs', 'audio');
 const audioFiles = new Set(fs.readdirSync(audioDir).filter(f => f.endsWith('.m4a')));
 
+// Recordings whose file name is not hymn_{id}.m4a. Keep in sync with
+// himnario/data/audioRegistry.ts and audioRegistry.android.ts.
+const AUDIO_FILE_EXCEPTIONS = {
+  '315 A': 'hymn_315.m4a',
+};
+
 // ── Step 4: Build the output JSON ──────────────────────────────────
 const allCategories = new Set();
 
@@ -135,8 +141,8 @@ const hymns = hymnsData.map(h => {
     : [];
   cats.forEach(c => allCategories.add(c));
 
-  // Check if audio file exists
-  const audioFileName = `hymn_${h.id}.m4a`;
+  // Check if audio file exists (a few recordings use a different file name)
+  const audioFileName = AUDIO_FILE_EXCEPTIONS[h.id] || `hymn_${h.id}.m4a`;
   const hasAudio = audioFiles.has(audioFileName);
 
   return {
