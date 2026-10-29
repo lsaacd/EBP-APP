@@ -38,7 +38,9 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.elbuenpastor.himnario",
       "permissions": [
-        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -63,7 +65,12 @@
           }
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-build-properties",
       "expo-asset",
       "expo-web-browser"
