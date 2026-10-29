@@ -1,5 +1,7 @@
 # Future Fixes & Architectural Guide — Himnario El Buen Pastor App
 
+> October 29, 2026: Android notification handling has been revised locally. See [the implementation and OTA assessment](docs/guides/ANDROID-PLAYBACK-FIX.md). The root-cause narrative below is historical; direct Play/Pause handlers and library-provided foreground permissions were already present. Device verification is still pending.
+
 This document serves as a comprehensive technical guide, detailing platform-specific behavior, native build requirements, and future roadmap items for **Himnario El Buen Pastor**.
 
 ---
