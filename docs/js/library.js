@@ -54,7 +54,7 @@
  function initial(h){const first=norm(h.title).replace(/^[^a-z0-9]+/,'').charAt(0).toUpperCase();return /^[A-Z]$/.test(first)?first:'#';}
  const letterBubble=make('div','index-letter-bubble');letterBubble.setAttribute('aria-hidden','true');document.body.append(letterBubble);let letterBubbleTimer=0;
  function showLetterBubble(value){if(route!=='indice'||!$('reader').hidden)return;letterBubble.textContent=value;letterBubble.classList.add('visible');clearTimeout(letterBubbleTimer);letterBubbleTimer=setTimeout(()=>letterBubble.classList.remove('visible'),750);}
- function syncScroll(showBubble=false){
+ function syncScroll(){
   if(route==='inicio'||!$('reader').hidden||favoritesView==='lists'&&route==='favoritos')return;
   if(route==='indice'&&!$('alphabet').hidden){const top=Math.max(headerHeight()+15,$('alphabet').getBoundingClientRect().top),bottom=document.body.classList.contains('has-audio-player')?135:20;$('alphabet').style.setProperty('--alphabet-height',`${Math.min(640,Math.max(180,window.innerHeight-top-bottom))}px`);}
   const rows=[...$('results').querySelectorAll('.row')];if(!rows.length){position.textContent='0 / 0';range.disabled=true;return;}
@@ -65,10 +65,9 @@
   range.setAttribute('aria-valuetext',`${i+1} de ${filtered.length}: ${filtered[i].title}`);
   const firstLetter=$('results').querySelector('.letter-heading'),atIndexTop=route==='indice'&&firstLetter&&firstLetter.getBoundingClientRect().top>headerHeight()+20;
   const l=atIndexTop?'#':initial(filtered[i]);$('alphabet').querySelectorAll('button').forEach(b=>{const on=b.textContent===l;b.setAttribute('aria-pressed',String(on));});
-  if(showBubble&&route==='indice')showLetterBubble(l);
  }
  range.addEventListener('input',()=>{const row=$('results').querySelectorAll('.row')[Number(range.value)];if(row){jumpTo(row);syncScroll();}});
- let scrollFrame=0;window.addEventListener('scroll',()=>{if(!scrollFrame)scrollFrame=requestAnimationFrame(()=>{scrollFrame=0;syncScroll(true);});},{passive:true});
+ let scrollFrame=0;window.addEventListener('scroll',()=>{if(!scrollFrame)scrollFrame=requestAnimationFrame(()=>{scrollFrame=0;syncScroll();});},{passive:true});
  window.addEventListener('resize',updateHeader);
  let draggingLetters=false;
  function scrubLetters(e){const rail=$('alphabet').getBoundingClientRect();const y=Math.max(rail.top,Math.min(rail.bottom-1,e.clientY));const buttons=[...$('alphabet').querySelectorAll('button:not(:disabled)')];const target=buttons.reduce((best,b)=>Math.abs(b.getBoundingClientRect().top+b.offsetHeight/2-y)<Math.abs(best.getBoundingClientRect().top+best.offsetHeight/2-y)?b:best,buttons[0]);if(target)target.click();}
