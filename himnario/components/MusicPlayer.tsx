@@ -568,7 +568,8 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 style={shareStyles.actionItem}
                 onPress={() => {
                   setShowShareModal(false);
-                  const body = encodeURIComponent(`${hymn.title}\n\n— Himnario El Buen Pastor`);
+                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
+                  const body = encodeURIComponent(`${hymn.title}\n\n${hymnUrl}`);
                   Linking.openURL(`sms:&body=${body}`).catch(() => { });
                 }}
               >
@@ -583,7 +584,8 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 style={shareStyles.actionItem}
                 onPress={() => {
                   setShowShareModal(false);
-                  const text = encodeURIComponent(`${hymn.title}\n\n— Himnario El Buen Pastor`);
+                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
+                  const text = encodeURIComponent(`${hymn.title}\n\n${hymnUrl}`);
                   Linking.openURL(`whatsapp://send?text=${text}`).catch(() => {
                     Linking.openURL(`https://wa.me/?text=${text}`).catch(() => { });
                   });
@@ -599,8 +601,9 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
               <TouchableOpacity
                 style={shareStyles.actionItem}
                 onPress={async () => {
+                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
                   await Clipboard.setStringAsync(
-                    `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor`
+                    `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`
                   );
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                   setShowShareModal(false);
@@ -617,10 +620,12 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
                 style={shareStyles.actionItem}
                 onPress={() => {
                   setShowShareModal(false);
+                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
                   setTimeout(() => {
                     Share.share({
                       title: hymn.title,
-                      message: `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor`,
+                      message: `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`,
+                      url: hymnUrl,
                     });
                   }, 300);
                 }}

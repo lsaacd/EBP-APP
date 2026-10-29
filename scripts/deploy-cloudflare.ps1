@@ -46,6 +46,10 @@ if (-not $SkipAudioUpload) {
     Write-Progress -Activity 'Uploading recordings to Cloudflare R2' -Completed
 }
 
+Write-Host 'Generating static hymn preview pages...'
+& node (Join-Path $PSScriptRoot 'generate-hymn-pages.js')
+if ($LASTEXITCODE -ne 0) { throw 'Failed to generate static hymn preview pages.' }
+
 Write-Host 'Preparing the static Pages deployment (recordings stay in R2)...'
 if (Test-Path -LiteralPath $resolvedStagePath) {
     Remove-Item -LiteralPath $resolvedStagePath -Recurse -Force

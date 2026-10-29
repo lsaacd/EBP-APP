@@ -2,3 +2,7 @@
 # Recordings are hosted separately in R2 and are unaffected.
 /*
   Cache-Control: public, max-age=0, must-revalidate
+
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *

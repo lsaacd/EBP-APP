@@ -158,9 +158,11 @@ export default function HymnDetail() {
 
   const handleShare = (h: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const hymnUrl = `https://himnarioebp.com/hymn/${h.id}/`;
     Share.share({
       title: h.title,
-      message: `${h.title}\n\n${h.lyrics}\n\n— Himnario El Buen Pastor`,
+      message: `${h.title}\n\n${h.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`,
+      url: hymnUrl,
     });
   };
 

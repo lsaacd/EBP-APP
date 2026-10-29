@@ -127,6 +127,18 @@
     {
       "source": "/projection.js",
       "destination": "/docs/js/projection.js"
+    },
+    {
+      "source": "/hymn/:path*",
+      "destination": "/docs/hymn/:path*"
+    },
+    {
+      "source": "/himno/:path*",
+      "destination": "/docs/himno/:path*"
+    },
+    {
+      "source": "/.well-known/:path*",
+      "destination": "/docs/.well-known/:path*"
     }
   ]
 }

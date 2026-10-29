@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "com.elbuenpastor",
+        "paths": [
+          "/hymn/*",
+          "/himno/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "com.elbuenpastor"
+    ]
+  }
+}

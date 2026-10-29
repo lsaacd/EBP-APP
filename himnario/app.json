@@ -21,7 +21,11 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.elbuenpastor"
+      "bundleIdentifier": "com.elbuenpastor",
+      "associatedDomains": [
+        "applinks:himnarioebp.com",
+        "applinks:www.himnarioebp.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {
