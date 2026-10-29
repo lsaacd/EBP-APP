@@ -178,6 +178,8 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
     cycleRepeat,
     closeFullPlayer,
     clearNowPlaying,
+    isLoading = false,
+    playbackError,
   } = useNowPlaying();
 
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
@@ -186,7 +188,6 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
   const hymn = activeData.find((h: any) => String(h.id) === String(currentId));
   const currentIndex = activeData.findIndex((h: any) => String(h.id) === String(currentId));
 
-  const [isLoading, setIsLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   const handlePlayPause = togglePlayPause;
@@ -334,6 +335,11 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
 
         {/* ─── Hymn Info (compact: title line 1, credit line 2) ── */}
         <View style={styles.infoSection}>
+          {playbackError && (
+            <Text accessibilityRole="alert" style={{ color: '#ffb4ab', textAlign: 'center', marginBottom: 8 }}>
+              {t.audioPlaybackError}
+            </Text>
+          )}
           <Text style={styles.hymnTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {hymn.title}
           </Text>

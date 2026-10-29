@@ -7,8 +7,8 @@
  *
  * Powers both the full-screen MusicPlayer modal and the floating MiniPlayer.
  */
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { Platform, DeviceEventEmitter } from 'react-native';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 import TrackPlayer, {
   Capability,
   AppKilledPlaybackBehavior,
@@ -21,11 +21,14 @@ import { Asset } from 'expo-asset';
 import { getHymnAudio, hasHymnAudio } from '../data/audioRegistry';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
 import * as Haptics from 'expo-haptics';
+import { androidPlayer } from '../audio/android-player';
 
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
 interface NowPlayingState {
+  isLoading?: boolean;
+  playbackError?: string | null;
   /** The hymn ID currently loaded (null = nothing loaded) */
   currentHymnId: string | null;
   /** Whether audio is actively playing */
@@ -121,7 +124,7 @@ async function resolveAudioUri(requireSource: any): Promise<string | null> {
 // ─────────────────────────────────────────────────────────────
 // Provider
 // ─────────────────────────────────────────────────────────────
-export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
+function LegacyNowPlayingProvider({ children }: { children: React.ReactNode }) {
   const [, setCurrentHymnIdState] = useState<string | null>(null);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -431,23 +434,6 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
     }
   );
 
-  // Fallback listener for Android background controls routed via service.js
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    
-    const nextSub = DeviceEventEmitter.addListener('CustomRemoteNext', () => {
-      handleSkipNext();
-    });
-    const prevSub = DeviceEventEmitter.addListener('CustomRemotePrev', () => {
-      handleSkipPrev();
-    });
-    
-    return () => {
-      nextSub.remove();
-      prevSub.remove();
-    };
-  }, [handleSkipNext, handleSkipPrev]);
-
   return (
     <NowPlayingContext.Provider
       value={{
@@ -472,4 +458,50 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
       {children}
     </NowPlayingContext.Provider>
   );
+}
+
+function AndroidNowPlayingProvider({ children }: { children: React.ReactNode }) {
+  const snapshot = useSyncExternalStore(androidPlayer.subscribe, androidPlayer.getSnapshot);
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
+
+  useEffect(() => {
+    if (!snapshot.currentHymnId) setShowFullPlayer(false);
+  }, [snapshot.currentHymnId]);
+
+  return (
+    <NowPlayingContext.Provider value={{
+      currentHymnId: snapshot.currentHymnId,
+      isPlaying: snapshot.isPlaying,
+      isLoading: snapshot.isLoading,
+      playbackError: snapshot.error,
+      isShuffled: snapshot.isShuffled,
+      repeatMode: snapshot.repeatMode,
+      currentQueueIds: snapshot.currentQueueIds,
+      showFullPlayer,
+      setQueue: androidPlayer.setQueue,
+      openPlayer: (id, ids) => {
+        setShowFullPlayer(true);
+        void androidPlayer.open(String(id), ids);
+      },
+      closeFullPlayer: () => setShowFullPlayer(false),
+      clearNowPlaying: () => {
+        setShowFullPlayer(false);
+        void androidPlayer.clear();
+      },
+      togglePlayPause: () => { void androidPlayer.toggle(); },
+      skipNext: () => { void androidPlayer.next(); },
+      skipPrev: () => { void androidPlayer.previous(); },
+      setCurrentHymnId: (id, ids) => { void androidPlayer.select(String(id), ids); },
+      toggleShuffle: androidPlayer.toggleShuffle,
+      cycleRepeat: () => { void androidPlayer.cycleRepeat(); },
+    }}>
+      {children}
+    </NowPlayingContext.Provider>
+  );
+}
+
+export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
+  return Platform.OS === 'android'
+    ? <AndroidNowPlayingProvider>{children}</AndroidNowPlayingProvider>
+    : <LegacyNowPlayingProvider>{children}</LegacyNowPlayingProvider>;
 }

@@ -1,7 +1,12 @@
 import TrackPlayer, { Event } from 'react-native-track-player';
-import { DeviceEventEmitter } from 'react-native';
+import { Platform } from 'react-native';
+import { registerAndroidPlaybackService } from './audio/android-player';
 
 module.exports = async function () {
+  if (Platform.OS === 'android') {
+    registerAndroidPlaybackService();
+    return;
+  }
   // ── Play / Pause / Stop / Seek ─────────────────────────────────────
   // These MUST be handled here in the service because Android fires
   // these events from the notification even when the JS UI is not active.
@@ -14,24 +19,14 @@ module.exports = async function () {
   });
 
   TrackPlayer.addEventListener(Event.RemoteStop, async () => {
-    await TrackPlayer.destroy();
+    await TrackPlayer.reset();
   });
 
   TrackPlayer.addEventListener(Event.RemoteSeek, async (event) => {
     await TrackPlayer.seekTo(event.position);
   });
 
-  // ── Skip Next / Previous ───────────────────────────────────────────
-  // Our app uses a single-track queue managed in NowPlayingContext.
-  // We forward these to the UI via DeviceEventEmitter so our custom
-  // queue logic can pick the correct next/prev hymn.
-  TrackPlayer.addEventListener(Event.RemoteNext, () => {
-    DeviceEventEmitter.emit('CustomRemoteNext');
-  });
-
-  TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-    DeviceEventEmitter.emit('CustomRemotePrev');
-  });
+  // iOS skip events remain handled by the existing NowPlayingContext path.
 
   // ── Duck (handle audio interruptions gracefully) ───────────────────
   TrackPlayer.addEventListener(Event.RemoteDuck, async (event) => {

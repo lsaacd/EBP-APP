@@ -8,6 +8,7 @@ const STORAGE_KEY = '@himnario_language';
 // ─── All translatable UI strings ────────────────────────────────────────────
 export const strings = {
   es: {
+    audioPlaybackError: 'No se pudo reproducir el audio. Pulsa reproducir para intentar nuevamente.',
     appName: 'Himnario El Buen Pastor',
     // Home
     exploreAll: 'Explora Todos Los Himnos',
@@ -158,6 +159,7 @@ export const strings = {
     favoritesQuoteAuthor: 'SALMOS 136:1',
   },
   en: {
+    audioPlaybackError: 'Audio could not be played. Press play to try again.',
     appName: 'El Buen Pastor Hymnal',
     // Home
     exploreAll: 'Explore All Hymns',
