@@ -269,3 +269,4 @@ export function segmentTextByRanges(text: string, query: string): TextSegment[] 
 
   return segments;
 }
+
