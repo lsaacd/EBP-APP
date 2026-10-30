@@ -52,7 +52,7 @@ scratch
 # example
 app-example
 
-# audio (streamed from Cloudflare R2 on Android; do not bundle into EAS archive)
-assets/audio/
-assets/audio/**/*
+# NOTE: do not ignore assets/audio here. iOS bundles those recordings and its build
+# would fail without them. Android build scripts (build-android-*.ps1) exclude the
+# audio folder only for the duration of an Android build.
 
