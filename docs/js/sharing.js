@@ -13,7 +13,19 @@
  const publicURL=h=>`https://himnarioebp.com/hymn/${encodeURIComponent(h.id)}/`;
  const text=h=>`${label(h)} · ${h.title}\nHimnario El Buen Pastor\n\n${h.lyrics}${h.author?'\n\nAutor: '+h.author:''}${h.reference?'\nReferencia: '+h.reference:''}\n\n${publicURL(h)}`;
  const filename=h=>`${label(h)} - ${h.title}`.normalize('NFC').replace(/[<>:"/\\|?*\x00-\x1f]/g,'').slice(0,150);
- function option(title,detail,action){const b=make('button','share-option');b.type='button';b.append(make('strong','',title),make('span','',detail));b.onclick=async()=>{status.textContent='';try{await action();}catch(e){if(e.name!=='AbortError')status.textContent='No se pudo completar. Puedes descargar el texto o imprimir la alabanza.';}};grid.append(b);return b;}
+ const iconPaths={
+  'Copiar enlace':'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+  'Copiar letra':'<rect x="8" y="7" width="12" height="14" rx="2"/><path d="M16 7V3H4v14h4m4-6h4m-4 4h4"/>',
+  'Archivo TXT':'<path d="M14 2H5v20h14V7Zm0 0v6h5M8 12h8m-8 4h8"/>',
+  'Más opciones':'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+ };
+ const brandIcons={'WhatsApp':'whatsapp.svg','Facebook':'facebook.svg','Imprimir / PDF':'pdf.svg'};
+ function option(title,detail,action){
+  const b=make('button','share-option'),icon=make('span','share-option-icon'),copy=make('span','share-option-copy');b.type='button';icon.setAttribute('aria-hidden','true');
+  if(brandIcons[title]){const img=document.createElement('img');img.src='images/icons/'+brandIcons[title];img.alt='';img.width=28;img.height=28;icon.append(img);}
+  else icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(iconPaths[title]||'')+'</svg>';
+  copy.append(make('strong','',title),make('span','share-option-detail',detail));b.append(icon,copy);b.onclick=async()=>{status.textContent='';try{await action();}catch(e){if(e.name!=='AbortError')status.textContent='No se pudo completar. Puedes descargar el texto o imprimir la alabanza.';}};grid.append(b);return b;
+ }
  function download(h){const url=URL.createObjectURL(new Blob([text(h)],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=filename(h)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status.textContent='Archivo TXT descargado. Puedes adjuntarlo a un mensaje.';}
  window.EBPSharing={open(h){
   if(!h)return;opener=document.activeElement;subtitle.textContent=`${label(h)} · ${h.title}`;grid.replaceChildren();status.textContent='';const url=publicURL(h);

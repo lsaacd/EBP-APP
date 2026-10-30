@@ -151,3 +151,8 @@ body.projecting{overflow:hidden}.projection-screen:has(.projection:not([hidden])
 .projection-lyrics.is-chorus .projection-lyrics-lines{font-style:italic}
 .projection-light .projection-chorus-title{color:#74191d}
 
+
+/* Public website stays visible beneath the hymnal name during projection. */
+.projection-branding{display:flex;flex-direction:column;align-items:center;gap:2px}
+.projection-branding-domain{font:400 .8em/1.4 'Public Sans',sans-serif;letter-spacing:.025em}
+.projection .projection-branding{position:static;transform:none;flex-shrink:0;align-self:center;margin:20px auto 0;max-width:80vw}
