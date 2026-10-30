@@ -1,6 +1,6 @@
 # Google Play release plan (Android) — parked for later
 
-Written October 29, 2026. Android release work is paused; this file records where things stand and what remains. Read it together with `ANDROID-PLAYBACK-FIX.md`, `ANDROID-APK-TESTING.md` and the root `EAS.md`.
+Written October 29, 2026 (updated October 30, 2026). Android release work is paused; this file records where things stand and what remains. Read it together with `ANDROID-PLAYBACK-FIX.md`, `ANDROID-APK-TESTING.md`, `ANTIGRAVITY-APP-WEB-PARITY.md`, and the root `EAS.md`.
 
 ## 1. Where things stand
 
@@ -10,21 +10,20 @@ Written October 29, 2026. Android release work is paused; this file records wher
 - Root cause: in `react-native-track-player@4.1.2`, `MusicService.kt` sends every event to JavaScript through `reactNativeHost.reactInstanceManager.currentReactContext`. That is the old-architecture path. This app runs on the New Architecture (React Native 0.81, `newArchEnabled: true`), where that context is null, so every event is silently dropped, including `PlaybackQueueEnded` (auto-advance). JS-only fixes cannot help because the events never leave native code.
 - Fix applied locally: both `emit()` and `emitList()` now use React Native's own `reactContext` property from `HeadlessJsTaskService`, which handles the New Architecture. The fix lives in `himnario/patches/react-native-track-player+4.1.2.patch`, which was rewritten to contain only source changes (the earlier coroutine fix in `MusicModule.kt` plus this one). The old 148 KB patch, which also held compiled build output, is backed up at `himnario/scratch/old-track-player.patch.bak`.
 - Verified Oct 29: the `preview-arm64` EAS build was installed on a Samsung phone and the notification Play/Pause/Next/Previous buttons now work.
-- Codex's Android controller rewrite (`himnario/audio/`, `service.js`, `NowPlayingContext.tsx`, `MusicPlayer.tsx`, `LanguageContext.tsx`) is kept: once native events arrive, its handlers are the ones that receive them.
-- Committed on branch `android-play-release`. The native patch cannot be delivered by EAS Update; it needs a native build.
+- Codex's playback controller (`himnario/audio/`, `service.js`, `NowPlayingContext.tsx`, `MusicPlayer.tsx`, `LanguageContext.tsx`) is kept: once native events arrive, its handlers are the ones that receive them.
 
-### Other changes made Oct 29 (committed on branch android-play-release)
+### Other changes made Oct 29–30
 
 - `himnario/eas.json`: new `preview-arm64` profile (extends `preview`, builds only `arm64-v8a`, APK, preview channel) for faster test builds. Production profile unchanged.
 - `himnario/app.json`: Android microphone permission removed (`RECORD_AUDIO` taken out of `permissions`, added to `blockedPermissions`, and `expo-audio` plugin set to `recordAudioAndroid: false`). The app never records; the permission would draw questions in Play review. Takes effect on the next native build.
-- `himnario/build-android-test.ps1`: right-click → Run with PowerShell to start a `preview-arm64` EAS build (sets `EAS_NO_VCS` and `EAS_PROJECT_ROOT`, needed because of the bracketed path and the website's duplicate audio).
+- `himnario/.easignore`: permanently excludes `assets/audio/` so neither Android nor iOS EAS builds upload or bundle the 1.3 GB of local `.m4a` files.
+- `himnario/build-android-test.ps1` and `himnario/build-android-production.ps1`: right-click → Run with PowerShell to start a `preview-arm64` or `production` EAS build (sets `EAS_NO_VCS` and `EAS_PROJECT_ROOT`, needed because of the bracketed path).
 
 ## 2. Resuming the player fix
 
 1. Install the `preview-arm64` APK from the EAS build page on an Android phone. It is signed with the real EAS keystore, so it should update the existing test app without losing local favorites.
 2. Run the checklist in `ANDROID-APK-TESTING.md`: notification Play/Pause/Next/Previous, lock screen, auto-advance at the end of a hymn, playlists, reopening the app.
 3. If native events now arrive but something behaves wrong, that is JavaScript: fix it and send `eas update --branch preview --platform android --message "..."` instead of rebuilding (restart the app twice to apply).
-4. When it passes, commit the patch, Codex's player changes, `eas.json`, `app.json` and the guides. Check the iPhone player too before any iOS update, because `service.js` also changed the iOS Stop handler (`destroy()` → `reset()`).
 
 ### Faster native builds (optional)
 
@@ -34,30 +33,19 @@ Android Studio (with bundled Java) and the Android SDK, NDK, CMake and platform-
 - Spaces and square brackets in this folder's path are known to break native C++ builds on Windows. If that happens, build from a copy at a short path such as `C:\ebp`.
 - Local builds are for testing only. Play Store builds must come from `eas build --profile production`, which uses the real signing key.
 
-## 3. Blocker: app size
+## 3. App size & streaming architecture (Android + iOS unified on `app-web-parity`)
 
-Google Play limits the base module to **500 MB compressed download size** (individual asset packs 1.5 GB; 4 GB total for install-time content). The app bundles about **1.3 GB of `.m4a` audio** in `himnario/assets/audio/`, which is already compressed, so a production `.aab` will be rejected. iOS is unaffected, and sideloaded test APKs are unaffected.
+Google Play limits the base module to **500 MB compressed download size** (individual asset packs 1.5 GB; 4 GB total for install-time content).
 
-Options:
+### Implemented and verified (Oct 29–30)
 
-1. **Recommended: stream audio on Android from Cloudflare R2, with download-on-first-play.** All 656 recordings are already uploaded to the `ebp-himnario-audio` R2 bucket for the website. Use a platform-specific registry (`data/audioRegistry.android.ts` returning remote URLs; keep the existing bundled registry for iOS) so Android stops bundling the files, and cache each hymn on the device when first played so it works offline afterward. Expected Android size is roughly 50 MB.
-   - Before launch, attach a custom domain to the bucket (for example `audio.himnarioebp.com`). The current `pub-…r2.dev` address is rate-limited and meant for development. Update `scripts/generate-hymn-pages.js` and the website deploy, which also use that address.
-   - Update the app's privacy text and Play's Data safety form if streaming changes what is disclosed (network requests to the audio host).
-   - Test offline behavior: un-played hymns need a clear "needs internet" message.
-2. Play Asset Delivery (install-time asset pack up to 1.5 GB). Not supported by Expo out of the box; needs a custom config plugin and native asset-pack loading. Harder to build and maintain.
-3. Re-encoding to fit under 500 MB. Requires a large quality loss. Not recommended.
-
-### Implemented and verified on a phone (Oct 29)
-
-- `audio.himnarioebp.com` is connected to the `ebp-himnario-audio` R2 bucket (status Active). All 655 registered recordings answer HTTP 200 there, with range requests supported. The `r2.dev` address is still enabled because the website and preview pages use it; switch them over and then disable it.
-- `himnario/data/audioRegistry.android.ts`: Android-only list of recording IDs and their stream URLs. Metro uses it instead of `audioRegistry.ts` on Android, so the 1.3 GB of audio is no longer bundled in the Android app. One file name differs from its ID (`315 A` → `hymn_315.m4a`), handled by `FILE_NAME_EXCEPTIONS`.
-- `himnario/audio/offline-audio.ts`: plays the saved copy when present; otherwise streams and saves it in the background (`.part` file, renamed when complete). Also provides download all (3 at a time, resumable, cancel), refresh, and delete.
-- `himnario/components/OfflineAudioCard.android.tsx`: Settings → "Audio sin conexión" with progress, Download all (~1.3 GB, Wi-Fi recommended), Cancel/Resume and Delete downloads. `OfflineAudioCard.tsx` renders nothing on iOS.
-- Tests: `scripts/test-android-playback.cjs` now has 12 passing tests, including first-play save, failed save cleanup, download all and cancel. `npx tsc --noEmit` passes.
-- Verified on a Samsung phone with a `preview-arm64` build: installed app size 119 MB (was about 1.4 GB), hymns stream and are saved on first play ("2 de 655 guardados").
-- The Settings button reads "Descargar todo" until a full download has been started on that device (marker file `hymn-audio/.download-all-started`), then "Continuar descarga". 13 tests pass.
-- `docs/privacy.html` has a new section 5 (Aplicación móvil / Mobile App) describing on-device data, Android streaming from Cloudflare, offline saving, Expo update checks and email feedback. It goes live only when the website is deployed; Google Play needs it live at `https://himnarioebp.com/privacy`.
-- Downloads only progress while the app is open; leaving the app pauses them, and Download all resumes where it stopped.
+- `audio.himnarioebp.com` is connected to the `ebp-himnario-audio` R2 bucket (status Active). All 655 registered recordings answer HTTP 200 there, with range requests supported.
+- `himnario/data/audioRegistry.ts` (shared by `audioRegistry.native.ts` and `audioRegistry.android.ts`): maps all 655 recording IDs to `https://audio.himnarioebp.com/hymn_{id}.m4a` (`315 A` → `hymn_315.m4a`). Neither Android nor iOS bundles `assets/audio/*`.
+- `himnario/audio/offline-audio.ts`: plays the saved copy when present; otherwise streams and saves it in the background (`.part` file, renamed when complete). On iOS, recordings are stored in `FileSystem.cacheDirectory` (`Library/Caches/hymn-audio/`, excluded from iCloud backup per Apple's Data Storage Guidelines); on Android, in `FileSystem.documentDirectory`.
+- `himnario/components/OfflineAudioCard.android.tsx` & `OfflineAudioCard.ios.tsx`: Settings → "Audio sin conexión" with progress, Download all (~1.3 GB, Wi-Fi recommended), Cancel/Resume and Delete downloads.
+- Tests: `scripts/test-android-playback.cjs` now has 15 passing tests (playback controller, native adapter, first-play save, iOS `cacheDirectory` recovery, failed save cleanup, download all, cancel, resume label, and smart search engine). `npx tsc --noEmit` passes.
+- Verified on a Samsung phone with a `preview-arm64` build: installed app size 119 MB (was about 1.4 GB), hymns stream and are saved on first play.
+- `docs/privacy.html` Section 5 (Aplicación móvil / Mobile App) describes on-device data, iOS and Android streaming from Cloudflare, offline saving, Expo update checks and email feedback. It goes live when the website is deployed; Google Play needs it live at `https://himnarioebp.com/privacy`.
 
 ## 4. Google Play testing requirement
 
@@ -83,11 +71,11 @@ To decide: does a Play Console account already exist, and is it personal or for 
 
 R2 pricing (checked Oct 29, 2026): storage $0.015/GB-month with 10 GB free; reads (Class B, e.g. GetObject) $0.36 per million with 10 million free per month; egress free. The 1.3 GB of audio is inside the free storage. An app user fetches each hymn once, so even a full Download all is about 655 reads; roughly 15,000 full downloads a month fit in the free tier. Website listeners fetch on each play but remain far below paid levels for a church audience. Safeguards: enable a billing notification, glance at R2 → Metrics monthly, and disable the `r2.dev` public URL once the website and preview pages use `audio.himnarioebp.com` (`scripts/generate-hymn-pages.js` still hardcodes the `r2.dev` address).
 
-## 7. Keep iOS untouched while Android ships
+## 7. Keep live iOS 1.0.x untouched until iOS 1.1.0 store build ships
 
 - `eas build --platform android ...` builds only Android. It does not change the App Store app.
-- The iOS app and the Android app both listen on the `production` EAS Update channel. An `eas update --branch production` without `--platform android` also sends the new JavaScript to iPhones. Until the iPhone player has been retested (the `service.js` Stop change also applies to iOS), always add `--platform android` to updates.
-- iOS keeps bundling all audio through `audioRegistry.ts`.
+- The iOS app and the Android app both listen on the `production` EAS Update channel. An `eas update --branch production` without `--platform android` also sends the new JavaScript to iPhones.
+- **Critical (`app-web-parity` branch):** On `app-web-parity`, iOS has been unified onto streaming `audioRegistry.ts`, `native-player.ts`, and `offline-audio.ts`, plus `expo-glass-effect` and `expo-keep-awake`. Because the currently live App Store `1.0.x` binary expects bundled `require()` audio assets, **do not** push `app-web-parity` via `eas update` to `1.0.x` iPhones—ship it as a new `1.1.0` App Store build first.
 
 ## Sources
 
