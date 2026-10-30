@@ -124,21 +124,6 @@ body.projecting{overflow:hidden}.projection-screen:has(.projection:not([hidden])
 .projection-lyrics.is-chorus{max-width:min(88vw,1400px);padding-inline:clamp(18px,4vw,72px)}
 .projection-lyrics.is-chorus .projection-lyrics-lines{font-style:italic}
 @media(max-width:650px){.projection-title:not([hidden]){margin-bottom:10px}.projection-slide-label{margin-bottom:24px;font-size:12px}}
-/* Keep the presenter toolbar to two rows on wide screens; let it wrap on smaller ones. */
-.projection:not([hidden]) .projection-controls{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;column-gap:clamp(12px,1.6vw,28px);row-gap:10px}
-.projection:not([hidden]) .projection-toolbar-top{grid-column:1/-1;margin:0}
-.projection:not([hidden]) .projection-toolbar-actions{grid-column:1;grid-row:2;justify-content:flex-start;gap:7px;margin:0;flex-wrap:nowrap}
-.projection:not([hidden]) .projection-shortcuts{grid-column:2;grid-row:2;justify-content:flex-end;gap:4px 9px;max-width:none;margin:0!important}
-.projection:not([hidden]) .projection-shortcut{gap:5px;font-size:10px}
-.projection:not([hidden]) .projection-shortcut kbd{min-width:22px;padding:2px 5px;font-size:10px}
-@media(max-width:1450px){.projection:not([hidden]) .projection-controls{grid-template-columns:minmax(0,1fr);row-gap:12px}.projection:not([hidden]) .projection-toolbar-top,.projection:not([hidden]) .projection-toolbar-actions,.projection:not([hidden]) .projection-shortcuts{grid-column:1;grid-row:auto;justify-content:center}.projection:not([hidden]) .projection-toolbar-actions{flex-wrap:wrap}}
-@media(max-width:650px){.projection:not([hidden]) .projection-controls{row-gap:8px}.projection:not([hidden]) .projection-shortcuts{gap:5px 8px}}
-/* Match the requested three-row grouping: selectors, actions, then shortcuts. */
-.projection:not([hidden]) .projection-controls{display:flex;flex-direction:column;align-items:stretch;gap:12px}
-.projection:not([hidden]) .projection-toolbar-top{width:100%;margin:0;justify-content:center}
-.projection:not([hidden]) .projection-toolbar-actions{width:100%;margin:0;justify-content:center;flex-wrap:wrap;gap:10px}
-.projection:not([hidden]) .projection-shortcuts{width:100%;max-width:none;margin:0!important;justify-content:center;gap:5px 12px}
-@media(max-width:650px){.projection:not([hidden]) .projection-controls{gap:8px}.projection:not([hidden]) .projection-toolbar-actions{gap:6px}.projection:not([hidden]) .projection-shortcuts{gap:5px 8px}}
 .projection-title:not([hidden]){flex-direction:row;justify-content:center;gap:clamp(8px,1.4vw,22px);width:min(96vw,1800px);margin-bottom:clamp(20px,4vh,40px);white-space:nowrap}
 .projection-title-number,.projection-title-meta{flex:0 0 auto;white-space:nowrap}
 .projection-title-number{font-size:clamp(16px,1.6vw,24px)}
@@ -161,3 +146,16 @@ body.projecting{overflow:hidden}.projection-screen:has(.projection:not([hidden])
 .projection-toolbar-actions>button>svg{width:20px;height:20px;flex-shrink:0}
 .projection-report{display:inline-block;margin-top:10px;color:inherit;opacity:.7;font:400 11px/1.5 'Public Sans',sans-serif;text-underline-offset:3px}
 .projection-report:hover,.projection-report:focus-visible{opacity:1;text-decoration:underline}
+
+/* Two rows: main controls, then keyboard hints. Wrap groups on narrow displays. */
+.projection:not([hidden]) .projection-controls{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:16px 54px}
+.projection:not([hidden]) .projection-toolbar-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 20px;width:100%;margin:0}
+.projection:not([hidden]) .projection-toolbar-actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;width:auto;margin:0}
+.projection-controls .projection-toolbar-actions>button,.projection-controls .projection-toolbar-actions>button.projection-theme,.projection-controls .projection-report{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;min-width:44px;height:44px;min-height:44px;padding:0;margin:0;border:1px solid #ffffff35;border-radius:12px;background:#ffffff08;color:inherit;box-sizing:border-box;opacity:1}
+.projection-light .projection-controls .projection-toolbar-actions>button,.projection-light .projection-controls .projection-report{border-color:#d7cebf;background:#fffaf1;color:#29251f}
+.projection-controls .projection-theme-icon{border:0;flex:0 0 28px;width:28px;height:28px;font-size:27px}
+.projection-controls .projection-report svg{width:20px;height:20px}
+.projection-controls .projection-report:hover,.projection-controls .projection-toolbar-actions>button:hover{filter:brightness(1.15);box-shadow:0 2px 10px #0002}
+.projection:not([hidden]) .projection-shortcuts{width:100%;max-width:none;justify-content:center;margin:0!important;gap:5px 12px}
+.projection-tabs{max-width:100%}
+@media(max-width:650px){.projection:not([hidden]) .projection-controls{padding:12px 40px;gap:10px}.projection:not([hidden]) .projection-toolbar-top{gap:10px}.projection:not([hidden]) .projection-shortcuts{gap:5px 8px}.projection-font-tools{max-width:100%}}
