@@ -300,3 +300,14 @@ test('smart search engine matches numbers, accents, typos, lyric snippets, and h
   assert(search('10').findIndex(r => r.hymn.id === '10') < search('10').findIndex(r => r.hymn.id === '100'));
 });
 
+test('audioRegistry.native.ts and audioRegistry.android.ts never import ./audioRegistry (prevents Metro circular self-import crash on iOS/Android)', () => {
+  const nativeSrc = fs.readFileSync(path.resolve(__dirname, '../himnario/data/audioRegistry.native.ts'), 'utf8');
+  const androidSrc = fs.readFileSync(path.resolve(__dirname, '../himnario/data/audioRegistry.android.ts'), 'utf8');
+  assert(!/from\s+['"]\.\/audioRegistry['"]/.test(nativeSrc), 'audioRegistry.native.ts must not import ./audioRegistry');
+  assert(!/from\s+['"]\.\/audioRegistry['"]/.test(androidSrc), 'audioRegistry.android.ts must not import ./audioRegistry');
+  const reg = loadTS('data/audioRegistry.native.ts');
+  assert.equal(reg.getHymnAudio('1'), 'https://audio.himnarioebp.com/hymn_1.m4a');
+  assert(reg.getAllAudioIds().length > 500);
+});
+
+

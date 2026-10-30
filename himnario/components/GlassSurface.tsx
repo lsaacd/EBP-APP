@@ -18,8 +18,11 @@ function checkLiquidGlass(): boolean {
   if (Platform.OS !== 'ios') return false;
   if (cachedLiquidGlassAvailable !== null) return cachedLiquidGlassAvailable;
   try {
-    const mod = requireOptionalNativeModule<{ isLiquidGlassAvailable?: boolean }>('ExpoGlassEffect');
-    if (mod && mod.isLiquidGlassAvailable) {
+    const mod = requireOptionalNativeModule<{
+      isLiquidGlassAvailable?: boolean;
+      isGlassEffectAPIAvailable?: boolean;
+    }>('ExpoGlassEffect');
+    if (mod && mod.isLiquidGlassAvailable && mod.isGlassEffectAPIAvailable !== false) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const glassPkg = require('expo-glass-effect');
       CachedGlassView = glassPkg.GlassView ?? null;

@@ -4,4 +4,4 @@ export {
   hasHymnAudio,
   getAllAudioIds,
   default,
-} from './audioRegistry';
+} from './audioRegistry.native';
