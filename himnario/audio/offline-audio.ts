@@ -1,10 +1,17 @@
 /**
- * Android offline audio: recordings stream from the audio host, and each one is
- * saved on the device the first time it plays so it works offline afterwards.
- * "Download all" saves every recording for full offline use.
+ * Offline audio (iOS & Android): recordings stream from Cloudflare R2, and each
+ * one is saved on the device the first time it plays so it works offline
+ * afterwards. "Download all" saves every recording for full offline use.
+ *
+ * iOS storage rule: Apple's iOS Data Storage Guidelines require re-downloadable
+ * content to be excluded from iCloud backup. On iOS we store recordings in
+ * `FileSystem.cacheDirectory` (Library/Caches/hymn-audio/), which iOS excludes
+ * from iCloud backups automatically. If the OS reclaims cache space, the app
+ * streams again transparently and `refreshOfflineAudio()` updates the count.
  */
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { getAllAudioIds, getHymnAudio } from '../data/audioRegistry.android';
+import { getAllAudioIds, getHymnAudio } from '../data/audioRegistry.native';
 
 export type DownloadAllState = {
   status: 'idle' | 'downloading' | 'done' | 'error';
@@ -14,18 +21,30 @@ export type DownloadAllState = {
   bytes: number;      // space used by saved recordings
   cancelling: boolean;
   started: boolean;   // a "download all" has been started on this device
+  savedIds: ReadonlySet<string>; // IDs currently stored on disk
 };
 
-const DIR = `${FileSystem.documentDirectory}hymn-audio/`;
+const BASE_DIR =
+  Platform.OS === 'ios'
+    ? (FileSystem.cacheDirectory || FileSystem.documentDirectory || '')
+    : (FileSystem.documentDirectory || FileSystem.cacheDirectory || '');
+const DIR = `${BASE_DIR}hymn-audio/`;
 const CONCURRENCY = 3;
 const fileFor = (id: string) => `${DIR}hymn_${encodeURIComponent(id)}.m4a`;
 const STARTED_MARKER = `${DIR}.download-all-started`;
 
 const inFlight = new Map<string, Promise<boolean>>();
 const listeners = new Set<() => void>();
+const savedIdSet = new Set<string>();
 let state: DownloadAllState = {
-  status: 'idle', saved: 0, total: getAllAudioIds().length, failed: 0, bytes: 0, cancelling: false,
+  status: 'idle',
+  saved: 0,
+  total: getAllAudioIds().length,
+  failed: 0,
+  bytes: 0,
+  cancelling: false,
   started: false,
+  savedIds: new Set<string>(),
 };
 let cancelRequested = false;
 let dirReady: Promise<void> | null = null;
@@ -50,6 +69,11 @@ async function savedSize(id: string): Promise<number> {
   return info.exists && !info.isDirectory && (info.size ?? 0) > 0 ? info.size ?? 0 : 0;
 }
 
+/** True when a recording is known to be saved locally on this device. */
+export function isHymnAudioSaved(id: string): boolean {
+  return state.savedIds.has(String(id));
+}
+
 /** Saves one recording; resolves true when it is stored (or already was). */
 export function saveHymnAudio(id: string): Promise<boolean> {
   const existing = inFlight.get(id);
@@ -59,7 +83,14 @@ export function saveHymnAudio(id: string): Promise<boolean> {
   const target = fileFor(id);
   const partial = `${target}.part`;
   const job = (async () => {
-    if (await savedSize(id)) return true;
+    const existingSize = await savedSize(id);
+    if (existingSize) {
+      if (!savedIdSet.has(id)) {
+        savedIdSet.add(id);
+        update({ savedIds: new Set(savedIdSet) });
+      }
+      return true;
+    }
     await ensureDir();
     try {
       const result = await FileSystem.downloadAsync(remote, partial);
@@ -67,7 +98,13 @@ export function saveHymnAudio(id: string): Promise<boolean> {
       await FileSystem.deleteAsync(target, { idempotent: true });
       await FileSystem.moveAsync({ from: partial, to: target });
       const size = await savedSize(id);
-      update({ saved: state.saved + 1, bytes: state.bytes + size });
+      const wasCounted = savedIdSet.has(id);
+      savedIdSet.add(id);
+      update({
+        saved: wasCounted ? state.saved : state.saved + 1,
+        bytes: wasCounted ? state.bytes : state.bytes + size,
+        savedIds: new Set(savedIdSet),
+      });
       return true;
     } catch (error) {
       await FileSystem.deleteAsync(partial, { idempotent: true }).catch(() => {});
@@ -87,7 +124,21 @@ export async function resolvePlaybackUri(id: string): Promise<string> {
   const remote = getHymnAudio(id);
   if (!remote) throw new Error(`No recording registered for ${id}`);
   try {
-    if (await savedSize(id)) return fileFor(id);
+    if (await savedSize(id)) {
+      if (!savedIdSet.has(id)) {
+        savedIdSet.add(id);
+        update({ savedIds: new Set(savedIdSet) });
+      }
+      return fileFor(id);
+    } else if (savedIdSet.has(id)) {
+      // OS may have evicted a cached file on iOS; update our set.
+      savedIdSet.delete(id);
+      update({
+        saved: Math.max(0, state.saved - 1),
+        savedIds: new Set(savedIdSet),
+        status: state.status === 'done' ? 'idle' : state.status,
+      });
+    }
   } catch (error) {
     console.warn('[OfflineAudio] Saved file check failed', id, error);
   }
@@ -95,19 +146,39 @@ export async function resolvePlaybackUri(id: string): Promise<string> {
   return remote;
 }
 
-/** Recounts saved recordings and their size (used when Settings opens). */
+/** Recounts saved recordings and their size (used on launch and when Settings opens). */
 export async function refreshOfflineAudio(): Promise<void> {
   try {
     await ensureDir();
     const names = new Set(await FileSystem.readDirectoryAsync(DIR));
     const started = names.has('.download-all-started');
     let saved = 0, bytes = 0;
-    for (const id of getAllAudioIds()) {
+    savedIdSet.clear();
+    const allIds = getAllAudioIds();
+    for (const id of allIds) {
       if (!names.has(`hymn_${encodeURIComponent(id)}.m4a`)) continue;
       const size = await savedSize(id);
-      if (size) { saved += 1; bytes += size; }
+      if (size) {
+        saved += 1;
+        bytes += size;
+        savedIdSet.add(id);
+      }
     }
-    update({ saved, bytes, started });
+    const nextStatus =
+      state.status === 'downloading'
+        ? 'downloading'
+        : saved >= allIds.length
+          ? 'done'
+          : state.status === 'done'
+            ? 'idle'
+            : state.status;
+    update({
+      saved,
+      bytes,
+      started,
+      status: nextStatus,
+      savedIds: new Set(savedIdSet),
+    });
   } catch (error) {
     console.warn('[OfflineAudio] Refresh failed', error);
   }
@@ -138,7 +209,8 @@ export async function downloadAllHymnAudio(): Promise<void> {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   update({
     status: cancelRequested ? 'idle' : failed ? 'error' : 'done',
-    failed, cancelling: false,
+    failed,
+    cancelling: false,
   });
 }
 
@@ -155,7 +227,16 @@ export async function deleteSavedHymnAudio(): Promise<void> {
   await Promise.allSettled([...inFlight.values()]);
   await FileSystem.deleteAsync(DIR, { idempotent: true });
   dirReady = null;
-  update({ status: 'idle', saved: 0, bytes: 0, failed: 0, cancelling: false, started: false });
+  savedIdSet.clear();
+  update({
+    status: 'idle',
+    saved: 0,
+    bytes: 0,
+    failed: 0,
+    cancelling: false,
+    started: false,
+    savedIds: new Set<string>(),
+  });
 }
 
 export const offlineAudio = {

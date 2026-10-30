@@ -52,7 +52,6 @@ scratch
 # example
 app-example
 
-# NOTE: do not ignore assets/audio here. iOS bundles those recordings and its build
-# would fail without them. Android build scripts (build-android-*.ps1) exclude the
-# audio folder only for the duration of an Android build.
-
+# Audio recordings (both iOS and Android stream from Cloudflare R2 and cache on device)
+assets/audio/
+assets/audio/**/*

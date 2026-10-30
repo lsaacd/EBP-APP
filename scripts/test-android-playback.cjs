@@ -138,7 +138,7 @@ test('native adapter registers each notification handler once and retries a fail
       events.set(event, handler);
     },
   };
-  const adapter = loadTS('audio/android-player.ts', {
+  const adapter = loadTS('audio/native-player.ts', {
     'react-native-track-player': { default: native, __esModule: true, Event: constants, Capability: {}, RepeatMode: {}, AppKilledPlaybackBehavior: {}, State: {} },
     'expo-asset': { Asset: { fromModule: () => ({ localUri: 'file:///audio.m4a' }) } },
     '../data/alabanzasPaginas': { hymnsData: [{ id: '1' }, { id: '2' }], estribillosData: [] },
@@ -147,10 +147,10 @@ test('native adapter registers each notification handler once and retries a fail
     './offline-audio': { resolvePlaybackUri: async id => `https://audio.example/hymn_${id}.m4a` },
     '../assets/images/EBP_HYMN_COVER.png': 1,
   });
-  adapter.registerAndroidPlaybackService(); adapter.registerAndroidPlaybackService();
-  await adapter.androidPlayer.open('1');
-  assert.ok(adapter.androidPlayer.getSnapshot().error);
-  await adapter.androidPlayer.open('1');
+  adapter.registerPlaybackService(); adapter.registerAndroidPlaybackService();
+  await adapter.nativePlayer.open('1');
+  assert.ok(adapter.nativePlayer.getSnapshot().error);
+  await adapter.nativePlayer.open('1');
   assert.equal(attempts, 2);
   await events.get('RemotePause')(); assert.equal(playing, false);
   await events.get('RemotePlay')(); assert.equal(playing, true);
@@ -160,11 +160,12 @@ test('native adapter registers each notification handler once and retries a fail
   assert.ok(resets >= 4);
 });
 
-function offlineFixture({ failIds = [] } = {}) {
+function offlineFixture({ failIds = [], platformOS = 'android' } = {}) {
   const files = new Map(); // path -> size
   const downloads = [];
   const fsMock = {
     documentDirectory: 'file:///docs/',
+    cacheDirectory: 'file:///caches/',
     async makeDirectoryAsync() {},
     async getInfoAsync(path) {
       if (path.endsWith('/')) return { exists: true, isDirectory: true };
@@ -188,8 +189,9 @@ function offlineFixture({ failIds = [] } = {}) {
   };
   const ids = ['1', '2', '3', 'E1'];
   const offline = loadTS('audio/offline-audio.ts', {
+    'react-native': { Platform: { OS: platformOS } },
     'expo-file-system/legacy': fsMock,
-    '../data/audioRegistry.android': {
+    '../data/audioRegistry.native': {
       getAllAudioIds: () => ids,
       getHymnAudio: id => (ids.includes(id) ? `https://audio.example/hymn_${id}.m4a` : null),
     },
@@ -202,8 +204,19 @@ test('first play streams and saves; later plays use the saved file', async () =>
   assert.equal(await offline.resolvePlaybackUri('1'), 'https://audio.example/hymn_1.m4a');
   await offline.saveHymnAudio('1'); // joins the background save
   assert.equal(await offline.resolvePlaybackUri('1'), 'file:///docs/hymn-audio/hymn_1.m4a');
+  assert.equal(offline.isHymnAudioSaved('1'), true);
   assert.ok(![...files.keys()].some(key => key.endsWith('.part')));
   await assert.rejects(offline.resolvePlaybackUri('999'));
+});
+
+test('iOS stores recordings in cacheDirectory (excluded from iCloud backup) and recovers if OS clears cache', async () => {
+  const { offline, files } = offlineFixture({ platformOS: 'ios' });
+  await offline.saveHymnAudio('1');
+  assert.equal(await offline.resolvePlaybackUri('1'), 'file:///caches/hymn-audio/hymn_1.m4a');
+  assert.equal(offline.isHymnAudioSaved('1'), true);
+  // Simulate iOS reclaiming cache storage
+  files.clear();
+  assert.equal(await offline.resolvePlaybackUri('1'), 'https://audio.example/hymn_1.m4a');
 });
 
 test('a failed save leaves no partial file and playback still streams', async () => {
