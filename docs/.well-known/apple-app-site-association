@@ -3,8 +3,9 @@
     "apps": [],
     "details": [
       {
-        "appID": "com.elbuenpastor",
+        "appID": "VV6BQ35L5N.com.elbuenpastor",
         "paths": [
+          "/h/*",
           "/hymn/*",
           "/himno/*"
         ]
@@ -13,7 +14,7 @@
   },
   "webcredentials": {
     "apps": [
-      "com.elbuenpastor"
+      "VV6BQ35L5N.com.elbuenpastor"
     ]
   }
 }
