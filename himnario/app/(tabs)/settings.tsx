@@ -315,54 +315,51 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ─── Section: Rate this App ──────────────────── */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t.rateApp.toUpperCase()}
-        </Text>
+      {/* ─── Section: Rate this App (iOS only until Android is live on Play Store) ─ */}
+      {Platform.OS === 'ios' && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+            {t.rateApp.toUpperCase()}
+          </Text>
 
-        <View style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}>
-          <View style={styles.rateContent}>
-            {/* Decorative star row */}
-            <View style={styles.rateStarsRow}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <MaterialIcons
-                  key={i}
-                  name="star"
-                  size={22}
-                  color={theme.primary}
-                  style={{ opacity: 1 - (Math.abs(i - 3) * 0.15) }}
-                />
-              ))}
-            </View>
+          <View style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}>
+            <View style={styles.rateContent}>
+              {/* Decorative star row */}
+              <View style={styles.rateStarsRow}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <MaterialIcons
+                    key={i}
+                    name="star"
+                    size={22}
+                    color={theme.primary}
+                    style={{ opacity: 1 - (Math.abs(i - 3) * 0.15) }}
+                  />
+                ))}
+              </View>
 
-            <Text style={[styles.rateTitle, { color: theme.onSurface }]}>
-              {t.rateApp}
-            </Text>
-            <Text style={[styles.rateDesc, { color: theme.onSurfaceVariant }]}>
-              {t.rateAppSub}
-            </Text>
-
-            <TouchableOpacity
-              style={[styles.rateBtn, { borderColor: theme.primary }]}
-              activeOpacity={0.7}
-              onPress={() => {
-                const storeUrl = Platform.select({
-                  ios: 'https://apps.apple.com/app/id6794435414?action=write-review',
-                  android: 'https://play.google.com/store/apps/details?id=com.elbuenpastor.himnario',
-                  default: '',
-                });
-                if (storeUrl) Linking.openURL(storeUrl);
-              }}
-            >
-              <Text style={[styles.rateBtnText, { color: theme.primary }]}>
-                {t.rateAppButton}
+              <Text style={[styles.rateTitle, { color: theme.onSurface }]}>
+                {t.rateApp}
               </Text>
-              <MaterialIcons name="open-in-new" size={14} color={theme.primary} style={{ opacity: 0.6 }} />
-            </TouchableOpacity>
+              <Text style={[styles.rateDesc, { color: theme.onSurfaceVariant }]}>
+                {t.rateAppSub}
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.rateBtn, { borderColor: theme.primary }]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review');
+                }}
+              >
+                <Text style={[styles.rateBtnText, { color: theme.primary }]}>
+                  {t.rateAppButton}
+                </Text>
+                <MaterialIcons name="open-in-new" size={14} color={theme.primary} style={{ opacity: 0.6 }} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {/* ─── Signature Footer ─────────────────────── */}
       <View style={styles.signatureFooter}>
