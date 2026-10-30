@@ -106,3 +106,16 @@ body.dark .book-cover img{filter:brightness(1.13) drop-shadow(0 0 8px #fff2)}
 .scripture p{grid-column:1/-1;margin:0}
 .scripture>span{grid-column:1;justify-self:center;padding-left:100px}
 @media(max-width:700px){.scripture{grid-template-columns:minmax(0,1fr);gap:14px}.scripture>span{padding-left:0}.scripture .identity-more{justify-self:center}}
+
+/* Store badges share a baseline; Android listing is not yet published. */
+.store-badges{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px 22px}
+.hero-store-badges{margin-top:22px}
+.hero-store-badges .hero-app-download{margin-top:0}
+.google-play-coming{display:inline-flex;flex-direction:column;align-items:center;gap:7px;color:var(--muted)}
+.google-play-art{display:flex;align-items:center;height:57px}
+.google-play-art img{display:block;width:190px;height:auto;max-height:57px;object-fit:contain}
+.google-play-art .play-badge-dark{display:none}
+body.dark .google-play-art .play-badge-light{display:none}
+body.dark .google-play-art .play-badge-dark{display:block}
+.google-play-coming small{font-size:11px;line-height:1.4;letter-spacing:.04em}
+.app-preview-actions .store-badges{flex-basis:100%}

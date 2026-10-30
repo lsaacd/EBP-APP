@@ -93,3 +93,7 @@ Se agruparon CSS, JavaScript, catálogo y recursos de marca en sus directorios. 
 - identidad.html: página con Nombre, Lema, Fundamento y Finalidad; contenido tomado de himnario/context/LanguageContext.tsx (doctrine* en español).
 - css/identity.css: diseño adaptable de esta página. El enlace Ver más se encuentra debajo del lema en Inicio.
 
+
+## Google Play
+
+Los distintivos originales están en `images/branding/google-play-badge-black.svg` y `google-play-badge-white.svg`. Inicio y la sección de la app los muestran según el tema, con la etiqueta «Próximamente». Cuando se publique la ficha Android, convertir el grupo en un enlace con la URL real de Google Play en `index.html` y `js/mockups.js`. No se enlaza al APK de prueba.
