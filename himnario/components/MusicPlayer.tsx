@@ -18,7 +18,7 @@
  *     onClose={() => setShowPlayer(false)}
  *   />
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
@@ -30,14 +30,10 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
-  Share,
-  ScrollView,
   StatusBar,
   Animated,
   PanResponder,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -49,8 +45,10 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
-import { getHymnAudio, hasHymnAudio } from '../data/audioRegistry';
+import { hasHymnAudio } from '../data/audioRegistry';
+import { offlineAudio } from '../audio/offline-audio';
 import AddToPlaylistModal from './AddToPlaylistModal';
+import ShareSheet from './ShareSheet';
 import { useNowPlaying } from '../context/NowPlayingContext';
 import { fonts } from '../theme/theme';
 
@@ -183,10 +181,12 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
   } = useNowPlaying();
 
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const currentId = currentHymnId ?? hymnId;
   const activeData = String(currentId).startsWith('E') ? estribillosData : hymnsData;
   const hymn = activeData.find((h: any) => String(h.id) === String(currentId));
   const currentIndex = activeData.findIndex((h: any) => String(h.id) === String(currentId));
+  const isSavedOffline = offlineSnapshot.savedIds.has(String(currentId));
 
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -336,13 +336,55 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
         {/* ─── Hymn Info (compact: title line 1, credit line 2) ── */}
         <View style={styles.infoSection}>
           {playbackError && (
-            <Text accessibilityRole="alert" style={{ color: '#ffb4ab', textAlign: 'center', marginBottom: 8 }}>
-              {t.audioPlaybackError}
-            </Text>
+            <View style={{ alignItems: 'center', marginBottom: 10, gap: 6 }}>
+              <Text accessibilityRole="alert" style={{ color: '#ffb4ab', textAlign: 'center', fontSize: 13 }}>
+                {t.audioPlaybackError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  closeFullPlayer();
+                  onClose();
+                  setTimeout(() => router.push('/settings'), 280);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: 'rgba(255,255,255,0.12)',
+                  paddingVertical: 6,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                }}
+              >
+                <MaterialIcons name="download-for-offline" size={16} color="#ffffff" />
+                <Text style={{ fontFamily: 'PublicSans_600SemiBold', fontSize: 12, color: '#ffffff' }}>
+                  {t.offlineAudioOpenSettings}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
-          <Text style={styles.hymnTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-            {hymn.title}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.hymnTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+              {hymn.title}
+            </Text>
+            {isSavedOffline && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 3,
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                  borderRadius: 999,
+                }}
+                accessibilityLabel={t.offlineAudioBadge}
+              >
+                <MaterialIcons name="offline-pin" size={13} color="rgba(255,255,255,0.85)" />
+              </View>
+            )}
+          </View>
           <TouchableOpacity
             onPress={() => {
               if (hymn.audioCredit?.url) {
@@ -517,135 +559,12 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
 
       </LinearGradient>
 
-      {/* ═══════ Share Modal ═══════════════════════════════════ */}
-      <Modal
+      {/* ═══════ Unified Share Sheet (Workstream E) ════════════ */}
+      <ShareSheet
         visible={showShareModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowShareModal(false)}
-      >
-        <View style={shareStyles.overlay}>
-          <View style={[shareStyles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-
-            {/* Header */}
-            <View style={shareStyles.header}>
-              <TouchableOpacity
-                onPress={() => setShowShareModal(false)}
-                style={shareStyles.closeBtn}
-                id="share-modal-close"
-              >
-                <MaterialIcons name="close" size={22} color="rgba(255,255,255,0.7)" />
-              </TouchableOpacity>
-              <Text style={shareStyles.headerTitle}>{t.shareModalTitle}</Text>
-              <View style={{ width: 38 }} />
-            </View>
-
-            {/* Preview Card */}
-            <View style={shareStyles.cardContainer}>
-              <LinearGradient
-                colors={['#3a0e0f', '#1a0505']}
-                style={shareStyles.card}
-              >
-                <Image
-                  source={DEFAULT_COVER}
-                  style={shareStyles.cardArt}
-                  resizeMode="cover"
-                />
-                <Text style={shareStyles.cardTitle} numberOfLines={1}>
-                  {hymn.title}
-                </Text>
-                <Text style={shareStyles.cardCredit} numberOfLines={1}>
-                  {hymn.audioCredit?.name
-                    ? `${hymn.author || ''} · @${hymn.audioCredit.name}`
-                    : hymn.author || ''}
-                </Text>
-                <Text style={shareStyles.cardBrand}>Himnario El Buen Pastor</Text>
-              </LinearGradient>
-            </View>
-
-            {/* Share Actions */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={shareStyles.actionsRow}
-            >
-              {/* Messages */}
-              <TouchableOpacity
-                style={shareStyles.actionItem}
-                onPress={() => {
-                  setShowShareModal(false);
-                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
-                  const body = encodeURIComponent(`${hymn.title}\n\n${hymnUrl}`);
-                  Linking.openURL(`sms:&body=${body}`).catch(() => { });
-                }}
-              >
-                <View style={[shareStyles.actionIcon, { backgroundColor: '#34C759' }]}>
-                  <MaterialIcons name="chat-bubble" size={24} color="#fff" />
-                </View>
-                <Text style={shareStyles.actionLabel}>{t.shareMessages}</Text>
-              </TouchableOpacity>
-
-              {/* WhatsApp */}
-              <TouchableOpacity
-                style={shareStyles.actionItem}
-                onPress={() => {
-                  setShowShareModal(false);
-                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
-                  const text = encodeURIComponent(`${hymn.title}\n\n${hymnUrl}`);
-                  Linking.openURL(`whatsapp://send?text=${text}`).catch(() => {
-                    Linking.openURL(`https://wa.me/?text=${text}`).catch(() => { });
-                  });
-                }}
-              >
-                <View style={[shareStyles.actionIcon, { backgroundColor: '#25D366' }]}>
-                  <MaterialIcons name="chat" size={24} color="#fff" />
-                </View>
-                <Text style={shareStyles.actionLabel}>WhatsApp</Text>
-              </TouchableOpacity>
-
-              {/* Copy Text */}
-              <TouchableOpacity
-                style={shareStyles.actionItem}
-                onPress={async () => {
-                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
-                  await Clipboard.setStringAsync(
-                    `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`
-                  );
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  setShowShareModal(false);
-                }}
-              >
-                <View style={[shareStyles.actionIcon, { backgroundColor: '#636366' }]}>
-                  <MaterialIcons name="content-copy" size={22} color="#fff" />
-                </View>
-                <Text style={shareStyles.actionLabel}>{t.shareCopy}</Text>
-              </TouchableOpacity>
-
-              {/* More (native share sheet) */}
-              <TouchableOpacity
-                style={shareStyles.actionItem}
-                onPress={() => {
-                  setShowShareModal(false);
-                  const hymnUrl = `https://himnarioebp.com/hymn/${hymn.id}/`;
-                  setTimeout(() => {
-                    Share.share({
-                      title: hymn.title,
-                      message: `${hymn.title}\n\n${hymn.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`,
-                      url: hymnUrl,
-                    });
-                  }, 300);
-                }}
-              >
-                <View style={[shareStyles.actionIcon, { backgroundColor: '#636366' }]}>
-                  <MaterialIcons name="more-horiz" size={24} color="#fff" />
-                </View>
-                <Text style={shareStyles.actionLabel}>{t.shareMore}</Text>
-              </TouchableOpacity>
-            </ScrollView>
-
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowShareModal(false)}
+        hymn={hymn}
+      />
 
       </Animated.View>
       <AddToPlaylistModal
@@ -812,103 +731,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Share Modal Styles ──────────────────────────────────────
-const CARD_W = SCREEN_W * 0.72;
-
-const shareStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: '#1c1c1e',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 16,
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  cardContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  card: {
-    width: CARD_W,
-    borderRadius: 16,
-    overflow: 'hidden',
-    alignItems: 'center',
-    paddingBottom: 24,
-  },
-  cardArt: {
-    width: CARD_W - 40,
-    height: CARD_W - 40,
-    borderRadius: 10,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  cardTitle: {
-    fontFamily: 'Newsreader_700Bold',
-    fontSize: 20,
-    color: '#ffffff',
-    paddingHorizontal: 20,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  cardCredit: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    paddingHorizontal: 20,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  cardBrand: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 14,
-    color: '#c0392b',
-    letterSpacing: 0.3,
-  },
-  actionsRow: {
-    paddingHorizontal: 24,
-    gap: 20,
-    paddingBottom: 8,
-  },
-  actionItem: {
-    alignItems: 'center',
-    width: 68,
-  },
-  actionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  actionLabel: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
-    textAlign: 'center',
-  },
-});

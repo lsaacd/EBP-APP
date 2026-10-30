@@ -163,11 +163,23 @@ export default function SettingsScreen() {
 
         {/* Font Size Card */}
         <View style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}>
-          <View style={styles.cardInfo}>
-            <MaterialIcons name="format-size" size={24} color={theme.primary} />
-            <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
-              {t.fontSize}
-            </Text>
+          <View style={styles.cardRow}>
+            <View style={styles.cardInfo}>
+              <MaterialIcons name="format-size" size={24} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
+                {t.fontSize} · {Math.round(22 * fontSizeMultiplier)} px
+              </Text>
+            </View>
+            {Math.round(22 * fontSizeMultiplier) !== 22 && (
+              <TouchableOpacity
+                onPress={() => setFontSizeMultiplier(1.0)}
+                style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.primary + '16' }}
+              >
+                <Text style={{ fontFamily: 'PublicSans_600SemiBold', fontSize: 12, color: theme.primary }}>
+                  {t.textSizeReset}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Preview canvas */}
@@ -185,8 +197,8 @@ export default function SettingsScreen() {
               styles.previewText,
               {
                 color: theme.onSurface,
-                fontSize: Math.round(18 * fontSizeMultiplier),
-                lineHeight: Math.round(18 * fontSizeMultiplier * 1.6),
+                fontSize: Math.min(42, Math.round(22 * fontSizeMultiplier)),
+                lineHeight: Math.round(Math.min(42, Math.round(22 * fontSizeMultiplier)) * 1.5),
               }
             ]}>
               Señor, mi Dios, al contemplar los cielos...
@@ -196,7 +208,7 @@ export default function SettingsScreen() {
           {/* +/- Controls + Slider */}
           <View style={styles.sliderRow}>
             <TouchableOpacity
-              onPress={() => setFontSizeMultiplier(fontSizeMultiplier - 0.1)}
+              onPress={() => setFontSizeMultiplier((Math.round(22 * fontSizeMultiplier) - 1) / 22)}
               style={[styles.stepBtn, { backgroundColor: theme.surfaceVariants.containerHighest }]}
             >
               <MaterialIcons name="remove" size={20} color={theme.primary} />
@@ -204,9 +216,9 @@ export default function SettingsScreen() {
 
             <Slider
               style={{ flex: 1, height: 40 }}
-              minimumValue={0.8}
-              maximumValue={2.0}
-              step={0.05}
+              minimumValue={12 / 22}
+              maximumValue={64 / 22}
+              step={1 / 22}
               value={fontSizeMultiplier}
               onValueChange={setFontSizeMultiplier}
               minimumTrackTintColor={theme.primary}
@@ -215,7 +227,7 @@ export default function SettingsScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => setFontSizeMultiplier(fontSizeMultiplier + 0.1)}
+              onPress={() => setFontSizeMultiplier((Math.round(22 * fontSizeMultiplier) + 1) / 22)}
               style={[styles.stepBtn, { backgroundColor: theme.surfaceVariants.containerHighest }]}
             >
               <MaterialIcons name="add" size={20} color={theme.primary} />

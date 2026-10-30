@@ -77,7 +77,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, []);
 
   const changeFontSize = useCallback((val: number) => {
-    const clamped = Math.min(2.0, Math.max(0.8, val));
+    // Allow 12px to 64px (base 22px => 12/22 ≈ 0.545 to 64/22 ≈ 2.909)
+    const clamped = Math.min(64 / 22, Math.max(12 / 22, val));
     setFontSizeMultiplierState(clamped);
   }, []);
 

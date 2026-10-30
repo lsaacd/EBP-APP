@@ -10,7 +10,7 @@
  *
  * @returns {React.JSX.Element} The rendered Hymn Detail screen.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  Share,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,8 +34,13 @@ import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import MusicPlayer from '../../components/MusicPlayer';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
+import TextSizeSheet from '../../components/TextSizeSheet';
+import ProjectorModal from '../../components/ProjectorModal';
+import ShareSheet from '../../components/ShareSheet';
+import GlassSurface from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
+import { offlineAudio } from '../../audio/offline-audio';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import PageFlipTransition, { type FlipDirection } from '../../components/PageFlipTransition';
 
@@ -48,7 +52,7 @@ type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: str
 export default function HymnDetail() {
   const { id, playlistId } = useLocalSearchParams();
   const router = useRouter();
-  const { theme, isDarkMode, fontSizeMultiplier, toggleTheme, changeFontSize } = useTheme();
+  const { theme, isDarkMode, fontSizeMultiplier, toggleTheme } = useTheme();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addRecent } = useRecentHymns();
   const { playlists } = usePlaylists();
@@ -87,6 +91,10 @@ export default function HymnDetail() {
   // ── Page-flip navigation ────────────────────────────────────
   const [flipDirection, setFlipDirection] = useState<FlipDirection>('right');
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const [textSizeSheetVisible, setTextSizeSheetVisible] = useState(false);
+  const [projectorVisible, setProjectorVisible] = useState(false);
+  const [shareSheetVisible, setShareSheetVisible] = useState(false);
+  const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
 
   // Hard cooldown — disables buttons for 1s after any tap
   const [navDisabled, setNavDisabled] = useState(false);
@@ -156,14 +164,9 @@ export default function HymnDetail() {
     toggleFavorite(String(h.id));
   };
 
-  const handleShare = (h: any) => {
+  const handleShare = (_h: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const hymnUrl = `https://himnarioebp.com/hymn/${h.id}/`;
-    Share.share({
-      title: h.title,
-      message: `${h.title}\n\n${h.lyrics}\n\n— Himnario El Buen Pastor\n${hymnUrl}`,
-      url: hymnUrl,
-    });
+    setShareSheetVisible(true);
   };
 
   const hymn = allHymns.find((h) => h.id === id || h.id === String(id));
@@ -443,25 +446,19 @@ export default function HymnDetail() {
         styles.floatWrap, 
         { bottom: Math.max(insets.bottom, 22) } 
       ]}>
-        <View style={[
-          styles.floatPill,
-          {
-            // Android elevation adds a Material surface-overlay tint that makes
-            // the pill look more opaque than intended — compensate with lower alpha.
-            // iOS shadow props don't affect the view's own surface, so EE (93%) is fine.
-            backgroundColor: theme.surfaceVariants.containerLow
-              + (Platform.OS === 'android' ? 'CC' : 'EE'),   // CC=80%, EE=93%
-            shadowColor: theme.onSurface,
-          }
-        ]}>
-          {/* Text Size — cycles through presets inline (no navigation away) */}
+        <GlassSurface
+          intensity={55}
+          isInteractive
+          tonalColor={theme.surfaceVariants.containerLow}
+          style={[
+            styles.floatPill,
+            { shadowColor: theme.onSurface },
+          ]}
+        >
+          {/* Text Size — opens live TextSizeSheet popover (Workstream C) */}
           <TouchableOpacity style={styles.controlItem} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            // Cycle: 0.85 → 1.0 → 1.15 → 1.3 → 0.85 …
-            const steps = [0.85, 1.0, 1.15, 1.3];
-            const currentIdx = steps.findIndex((s) => Math.abs(s - fontSizeMultiplier) < 0.05);
-            const nextIdx = (currentIdx + 1) % steps.length;
-            changeFontSize(steps[nextIdx]);
+            setTextSizeSheetVisible(true);
           }}>
             <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
               <MaterialIcons name="format-size" size={20} color={theme.onSurfaceVariant} />
@@ -480,6 +477,19 @@ export default function HymnDetail() {
               <MaterialIcons name={isDarkMode ? "light-mode" : "dark-mode"} size={20} color={theme.onSurfaceVariant} />
             </View>
             <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{isDarkMode ? t.lightMode : t.darkMode}</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
+
+          {/* Projector / Presentation Mode (Workstream D) */}
+          <TouchableOpacity style={styles.controlItem} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setProjectorVisible(true);
+          }}>
+            <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
+              <MaterialIcons name="present-to-all" size={19} color={theme.onSurfaceVariant} />
+            </View>
+            <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{t.projectHymn}</Text>
           </TouchableOpacity>
 
           {/* Audio Play — always visible; red if available, grey if not */}
@@ -505,6 +515,9 @@ export default function HymnDetail() {
                     ? theme.onSurfaceVariant
                     : '#ffffff'}
               />
+              {offlineSnapshot.savedIds.has(String(hymn.id)) && (
+                <View style={[styles.savedBadgeDot, { backgroundColor: theme.primary }]} />
+              )}
             </View>
             <Text style={[styles.controlLabel, {
               color: !hymnAudio(hymn)
@@ -514,7 +527,7 @@ export default function HymnDetail() {
                   : '#7B1F1D',
             }]}>AUDIO</Text>
           </TouchableOpacity>
-        </View>{/* floatPill */}
+        </GlassSurface>{/* floatPill */}
       </View>{/* floatWrap */}
 
 
@@ -561,6 +574,28 @@ export default function HymnDetail() {
         visible={playlistModalVisible} 
         onClose={() => setPlaylistModalVisible(false)} 
         hymnId={String(hymn.id)} 
+      />
+
+      {/* ─── Text Size Popover / Sheet (Workstream C) ────── */}
+      <TextSizeSheet
+        visible={textSizeSheetVisible}
+        onClose={() => setTextSizeSheetVisible(false)}
+      />
+
+      {/* ─── Projector / Presentation Mode (Workstream D) ── */}
+      <ProjectorModal
+        visible={projectorVisible}
+        onClose={() => setProjectorVisible(false)}
+        hymn={hymn}
+        stanzas={stanzas}
+        initialDarkMode={isDarkMode}
+      />
+
+      {/* ─── Unified Share Sheet (Workstream E) ──────────── */}
+      <ShareSheet
+        visible={shareSheetVisible}
+        onClose={() => setShareSheetVisible(false)}
+        hymn={hymn}
       />
 
     </View>
@@ -732,33 +767,40 @@ const styles = StyleSheet.create({
   floatPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: Platform.OS === 'ios' ? 'space-between' : 'space-evenly',
-    width: windowWidth - 40, // Match tab bar width on both platforms
-    paddingHorizontal: Platform.OS === 'ios' ? 20 : 8,
-    paddingVertical: 10.5, // 10.5 * 2 + 40 (icon height) = 61px exact tab bar height universally
+    justifyContent: 'space-evenly',
+    width: windowWidth - 32,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 100,
-    gap: Platform.OS === 'ios' ? 0 : 0,
-    // Platform split: elevation (Android only) vs shadow props (iOS only)
-    // High elevation on Android adds a surface-overlay tint — keep it low.
     ...Platform.select({
-      android: { elevation: 1 },
+      android: { elevation: 2 },
       ios: {
-        shadowOpacity: 0.4,
-        shadowRadius: 15,
+        shadowOpacity: 0.3,
+        shadowRadius: 14,
       },
     }),
   },
   controlItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 5,
   },
   controlCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  savedBadgeDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   controlCirclePlay: {
     width: 40,
