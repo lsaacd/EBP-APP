@@ -47,14 +47,16 @@ Options:
 2. Play Asset Delivery (install-time asset pack up to 1.5 GB). Not supported by Expo out of the box; needs a custom config plugin and native asset-pack loading. Harder to build and maintain.
 3. Re-encoding to fit under 500 MB. Requires a large quality loss. Not recommended.
 
-### Implemented Oct 29 (needs a phone test)
+### Implemented and verified on a phone (Oct 29)
 
 - `audio.himnarioebp.com` is connected to the `ebp-himnario-audio` R2 bucket (status Active). All 655 registered recordings answer HTTP 200 there, with range requests supported. The `r2.dev` address is still enabled because the website and preview pages use it; switch them over and then disable it.
 - `himnario/data/audioRegistry.android.ts`: Android-only list of recording IDs and their stream URLs. Metro uses it instead of `audioRegistry.ts` on Android, so the 1.3 GB of audio is no longer bundled in the Android app. One file name differs from its ID (`315 A` → `hymn_315.m4a`), handled by `FILE_NAME_EXCEPTIONS`.
 - `himnario/audio/offline-audio.ts`: plays the saved copy when present; otherwise streams and saves it in the background (`.part` file, renamed when complete). Also provides download all (3 at a time, resumable, cancel), refresh, and delete.
 - `himnario/components/OfflineAudioCard.android.tsx`: Settings → "Audio sin conexión" with progress, Download all (~1.3 GB, Wi-Fi recommended), Cancel/Resume and Delete downloads. `OfflineAudioCard.tsx` renders nothing on iOS.
 - Tests: `scripts/test-android-playback.cjs` now has 12 passing tests, including first-play save, failed save cleanup, download all and cancel. `npx tsc --noEmit` passes.
-- Not yet verified: the Android export size (the local `expo export` stalled on this folder) and real phone behavior. Next test: build with `build-android-test.ps1`, confirm the APK is well under 100 MB, play several hymns, replay one with Wi-Fi off, and run Download all.
+- Verified on a Samsung phone with a `preview-arm64` build: installed app size 119 MB (was about 1.4 GB), hymns stream and are saved on first play ("2 de 655 guardados").
+- The Settings button reads "Descargar todo" until a full download has been started on that device (marker file `hymn-audio/.download-all-started`), then "Continuar descarga". 13 tests pass.
+- `docs/privacy.html` has a new section 5 (Aplicación móvil / Mobile App) describing on-device data, Android streaming from Cloudflare, offline saving, Expo update checks and email feedback. It goes live only when the website is deployed; Google Play needs it live at `https://himnarioebp.com/privacy`.
 - Downloads only progress while the app is open; leaving the app pauses them, and Download all resumes where it stopped.
 
 ## 4. Google Play testing requirement
@@ -67,17 +69,21 @@ To decide: does a Play Console account already exist, and is it personal or for 
 
 ## 5. Release order
 
-1. Verify and commit the notification fix (section 2).
-2. Switch Android to streaming audio and configure the R2 custom domain (section 3).
+1. ~~Verify and commit the notification fix (section 2).~~ Done Oct 29.
+2. ~~Switch Android to streaming audio and configure the R2 custom domain (section 3).~~ Done Oct 29; deploy the website so the updated privacy policy is live.
 3. Create or confirm the Play Console account ($25, identity verification).
 4. Complete the store listing and policy forms: name, 512×512 icon, 1024×500 feature graphic, phone screenshots, privacy policy URL (`https://himnarioebp.com/privacy`), content rating, Data safety, target audience, ads (none).
-5. Production build: `eas build --platform android --profile production` → `.aab`.
+5. Production build: right-click `himnario/build-android-production.ps1` → Run with PowerShell (runs `eas build --platform android --profile production` with the archive workarounds) → `.aab`.
 6. First upload by hand in Play Console. Optionally use **Internal testing** first (instant, up to 100 testers).
 7. **Closed testing**: 12+ testers for 14 consecutive days.
 8. Apply for production access, answer Google's questions about the test, wait for review, publish.
 9. Afterwards, set up the service account in `EAS.md` so `eas submit -p android` can upload future builds automatically.
 
-## 6. Keep iOS untouched while Android ships
+## 6. Cloudflare costs
+
+R2 pricing (checked Oct 29, 2026): storage $0.015/GB-month with 10 GB free; reads (Class B, e.g. GetObject) $0.36 per million with 10 million free per month; egress free. The 1.3 GB of audio is inside the free storage. An app user fetches each hymn once, so even a full Download all is about 655 reads; roughly 15,000 full downloads a month fit in the free tier. Website listeners fetch on each play but remain far below paid levels for a church audience. Safeguards: enable a billing notification, glance at R2 → Metrics monthly, and disable the `r2.dev` public URL once the website and preview pages use `audio.himnarioebp.com` (`scripts/generate-hymn-pages.js` still hardcodes the `r2.dev` address).
+
+## 7. Keep iOS untouched while Android ships
 
 - `eas build --platform android ...` builds only Android. It does not change the App Store app.
 - The iOS app and the Android app both listen on the `production` EAS Update channel. An `eas update --branch production` without `--platform android` also sends the new JavaScript to iPhones. Until the iPhone player has been retested (the `service.js` Stop change also applies to iOS), always add `--platform android` to updates.

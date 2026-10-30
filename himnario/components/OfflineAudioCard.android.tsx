@@ -98,7 +98,7 @@ export default function OfflineAudioCard() {
               onPress={confirmDownload}
             >
               <Text style={[styles.buttonText, { color: theme.onPrimary }]}>
-                {state.saved > 0 ? t.offlineAudioResume : t.offlineAudioDownload}
+                {state.started ? t.offlineAudioResume : t.offlineAudioDownload}
               </Text>
             </TouchableOpacity>
           ) : null}

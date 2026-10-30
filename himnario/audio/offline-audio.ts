@@ -13,16 +13,19 @@ export type DownloadAllState = {
   failed: number;     // failures in the current/last "download all" run
   bytes: number;      // space used by saved recordings
   cancelling: boolean;
+  started: boolean;   // a "download all" has been started on this device
 };
 
 const DIR = `${FileSystem.documentDirectory}hymn-audio/`;
 const CONCURRENCY = 3;
 const fileFor = (id: string) => `${DIR}hymn_${encodeURIComponent(id)}.m4a`;
+const STARTED_MARKER = `${DIR}.download-all-started`;
 
 const inFlight = new Map<string, Promise<boolean>>();
 const listeners = new Set<() => void>();
 let state: DownloadAllState = {
   status: 'idle', saved: 0, total: getAllAudioIds().length, failed: 0, bytes: 0, cancelling: false,
+  started: false,
 };
 let cancelRequested = false;
 let dirReady: Promise<void> | null = null;
@@ -97,13 +100,14 @@ export async function refreshOfflineAudio(): Promise<void> {
   try {
     await ensureDir();
     const names = new Set(await FileSystem.readDirectoryAsync(DIR));
+    const started = names.has('.download-all-started');
     let saved = 0, bytes = 0;
     for (const id of getAllAudioIds()) {
       if (!names.has(`hymn_${encodeURIComponent(id)}.m4a`)) continue;
       const size = await savedSize(id);
       if (size) { saved += 1; bytes += size; }
     }
-    update({ saved, bytes });
+    update({ saved, bytes, started });
   } catch (error) {
     console.warn('[OfflineAudio] Refresh failed', error);
   }
@@ -113,8 +117,14 @@ export async function refreshOfflineAudio(): Promise<void> {
 export async function downloadAllHymnAudio(): Promise<void> {
   if (state.status === 'downloading') return;
   cancelRequested = false;
-  update({ status: 'downloading', failed: 0, cancelling: false });
+  update({ status: 'downloading', failed: 0, cancelling: false, started: true });
   await refreshOfflineAudio();
+  try {
+    await FileSystem.writeAsStringAsync(STARTED_MARKER, new Date().toISOString());
+  } catch (error) {
+    console.warn('[OfflineAudio] Could not record download start', error);
+  }
+  update({ started: true });
   const queue = [...getAllAudioIds()];
   let failed = 0;
   const worker = async () => {
@@ -145,7 +155,7 @@ export async function deleteSavedHymnAudio(): Promise<void> {
   await Promise.allSettled([...inFlight.values()]);
   await FileSystem.deleteAsync(DIR, { idempotent: true });
   dirReady = null;
-  update({ status: 'idle', saved: 0, bytes: 0, failed: 0, cancelling: false });
+  update({ status: 'idle', saved: 0, bytes: 0, failed: 0, cancelling: false, started: false });
 }
 
 export const offlineAudio = {

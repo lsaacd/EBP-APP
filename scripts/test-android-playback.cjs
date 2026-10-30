@@ -181,6 +181,7 @@ function offlineFixture({ failIds = [] } = {}) {
       for (const key of [...files.keys()]) if (key === path || (path.endsWith('/') && key.startsWith(path))) files.delete(key);
     },
     async moveAsync({ from, to }) { files.set(to, files.get(from)); files.delete(from); },
+    async writeAsStringAsync(path, text) { files.set(path, text.length); },
     async readDirectoryAsync(dir) {
       return [...files.keys()].filter(key => key.startsWith(dir)).map(key => key.slice(dir.length));
     },
@@ -236,4 +237,19 @@ test('cancelling download all stops before every recording is saved', async () =
   const snap = offline.offlineAudio.getSnapshot();
   assert.equal(snap.status, 'idle');
   assert.ok(snap.saved < 4);
+});
+
+test('the resume label appears only after a full download was started, and resets on delete', async () => {
+  const { offline } = offlineFixture();
+  await offline.saveHymnAudio('1');
+  await offline.refreshOfflineAudio();
+  assert.equal(offline.offlineAudio.getSnapshot().started, false);
+  const run = offline.downloadAllHymnAudio();
+  offline.cancelDownloadAll();
+  await run;
+  await offline.refreshOfflineAudio();
+  assert.equal(offline.offlineAudio.getSnapshot().started, true);
+  await offline.deleteSavedHymnAudio();
+  await offline.refreshOfflineAudio();
+  assert.equal(offline.offlineAudio.getSnapshot().started, false);
 });
