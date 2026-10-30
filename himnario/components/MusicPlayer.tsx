@@ -530,7 +530,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
             }}
             id="music-player-share"
           >
-            <MaterialIcons name="ios-share" size={22} color="rgba(255,255,255,0.5)" />
+            <MaterialIcons name="share" size={22} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
 
           {/* View Lyrics */}
@@ -561,6 +561,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
 
       {/* ═══════ Unified Share Sheet (Workstream E) ════════════ */}
       <ShareSheet
+        variant="player"
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
         hymn={hymn}

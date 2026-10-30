@@ -15,3 +15,4 @@
 .share-close:hover{background:var(--surface)}
 @media(max-width:480px){.share-options{gap:10px}.share-options .share-option{padding:14px;gap:12px}.share-options .share-option-icon{width:40px;height:40px;flex-basis:40px}}
 @media(prefers-reduced-motion:reduce){.share-options .share-option{transition:none}}
+.pdf-controls input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:var(--accent)}

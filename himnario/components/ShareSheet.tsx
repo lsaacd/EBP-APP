@@ -17,6 +17,8 @@ import {
   Platform,
   Pressable,
   Share,
+  ScrollView,
+  Switch,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -24,7 +26,9 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { MaterialIcons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -50,13 +54,16 @@ export interface ShareSheetProps {
   visible: boolean;
   onClose: () => void;
   hymn: ShareableHymn | null;
+  variant?: 'reader' | 'player';
 }
 
-export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) {
+export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' }: ShareSheetProps) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [includePdfTitle, setIncludePdfTitle] = useState(true);
 
   useEffect(() => {
     if (!visible) setStatusMessage(null);
@@ -110,6 +117,52 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
     }, 220);
   };
 
+  const escapeHtml = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\n/g, '<br />');
+
+  const handlePdf = async () => {
+    if (exporting) return;
+    setExporting(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const title = escapeHtml(`${label} · ${hymn.title}`);
+    const lyrics = escapeHtml(hymn.lyrics || '');
+    const author = hymn.author ? `<div class="meta">${escapeHtml(hymn.author)}</div>` : '';
+    const header = includePdfTitle ? `<div class="number">${escapeHtml(String(hymn.number))}</div><h1>${title}</h1>${author}` : '';
+    const copy = `<section class="copy">${header}<div class="lyrics">${lyrics}</div></section>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8" /><style>
+      @page { size: Letter landscape; margin: 0.35in; }
+      * { box-sizing: border-box; } body { margin: 0; font-family: Georgia, serif; color: #17130f; }
+      .sheet { width: 100%; display: flex; }
+      .copy { width: 50%; padding: 0.18in 0.28in; border-right: 1px dashed #999; }
+      .copy:last-child { border-right: 0; } .number { font: 12px Arial, sans-serif; color: #6e1619; text-align: center; }
+      h1 { font-size: 20px; line-height: 1.08; text-align: center; margin: 0.05in 0 0.08in; }
+      .meta { font: 8px Arial, sans-serif; text-align: center; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.12in; }
+      .lyrics { font-size: 10px; line-height: 1.32; white-space: normal; }
+    </style></head><body><div class="sheet">${copy}${copy}</div></body></html>`;
+    try {
+      let file = await Print.printToFileAsync({ html, width: 792, height: 612, margins: { top: 0, right: 0, bottom: 0, left: 0 } });
+      // Check the generated page count instead of hiding overflowing lyrics.
+      for (let fontSize = 9.5; file.numberOfPages > 1 && fontSize >= 4; fontSize -= 0.5) {
+        file = await Print.printToFileAsync({
+          html: html.replace('font-size: 10px', `font-size: ${fontSize}px`),
+          width: 792, height: 612, margins: { top: 0, right: 0, bottom: 0, left: 0 },
+        });
+      }
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: `${label} PDF` });
+      }
+      onClose();
+    } catch {
+      setStatusMessage(t.sharePdfError);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const options = [
     {
       key: 'copy-link',
@@ -122,7 +175,8 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
     },
     {
       key: 'whatsapp',
-      icon: 'chat' as const,
+      icon: 'whatsapp' as const,
+      iconFamily: 'fontawesome' as const,
       iconBg: 'rgba(37, 211, 102, 0.16)',
       iconColor: '#25D366',
       title: t.shareWhatsApp,
@@ -139,6 +193,15 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
       onPress: handleCopyLyrics,
     },
     {
+      key: 'pdf',
+      icon: 'picture-as-pdf' as const,
+      iconBg: theme.primary + '18',
+      iconColor: theme.primary,
+      title: exporting ? t.sharePdfPreparing : t.sharePdf,
+      subtitle: t.sharePdfSub,
+      onPress: handlePdf,
+    },
+    {
       key: 'more',
       icon: 'ios-share' as const,
       iconBg: theme.primary + '18',
@@ -152,7 +215,7 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
   const isIOS = Platform.OS === 'ios';
 
   const sheetBody = (
-    <View style={styles.inner}>
+    <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false} bounces={false}>
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
 
@@ -174,18 +237,19 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
       <View
         style={[
           styles.previewCard,
+          variant === 'player' && styles.playerCard,
           {
             backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(110,22,25,0.05)',
             borderColor: theme.outlineVariant + '26',
           },
         ]}
       >
-        <Image source={DEFAULT_COVER} style={styles.coverArt} />
-        <View style={styles.previewTextCol}>
+        <Image source={DEFAULT_COVER} style={variant === 'player' ? styles.playerCover : styles.coverArt} />
+        <View style={[styles.previewTextCol, variant === 'player' && styles.playerText]}>
           <Text style={[styles.previewBadge, { color: theme.primary }]}>
             {label.toUpperCase()}
           </Text>
-          <Text style={[styles.previewTitle, { color: theme.onSurface }]} numberOfLines={1}>
+          <Text style={[styles.previewTitle, { color: theme.onSurface }]} numberOfLines={2}>
             {hymn.title}
           </Text>
           <Text style={[styles.previewDomain, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
@@ -210,6 +274,18 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
       )}
 
       {/* Share Action Rows */}
+      <View style={styles.pdfTitleRow}>
+        <Text style={[styles.optionTitle, { color: theme.onSurface, flex: 1 }]}>
+          {t.sharePdfIncludeTitle}
+        </Text>
+        <Switch
+          value={includePdfTitle}
+          onValueChange={setIncludePdfTitle}
+          disabled={exporting}
+          accessibilityLabel={t.sharePdfIncludeTitle}
+          trackColor={{ true: theme.primary }}
+        />
+      </View>
       <View style={styles.optionsList}>
         {options.map((opt) => (
           <Pressable
@@ -228,7 +304,11 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
             onPress={opt.onPress}
           >
             <View style={[styles.optionIconWrap, { backgroundColor: opt.iconBg }]}>
-              <MaterialIcons name={opt.icon} size={22} color={opt.iconColor} />
+              {opt.iconFamily === 'fontawesome' ? (
+                <FontAwesome name={opt.icon} size={22} color={opt.iconColor} />
+              ) : (
+                <MaterialIcons name={opt.icon} size={22} color={opt.iconColor} />
+              )}
             </View>
             <View style={styles.optionTextCol}>
               <Text style={[styles.optionTitle, { color: theme.onSurface }]}>
@@ -247,7 +327,7 @@ export default function ShareSheet({ visible, onClose, hymn }: ShareSheetProps) 
           </Pressable>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -295,12 +375,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
   iosSheet: {
+    maxHeight: '90%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
   },
   androidSheet: {
+    maxHeight: '90%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -341,6 +423,21 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
+  playerCard: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: 18,
+  },
+  playerCover: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+  },
+  playerText: {
+    flex: 0,
+    alignItems: 'center',
+    gap: 6,
+  },
   coverArt: {
     width: 52,
     height: 52,
@@ -379,6 +476,12 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     gap: 8,
+  },
+  pdfTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
   },
   optionRow: {
     flexDirection: 'row',

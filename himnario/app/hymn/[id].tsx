@@ -308,11 +308,22 @@ export default function HymnDetail() {
 
           {/* App title — centred */}
           <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
-            Himnario El Buen Pastor
+            Himnario EBP
           </Text>
 
           {/* Playlist, Bookmark + Share — top-right */}
           <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setProjectorVisible(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t.projectHymn}
+            >
+              <MaterialIcons name="present-to-all" size={24} color={theme.primary} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => setPlaylistModalVisible(true)}>
               <MaterialIcons name="playlist-add" size={28} color={theme.primary} />
             </TouchableOpacity>
@@ -481,19 +492,7 @@ export default function HymnDetail() {
 
           <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
 
-          {/* Projector / Presentation Mode (Workstream D) */}
-          <TouchableOpacity style={styles.controlItem} onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setProjectorVisible(true);
-          }}>
-            <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
-              <MaterialIcons name="present-to-all" size={19} color={theme.onSurfaceVariant} />
-            </View>
-            <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{t.projectHymn}</Text>
-          </TouchableOpacity>
-
           {/* Audio Play — always visible; red if available, grey if not */}
-          <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
           <TouchableOpacity
             style={styles.controlItem}
             onPress={() => handlePlayAudio(hymn)}

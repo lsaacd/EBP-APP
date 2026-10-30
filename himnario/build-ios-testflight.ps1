@@ -35,3 +35,4 @@ npx eas-cli build --platform ios --profile production --auto-submit
 Write-Host ""
 Write-Host "Done. Once the build and submission finish, it will appear in TestFlight and App Store Connect."
 Read-Host "Press Enter to close"
+

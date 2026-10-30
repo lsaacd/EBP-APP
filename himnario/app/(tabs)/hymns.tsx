@@ -742,6 +742,9 @@ export default function HymnListScreen() {
                 style={styles.sliderPositionGlassPill}
               >
                 <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
                   style={[
                     styles.sliderPositionPillText,
                     { color: isDarkMode ? '#ffffff' : '#6e1619' },
@@ -1675,7 +1678,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 130,
     right: 6,
-    width: 44,
+    width: 68,
     zIndex: 100,
     alignItems: 'center',
   },
@@ -1700,7 +1703,8 @@ const styles = StyleSheet.create({
   },
   sliderPositionGlassPill: {
     marginTop: 10,
-    paddingHorizontal: 7,
+    minWidth: 58,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
@@ -1708,7 +1712,8 @@ const styles = StyleSheet.create({
   },
   sliderPositionAndroidPill: {
     marginTop: 10,
-    paddingHorizontal: 7,
+    minWidth: 58,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 10,
     elevation: 2,

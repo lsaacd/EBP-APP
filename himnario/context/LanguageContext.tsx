@@ -57,6 +57,11 @@ export const strings = {
     shareWhatsAppSub: 'Enviar enlace y título por WhatsApp',
     shareCopyLyrics: 'Copiar letra',
     shareCopyLyricsSub: 'Texto completo de todas las estrofas',
+    sharePdf: 'Crear PDF para imprimir',
+    sharePdfIncludeTitle: 'Incluir título en el PDF',
+    sharePdfPreparing: 'Preparando PDF…',
+    sharePdfError: 'No se pudo crear el PDF. Intenta de nuevo.',
+    sharePdfSub: 'Dos copias apaisadas, listas para cortar',
     shareSystemMore: 'Más opciones',
     shareSystemMoreSub: 'Mensajes, correo y otras apps',
     shareLinkCopied: 'Enlace copiado al portapapeles',
@@ -173,7 +178,7 @@ export const strings = {
     spanish: 'Español',
     english: 'English',
     // About modal
-    aboutVersion: 'Versión 1.0.0',
+    aboutVersion: 'Versión 1.1.0',
     aboutTagline: 'Solo A Dios La Gloria',
     aboutDescription:
       'Himnario El Buen Pastor es una colección digital de himnos de alabanza de la Iglesia del Dios Vivo, Columna y Apoyo de la Verdad "El Buen Pastor" — fundada sobre la Roca inamovible que es Jesucristo, la Piedra Angular. \n\nCada himno en esta colección es una expresión de fe en el glorioso Nombre de nuestro Señor y Salvador Jesucristo, bajo cuyo nombre hemos sido sanados, liberados y perdonados. Porque como dice Su Palabra: "Edificados sobre el fundamento de los apóstoles y profetas, siendo la principal piedra del ángulo Jesucristo mismo;" — Efesios 2:20 \n\nEstos himnos son los mismos que han resonado en nuestros cultos, en nuestras vigilias, en momentos donde solo el Nombre de Jesucristo era el ancla del alma. Incluye letras completas para adorar, para preparar el culto, o para llevar los himnos a donde vayas — porque la alabanza no termina cuando termina el servicio. \n\nY si hoy el camino se siente pesado, que estos himnos te recuerden que el Señor Jesucristo aún reina, aún sana, y aún viene. \n\n"Así que, ofrezcamos por medio de él á Dios siempre sacrificio de alabanza, es á saber, fruto de labios que confiesen á su nombre." — Hebreos 13:15 \n\nQue Su gracia te sostenga, Su paz te guarde, y Su Nombre sea siempre tu fortaleza. Amén.',
@@ -269,6 +274,11 @@ export const strings = {
     shareWhatsAppSub: 'Send link and title via WhatsApp',
     shareCopyLyrics: 'Copy lyrics',
     shareCopyLyricsSub: 'Full text of all verses',
+    sharePdf: 'Create printable PDF',
+    sharePdfIncludeTitle: 'Include title in PDF',
+    sharePdfPreparing: 'Preparing PDF…',
+    sharePdfError: 'Could not create the PDF. Please try again.',
+    sharePdfSub: 'Two landscape copies, ready to cut',
     shareSystemMore: 'More options',
     shareSystemMoreSub: 'Messages, email, and other apps',
     shareLinkCopied: 'Link copied to clipboard',
@@ -385,7 +395,7 @@ export const strings = {
     spanish: 'Español',
     english: 'English',
     // About modal
-    aboutVersion: 'Version 1.0.0',
+    aboutVersion: 'Version 1.1.0',
     aboutTagline: 'Solo A Dios La Gloria',
     aboutDescription:
       'Himnario El Buen Pastor is a digital collection of praise hymns from the Church of the Living God, Pillar and Ground of the Truth "El Buen Pastor" — founded upon the unmovable Rock that is Jesus Christ, the Chief Cornerstone. \n\nEvery hymn in this collection is an expression of faith in the glorious Name of our Lord and Savior Jesus Christ — the Name under which we have been healed, set free, and forgiven. For as His Word declares: "Built upon the foundation of the apostles and prophets, Jesus Christ himself being the chief corner stone;" — Ephesians 2:20 \n\nThese are the same hymns that have echoed through our services, our prayer vigils, in moments when the Name of Jesus Christ was the only anchor the soul had. It includes full lyrics to worship, to prepare for service, or to carry these hymns wherever you go — because praise does not end when the service does. \n\nAnd if the road feels heavy today, let these hymns remind you that the Lord Jesus Christ still reigns, still heals, and is still coming. \n\n"By him therefore let us offer the sacrifice of praise to God continually, that is, the fruit of our lips giving thanks to his name." — Hebrews 13:15 \n\nMay His grace sustain you, His peace guard you, and His Name be your fortress forevermore. Amen.',

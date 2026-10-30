@@ -9,6 +9,7 @@
  *
  * @returns {React.JSX.Element} The rendered Settings screen.
  */
+import Constants from 'expo-constants';
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -380,7 +381,7 @@ export default function SettingsScreen() {
           {t.signatureQuote}
         </Text>
         <Text style={[styles.signatureMeta, { color: theme.onSurfaceVariant }]}>
-          v 1.0.0 — Solo A Dios La Gloria
+          v {Constants.expoConfig?.version ?? '1.1.0'} — Solo A Dios La Gloria
         </Text>
       </View>
 
@@ -416,7 +417,7 @@ export default function SettingsScreen() {
                   Himnario El Buen Pastor
                 </Text>
                 <Text style={[styles.aboutVersion, { color: theme.onSurfaceVariant }]}>
-                  {t.aboutVersion}
+                  {t.aboutVersion.replace(/\d+\.\d+\.\d+/, Constants.expoConfig?.version ?? '1.1.0')}
                 </Text>
                 <Text style={[styles.aboutTagline, { color: theme.primary, opacity: 0.5 }]}>
                   {t.aboutTagline}
