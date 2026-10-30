@@ -38,7 +38,7 @@ const DAILY_VERSES = [
 
 export default function VerseCard() {
   const { theme, isDarkMode } = useTheme();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
 
   // Daily reset lock logic
   const today = new Date();
@@ -75,7 +75,7 @@ export default function VerseCard() {
       </View>
 
       {/* Opening quote mark */}
-      <Text style={[styles.quoteMark, { color: theme.primary + '20' }]}>"</Text>
+      <Text style={[styles.quoteMark, { color: theme.primary + '20' }]}>{'"'}</Text>
 
       {/* Scripture Text */}
       <Text style={[styles.verseText, { color: theme.onSurface }]}>

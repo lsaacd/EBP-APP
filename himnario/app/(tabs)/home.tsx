@@ -2,14 +2,19 @@
  * HomeScreen component — The primary landing screen of the Himnario application.
  *
  * This screen features:
+ * - Header with native search icon button (navigates to /hymns?focusSearch=1).
+ * - One-time dismissible iOS streaming & offline-audio notice.
  * - A dynamic hero card for exploring all hymns.
+ * - A "Continuar escuchando" (Continue listening) card when a hymn has been played.
  * - A "Verse of the Day" component.
- * - Quick access to recently viewed hymns.
+ * - Church Identity & Motto block ("Verdad, honestidad, justicia, santidad y caridad") with "Ver más".
+ * - Compact offline-audio status card linking to Settings.
+ * - Quick access to recently viewed hymns with saved-offline badges.
  * - Platform-specific navigation behaviors (iOS fade-out vs Android collapsible header).
  *
  * @returns {React.JSX.Element} The rendered Home screen.
  */
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
@@ -31,8 +36,10 @@ import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import VerseCard from '../../components/VerseCard';
+import IosStreamingNotice from '../../components/IosStreamingNotice';
+import GlassSurface from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
-
+import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const IS_IOS = Platform.OS === 'ios';
@@ -43,28 +50,44 @@ export default function HomeScreen() {
   const { theme, isDarkMode } = useTheme();
   const { recentIds, clearRecent } = useRecentHymns();
   const { t, language } = useLanguage();
-  const { currentHymnId } = useNowPlaying();
+  const {
+    currentHymnId,
+    lastPlayedHymnId,
+    isPlaying,
+    togglePlayPause,
+    openPlayer,
+  } = useNowPlaying();
+  const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
   const scrollViewRef = useRef<any>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    void refreshOfflineAudio();
+  }, []);
+
+  useEffect(() => {
     if (Platform.OS !== 'android') return;
-    const unsubscribe = navigation.addListener('tabPress' as any, (e: any) => {
+    const unsubscribe = navigation.addListener('tabPress' as any, () => {
       if (navigation.isFocused()) {
         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       }
     });
     return unsubscribe;
   }, [navigation]);
+
   const [showDoctrine, setShowDoctrine] = useState(false);
 
-  // Resolve hymn objects from IDs, show max 5
   const allHymns = [...hymnsData, ...estribillosData];
   const recentHymns = recentIds
     .map((rid) => allHymns.find((h) => String(h.id) === rid))
     .filter(Boolean)
     .slice(0, 10) as typeof hymnsData;
+
+  const continueHymnId = currentHymnId || lastPlayedHymnId;
+  const continueHymn = continueHymnId
+    ? allHymns.find((h) => String(h.id) === String(continueHymnId))
+    : undefined;
 
   // ── Android: block hardware/swipe back so home never navigates to index ──
   useFocusEffect(
@@ -117,7 +140,6 @@ export default function HomeScreen() {
   };
 
   // ── iOS: scroll-driven fade-out ───────────────────────────────────────────
-
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = scrollY.interpolate({
@@ -132,22 +154,42 @@ export default function HomeScreen() {
     extrapolate: 'clamp',
   });
 
+  const handleHeaderSearchPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: '/hymns',
+      params: { tab: 'himnos', focusSearch: '1', t: String(Date.now()) },
+    });
+  };
+
   // ── Shared scroll content ─────────────────────────────────────────────────
   const scrollContent = (
     <>
-      {/* ─── Hero Card — "Ver todos los himnos" ───────── */}
+      {/* ─── One-Time iOS Streaming Notice ───────────────────────── */}
+      <IosStreamingNotice />
+
+      {/* ─── Hero Card — "Explora Todos Los Himnos" ───────────────── */}
       <View
-        style={[styles.heroWrapper, {
-          shadowColor: isDarkMode ? '#ffffff44' : theme.primary,
-          backgroundColor: isDarkMode ? '#1c1c1c' : theme.primary,
-        }]}
+        style={[
+          styles.heroWrapper,
+          {
+            shadowColor: isDarkMode ? '#ffffff44' : theme.primary,
+            backgroundColor: isDarkMode ? '#1c1c1c' : theme.primary,
+          },
+        ]}
       >
         <TouchableOpacity
-          style={[styles.heroSurface, { backgroundColor: isDarkMode ? '#1F1F1F' : theme.primary }]}
+          style={[
+            styles.heroSurface,
+            { backgroundColor: isDarkMode ? '#1F1F1F' : theme.primary },
+          ]}
           activeOpacity={0.8}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push({ pathname: '/hymns', params: { tab: 'himnos', t: Date.now() } });
+            router.push({
+              pathname: '/hymns',
+              params: { tab: 'himnos', t: String(Date.now()) },
+            });
           }}
         >
           <MaterialIcons
@@ -178,34 +220,183 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ─── Daily Verse ───────────────────────────────── */}
+      {/* ─── Continuar escuchando Card ────────────────────────────── */}
+      {continueHymn && (
+        <View
+          style={[
+            styles.continueCard,
+            {
+              backgroundColor: theme.surfaceVariants.containerLow,
+              borderColor: theme.primary + '22',
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.continueCardMain}
+            activeOpacity={0.75}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/hymn/${continueHymn.id}`);
+            }}
+          >
+            <View
+              style={[
+                styles.continueBadge,
+                { backgroundColor: theme.primary + '14' },
+              ]}
+            >
+              <Text style={[styles.continueBadgeNum, { color: theme.primary }]}>
+                {continueHymn.number}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.continueEyebrow, { color: theme.primary }]}>
+                {t.continueListening}
+              </Text>
+              <Text
+                style={[styles.continueTitle, { color: theme.onSurface }]}
+                numberOfLines={1}
+              >
+                {continueHymn.title}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              currentHymnId === String(continueHymn.id) && isPlaying
+                ? language === 'es'
+                  ? 'Pausar'
+                  : 'Pause'
+                : t.continueListening
+            }
+            style={[styles.continuePlayBtn, { backgroundColor: theme.primary }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (currentHymnId === String(continueHymn.id)) {
+                togglePlayPause();
+              } else {
+                openPlayer(String(continueHymn.id));
+              }
+            }}
+          >
+            <MaterialIcons
+              name={
+                currentHymnId === String(continueHymn.id) && isPlaying
+                  ? 'pause'
+                  : 'play-arrow'
+              }
+              size={22}
+              color={theme.onPrimary}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ─── Daily Verse ──────────────────────────────────────────── */}
       <VerseCard />
 
-      {/* ─── Temario / Doctrine Card ───────────────────── */}
+      {/* ─── Temario / Doctrine & Church Motto Card ───────────────── */}
       <TouchableOpacity
-        style={[styles.doctrineCard, {
-          backgroundColor: theme.surfaceVariants.containerLow,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: theme.primary + '20',
-        }]}
+        style={[
+          styles.doctrineCard,
+          {
+            backgroundColor: theme.surfaceVariants.containerLow,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.primary + '24',
+          },
+        ]}
         activeOpacity={0.8}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setShowDoctrine(true);
         }}
       >
-        <View style={[styles.doctrineCardIconWrap, { backgroundColor: theme.primary + '12' }]}>
-          <MaterialIcons name="history-edu" size={24} color={theme.primary} />
+        <View style={styles.doctrineTopRow}>
+          <View
+            style={[
+              styles.doctrineCardIconWrap,
+              { backgroundColor: theme.primary + '12' },
+            ]}
+          >
+            <MaterialIcons name="history-edu" size={24} color={theme.primary} />
+          </View>
+          <View style={styles.doctrineCardTextBlock}>
+            <Text style={[styles.doctrineCardTitle, { color: theme.onSurface }]}>
+              {t.doctrineCardTitle}
+            </Text>
+            <Text style={[styles.doctrineSeeMore, { color: theme.primary }]}>
+              {t.seeMore} →
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={22} color={theme.outlineVariant} />
         </View>
-        <View style={styles.doctrineCardTextBlock}>
-          <Text style={[styles.doctrineCardTitle, { color: theme.onSurface }]}>
-            {t.doctrineCardTitle}
+
+        <View
+          style={[
+            styles.mottoDivider,
+            { backgroundColor: theme.outlineVariant + '33' },
+          ]}
+        />
+
+        <View style={styles.mottoQuoteWrap}>
+          <Text style={[styles.mottoQuoteText, { color: theme.onSurface }]}>
+            {`“${t.churchMottoText}”`}
+          </Text>
+          <Text style={[styles.mottoLabelText, { color: theme.primary }]}>
+            {t.churchMottoLabel}
           </Text>
         </View>
-        <MaterialIcons name="chevron-right" size={22} color={theme.outlineVariant} />
       </TouchableOpacity>
 
-      {/* ─── Himnos Recientes ─────────────────── */}
+      {/* ─── Compact Offline Audio Status Row ─────────────────────── */}
+      {offline.total > 0 && (
+        <TouchableOpacity
+          style={[
+            styles.offlineStatusCard,
+            {
+              backgroundColor: theme.surfaceVariants.containerLow,
+              borderColor: theme.outlineVariant + '26',
+            },
+          ]}
+          activeOpacity={0.78}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/settings');
+          }}
+        >
+          <View
+            style={[
+              styles.offlineStatusIconWrap,
+              { backgroundColor: theme.primary + '12' },
+            ]}
+          >
+            <MaterialIcons
+              name={offline.saved >= offline.total ? 'offline-pin' : 'cloud-download'}
+              size={20}
+              color={theme.primary}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.offlineStatusTitle, { color: theme.onSurface }]}>
+              {t.offlineAudioTitle}
+            </Text>
+            <Text
+              style={[styles.offlineStatusSub, { color: theme.onSurfaceVariant }]}
+              numberOfLines={1}
+            >
+              {t.offlineAudioSaved
+                .replace('{saved}', String(offline.saved))
+                .replace('{total}', String(offline.total))}
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
+        </TouchableOpacity>
+      )}
+
+      {/* ─── Himnos Recientes ─────────────────────────────────────── */}
       <View style={styles.recentsSection}>
         <View style={styles.recentsHeader}>
           <Text style={[styles.recentsTitle, { color: theme.primary }]}>
@@ -218,7 +409,9 @@ export default function HomeScreen() {
                 clearRecent();
               }}
             >
-              <Text style={[styles.recentsLabel, { color: theme.outline }]}>{t.clearHistory}</Text>
+              <Text style={[styles.recentsLabel, { color: theme.outline }]}>
+                {t.clearHistory}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -229,37 +422,53 @@ export default function HomeScreen() {
           </Text>
         ) : (
           <View>
-            {recentHymns.map((hymn) => (
-              <TouchableOpacity
-                key={hymn.id}
-                style={styles.recentItem}
-                activeOpacity={0.8}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push(`/hymn/${hymn.id}`);
-                }}
-              >
-                <Text
-                  style={[styles.recentNum, { color: theme.primary, opacity: 0.4 }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.6}
+            {recentHymns.map((hymn) => {
+              const isSaved = offline.savedIds.has(String(hymn.id));
+              return (
+                <TouchableOpacity
+                  key={hymn.id}
+                  style={styles.recentItem}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push(`/hymn/${hymn.id}`);
+                  }}
                 >
-                  {hymn.number}
-                </Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.recentTitle, { color: theme.onSurface }]}>
-                    {hymn.title}
+                  <Text
+                    style={[styles.recentNum, { color: theme.primary, opacity: 0.4 }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
+                  >
+                    {hymn.number}
                   </Text>
-                  {hymn.categories ? (
-                    <Text style={[styles.recentCat, { color: theme.outline }]}>
-                      {translateCategories(hymn.categories, language).toUpperCase()}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.recentTitle, { color: theme.onSurface }]}>
+                      {hymn.title}
                     </Text>
-                  ) : null}
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.outline} style={{ opacity: 0.3 }} />
-              </TouchableOpacity>
-            ))}
+                    {hymn.categories ? (
+                      <Text style={[styles.recentCat, { color: theme.outline }]}>
+                        {translateCategories(hymn.categories, language).toUpperCase()}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {isSaved && (
+                    <MaterialIcons
+                      name="offline-pin"
+                      size={16}
+                      color={theme.primary}
+                      style={{ opacity: 0.85 }}
+                    />
+                  )}
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.outline}
+                    style={{ opacity: 0.3 }}
+                  />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
@@ -280,23 +489,19 @@ export default function HomeScreen() {
       <View style={styles.docOverlay}>
         <View style={[styles.docSheet, { backgroundColor: theme.background }]}>
           <View style={[styles.docHandle, { backgroundColor: theme.outlineVariant }]} />
-          <ScrollView 
-            showsVerticalScrollIndicator={true} 
+          <ScrollView
+            showsVerticalScrollIndicator={true}
             indicatorStyle={isDarkMode ? 'white' : 'black'}
             contentContainerStyle={styles.docScroll}
           >
-            <Text style={[styles.docModalTitle, { color: theme.primary }]} >
+            <Text style={[styles.docModalTitle, { color: theme.primary }]}>
               {t.doctrineModalTitle}
             </Text>
             <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
 
             {/* Intro */}
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>
-              {t.doctrineIntro}
-            </Text>
-            <Text style={[styles.docVerse, { color: theme.primary }]}>
-              {t.doctrineVerse}
-            </Text>
+            <Text style={[styles.docBody, { color: theme.onSurface }]}>{t.doctrineIntro}</Text>
+            <Text style={[styles.docVerse, { color: theme.primary }]}>{t.doctrineVerse}</Text>
             <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
 
             {/* Nombre */}
@@ -346,19 +551,17 @@ export default function HomeScreen() {
   );
 
   // ══════════════════════════════════════════════════════════════════════════
-  // iOS LAYOUT — fade-out title + Animated.ScrollView
+  // iOS LAYOUT — fade-out title + Animated.ScrollView + Glass Search Button
   // ══════════════════════════════════════════════════════════════════════════
   if (IS_IOS) {
     return (
       <View style={[styles.root, { backgroundColor: theme.background }]}>
-
-        {/* 1. Scroll content rendered FIRST (bottom of the Z-stack) */}
         <Animated.ScrollView
           ref={scrollViewRef}
           contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true },
+            { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={true}
@@ -367,7 +570,6 @@ export default function HomeScreen() {
           {scrollContent}
         </Animated.ScrollView>
 
-        {/* 2. Scrim (middle of the Z-stack) */}
         <LinearGradient
           colors={[
             isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
@@ -377,18 +579,21 @@ export default function HomeScreen() {
           pointerEvents="none"
         />
 
-        {/* 3. Header Container rendered LAST with pointerEvents="box-none" so it sits on top and receives touches */}
         <View
-          style={[
-            styles.headerContainer,
-            { paddingTop: insets.top + 16 },
-          ]}
+          style={[styles.headerContainer, { paddingTop: insets.top + 14 }]}
           pointerEvents="box-none"
         >
           <Animated.View
-            style={[styles.headerTitleRow, { opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}
+            style={[
+              styles.headerTitleRow,
+              {
+                opacity: titleOpacity,
+                transform: [{ translateY: titleTranslateY }],
+              },
+            ]}
             pointerEvents="box-none"
           >
+            <View style={{ width: 38 }} pointerEvents="none" />
             <Text
               style={[styles.headerTitle, { color: theme.primary, flex: 1 }]}
               numberOfLines={1}
@@ -397,6 +602,22 @@ export default function HomeScreen() {
             >
               Himnario El Buen Pastor
             </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={
+                language === 'es' ? 'Buscar himnos' : 'Search hymns'
+              }
+              activeOpacity={0.75}
+              onPress={handleHeaderSearchPress}
+            >
+              <GlassSurface
+                isInteractive
+                intensity={55}
+                style={styles.headerSearchGlassBtn}
+              >
+                <MaterialIcons name="search" size={20} color={theme.primary} />
+              </GlassSurface>
+            </TouchableOpacity>
           </Animated.View>
         </View>
 
@@ -406,12 +627,10 @@ export default function HomeScreen() {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ANDROID / WEB LAYOUT — same collapsible header pattern as settings page
+  // ANDROID / WEB LAYOUT — collapsible header + tonal Search Button
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-
-      {/* 1. Scroll content rendered FIRST (bottom of the Z-stack) */}
       <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
         <ScrollView
           ref={scrollViewRef}
@@ -425,7 +644,6 @@ export default function HomeScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* 2. Scrim (middle of the Z-stack) */}
       <LinearGradient
         colors={[
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
@@ -435,17 +653,20 @@ export default function HomeScreen() {
         pointerEvents="none"
       />
 
-      {/* 3. Header Container rendered LAST with pointerEvents="box-none" so it sits on top and receives touches */}
       <Animated.View
         onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
         collapsable={false}
         pointerEvents="box-none"
         style={[
           styles.headerContainer,
-          { backgroundColor: theme.background, transform: [{ translateY: headerTranslate }] },
+          {
+            backgroundColor: theme.background,
+            transform: [{ translateY: headerTranslate }],
+          },
         ]}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]} pointerEvents="box-none">
+        <View style={[styles.header, { paddingTop: insets.top + 18 }]} pointerEvents="box-none">
+          <View style={{ width: 40 }} pointerEvents="none" />
           <Text
             style={[styles.headerTitle, { color: theme.primary, flex: 1 }]}
             numberOfLines={1}
@@ -454,6 +675,18 @@ export default function HomeScreen() {
           >
             Himnario El Buen Pastor
           </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={language === 'es' ? 'Buscar himnos' : 'Search hymns'}
+            style={[
+              styles.headerSearchAndroidBtn,
+              { backgroundColor: theme.surfaceVariants.containerLow },
+            ]}
+            activeOpacity={0.75}
+            onPress={handleHeaderSearchPress}
+          >
+            <MaterialIcons name="search" size={22} color={theme.primary} />
+          </TouchableOpacity>
         </View>
       </Animated.View>
 
@@ -481,26 +714,43 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 20,   // above header (10) and scroll content
+    zIndex: 20,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingBottom: 4,
+    gap: 8,
   },
   headerTitle: {
     fontFamily: fonts.bold,
-    fontSize: 26,
+    fontSize: 25,
     letterSpacing: 0.3,
     textAlign: 'center',
   },
-  headerDivider: {
-    height: 1,
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
-    marginTop: 8,
+    gap: 8,
+  },
+  headerSearchGlassBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerSearchAndroidBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scroll: {
     paddingHorizontal: 24,
@@ -542,26 +792,75 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Doctrine card
-  doctrineCard: {
+  // Continuar escuchando
+  continueCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  continueCardMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  continueBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueBadgeNum: {
+    fontFamily: fonts.bold,
+    fontSize: 18,
+  },
+  continueEyebrow: {
+    fontFamily: 'PublicSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  continueTitle: {
+    fontFamily: fonts.regularItalic,
+    fontSize: 17,
+  },
+  continuePlayBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Doctrine & Church Motto card
+  doctrineCard: {
     paddingHorizontal: 18,
     paddingVertical: 18,
-    borderRadius: 16,
-    marginBottom: 40,
+    borderRadius: 18,
+    marginBottom: 16,
+  },
+  doctrineTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
   doctrineCardTextBlock: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   doctrineCardTitle: {
     fontFamily: 'PublicSans_600SemiBold',
     fontSize: 15,
   },
-  doctrineCardSub: {
-    fontFamily: 'PublicSans_400Regular',
+  doctrineSeeMore: {
+    fontFamily: 'PublicSans_600SemiBold',
     fontSize: 12,
   },
   doctrineCardIconWrap: {
@@ -571,6 +870,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  mottoDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+    marginVertical: 14,
+  },
+  mottoQuoteWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  mottoQuoteText: {
+    fontFamily: fonts.regularItalic,
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  mottoLabelText: {
+    fontFamily: 'PublicSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+
+  // Compact Offline Audio Status Card
+  offlineStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 32,
+    gap: 12,
+  },
+  offlineStatusIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offlineStatusTitle: {
+    fontFamily: 'PublicSans_600SemiBold',
+    fontSize: 14,
+    marginBottom: 1,
+  },
+  offlineStatusSub: {
+    fontFamily: 'PublicSans_400Regular',
+    fontSize: 12,
   },
 
   // Recents
@@ -594,7 +944,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 8,
-    gap: 24,
+    gap: 20,
   },
   recentNum: {
     fontFamily: fonts.bold,
@@ -620,15 +970,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 8,
   },
-
-  // Header icon
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    gap: 12,
-  },
-
 
   // Doctrine modal
   docOverlay: {
