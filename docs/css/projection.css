@@ -159,3 +159,12 @@ body.projecting{overflow:hidden}.projection-screen:has(.projection:not([hidden])
 .projection:not([hidden]) .projection-shortcuts{width:100%;max-width:none;justify-content:center;margin:0!important;gap:5px 12px}
 .projection-tabs{max-width:100%}
 @media(max-width:650px){.projection:not([hidden]) .projection-controls{padding:12px 40px;gap:10px}.projection:not([hidden]) .projection-toolbar-top{gap:10px}.projection:not([hidden]) .projection-shortcuts{gap:5px 8px}.projection-font-tools{max-width:100%}}
+
+/* Phone full screen (in-page): only the lyrics; tap sides to change verse, center for controls */
+.projection-immersive{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.projection-immersive .projection-exit,.projection-immersive .projection-reveal{display:none!important}
+.projection-tap-hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);z-index:5;max-width:calc(100vw - 32px);margin:0;padding:9px 16px;border-radius:999px;background:#242424e6;color:#fff;font:500 13px/1.35 'Public Sans',sans-serif;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s ease}
+.projection-tap-hint.visible{opacity:1}
+@media(prefers-reduced-motion:reduce){.projection-tap-hint{transition:none}}
+/* Keyboard shortcuts are not useful on touch phones */
+@media(hover:none) and (pointer:coarse){.projection-shortcuts{display:none!important}}
