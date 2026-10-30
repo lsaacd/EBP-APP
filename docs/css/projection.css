@@ -156,3 +156,8 @@ body.projecting{overflow:hidden}.projection-screen:has(.projection:not([hidden])
 .projection-branding{display:flex;flex-direction:column;align-items:center;gap:2px}
 .projection-branding-domain{font:400 .8em/1.4 'Public Sans',sans-serif;letter-spacing:.025em}
 .projection .projection-branding{position:static;transform:none;flex-shrink:0;align-self:center;margin:20px auto 0;max-width:80vw}
+
+.projection-toolbar-actions>button:not(.projection-theme){display:inline-flex;align-items:center;justify-content:center;gap:9px}
+.projection-toolbar-actions>button>svg{width:20px;height:20px;flex-shrink:0}
+.projection-report{display:inline-block;margin-top:10px;color:inherit;opacity:.7;font:400 11px/1.5 'Public Sans',sans-serif;text-underline-offset:3px}
+.projection-report:hover,.projection-report:focus-visible{opacity:1;text-decoration:underline}

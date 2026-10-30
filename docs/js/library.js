@@ -177,6 +177,12 @@
  $('prev').onclick=()=>pageFlip?.turn(-1);$('next').onclick=()=>pageFlip?.turn(1);$('prev').title='Alabanza anterior · Flecha izquierda';$('next').title='Alabanza siguiente · Flecha derecha';
  function setFontSize(value){if(!Number.isFinite(value))return;size=Math.max(minFontSize,Math.min(maxFontSize,Math.round(value)));$('lyrics').style.setProperty('--size',`${size}px`);$('reader-font-size').value=$('reader-font-pixels').value=String(size);$('reader-font-size').setAttribute('aria-valuetext',`${size} píxeles`);$('reader-font-size').style.setProperty('--font-progress',`${(size-minFontSize)/(maxFontSize-minFontSize)*100}%`);$('reader-font-preview').style.fontSize=`${size}px`;$('smaller').disabled=size===minFontSize;$('larger').disabled=size===maxFontSize;save('ebp-font',size);}
  function closeTextSettings(restoreFocus=false){$('reader-text-settings').hidden=true;$('reader-text').setAttribute('aria-expanded','false');if(restoreFocus)$('reader-text').focus({preventScroll:true});}
+ document.addEventListener('keydown',e=>{
+  if($('reader').hidden||document.body.classList.contains('projecting')||document.querySelector('dialog[open]')||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))return;
+  if(['+','=','-','_'].includes(e.key)){e.preventDefault();setFontSize(size+(['+','='].includes(e.key)?1:-1));}
+ });
+ $('smaller').title='Reducir texto · −';$('larger').title='Aumentar texto · +';
  $('smaller').onclick=()=>setFontSize(size-1);$('larger').onclick=()=>setFontSize(size+1);$('reader-font-reset').onclick=()=>setFontSize(defaultFontSize);$('reader-text-close').onclick=()=>closeTextSettings(true);
  $('reader-text').onclick=()=>{if(!$('reader-text-settings').hidden){closeTextSettings();return;}$('reader-text-settings').hidden=false;$('reader-text').setAttribute('aria-expanded','true');setFontSize(size);$('reader-font-size').focus({preventScroll:true});};$('reader-font-size').oninput=e=>setFontSize(Number(e.target.value));
  const pixels=$('reader-font-pixels');pixels.oninput=()=>{const value=pixels.valueAsNumber;if(value>=minFontSize&&value<=maxFontSize)setFontSize(value);};const commitPixels=()=>setFontSize(pixels.value.trim()?pixels.valueAsNumber:size);pixels.onchange=commitPixels;pixels.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();commitPixels();}};
