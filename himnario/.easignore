@@ -51,3 +51,8 @@ scratch
 
 # example
 app-example
+
+# audio (streamed from Cloudflare R2 on Android; do not bundle into EAS archive)
+assets/audio/
+assets/audio/**/*
+
