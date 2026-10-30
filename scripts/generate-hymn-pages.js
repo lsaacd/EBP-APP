@@ -9,7 +9,7 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DATA_FILE = path.join(REPO_ROOT, 'docs', 'data', 'hymns-data.js');
 const DOCS_DIR = path.join(REPO_ROOT, 'docs');
-const R2_AUDIO_BASE = 'https://pub-81f518709acd4b4c8d0344f474c2d629.r2.dev/';
+const R2_AUDIO_BASE = 'https://audio.himnarioebp.com/';
 const APP_STORE_URL = 'https://apps.apple.com/app/id6794435414';
 const SITE_ORIGIN = 'https://himnarioebp.com';
 
@@ -338,8 +338,9 @@ function generateAppleAssociation() {
       apps: [],
       details: [
         {
-          appID: "com.elbuenpastor",
+          appID: "VV6BQ35L5N.com.elbuenpastor",
           paths: [
+            "/h/*",
             "/hymn/*",
             "/himno/*"
           ]
@@ -348,7 +349,7 @@ function generateAppleAssociation() {
     },
     webcredentials: {
       apps: [
-        "com.elbuenpastor"
+        "VV6BQ35L5N.com.elbuenpastor"
       ]
     }
   };
