@@ -14,7 +14,7 @@
  const text=h=>`${label(h)} · ${h.title}\nHimnario El Buen Pastor\n\n${h.lyrics}${h.author?'\n\nAutor: '+h.author:''}${h.reference?'\nReferencia: '+h.reference:''}\n\n${publicURL(h)}`;
  const filename=h=>`${label(h)} - ${h.title}`.normalize('NFC').replace(/[<>:"/\\|?*\x00-\x1f]/g,'').slice(0,150);
  const iconPaths={
-  'Copiar enlace':'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+  'Copiar enlace':'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   'Copiar letra':'<rect x="8" y="7" width="12" height="14" rx="2"/><path d="M16 7V3H4v14h4m4-6h4m-4 4h4"/>',
   'Archivo TXT':'<path d="M14 2H5v20h14V7Zm0 0v6h5M8 12h8m-8 4h8"/>',
   'Más opciones':'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
