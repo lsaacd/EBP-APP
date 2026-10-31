@@ -39,7 +39,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TrackPlayer, { useProgress } from 'react-native-track-player';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';

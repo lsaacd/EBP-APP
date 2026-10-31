@@ -16,7 +16,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 import { fonts } from '../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 
 interface AddToPlaylistModalProps {
   visible: boolean;

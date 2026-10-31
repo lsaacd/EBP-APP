@@ -13,6 +13,7 @@ desktop.ini
 *.log
 logcat.txt
 scratch/
+.codex-remote-attachments/
 .cloudflare-pages-stage/
 .wrangler-cache/
 __pycache__/

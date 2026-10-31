@@ -28,7 +28,7 @@ import {
   PublicSans_700Bold,
 } from '@expo-google-fonts/public-sans';
 import { useEffect } from 'react';
-import { View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
+import { AppState, View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { PlaylistsProvider } from '../context/PlaylistsContext';
@@ -40,7 +40,9 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import TrackPlayer from 'react-native-track-player';
+import * as NavigationBar from 'expo-navigation-bar';
 import MiniPlayer from '../components/MiniPlayer';
+import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
 
 // The background playback service is now registered in the root index.js
@@ -93,8 +95,16 @@ function ThemedStack() {
   const isPlaylist = pathname.startsWith('/playlist/');
   const isHymn = pathname.startsWith('/hymn/');
 
-  const pillBottom = Math.max(insets.bottom, 22);
-  const pillHeight = 55; // Android floating tab bar & global hymn reading bar height
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const hideNavigation = () => { void NavigationBar.setVisibilityAsync('hidden').catch(error => console.warn('[NavigationBar]', error)); };
+    hideNavigation();
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') hideNavigation(); });
+    return () => listener.remove();
+  }, []);
+
+  const pillBottom = isIOS ? Math.max(insets.bottom, 22) : androidBottomInset(insets.bottom);
+  const pillHeight = isIOS ? 55 : ANDROID_BOTTOM_BAR_HEIGHT;
 
   let miniPlayerBottom: number;
 
@@ -105,6 +115,9 @@ function ThemedStack() {
     // iOS Main Tabs use NativeTabs (UITabBarController).
     // Native tab bar is pinned to the absolute bottom: 49px + safe area inset.
     miniPlayerBottom = 49 + insets.bottom;
+  } else if (!isIOS && !isHymn) {
+    // Flush Android tabs include the safe inset beneath their 64px icon row.
+    miniPlayerBottom = insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
   } else {
     // Android Tabs and all Hymn Lyrics pages use the floating pill bar
     miniPlayerBottom = pillBottom + pillHeight;

@@ -31,7 +31,7 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';

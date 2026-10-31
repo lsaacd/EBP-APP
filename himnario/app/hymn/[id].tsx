@@ -26,7 +26,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
@@ -37,6 +37,8 @@ import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import TextSizeSheet from '../../components/TextSizeSheet';
 import ProjectorModal from '../../components/ProjectorModal';
 import ShareSheet from '../../components/ShareSheet';
+import WebIcon from '../../components/WebIcon';
+import AndroidReaderControls from '../../components/AndroidReaderControls';
 import GlassSurface from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
@@ -325,7 +327,7 @@ export default function HymnDetail() {
               <MaterialIcons name="present-to-all" size={24} color={theme.primary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => setPlaylistModalVisible(true)}>
-              <MaterialIcons name="playlist-add" size={28} color={theme.primary} />
+              {Platform.OS === 'android' ? <WebIcon name="list" color={theme.primary} size={26} /> : <MaterialIcons name="playlist-add" size={28} color={theme.primary} />}
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => handleBookmark(hymn)}>
               <MaterialIcons
@@ -335,7 +337,7 @@ export default function HymnDetail() {
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => handleShare(hymn)}>
-              <MaterialIcons name="share" size={24} color={theme.primary} />
+              {Platform.OS === 'android' ? <WebIcon name="share" color={theme.primary} size={24} /> : <MaterialIcons name="share" size={24} color={theme.primary} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -452,8 +454,11 @@ export default function HymnDetail() {
         </SafeAreaView>
       </PageFlipTransition>
 
-      {/* ─── Floating Reading Controls (pill) ─────────── */}
-      <View style={[
+      {/* Android matches the website; iOS retains its reading pill. */}
+      {Platform.OS === 'android' ? (
+        <AndroidReaderControls onText={() => setTextSizeSheetVisible(true)} onTheme={toggleTheme}
+          onAudio={() => handlePlayAudio(hymn)} hasAudio={hymnAudio(hymn)} />
+      ) : <View style={[
         styles.floatWrap, 
         { bottom: Math.max(insets.bottom, 22) } 
       ]}>
@@ -527,7 +532,7 @@ export default function HymnDetail() {
             }]}>AUDIO</Text>
           </TouchableOpacity>
         </GlassSurface>{/* floatPill */}
-      </View>{/* floatWrap */}
+      </View>}{/* floatWrap */}
 
 
       {/* ── Prev / Next hymn navigation buttons (bottom edges) ───── */}

@@ -8,22 +8,23 @@ Expo SDK 54, React 19, React Native 0.81, Expo Router, TypeScript. Check `himnar
 | --- | --- |
 | Entry and native background service | `index.js`, `service.js` |
 | Providers, fonts, global player | `app/_layout.tsx` |
-| iOS NativeTabs / Android floating navigation | `app/(tabs)/_layout.tsx` |
+| iOS NativeTabs / Android edge bottom navigation | `app/(tabs)/_layout.tsx`, `components/androidBottomLayout.ts` |
 | Home, catalog, favorites, settings | `app/(tabs)/` |
-| Reader and playlist details | `app/hymn/[id].tsx`, `app/playlist/[id].tsx` |
+| Reader and playlist details | `app/hymn/[id].tsx`, `app/playlist/[id].tsx`, `components/AndroidReaderControls.tsx` |
 | Shared playback state | `context/NowPlayingContext.tsx`, `audio/native-player.ts` |
 | Queue, repeat, shuffle, commands | `audio/android-playback-controller.ts` (used by the native adapter) |
 | Downloads and offline playback | `audio/offline-audio.ts` |
 | Mini/full player | `components/MiniPlayer.tsx`, `components/MusicPlayer.tsx` |
 | Native surfaces / Liquid Glass | `components/GlassSurface.tsx` (`expo-glass-effect` guarded by `isGlassEffectAPIAvailable`, fallback to `BlurView` via `expo-blur`) |
 | Sharing/PDF, projector, text sizing | `components/ShareSheet.tsx`, `ProjectorModal.tsx`, `TextSizeSheet.tsx` |
+| Cross-platform icons / Haptics | `components/WebIcon.tsx`, `utils/haptics.ts` (Android haptics disabled, iOS preserved) |
 | Theme and bilingual UI | `theme/ThemeContext.tsx`, `theme/theme.js`, `context/LanguageContext.tsx` |
 
 Android playback works. Preserve `patches/react-native-track-player+4.1.2.patch`, applied by `patch-package` during installation, and root playback-service registration in `index.js`. The native patch includes the New Architecture event fix.
 
 ## Native dependencies (Version 1.1.0)
 
-Version 1.1.0 adds `expo-print` and `expo-sharing` (for printable 2-up landscape PDF creation directly inside `ShareSheet.tsx`). Adding or modifying native modules requires a full native build (`eas build`), not an OTA update.
+Version 1.1.0 adds `expo-print` and `expo-sharing` (for printable 2-up landscape PDF creation directly inside `ShareSheet.tsx`) and `expo-navigation-bar` (to hide Android system navigation on startup/resume). Adding or modifying native modules requires a full native build (`eas build`), not an OTA update.
 
 ## Data and storage
 

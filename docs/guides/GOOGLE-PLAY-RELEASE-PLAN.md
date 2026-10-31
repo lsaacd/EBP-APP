@@ -8,6 +8,6 @@ The remaining release milestone is the 14-day Google Play testing period. Follow
 
 Once the required test completes, finish the production-access/review steps shown in Play Console and publish the approved release. Completion of the testing period does not itself publish the app.
 
-The latest local PDF/share/UI changes are separate from the working Android test build. They require a compatible new native build before inclusion in a release.
+The latest PDF/share/UI changes have now been included in an installable preview-arm64 APK; see [EAS.md](../../EAS.md) for the latest build and download. This test APK does not replace or publish the Google Play testing release.
 
 Use [EAS.md](../../EAS.md) for build configuration. When the public Play listing is available, replace “Próximamente” on the website with its real URL in `docs/index.html` and `docs/js/mockups.js`.

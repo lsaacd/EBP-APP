@@ -35,7 +35,7 @@ import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { useHymnFilter } from '../../context/HymnFilterContext';
 import { hasHymnAudio } from '../../data/audioRegistry';

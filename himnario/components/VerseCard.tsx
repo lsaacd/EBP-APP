@@ -4,7 +4,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 
 const DAILY_VERSES = [
   { es: { ref: 'Mateo 18:20', text: 'Porque donde están dos ó tres congregados en mi nombre, allí estoy yo en medio de ellos.' }, en: { ref: 'Matthew 18:20', text: 'For where two or three are gathered in my name, there am I among them.' } },

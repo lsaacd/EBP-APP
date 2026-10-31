@@ -2,30 +2,25 @@
  * TabLayout — Platform-split tab navigation.
  *
  * iOS:     NativeTabs → system tab bar (UITabBarController).
- * Android: Expo Router <Tabs> with a custom floating pill tab bar that
- *          mirrors the old BottomNavBar design — glass tint, rounded pill,
- *          burgundy active accent — but uses simple taps instead of the
- *          complex PanResponder sliding bubble.
+ * Android: Large icon-only tabs anchored to the bottom edge.
  *
  * @returns {React.JSX.Element} The tab layout.
  */
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
+import { ANDROID_BOTTOM_BAR_HEIGHT } from '../../components/androidBottomLayout';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 
 // ══════════════════════════════════════════════════════════════════════════
 // iOS — NativeTabs with SF Symbols
@@ -63,118 +58,40 @@ function IOSTabs() {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// Android — Custom floating pill tab bar
-// ══════════════════════════════════════════════════════════════════════════
-
-// Tab config — same icons as the old BottomNavBar
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
-
-const TAB_CONFIG: { name: string; icon: IconName }[] = [
-  { name: 'home', icon: 'home' },
-  { name: 'hymns', icon: 'menu-book' },
-  { name: 'favorites', icon: 'bookmark' },
-  { name: 'settings', icon: 'settings' },
-];
-
-/**
- * FloatingPillBar — Custom tab bar component rendered by Expo Router <Tabs>.
- * Visually identical to the old BottomNavBar: floating pill with glass tint,
- * rounded 50px corners, and the same color palette.
- */
-function FloatingPillBar({ state, descriptors, navigation }: any) {
-  const { theme, isDarkMode } = useTheme();
+// Android — flush bottom navigation with native circular touch feedback.
+function AndroidBottomBar({ state, descriptors, navigation }: any) {
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-
-  // ── Old pill colours — exact match ──────────────────────────────────
-  const ACTIVE_COLOR = isDarkMode ? '#ffffff' : '#6e1619';
-  const glassTint = isDarkMode
-    ? 'rgba(1,1,1,0.88)'           // dark pill — opaque (no blur on Android)
-    : 'rgba(252,249,242,0.92)';     // parchment light pill
-  const borderColor = isDarkMode
-    ? 'rgba(255,255,255,0.10)'
-    : 'rgba(255,255,255,0.50)';
-
-  const pillBottom = Math.max(insets.bottom, 22);
-
+  const active = isDarkMode ? '#fdf9f2' : '#6e1619';
   return (
-    <View style={pillStyles.overlay} pointerEvents="box-none">
-      <View
-        style={[
-          pillStyles.pillShadow,
-          { bottom: pillBottom },
-        ]}
-        pointerEvents="auto"
-      >
-        {/* Clip wrapper — overflow:hidden clips to pill radius */}
-        <View style={[pillStyles.pillClip, { borderColor }]}>
-
-          {/* Glass tint background (Android has no blur, tint IS the bg) */}
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              pillStyles.blurSelf,
-              { backgroundColor: glassTint },
-            ]}
-          />
-
-          {/* Tab row */}
-          <View style={pillStyles.tabRow}>
-            {state.routes.map((route: any, index: number) => {
-              const { options } = descriptors[route.key];
-              if (options.href === null) return null;
-              const isFocused = state.index === index;
-              const config = TAB_CONFIG[index];
-
-              const iconColor = isFocused
-                ? ACTIVE_COLOR
-                : isDarkMode
-                  ? 'rgba(243,240,234,0.55)'
-                  : 'rgba(28,28,24,0.45)';
-
-              const onPress = () => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              };
-
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  style={pillStyles.tabItem}
-                  activeOpacity={0.7}
-                  onPress={onPress}
-                  accessible
-                  accessibilityRole="button"
-                  accessibilityLabel={options.title}
-                  accessibilityState={{ selected: isFocused }}
-                >
-                  <MaterialIcons
-                    name={config?.icon ?? 'circle'}
-                    size={20}
-                    color={iconColor}
-                  />
-                  <Text
-                    style={[
-                      pillStyles.label,
-                      { color: iconColor },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {options.title}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+    <View style={[navStyles.bar, {
+      backgroundColor: isDarkMode ? '#171717' : '#fcf9f2',
+      paddingBottom: insets.bottom,
+      height: ANDROID_BOTTOM_BAR_HEIGHT + insets.bottom,
+    }]}>
+      <View pointerEvents="none" style={[navStyles.topBorder, { backgroundColor: isDarkMode ? '#ffffff1a' : '#e3dfd3' }]} />
+      <View style={navStyles.row}>
+        {state.routes.map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          if (options.href === null) return null;
+          const selected = state.index === index;
+          return (
+            <Pressable key={route.key} style={navStyles.tab}
+              accessibilityRole="tab" accessibilityLabel={options.title}
+              accessibilityState={{ selected }}
+              android_ripple={{ color: isDarkMode ? '#ffffff28' : '#6e161922', radius: 48, borderless: true }}
+              onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+              onPress={() => {
+                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                if (!selected && !event.defaultPrevented) navigation.navigate(route.name);
+              }}>
+              <View style={[navStyles.selection, selected && { backgroundColor: isDarkMode ? '#ffffff0c' : '#6e16190a' }]}>
+                <Ionicons name={androidTabIcon(route.name, selected)} size={32}
+                  color={selected ? active : (isDarkMode ? '#8e8e8e' : '#747366')} />
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -185,7 +102,7 @@ function AndroidTabs() {
 
   return (
     <Tabs
-      tabBar={(props) => <FloatingPillBar {...props} />}
+      tabBar={(props) => <AndroidBottomBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -205,53 +122,22 @@ function AndroidTabs() {
   );
 }
 
-const { width: windowWidth } = Dimensions.get('window');
-const PILL_RADIUS = 100;
+const TAB_ICONS: Record<string, [ComponentProps<typeof Ionicons>['name'], ComponentProps<typeof Ionicons>['name']]> = {
+  home: ['home-outline', 'home'],
+  hymns: ['book-outline', 'book'],
+  favorites: ['bookmark-outline', 'bookmark'],
+  settings: ['settings-outline', 'settings'],
+};
+function androidTabIcon(route: string, selected: boolean) {
+  return (TAB_ICONS[route] ?? TAB_ICONS.home)[selected ? 1 : 0];
+}
 
-const pillStyles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  pillShadow: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    borderRadius: PILL_RADIUS,
-    backgroundColor: 'transparent',
-    zIndex: 100,
-  },
-  pillClip: {
-    borderRadius: PILL_RADIUS,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-  },
-  blurSelf: {
-    borderRadius: PILL_RADIUS,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: 'transparent',
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 2,
-  },
-  label: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 10,
-    letterSpacing: -0.1,
-  },
+const navStyles = StyleSheet.create({
+  bar: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  topBorder: { position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth },
+  row: { height: ANDROID_BOTTOM_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+  tab: { flex: 1, height: ANDROID_BOTTOM_BAR_HEIGHT, alignItems: 'center', justifyContent: 'center' },
+  selection: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
 });
 
 // ══════════════════════════════════════════════════════════════════════════

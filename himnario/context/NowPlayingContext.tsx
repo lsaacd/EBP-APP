@@ -7,7 +7,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useSyncExternalStore } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { nativePlayer } from '../audio/native-player';
 import { refreshOfflineAudio } from '../audio/offline-audio';
 

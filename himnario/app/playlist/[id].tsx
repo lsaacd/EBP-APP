@@ -18,7 +18,7 @@ import { useLanguage, translateCategories } from '../../context/LanguageContext'
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 

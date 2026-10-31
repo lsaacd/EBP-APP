@@ -25,7 +25,7 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';

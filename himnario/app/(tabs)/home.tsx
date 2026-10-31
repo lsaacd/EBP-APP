@@ -31,7 +31,7 @@ import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
