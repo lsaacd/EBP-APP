@@ -5,10 +5,13 @@ Updated November 2, 2026.
 Android music playback works properly. Notification controls and the player fix are complete; no further playback repair is currently requested.
 
 The current active milestone is the 14-day Google Play closed testing period:
-- Closed testing opt-in URL: `https://play.google.com/apps/testing/com.elbuenpastor.himnario`
-- Public store listing URL: `https://play.google.com/store/apps/details?id=com.elbuenpastor.himnario`
+- Tester Google Group (Step 1): `https://groups.google.com/g/himnario-app-testers`
+- Closed testing opt-in URL (Step 2): `https://play.google.com/apps/testing/com.elbuenpastor.himnario`
+- Public store listing URL (Post-production): `https://play.google.com/store/apps/details?id=com.elbuenpastor.himnario`
 - Requirement: At least 12 testers opted in and active for 14 consecutive days.
-- The website (`docs/index.html` and `docs/js/mockups.js`) links the Google Play badge directly to the closed testing opt-in URL so testers can join and install the app seamlessly.
+- **Website Tester Onboarding**: Google Play returns 404 / "App not available" if a user visits the opt-in URL before their account is a member of the authorized Google Group. Therefore, clicking the Google Play badge or the "Conviértete en tester" caption on `docs/index.html` and `docs/js/mockups.js` opens an interactive 2-step onboarding dialog that guides users to:
+  1. Join the Google Group first (`himnario-app-testers`).
+  2. Accept the invitation and download on Google Play.
 
 Once the required 14-day test completes, finish the production-access/review steps shown in Play Console and apply for production access to publish the approved release.
 

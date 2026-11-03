@@ -107,10 +107,11 @@ body.dark .book-cover img{filter:brightness(1.13) drop-shadow(0 0 8px #fff2)}
 .scripture>span{grid-column:1;justify-self:center;padding-left:100px}
 @media(max-width:700px){.scripture{grid-template-columns:minmax(0,1fr);gap:14px}.scripture>span{padding-left:0}.scripture .identity-more{justify-self:center}}
 
-/* Store badges share a baseline; Android listing is not yet published. */
-.store-badges{display:flex;flex-wrap:wrap;align-items:center;gap:18px 22px}
+/* Store badges & Google Play closed testing onboarding */
+.store-badges{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px 22px}
 .hero-store-badges{margin-top:22px}
 .hero-store-badges .hero-app-download{margin-top:0}
+.google-play-wrapper{display:inline-flex;flex-direction:column;align-items:center;gap:6px}
 .google-play-coming{display:inline-flex;flex-direction:column;align-items:center;gap:7px;color:var(--muted)}
 .google-play-art{display:flex;align-items:center;height:57px}
 .google-play-art img{display:block;width:190px;height:auto;max-height:57px;object-fit:contain}
@@ -119,3 +120,44 @@ body.dark .google-play-art .play-badge-light{display:none}
 body.dark .google-play-art .play-badge-dark{display:block}
 .google-play-coming small{font-size:11px;line-height:1.4;letter-spacing:.04em}
 .app-preview-actions .store-badges{flex-basis:100%}
+
+/* Become a tester caption button below Google Play badge */
+.tester-badge-caption{display:inline-flex;align-items:center;gap:6px;font-family:'Public Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--muted);background:none;border:0;padding:3px 10px;border-radius:12px;cursor:pointer;transition:color .18s ease,background-color .18s ease}
+.tester-badge-caption::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.tester-badge-caption:hover{color:var(--accent);background:var(--surface)}
+.tester-badge-caption:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Android Tester Modal Dialog */
+.android-tester-dialog{width:min(540px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow-y:auto;margin:auto;padding:0;border:1px solid var(--line);border-radius:22px;background:var(--bg);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.45);font-family:'Public Sans',sans-serif}
+.android-tester-dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(6px)}
+.tester-dialog-content{padding:30px 28px 26px;display:flex;flex-direction:column;gap:18px}
+.tester-dialog-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.tester-dialog-header h2{font:700 28px/1.2 Newsreader,Georgia,serif;margin:4px 0 0;color:var(--ink)}
+.tester-dialog-header .eyebrow{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent);margin:0}
+.tester-dialog-close{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:50%;width:36px;height:36px;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;flex-shrink:0;padding:0;transition:color .15s ease,border-color .15s ease}
+.tester-dialog-close:hover{color:var(--ink);border-color:var(--ink)}
+.tester-dialog-intro{font-size:13.5px;line-height:1.65;color:var(--muted);margin:0}
+.tester-steps{display:flex;flex-direction:column;gap:13px}
+.tester-step-card{display:grid;grid-template-columns:36px 1fr;gap:16px;align-items:start;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;transition:border-color .2s ease}
+.tester-step-card:hover{border-color:var(--accent)}
+.tester-step-num{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:15px;flex-shrink:0}
+body.dark .tester-step-num{background:var(--accent);color:#1c1e19}
+.tester-step-body h3{font-size:15px;font-weight:700;margin:0 0 6px;color:var(--ink)}
+.tester-step-body p{font-size:12.5px;line-height:1.55;color:var(--muted);margin:0 0 12px}
+.tester-step-btn{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;padding:9px 16px;border-radius:8px;text-decoration:none;transition:all .18s ease}
+.tester-step-btn svg{flex-shrink:0}
+.tester-step-btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+body.dark .tester-step-btn-primary{color:#1c1e19}
+.tester-step-btn-primary:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.tester-step-btn-secondary{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.tester-step-btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.tester-dialog-note{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);font-size:12px;line-height:1.6;color:var(--ink)}
+.tester-dialog-note svg{color:var(--accent);flex-shrink:0;margin-top:2px}
+@media(max-width:500px){
+  .tester-dialog-content{padding:22px 18px 20px;gap:15px}
+  .tester-dialog-header h2{font-size:23px}
+  .tester-step-card{grid-template-columns:28px 1fr;gap:12px;padding:14px 12px}
+  .tester-step-num{width:28px;height:28px;font-size:13px}
+  .tester-step-body h3{font-size:14px}
+  .tester-step-btn{width:100%;justify-content:center}
+}
