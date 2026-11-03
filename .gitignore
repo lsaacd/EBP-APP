@@ -38,3 +38,9 @@ scripts/token.json
 scripts/auth_url.txt
 
 
+
+# Local Environment Variables & Cloudflare Tokens
+.env
+.env.*
+.env.cloudflare
+*.env

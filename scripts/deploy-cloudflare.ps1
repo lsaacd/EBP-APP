@@ -29,6 +29,21 @@ if (-not [Uri]::TryCreate($AudioBaseUrl, [UriKind]::Absolute, [ref]$audioUri) -o
 }
 $publicAudioBase = $AudioBaseUrl.TrimEnd('/') + '/'
 
+$cfEnvPath = Join-Path $repoRoot '.env.cloudflare'
+if (Test-Path -LiteralPath $cfEnvPath) {
+    Get-Content -LiteralPath $cfEnvPath | ForEach-Object {
+        $rawLine = $_.Trim()
+        if ($rawLine -and -not $rawLine.StartsWith('#') -and $rawLine.Contains('=')) {
+            $parts = $rawLine.Split('=', 2)
+            $varName = $parts[0].Trim()
+            $varVal = $parts[1].Trim()
+            if (-not [Environment]::GetEnvironmentVariable($varName)) {
+                [Environment]::SetEnvironmentVariable($varName, $varVal, 'Process')
+            }
+        }
+    }
+}
+
 Write-Host 'Checking Cloudflare authentication...'
 & npx --yes wrangler whoami
 if ($LASTEXITCODE -ne 0) { throw 'Cloudflare authentication is required. Run: npx wrangler login' }
