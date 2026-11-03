@@ -26,6 +26,10 @@ ios/
 himnario/android/
 himnario/ios/
 
+# Editor configs
+.vscode/
+.cursor/
+
 # Google API Credentials & Tokens
 credentials.json
 token.json
