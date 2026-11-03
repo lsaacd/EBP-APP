@@ -4,9 +4,9 @@ Use [ARCHITECTURE.md](../../ARCHITECTURE.md) for the source map, [EAS.md](../../
 
 ## Before changing code
 
-- Inspect Git status and current source; preserve unrelated edits. Note that active app feature work is on branch `app-web-parity` (with `main` merged in).
+- Inspect Git status and current source; preserve unrelated edits. Note that active app feature work is on branch `app-web-parity` (with `main` synchronized).
 - Android playback is fixed and confirmed working by Isaac. Preserve the TrackPlayer patch, native adapter and headless service.
-- Build 7's iOS crash report is historical. Build 12 (`0a349cae-f337-422b-97cd-4f301c76b746`) and Android `preview-arm64` build (`a9fe3ee0-e392-4308-b1b7-facc67642d26`) were built and submitted on November 2, 2026; see [EAS.md](../../EAS.md) for evidence and links.
+- Build 7's iOS crash report is historical. Build 14 and Android `preview-arm64` build (`4ca994b5-54e5-4330-a40c-2e0fa8937bf8`) were built and submitted on November 2, 2026; see [EAS.md](../../EAS.md) for evidence and links.
 - Use PowerShell `-LiteralPath` for paths containing parentheses (`app/(tabs)`).
 - Keep theme tokens, bilingual strings, separate hymn/estribillo IDs, existing storage keys and playlist shapes.
 - Minimize hides the full player; stop/clear ends playback. Do not merge those behaviors.
@@ -31,49 +31,45 @@ node scripts/test-web-search.js
 
 Distinguish existing lint issues from regressions. Native audio and screen-orientation locking require a compatible native build, not Expo Go. Validate changed behavior on the target device; mocked checks do not establish lock-screen or Universal Link behavior.
 
-Latest checks (November 2, 2026): `npx tsc --noEmit` passes with 0 errors; `npx expo config --type public` passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` pass.
+Latest checks (November 3, 2026): `npx tsc --noEmit` passes with 0 errors; `npx expo config --type public` passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` pass.
 
-## November 2, 2026 implementation handoff — Antigravity / Claude
+## November 2–3, 2026 implementation handoff — Antigravity / Claude / Codex
 
-These are Isaac's latest UI/UX decisions implemented on November 2, 2026. **Supersedes** the October 30 note regarding icon-only Android tabs and the old Home header:
+These are Isaac's latest UI/UX decisions implemented on November 2–3, 2026. **Supersedes** all prior notes regarding Android tabs, Home header spacing, and website store badges:
 
 1. **Bottom Navigation Bar (iOS & Android) — `himnario/app/(tabs)/_layout.tsx`**:
-   - **Custom Home Icon**: Both iOS and Android use the custom rounded house with an arched doorway (`assets/images/tab-home-outline*.png` & `tab-home-filled*.png` on iOS `NativeTabs`; `components/HomeTabIcon.tsx` SVG on Android). Unselected state is outlined; selected state is solid-filled with the arched doorway cutout.
-   - **Apple Books Tab Font & Android Text Labels**: Both iOS and Android display tab text labels (`Inicio`, `Himnos`, `Favoritos`, `Ajustes` / English equivalents) using `PublicSans_600SemiBold` (unselected) and `PublicSans_700Bold` (selected) at `10.5px` with tight letter-spacing (`-0.15`). On Android, each tab wraps its icon + label inside a rounded active pill highlight (`selectionPill`). Do **not** remove the text labels from Android's bottom bar.
-   - **Dynamic Dark / Light Mode**: `ThemeContext.tsx` syncs `Appearance.setColorScheme(isDarkMode ? 'dark' : 'light')` and `_layout.tsx` sets `tintColor`, `iconColor`, `backgroundColor`, and `blurEffect` so both iOS `NativeTabs` and `AndroidBottomBar` switch immediately between dark and light mode.
+   - **Enlarged 28pt Icons**: Both iOS and Android use matching 28pt template PNG icons (`tab-{home,hymns,favorites,settings}-{outline,filled}` on iOS `NativeTabs`; `28pt` sizing on Android) — the maximum standard size for a 49pt tab bar.
+   - **Label Typography & Spacing**: Display tab labels (`Inicio`, `Himnos`, `Favoritos`, `Ajustes`) using bold typography (`10.5pt`, `fontWeight: '700'`) positioned tightly beneath the icons (`vertical: -2` title adjustment), matching the compact Hallow app navigation layout.
+   - **iOS Truncation & Drop Fix**: Native patch `patches/react-native-screens+4.16.0.patch` synchronizes `UITabBarAppearance` across tabs and forces an immediate layout flush on initial render, preventing unselected label drops and truncation of `"Favoritos"`.
+   - **Dynamic Dark / Light Mode**: `ThemeContext.tsx` syncs `Appearance.setColorScheme(isDarkMode ? 'dark' : 'light')` and `_layout.tsx` dynamically sets `tintColor`, `iconColor`, `backgroundColor`, and `blurEffect`.
 
-2. **`Inicio` (`himnario/app/(tabs)/home.tsx`) — Apple Books Header, Glassmorphic Search & Simplified Feed**:
-   - **Header Title**: Displays **`Himnario`** (not `"Himnario El Buen Pastor"`), left-aligned in big bold serif (`Newsreader_700Bold`, `36px`, `lineHeight: 42`, `letterSpacing: -0.4`), switching between `#ffffff` in dark mode and `theme.primary` in light mode.
-   - **Scroll Disappear Effect**: On **both iOS and Android**, scrolling down fades out (`opacity: 1 -> 0`) and slides up (`translateY: 0 -> -10`) the header row (`Himnario` title + search button).
-   - **Glassmorphic Search Button**: A circular `42×42` `GlassSurface` button with a subtle 1px specular border sits on the right side of the `Himnario` header row on both iOS and Android. Tapping it navigates to `/hymns` with `{ tab: 'himnos', focusSearch: '1', t: String(Date.now()) }`.
-   - **Simplified `Inicio` Content**: Both the **"Continuar escuchando"** card and the **"Descargar todos los himnos"** / offline audio cards (`IosStreamingNotice` and the compact offline status row) were intentionally removed from `home.tsx`. Do **not** re-add them to `home.tsx`. Keep `OfflineAudioCard` inside `himnario/app/(tabs)/settings.tsx`.
+2. **`Inicio` (`himnario/app/(tabs)/home.tsx`) — Header, Glass Search & Tight Spacing**:
+   - **Header Title**: Displays **`Himnario`** in bold serif (`Newsreader_700Bold`, `36px`), left-aligned with a circular `42×42` `GlassSurface` search button on the right.
+   - **Eliminated Header Gap**: The initial vertical space between the `Himnario` header / search button and the `"Explora Todos Los Himnos"` card was removed by setting `contentInsetAdjustmentBehavior="never"` on `Animated.ScrollView` and `overrideScrollViewContentInsetAdjustmentBehavior: false` on the tab trigger. Do **not** remove these attributes.
+   - **Simplified Feed**: Both "Continuar escuchando" and offline audio download cards were intentionally removed from `home.tsx`. Do **not** re-add them to `home.tsx`.
 
-3. **Projector / Presentation Mode Orientation (`himnario/components/ProjectorModal.tsx`, `himnario/app.json`, `himnario/app/_layout.tsx`)**:
-   - Uses `expo-screen-orientation`. The app is locked to `PORTRAIT_UP` globally in `app/_layout.tsx`, and unlocked (`ScreenOrientation.unlockAsync()`) when `ProjectorModal` is visible so physical phone rotation between Portrait and Landscape works freely.
-   - Also includes a manual **Rotate toggle button** (`MaterialIcons` `screen-rotation`) in the projector bottom toolbar `utilityRow` that toggles between Landscape and Portrait (with a 90° layout rotation fallback when the OS window stays portrait due to system Portrait Orientation Lock).
-   - Exiting `ProjectorModal` locks the app back to `PORTRAIT_UP`.
+3. **Share Sheet & Interactive "Preparar PDF" Editor (`ShareSheet.tsx`, `PdfEditor.tsx`, `pdfLayout.ts`)**:
+   - **Chronological Share Order**: The Share Sheet options strictly follow this exact 4-item list:
+     1. **Share to Messages** (`sms:` composer with hymn title and canonical URL).
+     2. **WhatsApp** (`wa.me/?text=...` with hymn title and canonical URL).
+     3. **Create PDF** (switches into the interactive **Preparar PDF** modal).
+     4. **Copiar Letra** (copies formatted hymn lyrics to clipboard).
+   - **Interactive PDF Editor**: Features full parity with the companion website:
+     - Format: "Una página" (Letter portrait) vs "Dos copias (cortar)" (Letter landscape 2-up with dashed cut line).
+     - Stepper font size (4–28 pt).
+     - Column layout (1 vs 2 columns, auto-defaulting to 2 columns for lyrics > 28 lines).
+     - "Ajustar a la página" auto-fit calculation.
+     - "Incluir título" header metadata toggle.
+     - Live SVG preview and direct Print / Share PDF actions.
 
-4. **Share Sheet & Interactive "Preparar PDF" Editor (`himnario/components/ShareSheet.tsx`, `himnario/components/PdfEditor.tsx`, `himnario/utils/pdfLayout.ts`)**:
-   - The Share Sheet options strictly follow this exact 4-item chronological order:
-     1. **Share to Messages** (native `sms:` composer with hymn title and canonical URL; falls back to system share if SMS is unavailable).
-     2. **WhatsApp** (opens `wa.me/?text=...` with hymn title and canonical URL).
-     3. **Create PDF** (switches directly into the in-app **Preparar PDF** editor with full website parity).
-     4. **Copiar Letra** (copies full hymn lyrics, title, author, and reference to clipboard).
-   - The in-app **Preparar PDF** editor features:
-     - Format picker: "Una página" (Letter portrait single page) vs "Dos copias (cortar)" (Letter landscape 2-up with dashed cut line).
-     - Font size stepper: `−` / `[ 13 ]` / `+` (4 to 28 pt).
-     - Columns selector: "Una" vs "Dos" columns (auto-defaulted to 2 columns if lyrics > 28 lines).
-     - "Ajustar a la página" button: auto-calculates the optimal font size so all stanzas fit on 1 page.
-     - "Incluir título" toggle: switches header metadata, title, and divider rule on or off.
-     - Live visual paper preview: rendered via `react-native-svg` (`SvgXml`) driven by `pdfLayout.ts`.
-     - "Guardar / Compartir PDF" (`expo-sharing`) and "Imprimir" (`expo-print`) actions.
+4. **Projector / Presentation Mode Orientation (`ProjectorModal.tsx`)**:
+   - Unlocks physical phone rotation (`ScreenOrientation.unlockAsync()`) while projector mode is active, with a manual toolbar rotate toggle button (`MaterialIcons` `screen-rotation`).
+   - Re-locks app to `PORTRAIT_UP` upon exiting projector mode.
 
-5. **iOS Bottom Tabs & Home Header Spacing (`himnario/app/(tabs)/_layout.tsx`, `himnario/app/(tabs)/home.tsx`, `himnario/patches/react-native-screens+4.16.0.patch`)**:
-   - All four iOS tabs use matching 28pt template PNG icons (`tab-{home,hymns,favorites,settings}-{outline,filled}`) — the maximum standard size for a 49pt tab bar — with tight vertical title adjustment (`vertical: -2`), and Android icons are enlarged to 28pt to match.
-   - `patches/react-native-screens+4.16.0.patch` synchronizes `UITabBarAppearance` to the tab bar from the selected tab on mount and forces a relayout flush, eliminating unselected label drops.
-   - Initial vertical gap between "Himnario" and the hero card is eliminated with `contentInsetAdjustmentBehavior="never"` on `Animated.ScrollView` and `overrideScrollViewContentInsetAdjustmentBehavior: false` on the Home tab trigger.
-
-6. **Preserved October 30 decisions**:
-   - Hymn reader toolbar (`AndroidReaderControls.tsx`), MiniPlayer geometry (`androidBottomLayout.ts`, `64px` bar height), hidden Android system navigation bar (`expo-navigation-bar`), Android no-op haptics wrapper (`utils/haptics.ts`), and the printable PDF export remain in place.
-
-For website work, see [docs/README.md](../README.md).
+5. **Website & Cloudflare Deployment (`docs/index.html`, `docs/js/mockups.js`, `scripts/deploy-cloudflare.ps1`)**:
+   - **Google Play Link**: The placeholder *"Próximamente"* badge on the website has been replaced with an active link to the Closed Testing opt-in URL:
+     `https://play.google.com/apps/testing/com.elbuenpastor.himnario`
+     (Once Google approves production, this can point directly to `https://play.google.com/store/apps/details?id=com.elbuenpastor.himnario`).
+   - **Live Cloudflare Release**: Successfully deployed to Cloudflare Pages (`ebp-himnario`) and live at `https://himnarioebp.com/`.
+   - **Generated Preview Pages**: All 761 static hymn pages in `/himno/` and `/hymn/` use the production CDN base `https://audio.himnarioebp.com/` and the updated Apple App Site Association.
+   - **Agent Tooling**: 19 Cloudflare skills installed at `~/.agents/skills` and Cloudflare Streamable HTTP MCP registered at `https://mcp.cloudflare.com/mcp`.
