@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Appearance, Platform } from 'react-native';
 import { lightTheme, darkTheme } from './theme';
 
 // Infer the theme type from lightTheme
@@ -62,6 +63,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     AsyncStorage.setItem('isDarkMode', JSON.stringify(isDarkMode)).catch(
       console.error
     );
+  }, [isDarkMode, isLoaded]);
+
+  // Sync native OS appearance (iOS UITabBarController / Android system surfaces)
+  // with the in-app dark/light mode toggle so native navigation bars switch cleanly.
+  useEffect(() => {
+    if (!isLoaded || Platform.OS === 'web') return;
+    try {
+      Appearance.setColorScheme?.(isDarkMode ? 'dark' : 'light');
+    } catch {
+      // Ignore on runtimes where setColorScheme is unsupported
+    }
   }, [isDarkMode, isLoaded]);
 
   useEffect(() => {

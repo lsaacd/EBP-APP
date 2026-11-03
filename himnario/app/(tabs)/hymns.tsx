@@ -4,9 +4,10 @@
  * Responsibility:
  * - Displays the full collection of hymns, choruses, and alphabetical index.
  * - Implements the smart search engine (typo-tolerant, accent-insensitive, number/prefix-aware, lyric snippets, highlighted matches).
- * - Provides category chips and "Con audio" filter chip.
- * - Shows saved-offline and audio availability indicators.
- * - Implements a Liquid Glass / Material 3 A–Z fast scroller and hymn number scroller.
+ * - Provides category chips (Todos, Adoración, Alabanza, etc.).
+ * - Shows saved-offline and audio availability indicators on list rows.
+ * - Implements a Liquid Glass / Material 3 A–Z fast scroller (with a Himnos / Coritos switch in Índice) and hymn number scroller.
+ * - Supports Instagram-style horizontal tab swiping via TabSwipeWrapper.
  *
  * @returns {React.JSX.Element} The rendered Hymn List screen.
  */
@@ -41,11 +42,11 @@ import { useHymnFilter } from '../../context/HymnFilterContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
+import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import {
   create as createSearchEngine,
   normalize as normalizeSearch,
   segmentTextByRanges,
-  type SearchField,
   type SearchResult,
 } from '../../utils/search-engine';
 
@@ -101,8 +102,7 @@ export default function HymnListScreen() {
   const params = useLocalSearchParams<{ tab?: string; t?: string; focusSearch?: string }>();
 
   const [draggingLetter, setDraggingLetter] = useState<string | null>(null);
-  const [searchField, setSearchField] = useState<SearchField>('all');
-  const [onlyWithAudio, setOnlyWithAudio] = useState(false);
+  const [indiceSection, setIndiceSection] = useState<'himnos' | 'estribillos'>('himnos');
 
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const bubbleFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,7 +120,6 @@ export default function HymnListScreen() {
   const isSearchActive =
     isFocused ||
     search.length > 0 ||
-    onlyWithAudio ||
     (searchFilter !== 'Todos' && searchFilter !== 'All');
 
   useEffect(() => {
@@ -279,7 +278,7 @@ export default function HymnListScreen() {
 
   const globalSearchResults = useMemo(() => {
     const isAll = searchFilter === 'Todos' || searchFilter === 'All';
-    if (!search.trim() && isAll && !onlyWithAudio) {
+    if (!search.trim() && isAll) {
       return {
         himnos: [] as SearchResult<any>[],
         estribillos: [] as SearchResult<any>[],
@@ -287,9 +286,6 @@ export default function HymnListScreen() {
     }
 
     const matchesFilters = (h: any) => {
-      if (onlyWithAudio && !hasHymnAudio(String(h.id))) {
-        return false;
-      }
       if (!isAll) {
         const hasCat =
           h.categories &&
@@ -307,70 +303,55 @@ export default function HymnListScreen() {
 
     const rawQuery = search.trim();
     const himnosHits = rawQuery
-      ? himnosSearchEngine(rawQuery, { field: searchField })
+      ? himnosSearchEngine(rawQuery, { field: 'all' })
       : hymnsData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
     const estribillosHits = rawQuery
-      ? estribillosSearchEngine(rawQuery, { field: searchField })
+      ? estribillosSearchEngine(rawQuery, { field: 'all' })
       : estribillosData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
 
     return {
       himnos: himnosHits.filter((r) => matchesFilters(r.hymn)),
       estribillos: estribillosHits.filter((r) => matchesFilters(r.hymn)),
     };
-  }, [search, searchFilter, searchField, onlyWithAudio, language]);
+  }, [search, searchFilter, language]);
 
-  // ── Índice Logic ─────────────────────────────────────────────
+  // ── Índice Logic (switches between Himnos and Coritos/Estribillos) ──────────
   const indiceData = useMemo(() => {
-    const sortedHimnos = [...hymnsData].sort((a, b) =>
-      normalizeSearch(a.title).localeCompare(normalizeSearch(b.title))
-    );
-    const sortedEstribillos = [...estribillosData].sort((a, b) =>
+    const sourceList = indiceSection === 'estribillos' ? estribillosData : hymnsData;
+    const sorted = [...sourceList].sort((a, b) =>
       normalizeSearch(a.title).localeCompare(normalizeSearch(b.title))
     );
 
     const grouped: any[] = [];
-
     grouped.push({
       type: 'main_header',
-      title: t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS Y CORITOS',
+      title:
+        indiceSection === 'estribillos'
+          ? t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS Y CORITOS'
+          : t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS',
+      marginTop: 4,
     });
+
     let currentLetter = '';
-    sortedEstribillos.forEach((hymn) => {
+    sorted.forEach((hymn) => {
       const letter = normalizeSearch(hymn.title).charAt(0).toUpperCase();
       const displayLetter = letter.match(/[A-Z]/) ? letter : letter || 'A';
 
       if (displayLetter !== currentLetter) {
         currentLetter = displayLetter;
-        grouped.push({ type: 'header', letter: currentLetter, section: 'estribillos' });
-      }
-      grouped.push({ type: 'item', hymn });
-    });
-
-    grouped.push({
-      type: 'main_header',
-      title: t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS',
-      marginTop: 24,
-    });
-    currentLetter = '';
-    sortedHimnos.forEach((hymn) => {
-      const letter = normalizeSearch(hymn.title).charAt(0).toUpperCase();
-      const displayLetter = letter.match(/[A-Z]/) ? letter : letter || 'A';
-
-      if (displayLetter !== currentLetter) {
-        currentLetter = displayLetter;
-        grouped.push({ type: 'header', letter: currentLetter, section: 'himnos' });
+        grouped.push({ type: 'header', letter: currentLetter, section: indiceSection });
       }
       grouped.push({ type: 'item', hymn });
     });
 
     return grouped;
-  }, [t]);
+  }, [t, indiceSection]);
 
   const letterIndices = useMemo(() => {
     const indices: Record<string, number> = {};
     indices['#'] = 0;
     indiceData.forEach((item, index) => {
-      if (item.type === 'header' && item.section === 'himnos' && !(item.letter in indices)) {
+      if (item.type === 'header' && !(item.letter in indices)) {
         indices[item.letter] = index;
       }
     });
@@ -568,36 +549,6 @@ export default function HymnListScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chips}
               >
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setOnlyWithAudio((v) => !v);
-                  }}
-                  style={[
-                    styles.chip,
-                    styles.audioChip,
-                    {
-                      backgroundColor: onlyWithAudio
-                        ? theme.primary
-                        : theme.surfaceVariants.containerHighest,
-                    },
-                  ]}
-                >
-                  <MaterialIcons
-                    name="volume-up"
-                    size={15}
-                    color={onlyWithAudio ? theme.onPrimary : theme.primary}
-                  />
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: onlyWithAudio ? theme.onPrimary : theme.onSurface },
-                    ]}
-                  >
-                    {t.filterWithAudio}
-                  </Text>
-                </TouchableOpacity>
-
                 {currentFilters.map((f) => {
                   const isAll = f === 'Todos' || f === 'All';
                   const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
@@ -777,14 +728,74 @@ export default function HymnListScreen() {
   };
 
   const renderIndice = () => {
+    const coritosLabel = language === 'es' ? 'Coritos' : 'Choruses';
+    const himnosLabel = t.subTabHimnos || (language === 'es' ? 'Himnos' : 'Hymns');
+
     return (
       <View style={styles.flex1}>
+        {/* Toggle Switch between Himnos and Coritos so the list & right A-Z carousel apply to either */}
+        <View style={styles.indiceToggleWrap}>
+          <View
+            style={[
+              styles.indiceTogglePill,
+              {
+                backgroundColor: isDarkMode
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(110,22,25,0.08)',
+              },
+            ]}
+          >
+            {(
+              [
+                { key: 'himnos', label: himnosLabel },
+                { key: 'estribillos', label: coritosLabel },
+              ] as const
+            ).map((opt) => {
+              const active = indiceSection === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.indiceToggleOption,
+                    active && {
+                      backgroundColor: theme.primary,
+                    },
+                  ]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (indiceSection === opt.key) return;
+                    Haptics.selectionAsync().catch(() => {});
+                    setIndiceSection(opt.key);
+                    setTimeout(() => {
+                      indiceListRef.current?.scrollToOffset?.({ offset: 0, animated: false });
+                    }, 20);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.indiceToggleText,
+                      {
+                        color: active ? theme.onPrimary : theme.onSurfaceVariant,
+                        fontFamily: active
+                          ? 'PublicSans_700Bold'
+                          : 'PublicSans_600SemiBold',
+                      },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         <View style={styles.indiceBody}>
           <View style={styles.indiceListContainer}>
             <FlashList
               ref={indiceListRef}
               data={indiceData}
-              extraData={`${language}-${offline.saved}`}
+              extraData={`${language}-${offline.saved}-${indiceSection}`}
               keyExtractor={(item, index) =>
                 item.type +
                 '_' +
@@ -881,7 +892,7 @@ export default function HymnListScreen() {
                   />
                 </View>
               }
-              ListHeaderComponent={<View style={{ height: 16 }} />}
+              ListHeaderComponent={<View style={{ height: 8 }} />}
             />
           </View>
 
@@ -1153,7 +1164,11 @@ export default function HymnListScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+    <TabSwipeWrapper
+      currentTab="hymns"
+      style={[styles.root, { backgroundColor: theme.background }]}
+      shouldIgnoreTouch={(_pageX, pageY) => pageY < insets.top + 195}
+    >
       <LinearGradient
         colors={[
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
@@ -1211,8 +1226,6 @@ export default function HymnListScreen() {
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   handleSearchChange('');
-                  setOnlyWithAudio(false);
-                  setSearchField('all');
                   const defaultAll = language === 'es' ? 'Todos' : 'All';
                   setSearchFilter(defaultAll);
                   searchRef.current?.blur();
@@ -1235,105 +1248,37 @@ export default function HymnListScreen() {
         >
           <View style={{ flex: 1 }}>
             <Pressable
-              style={StyleSheet.absoluteFill}
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor:
+                    Platform.OS === 'android'
+                      ? isDarkMode
+                        ? 'rgba(1,1,1,0.97)'
+                        : 'rgba(252,249,242,0.97)'
+                      : isDarkMode
+                        ? 'rgba(1,1,1,0.72)'
+                        : 'rgba(252,249,242,0.78)',
+                },
+              ]}
               onPress={() => {
                 Keyboard.dismiss();
                 handleSearchChange('');
-                setOnlyWithAudio(false);
-                setSearchField('all');
                 const defaultAll = language === 'es' ? 'Todos' : 'All';
                 setSearchFilter(defaultAll);
                 searchRef.current?.blur();
               }}
             >
               <BlurView
-                intensity={Platform.OS === 'ios' ? 45 : 100}
+                intensity={Platform.OS === 'ios' ? 55 : 100}
                 tint={isDarkMode ? 'dark' : 'light'}
                 style={StyleSheet.absoluteFill}
               />
             </Pressable>
 
             <View style={{ flex: 1, zIndex: 10 }}>
-              {/* Search Field Scopes + Con Audio + Category Chips inside Search View */}
-              <View style={{ paddingTop: 8, paddingBottom: 6, gap: 8 }}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={[styles.chips, { paddingHorizontal: 16 }]}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {(
-                    [
-                      { key: 'all', label: language === 'es' ? 'Todo' : 'All' },
-                      { key: 'title', label: language === 'es' ? 'Título' : 'Title' },
-                      { key: 'lyrics', label: language === 'es' ? 'Letra' : 'Lyrics' },
-                      { key: 'number', label: '#' },
-                    ] as const
-                  ).map((scope) => {
-                    const active = searchField === scope.key;
-                    return (
-                      <TouchableOpacity
-                        key={scope.key}
-                        onPress={() => {
-                          Haptics.selectionAsync().catch(() => {});
-                          setSearchField(scope.key);
-                        }}
-                        style={[
-                          styles.scopeChip,
-                          {
-                            backgroundColor: active
-                              ? theme.primary
-                              : isDarkMode
-                              ? 'rgba(255,255,255,0.08)'
-                              : 'rgba(110,22,25,0.08)',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.scopeChipText,
-                            { color: active ? theme.onPrimary : theme.primary },
-                          ]}
-                        >
-                          {scope.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      Haptics.selectionAsync().catch(() => {});
-                      setOnlyWithAudio((v) => !v);
-                    }}
-                    style={[
-                      styles.scopeChip,
-                      styles.audioChip,
-                      {
-                        backgroundColor: onlyWithAudio
-                          ? theme.primary
-                          : isDarkMode
-                          ? 'rgba(255,255,255,0.08)'
-                          : 'rgba(110,22,25,0.08)',
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name="volume-up"
-                      size={14}
-                      color={onlyWithAudio ? theme.onPrimary : theme.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.scopeChipText,
-                        { color: onlyWithAudio ? theme.onPrimary : theme.primary },
-                      ]}
-                    >
-                      {t.filterWithAudio}
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-
+              {/* Category Chips only inside Search View */}
+              <View style={{ paddingTop: 10, paddingBottom: 8 }}>
                 <ScrollView
                   ref={overlayChipsScrollRef}
                   horizontal
@@ -1530,7 +1475,7 @@ export default function HymnListScreen() {
             renderEstribillos()}
         </View>
       </SafeAreaView>
-    </View>
+    </TabSwipeWrapper>
   );
 }
 
@@ -1599,24 +1544,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 100,
   },
-  audioChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
   chipText: {
     fontFamily: 'PublicSans_500Medium',
     fontSize: 14,
-  },
-  scopeChip: {
-    paddingHorizontal: 13,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  scopeChipText: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 12,
-    letterSpacing: 0.3,
   },
   listItem: {
     flexDirection: 'row',
@@ -1726,10 +1656,34 @@ const styles = StyleSheet.create({
   },
 
   // ── Índice & Glass A-Z Scroller (Workstream F) ─────────────
+  indiceToggleWrap: {
+    paddingHorizontal: 24,
+    paddingTop: 6,
+    paddingBottom: 4,
+    alignItems: 'center',
+  },
+  indiceTogglePill: {
+    flexDirection: 'row',
+    borderRadius: 999,
+    padding: 3,
+    width: '100%',
+    maxWidth: 320,
+  },
+  indiceToggleOption: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indiceToggleText: {
+    fontSize: 13.5,
+    letterSpacing: 0.2,
+  },
   indiceBody: {
     flex: 1,
     flexDirection: 'row',
-    paddingTop: 16,
+    paddingTop: 8,
   },
   indiceListContainer: {
     flex: 1,
@@ -1740,7 +1694,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 22,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: 16,
     marginBottom: 16,
     letterSpacing: 1,
   },

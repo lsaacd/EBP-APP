@@ -2,15 +2,14 @@
  * HomeScreen component — The primary landing screen of the Himnario application.
  *
  * This screen features:
- * - Header with native search icon button (navigates to /hymns?focusSearch=1).
- * - One-time dismissible iOS streaming & offline-audio notice.
+ * - Apple Books-style large serif "Himnario" header title that fades out on scroll
+ *   (both iOS and Android) with a prominent circular glassmorphic Search button on the right
+ *   that redirects to /hymns?focusSearch=1.
+ * - Horizontal swipe support (Instagram-style) to switch to adjacent tabs.
  * - A dynamic hero card for exploring all hymns.
- * - A "Continuar escuchando" (Continue listening) card when a hymn has been played.
  * - A "Verse of the Day" component.
  * - Church Identity & Motto block ("Verdad, honestidad, justicia, santidad y caridad") with "Ver más".
- * - Compact offline-audio status card linking to Settings.
  * - Quick access to recently viewed hymns with saved-offline badges.
- * - Platform-specific navigation behaviors (iOS fade-out vs Android collapsible header).
  *
  * @returns {React.JSX.Element} The rendered Home screen.
  */
@@ -36,8 +35,8 @@ import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import VerseCard from '../../components/VerseCard';
-import IosStreamingNotice from '../../components/IosStreamingNotice';
 import GlassSurface from '../../components/GlassSurface';
+import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,13 +49,7 @@ export default function HomeScreen() {
   const { theme, isDarkMode } = useTheme();
   const { recentIds, clearRecent } = useRecentHymns();
   const { t, language } = useLanguage();
-  const {
-    currentHymnId,
-    lastPlayedHymnId,
-    isPlaying,
-    togglePlayPause,
-    openPlayer,
-  } = useNowPlaying();
+  const { currentHymnId } = useNowPlaying();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
@@ -84,11 +77,6 @@ export default function HomeScreen() {
     .filter(Boolean)
     .slice(0, 10) as typeof hymnsData;
 
-  const continueHymnId = currentHymnId || lastPlayedHymnId;
-  const continueHymn = continueHymnId
-    ? allHymns.find((h) => String(h.id) === String(continueHymnId))
-    : undefined;
-
   // ── Android: block hardware/swipe back so home never navigates to index ──
   useFocusEffect(
     useCallback(() => {
@@ -98,59 +86,18 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // ── Android / web: collapsible header (same pattern as settings) ───────────
-  const [headerH, setHeaderH] = useState(0);
-  const headerTranslate = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const headerHidden = useRef(false);
-
-  const handleScroll = (e: any) => {
-    const y = e.nativeEvent.contentOffset.y;
-
-    if (y < 5 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-      lastScrollY.current = y;
-      return;
-    }
-
-    const dy = y - lastScrollY.current;
-    lastScrollY.current = y;
-    if (Math.abs(dy) < 3) return;
-
-    if (dy > 0 && !headerHidden.current && y > 10) {
-      headerHidden.current = true;
-      Animated.timing(headerTranslate, {
-        toValue: -headerH,
-        duration: 220,
-        useNativeDriver: true,
-      }).start();
-    } else if (dy < 0 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
-
-  // ── iOS: scroll-driven fade-out ───────────────────────────────────────────
+  // ── Scroll-driven Apple Books-style header fade-out (iOS & Android) ──────
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 30],
+    inputRange: [0, 35],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
   const titleTranslateY = scrollY.interpolate({
     inputRange: [0, 40],
-    outputRange: [0, -1],
+    outputRange: [0, -10],
     extrapolate: 'clamp',
   });
 
@@ -162,12 +109,18 @@ export default function HomeScreen() {
     });
   };
 
+  const headerTitleColor = isDarkMode ? '#ffffff' : theme.primary;
+  const searchIconColor = isDarkMode ? '#ffffff' : theme.primary;
+  const glassBorderColor = isDarkMode
+    ? 'rgba(255,255,255,0.22)'
+    : 'rgba(110,22,25,0.18)';
+  const glassFallbackBg = isDarkMode
+    ? 'rgba(38,38,40,0.82)'
+    : 'rgba(255,255,255,0.82)';
+
   // ── Shared scroll content ─────────────────────────────────────────────────
   const scrollContent = (
     <>
-      {/* ─── One-Time iOS Streaming Notice ───────────────────────── */}
-      <IosStreamingNotice />
-
       {/* ─── Hero Card — "Explora Todos Los Himnos" ───────────────── */}
       <View
         style={[
@@ -219,81 +172,6 @@ export default function HomeScreen() {
           <MaterialIcons name="arrow-forward-ios" size={16} color="rgba(255,255,255,0.5)" />
         </TouchableOpacity>
       </View>
-
-      {/* ─── Continuar escuchando Card ────────────────────────────── */}
-      {continueHymn && (
-        <View
-          style={[
-            styles.continueCard,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.primary + '22',
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.continueCardMain}
-            activeOpacity={0.75}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push(`/hymn/${continueHymn.id}`);
-            }}
-          >
-            <View
-              style={[
-                styles.continueBadge,
-                { backgroundColor: theme.primary + '14' },
-              ]}
-            >
-              <Text style={[styles.continueBadgeNum, { color: theme.primary }]}>
-                {continueHymn.number}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.continueEyebrow, { color: theme.primary }]}>
-                {t.continueListening}
-              </Text>
-              <Text
-                style={[styles.continueTitle, { color: theme.onSurface }]}
-                numberOfLines={1}
-              >
-                {continueHymn.title}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={
-              currentHymnId === String(continueHymn.id) && isPlaying
-                ? language === 'es'
-                  ? 'Pausar'
-                  : 'Pause'
-                : t.continueListening
-            }
-            style={[styles.continuePlayBtn, { backgroundColor: theme.primary }]}
-            activeOpacity={0.8}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (currentHymnId === String(continueHymn.id)) {
-                togglePlayPause();
-              } else {
-                openPlayer(String(continueHymn.id));
-              }
-            }}
-          >
-            <MaterialIcons
-              name={
-                currentHymnId === String(continueHymn.id) && isPlaying
-                  ? 'pause'
-                  : 'play-arrow'
-              }
-              size={22}
-              color={theme.onPrimary}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* ─── Daily Verse ──────────────────────────────────────────── */}
       <VerseCard />
@@ -350,51 +228,6 @@ export default function HomeScreen() {
           </Text>
         </View>
       </TouchableOpacity>
-
-      {/* ─── Compact Offline Audio Status Row ─────────────────────── */}
-      {offline.total > 0 && (
-        <TouchableOpacity
-          style={[
-            styles.offlineStatusCard,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '26',
-            },
-          ]}
-          activeOpacity={0.78}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/settings');
-          }}
-        >
-          <View
-            style={[
-              styles.offlineStatusIconWrap,
-              { backgroundColor: theme.primary + '12' },
-            ]}
-          >
-            <MaterialIcons
-              name={offline.saved >= offline.total ? 'offline-pin' : 'cloud-download'}
-              size={20}
-              color={theme.primary}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.offlineStatusTitle, { color: theme.onSurface }]}>
-              {t.offlineAudioTitle}
-            </Text>
-            <Text
-              style={[styles.offlineStatusSub, { color: theme.onSurfaceVariant }]}
-              numberOfLines={1}
-            >
-              {t.offlineAudioSaved
-                .replace('{saved}', String(offline.saved))
-                .replace('{total}', String(offline.total))}
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={20} color={theme.outlineVariant} />
-        </TouchableOpacity>
-      )}
 
       {/* ─── Himnos Recientes ─────────────────────────────────────── */}
       <View style={styles.recentsSection}>
@@ -550,15 +383,77 @@ export default function HomeScreen() {
     </Modal>
   );
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // iOS LAYOUT — fade-out title + Animated.ScrollView + Glass Search Button
-  // ══════════════════════════════════════════════════════════════════════════
-  if (IS_IOS) {
-    return (
-      <View style={[styles.root, { backgroundColor: theme.background }]}>
+  // Shared Apple Books-style Header (Large Bold Serif "Himnario" + Larger Glassmorphic Search Button)
+  const appleBooksHeader = (
+    <View
+      style={[
+        styles.headerContainer,
+        { paddingTop: insets.top + (IS_IOS ? 8 : 12) },
+      ]}
+      pointerEvents="box-none"
+    >
+      <Animated.View
+        style={[
+          styles.headerTitleRow,
+          {
+            opacity: titleOpacity,
+            transform: [{ translateY: titleTranslateY }],
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <Text
+          style={[styles.headerTitle, { color: headerTitleColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          Himnario
+        </Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={
+            language === 'es' ? 'Buscar himnos' : 'Search hymns'
+          }
+          activeOpacity={0.75}
+          onPress={handleHeaderSearchPress}
+        >
+          <GlassSurface
+            isInteractive
+            intensity={65}
+            tonalColor={glassFallbackBg}
+            style={[
+              styles.headerSearchGlassBtn,
+              {
+                borderColor: glassBorderColor,
+                backgroundColor: IS_IOS ? undefined : glassFallbackBg,
+              },
+            ]}
+          >
+            <MaterialIcons name="search" size={26} color={searchIconColor} />
+          </GlassSurface>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+
+  return (
+    <TabSwipeWrapper
+      currentTab="home"
+      style={[styles.root, { backgroundColor: theme.background }]}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
         <Animated.ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
+          // Content is offset manually below the absolute "Himnario" header. "never" keeps
+          // iOS from adding safeAreaInsets.top again (the Home tab Trigger also disables
+          // react-native-screens' override that would flip this back to "automatic").
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + (IS_IOS ? 70 : 80) },
+          ]}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: true }
@@ -569,79 +464,6 @@ export default function HomeScreen() {
         >
           {scrollContent}
         </Animated.ScrollView>
-
-        <LinearGradient
-          colors={[
-            isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-            isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
-          ]}
-          style={[styles.statusBarScrim, { height: insets.top + 28 }]}
-          pointerEvents="none"
-        />
-
-        <View
-          style={[styles.headerContainer, { paddingTop: insets.top + 14 }]}
-          pointerEvents="box-none"
-        >
-          <Animated.View
-            style={[
-              styles.headerTitleRow,
-              {
-                opacity: titleOpacity,
-                transform: [{ translateY: titleTranslateY }],
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <View style={{ width: 38 }} pointerEvents="none" />
-            <Text
-              style={[styles.headerTitle, { color: theme.primary, flex: 1 }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              Himnario El Buen Pastor
-            </Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={
-                language === 'es' ? 'Buscar himnos' : 'Search hymns'
-              }
-              activeOpacity={0.75}
-              onPress={handleHeaderSearchPress}
-            >
-              <GlassSurface
-                isInteractive
-                intensity={55}
-                style={styles.headerSearchGlassBtn}
-              >
-                <MaterialIcons name="search" size={20} color={theme.primary} />
-              </GlassSurface>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-
-        {doctrineModal}
-      </View>
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // ANDROID / WEB LAYOUT — collapsible header + tonal Search Button
-  // ══════════════════════════════════════════════════════════════════════════
-  return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[styles.scroll, { paddingTop: headerH + 20 }]}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={true}
-          indicatorStyle={isDarkMode ? 'white' : 'black'}
-        >
-          {scrollContent}
-        </ScrollView>
       </SafeAreaView>
 
       <LinearGradient
@@ -649,49 +471,14 @@ export default function HomeScreen() {
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
           isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
         ]}
-        style={[styles.statusBarScrim, { height: insets.top + 28 }]}
+        style={[styles.statusBarScrim, { height: insets.top + 32 }]}
         pointerEvents="none"
       />
 
-      <Animated.View
-        onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
-        collapsable={false}
-        pointerEvents="box-none"
-        style={[
-          styles.headerContainer,
-          {
-            backgroundColor: theme.background,
-            transform: [{ translateY: headerTranslate }],
-          },
-        ]}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + 18 }]} pointerEvents="box-none">
-          <View style={{ width: 40 }} pointerEvents="none" />
-          <Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1 }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            Himnario El Buen Pastor
-          </Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={language === 'es' ? 'Buscar himnos' : 'Search hymns'}
-            style={[
-              styles.headerSearchAndroidBtn,
-              { backgroundColor: theme.surfaceVariants.containerLow },
-            ]}
-            activeOpacity={0.75}
-            onPress={handleHeaderSearchPress}
-          >
-            <MaterialIcons name="search" size={22} color={theme.primary} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      {appleBooksHeader}
 
       {doctrineModal}
-    </View>
+    </TabSwipeWrapper>
   );
 }
 
@@ -705,8 +492,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 30,
     elevation: 4,
-    alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 8,
   },
   statusBarScrim: {
@@ -716,41 +502,33 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 4,
-    paddingBottom: 4,
-    gap: 8,
-  },
   headerTitle: {
     fontFamily: fonts.bold,
-    fontSize: 25,
-    letterSpacing: 0.3,
-    textAlign: 'center',
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -0.4,
+    textAlign: 'left',
+    flex: 1,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 8,
+    gap: 12,
   },
   headerSearchGlassBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerSearchAndroidBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 4,
   },
   scroll: {
     paddingHorizontal: 24,
@@ -792,59 +570,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Continuar escuchando
-  continueCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  continueCardMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  continueBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBadgeNum: {
-    fontFamily: fonts.bold,
-    fontSize: 18,
-  },
-  continueEyebrow: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 10,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  continueTitle: {
-    fontFamily: fonts.regularItalic,
-    fontSize: 17,
-  },
-  continuePlayBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
   // Doctrine & Church Motto card
   doctrineCard: {
     paddingHorizontal: 18,
     paddingVertical: 18,
     borderRadius: 18,
-    marginBottom: 16,
+    marginBottom: 28,
   },
   doctrineTopRow: {
     flexDirection: 'row',
@@ -893,34 +624,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     textTransform: 'uppercase',
     textAlign: 'center',
-  },
-
-  // Compact Offline Audio Status Card
-  offlineStatusCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 32,
-    gap: 12,
-  },
-  offlineStatusIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  offlineStatusTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 14,
-    marginBottom: 1,
-  },
-  offlineStatusSub: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 12,
   },
 
   // Recents

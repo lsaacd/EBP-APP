@@ -31,6 +31,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNowPlaying } from '../../context/NowPlayingContext';
+import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -307,7 +308,7 @@ export default function FavoritesScreen() {
   // ══════════════════════════════════════════════════════════════════════════
   if (IS_IOS) {
     return (
-      <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <TabSwipeWrapper currentTab="favorites" style={[styles.root, { backgroundColor: theme.background }]}>
         {/* Fade-out header */}
         <Animated.View
           style={[
@@ -353,7 +354,7 @@ export default function FavoritesScreen() {
           {scrollContent}
         </Animated.ScrollView>
 
-      </View>
+      </TabSwipeWrapper>
     );
   }
 
@@ -361,7 +362,7 @@ export default function FavoritesScreen() {
   // ANDROID / WEB LAYOUT — collapsible header
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <TabSwipeWrapper currentTab="favorites" style={[styles.root, { backgroundColor: theme.background }]}>
 
       {/* Collapsible TopAppBar */}
       <Animated.View
@@ -404,8 +405,7 @@ export default function FavoritesScreen() {
           {scrollContent}
         </ScrollView>
       </SafeAreaView>
-
-    </View>
+    </TabSwipeWrapper>
   );
 }
 

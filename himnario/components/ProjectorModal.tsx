@@ -7,6 +7,7 @@
  *   (left third = previous, right third = next, center = toggle controls)
  * - Auto text size that fits the entire stanza on screen, plus manual − / + / Auto
  * - Hide lyrics (blank screen), independent projector light/dark theme,
+ *   orientation flip / free rotation (Portrait & Landscape),
  *   lyrics-only immersive mode (hide controls), footer branding
  *   "Himnario El Buen Pastor · himnarioebp.com"
  * - Page-turn transition that respects Reduce Motion
@@ -31,6 +32,7 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Haptics from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
@@ -76,6 +78,8 @@ export default function ProjectorModal({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [manualFont, setManualFont] = useState<number | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [windowDims, setWindowDims] = useState(() => Dimensions.get('window'));
+  const [manualLandscape, setManualLandscape] = useState(false);
   const [stageLayout, setStageLayout] = useState({
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height * 0.6,
@@ -95,6 +99,35 @@ export default function ProjectorModal({
     return () => sub?.remove?.();
   }, []);
 
+  // Track window dimension changes when rotating phone
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowDims(window);
+      // If native OS rotated the window into landscape, clear manual transform fallback
+      if (window.width > window.height) {
+        setManualLandscape(false);
+      }
+    });
+    return () => sub?.remove?.();
+  }, []);
+
+  // Unlock orientation (allow both Portrait & Landscape) while ProjectorModal is open;
+  // lock back to Portrait on exit.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (visible) {
+      ScreenOrientation.unlockAsync().catch(() => {});
+    } else {
+      setManualLandscape(false);
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+    return () => {
+      if (visible) {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      }
+    };
+  }, [visible]);
+
   useEffect(() => {
     if (visible) {
       setIndex(0);
@@ -102,11 +135,54 @@ export default function ProjectorModal({
       setProjectorDark(initialDarkMode ?? true);
       setControlsVisible(true);
       setManualFont(null);
+      setManualLandscape(false);
     }
     return () => {
       if (tapHintTimer.current) clearTimeout(tapHintTimer.current);
     };
   }, [visible, hymn.id, initialDarkMode]);
+
+  const isNativeLandscape = windowDims.width > windowDims.height;
+  const isLandscape = isNativeLandscape || manualLandscape;
+  // Apply 90deg CSS/View rotation only when user toggled landscape manually and the OS window is still portrait
+  const useTransformLandscape = manualLandscape && !isNativeLandscape;
+
+  const handleToggleOrientation = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isLandscape) {
+      // Switch back to Portrait, then re-unlock after transition so physical rotation still works
+      setManualLandscape(false);
+      if (Platform.OS !== 'web') {
+        try {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+          setTimeout(() => {
+            ScreenOrientation.unlockAsync().catch(() => {});
+          }, 800);
+        } catch {
+          // Ignore if unsupported
+        }
+      }
+    } else {
+      // Switch to Landscape
+      setManualLandscape(true);
+      if (Platform.OS !== 'web') {
+        try {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        } catch {
+          // Fallback transform handles it if native lock fails or OS rotation lock is active
+        }
+      }
+    }
+  }, [isLandscape]);
+
+  const handleClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setManualLandscape(false);
+    if (Platform.OS !== 'web') {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+    onClose();
+  }, [onClose]);
 
   const triggerTapHint = useCallback(() => {
     setShowTapHint(true);
@@ -151,22 +227,27 @@ export default function ProjectorModal({
     [stanzas.length, index, reduceMotion, blank, slideAnim, fadeAnim]
   );
 
-  // Swipe left/right gesture on the stage
+  // Swipe left/right gesture on the stage (accounts for 90deg rotated stage if active)
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_evt, gs) =>
-          Math.abs(gs.dx) > 18 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.4,
+        onMoveShouldSetPanResponder: (_evt, gs) => {
+          const primaryDelta = useTransformLandscape ? gs.dy : gs.dx;
+          const secondaryDelta = useTransformLandscape ? gs.dx : gs.dy;
+          return Math.abs(primaryDelta) > 18 && Math.abs(primaryDelta) > Math.abs(secondaryDelta) * 1.4;
+        },
         onPanResponderRelease: (_evt, gs) => {
-          if (gs.dx < -45 || gs.vx < -0.4) {
+          const primaryDelta = useTransformLandscape ? gs.dy : gs.dx;
+          const primaryVel = useTransformLandscape ? gs.vy : gs.vx;
+          if (primaryDelta < -45 || primaryVel < -0.4) {
             goToSlide(index + 1);
-          } else if (gs.dx > 45 || gs.vx > 0.4) {
+          } else if (primaryDelta > 45 || primaryVel > 0.4) {
             goToSlide(index - 1);
           }
         },
       }),
-    [goToSlide, index]
+    [goToSlide, index, useTransformLandscape]
   );
 
   const currentStanza = stanzas[index] ?? stanzas[0];
@@ -177,17 +258,17 @@ export default function ProjectorModal({
     const lines = currentStanza.text.split('\n').filter(Boolean);
     const lineCount = Math.max(lines.length, 2);
     const maxCharsInLine = Math.max(...lines.map((l) => l.length), 18);
-    const usableH = Math.max(200, stageLayout.height - 110);
+    const usableH = Math.max(150, stageLayout.height - (isLandscape ? 72 : 110));
     const usableW = Math.max(260, stageLayout.width - 48);
 
     // Height constraint: lineCount * (fontSize * 1.48) <= usableH
-    const byHeight = usableH / (lineCount * 1.52);
-    // Width constraint: rough average glyph width ~0.52 * fontSize
+    const byHeight = usableH / (lineCount * 1.48);
+    // Width constraint: rough average glyph width ~0.5 * fontSize
     const byWidth = usableW / (maxCharsInLine * 0.5);
 
     const fitted = Math.floor(Math.min(byHeight, byWidth));
     return Math.max(18, Math.min(54, fitted));
-  }, [currentStanza, stageLayout.height, stageLayout.width]);
+  }, [currentStanza, stageLayout.height, stageLayout.width, isLandscape]);
 
   const effectiveFontSize = manualFont ?? autoFontSize;
 
@@ -208,7 +289,7 @@ export default function ProjectorModal({
 
   const handleStageTap = (evt: any) => {
     const x = evt.nativeEvent.locationX;
-    const width = stageLayout.width || Dimensions.get('window').width;
+    const width = stageLayout.width || windowDims.width;
     if (x < width * 0.3) {
       goToSlide(index - 1);
     } else if (x > width * 0.7) {
@@ -224,339 +305,401 @@ export default function ProjectorModal({
 
   if (!visible) return null;
 
+  const topPad = useTransformLandscape
+    ? 14
+    : isNativeLandscape
+      ? Math.max(insets.top, 10)
+      : Math.max(insets.top, Platform.OS === 'android' ? 22 : 16) + 4;
+  const bottomPad = useTransformLandscape
+    ? 14
+    : isNativeLandscape
+      ? Math.max(insets.bottom, 12)
+      : Math.max(insets.bottom, Platform.OS === 'android' ? 22 : 16) + 8;
+  const horizontalPad = useTransformLandscape
+    ? Math.max(insets.top, insets.bottom, 20)
+    : Math.max(insets.left, insets.right, 0);
+
   return (
     <Modal
       visible={visible}
       animationType="fade"
       presentationStyle="fullScreen"
       statusBarTranslucent
-      onRequestClose={onClose}
+      supportedOrientations={[
+        'portrait',
+        'portrait-upside-down',
+        'landscape',
+        'landscape-left',
+        'landscape-right',
+      ]}
+      onRequestClose={handleClose}
     >
       <KeepAwakeGuard />
       <StatusBar hidden />
 
-      <View style={[styles.root, { backgroundColor: bg }]}>
-        {/* Top Bar: Exit button + Stanza counter */}
-        {controlsVisible && (
-          <View
-            style={[
-              styles.topBar,
-              { paddingTop: Math.max(insets.top, 16) + 4 },
-            ]}
-          >
-            <TouchableOpacity
-              style={[styles.exitBtn, { backgroundColor: chipBg }]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onClose();
-              }}
-              accessibilityLabel={t.projectorExit}
-            >
-              <MaterialIcons name="arrow-back" size={18} color={fg} />
-              <Text style={[styles.exitBtnText, { color: fg }]}>
-                {t.projectorExit}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={[styles.counterText, { color: muted }]}>
-              {index + 1} / {stanzas.length}
-            </Text>
-          </View>
-        )}
-
-        {/* Main Stage (Tap Zones + Swipe Left/Right) */}
-        <Pressable
-          style={styles.stage}
-          onLayout={(e) => {
-            const { width, height } = e.nativeEvent.layout;
-            if (width > 0 && height > 0) {
-              setStageLayout({ width, height });
-            }
-          }}
-          onPress={handleStageTap}
-          {...panResponder.panHandlers}
-        >
-          {!blank && currentStanza ? (
-            <Animated.View
-              style={[
-                styles.stageInner,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateX: slideAnim }],
-                },
-              ]}
-            >
-              {/* Hymn Heading */}
-              <Text
-                style={[styles.hymnHeading, { color: muted }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.65}
-              >
-                <Text style={[styles.hymnHeadingNumber, { color: accent }]}>
-                  {hymnPrefix} {hymn.number}
-                </Text>
-                {'  ·  '}
-                {hymn.title}
-              </Text>
-
-              {/* Stanza Label (Estrofa N / CORO) */}
-              <View
-                style={[
-                  styles.stanzaBadge,
-                  {
-                    backgroundColor: currentStanza.isCoro
-                      ? accent + '22'
-                      : chipBg,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.stanzaBadgeText,
-                    { color: currentStanza.isCoro ? accent : muted },
-                  ]}
-                >
-                  {stanzaBadge}
-                </Text>
-              </View>
-
-              {/* Lyrics Text */}
-              <Text
-                style={[
-                  styles.lyricsText,
-                  currentStanza.isCoro && styles.lyricsTextChorus,
-                  {
-                    color: fg,
-                    fontSize: effectiveFontSize,
-                    lineHeight: Math.round(effectiveFontSize * 1.46),
-                  },
-                ]}
-              >
-                {currentStanza.text}
-              </Text>
-            </Animated.View>
-          ) : null}
-        </Pressable>
-
-        {/* Footer Branding */}
+      <View style={[styles.outerViewport, { backgroundColor: bg }]}>
         <View
           style={[
-            styles.brandingRow,
-            !controlsVisible && { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            styles.root,
+            { backgroundColor: bg, paddingHorizontal: horizontalPad },
+            useTransformLandscape && {
+              width: windowDims.height,
+              height: windowDims.width,
+              transform: [{ rotate: '90deg' }],
+            },
           ]}
-          pointerEvents="none"
         >
-          <Text style={[styles.brandingText, { color: muted }]}>
-            Himnario El Buen Pastor{'  ·  '}
-            <Text style={styles.brandingDomain}>himnarioebp.com</Text>
-          </Text>
-        </View>
+          {/* Top Bar: Exit button + Stanza counter */}
+          {controlsVisible && (
+            <View style={[styles.topBar, { paddingTop: topPad }]}>
+              <TouchableOpacity
+                style={[styles.exitBtn, { backgroundColor: chipBg }]}
+                onPress={handleClose}
+                accessibilityLabel={t.projectorExit}
+              >
+                <MaterialIcons name="arrow-back" size={18} color={fg} />
+                <Text style={[styles.exitBtnText, { color: fg }]}>
+                  {t.projectorExit}
+                </Text>
+              </TouchableOpacity>
 
-        {/* Tap Hint Toast when entering lyrics-only mode */}
-        {showTapHint && (
+              <Text style={[styles.counterText, { color: muted }]}>
+                {index + 1} / {stanzas.length}
+              </Text>
+            </View>
+          )}
+
+          {/* Main Stage (Tap Zones + Swipe Left/Right) */}
+          <Pressable
+            style={styles.stage}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              if (width > 0 && height > 0) {
+                setStageLayout({ width, height });
+              }
+            }}
+            onPress={handleStageTap}
+            {...panResponder.panHandlers}
+          >
+            {!blank && currentStanza ? (
+              <Animated.View
+                style={[
+                  styles.stageInner,
+                  isLandscape && { gap: 8 },
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateX: slideAnim }],
+                  },
+                ]}
+              >
+                {/* Hymn Heading */}
+                <Text
+                  style={[styles.hymnHeading, { color: muted }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  <Text style={[styles.hymnHeadingNumber, { color: accent }]}>
+                    {hymnPrefix} {hymn.number}
+                  </Text>
+                  {'  ·  '}
+                  {hymn.title}
+                </Text>
+
+                {/* Stanza Label (Estrofa N / CORO) */}
+                <View
+                  style={[
+                    styles.stanzaBadge,
+                    {
+                      backgroundColor: currentStanza.isCoro
+                        ? accent + '22'
+                        : chipBg,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stanzaBadgeText,
+                      { color: currentStanza.isCoro ? accent : muted },
+                    ]}
+                  >
+                    {stanzaBadge}
+                  </Text>
+                </View>
+
+                {/* Lyrics Text */}
+                <Text
+                  style={[
+                    styles.lyricsText,
+                    currentStanza.isCoro && styles.lyricsTextChorus,
+                    {
+                      color: fg,
+                      fontSize: effectiveFontSize,
+                      lineHeight: Math.round(effectiveFontSize * 1.46),
+                    },
+                  ]}
+                >
+                  {currentStanza.text}
+                </Text>
+              </Animated.View>
+            ) : null}
+          </Pressable>
+
+          {/* Footer Branding */}
           <View
             style={[
-              styles.tapHintWrap,
-              { bottom: Math.max(insets.bottom, 24) + 54 },
+              styles.brandingRow,
+              !controlsVisible && { paddingBottom: bottomPad + 4 },
             ]}
             pointerEvents="none"
           >
-            <View style={styles.tapHintPill}>
-              <Text style={styles.tapHintText}>{t.projectorTapHint}</Text>
+            <Text style={[styles.brandingText, { color: muted }]}>
+              Himnario El Buen Pastor{'  ·  '}
+              <Text style={styles.brandingDomain}>himnarioebp.com</Text>
+            </Text>
+          </View>
+
+          {/* Tap Hint Toast when entering lyrics-only mode */}
+          {showTapHint && (
+            <View
+              style={[
+                styles.tapHintWrap,
+                { bottom: bottomPad + 48 },
+              ]}
+              pointerEvents="none"
+            >
+              <View style={styles.tapHintPill}>
+                <Text style={styles.tapHintText}>{t.projectorTapHint}</Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Reveal Controls Floating Pill when controls are hidden */}
-        {!controlsVisible && (
-          <View
-            style={[
-              styles.revealWrap,
-              { bottom: Math.max(insets.bottom, 16) + 10 },
-            ]}
-          >
-            <TouchableOpacity
-              style={[styles.revealBtn, { backgroundColor: chipBg }]}
-              onPress={() => setControlsVisible(true)}
+          {/* Reveal Controls Floating Pill when controls are hidden */}
+          {!controlsVisible && (
+            <View
+              style={[
+                styles.revealWrap,
+                { bottom: bottomPad + 6 },
+              ]}
             >
-              <MaterialIcons name="tune" size={16} color={fg} />
-              <Text style={[styles.revealBtnText, { color: fg }]}>
-                {t.projectorShowControls}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Bottom Controls Toolbar */}
-        {controlsVisible && (
-          <View
-            style={[
-              styles.toolbarWrap,
-              { paddingBottom: Math.max(insets.bottom, 16) + 6 },
-            ]}
-          >
-            <GlassSurface
-              forceDark={projectorDark}
-              intensity={55}
-              tonalColor={projectorDark ? '#181818' : '#F2ECE1'}
-              style={styles.toolbar}
-            >
-              {/* Row 1: Stanza Selector Chips (1–9, C) */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsScroll}
+              <TouchableOpacity
+                style={[styles.revealBtn, { backgroundColor: chipBg }]}
+                onPress={() => setControlsVisible(true)}
               >
-                {stanzas.map((s, idx) => {
-                  const active = idx === index;
-                  const chipLabel = s.isCoro ? 'C' : String(s.verseNum);
-                  return (
+                <MaterialIcons name="tune" size={16} color={fg} />
+                <Text style={[styles.revealBtnText, { color: fg }]}>
+                  {t.projectorShowControls}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Bottom Controls Toolbar */}
+          {controlsVisible && (
+            <View
+              style={[
+                styles.toolbarWrap,
+                { paddingBottom: bottomPad },
+              ]}
+            >
+              <GlassSurface
+                forceDark={projectorDark}
+                intensity={55}
+                tonalColor={projectorDark ? '#181818' : '#F2ECE1'}
+                style={[
+                  styles.toolbar,
+                  {
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: projectorDark
+                      ? 'rgba(255,255,255,0.14)'
+                      : 'rgba(110,22,25,0.14)',
+                  },
+                ]}
+              >
+                {/* Row 1: Stanza Selector Chips (1–9, C) */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipsScroll}
+                >
+                  {stanzas.map((s, idx) => {
+                    const active = idx === index;
+                    const chipLabel = s.isCoro ? 'C' : String(s.verseNum);
+                    return (
+                      <TouchableOpacity
+                        key={`stanza-chip-${idx}`}
+                        style={[
+                          styles.stanzaChip,
+                          {
+                            backgroundColor: active ? chipActiveBg : chipBg,
+                          },
+                        ]}
+                        onPress={() => goToSlide(idx)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={
+                          s.isCoro
+                            ? t.projectorChorus
+                            : t.projectorStanza.replace('{n}', String(s.verseNum))
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.stanzaChipText,
+                            { color: active ? chipActiveFg : fg },
+                          ]}
+                        >
+                          {chipLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Row 2: Font Size & Mode Actions */}
+                <View style={styles.actionsRow}>
+                  {/* Font Size Group: − / size / + / Auto */}
+                  <View style={[styles.fontGroup, { backgroundColor: chipBg }]}>
                     <TouchableOpacity
-                      key={`stanza-chip-${idx}`}
+                      style={styles.fontStepBtn}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setManualFont(Math.max(16, effectiveFontSize - 3));
+                      }}
+                    >
+                      <MaterialIcons name="remove" size={17} color={fg} />
+                    </TouchableOpacity>
+
+                    <Text
+                      style={[styles.fontPxLabel, { color: fg }]}
+                      numberOfLines={1}
+                    >
+                      {Math.round(effectiveFontSize)}px
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.fontStepBtn}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setManualFont(Math.min(64, effectiveFontSize + 3));
+                      }}
+                    >
+                      <MaterialIcons name="add" size={17} color={fg} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                       style={[
-                        styles.stanzaChip,
-                        {
-                          backgroundColor: active ? chipActiveBg : chipBg,
-                        },
+                        styles.autoBtn,
+                        manualFont === null && { backgroundColor: chipActiveBg },
                       ]}
-                      onPress={() => goToSlide(idx)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={
-                        s.isCoro
-                          ? t.projectorChorus
-                          : t.projectorStanza.replace('{n}', String(s.verseNum))
-                      }
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setManualFont(null);
+                      }}
                     >
                       <Text
                         style={[
-                          styles.stanzaChipText,
-                          { color: active ? chipActiveFg : fg },
+                          styles.autoBtnText,
+                          { color: manualFont === null ? chipActiveFg : fg },
                         ]}
+                        numberOfLines={1}
                       >
-                        {chipLabel}
+                        {t.projectorAutoSize}
                       </Text>
                     </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                  </View>
 
-              {/* Row 2: Font Size & Mode Actions */}
-              <View style={styles.actionsRow}>
-                {/* Font Size Group: − / size / + / Auto */}
-                <View style={[styles.fontGroup, { backgroundColor: chipBg }]}>
-                  <TouchableOpacity
-                    style={styles.fontStepBtn}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setManualFont(Math.max(16, effectiveFontSize - 3));
-                    }}
-                  >
-                    <MaterialIcons name="remove" size={18} color={fg} />
-                  </TouchableOpacity>
-
-                  <Text style={[styles.fontPxLabel, { color: fg }]}>
-                    {Math.round(effectiveFontSize)}px
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.fontStepBtn}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setManualFont(Math.min(64, effectiveFontSize + 3));
-                    }}
-                  >
-                    <MaterialIcons name="add" size={18} color={fg} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.autoBtn,
-                      manualFont === null && { backgroundColor: chipActiveBg },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setManualFont(null);
-                    }}
-                  >
-                    <Text
+                  {/* Utility Buttons: Rotate, Blank, Theme, Hide Controls */}
+                  <View style={styles.utilityRow}>
+                    {/* Rotate / Flip Orientation (Portrait <-> Landscape) */}
+                    <TouchableOpacity
                       style={[
-                        styles.autoBtnText,
-                        { color: manualFont === null ? chipActiveFg : fg },
+                        styles.iconToolBtn,
+                        {
+                          backgroundColor: isLandscape ? chipActiveBg : chipBg,
+                        },
                       ]}
+                      onPress={handleToggleOrientation}
+                      accessibilityLabel={t.projectorRotate}
                     >
-                      {t.projectorAutoSize}
-                    </Text>
-                  </TouchableOpacity>
+                      <MaterialIcons
+                        name="screen-rotation"
+                        size={18}
+                        color={isLandscape ? chipActiveFg : fg}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Blank / Hide Lyrics */}
+                    <TouchableOpacity
+                      style={[
+                        styles.iconToolBtn,
+                        {
+                          backgroundColor: blank ? chipActiveBg : chipBg,
+                        },
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setBlank((b) => !b);
+                      }}
+                      accessibilityLabel={
+                        blank ? t.projectorShowLyrics : t.projectorHideLyrics
+                      }
+                    >
+                      <MaterialIcons
+                        name={blank ? 'visibility-off' : 'visibility'}
+                        size={18}
+                        color={blank ? chipActiveFg : fg}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Projector Light / Dark Theme */}
+                    <TouchableOpacity
+                      style={[styles.iconToolBtn, { backgroundColor: chipBg }]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setProjectorDark((d) => !d);
+                      }}
+                      accessibilityLabel={projectorDark ? t.lightModeTitle : t.darkModeTitle}
+                    >
+                      <MaterialIcons
+                        name={projectorDark ? 'light-mode' : 'dark-mode'}
+                        size={18}
+                        color={fg}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Immersive Lyrics-only (Hide Controls) */}
+                    <TouchableOpacity
+                      style={[styles.iconToolBtn, { backgroundColor: chipBg }]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setControlsVisible(false);
+                        triggerTapHint();
+                      }}
+                      accessibilityLabel={t.projectorHideControls}
+                    >
+                      <MaterialIcons name="fullscreen" size={20} color={fg} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-
-                {/* Utility Buttons: Blank, Theme, Hide Controls */}
-                <View style={styles.utilityRow}>
-                  {/* Blank / Hide Lyrics */}
-                  <TouchableOpacity
-                    style={[
-                      styles.iconToolBtn,
-                      {
-                        backgroundColor: blank ? chipActiveBg : chipBg,
-                      },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setBlank((b) => !b);
-                    }}
-                    accessibilityLabel={
-                      blank ? t.projectorShowLyrics : t.projectorHideLyrics
-                    }
-                  >
-                    <MaterialIcons
-                      name={blank ? 'visibility-off' : 'visibility'}
-                      size={20}
-                      color={blank ? chipActiveFg : fg}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Projector Light / Dark Theme */}
-                  <TouchableOpacity
-                    style={[styles.iconToolBtn, { backgroundColor: chipBg }]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setProjectorDark((d) => !d);
-                    }}
-                    accessibilityLabel={projectorDark ? t.lightModeTitle : t.darkModeTitle}
-                  >
-                    <MaterialIcons
-                      name={projectorDark ? 'light-mode' : 'dark-mode'}
-                      size={20}
-                      color={fg}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Immersive Lyrics-only (Hide Controls) */}
-                  <TouchableOpacity
-                    style={[styles.iconToolBtn, { backgroundColor: chipBg }]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setControlsVisible(false);
-                      triggerTapHint();
-                    }}
-                    accessibilityLabel={t.projectorHideControls}
-                  >
-                    <MaterialIcons name="fullscreen" size={22} color={fg} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </GlassSurface>
-          </View>
-        )}
+              </GlassSurface>
+            </View>
+          )}
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  outerViewport: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   root: {
     flex: 1,
+    width: '100%',
   },
   topBar: {
     flexDirection: 'row',
@@ -672,13 +815,13 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
   },
   toolbarWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   toolbar: {
     borderRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 11,
+    gap: 10,
   },
   chipsScroll: {
     flexDirection: 'row',
@@ -702,49 +845,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 6,
   },
   fontGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 999,
     padding: 3,
-    gap: 2,
+    gap: 1,
+    flexShrink: 1,
   },
   fontStepBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fontPxLabel: {
+    fontFamily: 'PublicSans_600SemiBold',
+    fontSize: 11.5,
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  autoBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginLeft: 1,
+  },
+  autoBtnText: {
+    fontFamily: 'PublicSans_700Bold',
+    fontSize: 11,
+  },
+  utilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 0,
+  },
+  iconToolBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fontPxLabel: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 12.5,
-    minWidth: 38,
-    textAlign: 'center',
-  },
-  autoBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginLeft: 2,
-  },
-  autoBtnText: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 12,
-  },
-  utilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  iconToolBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });
-

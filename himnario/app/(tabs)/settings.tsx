@@ -34,6 +34,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import OfflineAudioCard from '../../components/OfflineAudioCard';
+import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const scrollViewRef = useRef<any>(null);
+  const isSlidingFont = useRef(false);
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -216,6 +218,8 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <Slider
+              onSlidingStart={() => { isSlidingFont.current = true; }}
+              onSlidingComplete={() => { setTimeout(() => { isSlidingFont.current = false; }, 100); }}
               style={{ flex: 1, height: 40 }}
               minimumValue={12 / 22}
               maximumValue={64 / 22}
@@ -515,7 +519,7 @@ export default function SettingsScreen() {
   // ══════════════════════════════════════════════════════════════════════════
   if (IS_IOS) {
     return (
-      <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <TabSwipeWrapper currentTab="settings" shouldIgnoreTouch={() => isSlidingFont.current} style={[styles.root, { backgroundColor: theme.background }]}>
         {/* Fade-out header */}
         <Animated.View
           style={[
@@ -564,7 +568,7 @@ export default function SettingsScreen() {
 
 
         {modals}
-      </View>
+      </TabSwipeWrapper>
     );
   }
 
@@ -572,7 +576,7 @@ export default function SettingsScreen() {
   // ANDROID / WEB LAYOUT — collapsible header
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <TabSwipeWrapper currentTab="settings" shouldIgnoreTouch={() => isSlidingFont.current} style={[styles.root, { backgroundColor: theme.background }]}>
 
       {/* Collapsible TopAppBar */}
       <Animated.View
@@ -620,9 +624,9 @@ export default function SettingsScreen() {
 
 
       {modals}
-    </View>
-  );
-}
+      </TabSwipeWrapper>
+    );
+  }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },

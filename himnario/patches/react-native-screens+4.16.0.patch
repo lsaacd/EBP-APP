@@ -1,0 +1,81 @@
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm
+index fe7d959..3670f2b 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm
+@@ -123,6 +123,15 @@ namespace react = facebook::react;
+     // This is required on legacy architecture to prevent a bug with doubled size of UIViewControllerWrapperView.
+     _controller.view.frame = self.bounds;
+ #endif // !RCT_NEW_ARCH_ENABLED
++
++    RNSTabBarController *ctrl = _controller;
++    dispatch_async(dispatch_get_main_queue(), ^{
++      if (ctrl != nil) {
++        [ctrl updateTabBarAppearance];
++        [ctrl.tabBar setNeedsLayout];
++        [ctrl.tabBar layoutIfNeeded];
++      }
++    });
+   }
+ }
+ 
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm b/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm
+index dff5cbf..00dc995 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm
+@@ -24,6 +24,7 @@
+   }
+ 
+   // Step 2 - configure screen-specific appearance
++  RNSTabsScreenViewController *selectedCtrl = nil;
+   for (RNSTabsScreenViewController *tabScreenCtrl in tabScreenCtrls) {
+     if (tabScreenCtrl == nil) {
+       // It should not be null here, something went wrong.
+@@ -32,7 +33,20 @@
+     }
+ 
+     [self configureTabBarItemForTabScreenController:tabScreenCtrl imageLoader:imageLoader];
++    if (tabScreenCtrl.tabScreenComponentView.isSelectedScreen) {
++      selectedCtrl = tabScreenCtrl;
++    }
++  }
++
++  RNSTabsScreenViewController *appearanceSource = selectedCtrl ?: [tabScreenCtrls firstObject];
++  if (appearanceSource != nil && appearanceSource.tabScreenComponentView.standardAppearance != nil) {
++    tabBar.standardAppearance = appearanceSource.tabScreenComponentView.standardAppearance;
++    tabBar.scrollEdgeAppearance = appearanceSource.tabScreenComponentView.scrollEdgeAppearance
++        ?: appearanceSource.tabScreenComponentView.standardAppearance;
+   }
++
++  [tabBar setNeedsLayout];
++  [tabBar layoutIfNeeded];
+ }
+ 
+ - (void)configureTabBarItemForTabScreenController:(nonnull RNSTabsScreenViewController *)tabScreenCtrl
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm b/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm
+index 1c70eec..1c7eaa0 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm
+@@ -95,8 +95,8 @@
+ {
+   RNSLog(@"TabBarCtrl mountintTransactionDidMount running updates");
+   [self updateReactChildrenControllersIfNeeded];
+-  [self updateSelectedViewControllerIfNeeded];
+   [self updateTabBarAppearanceIfNeeded];
++  [self updateSelectedViewControllerIfNeeded];
+   [self updateOrientationIfNeeded];
+ }
+ 
+@@ -155,7 +155,13 @@
+   RNSLog(@"Change selected view controller to: %@", selectedViewController);
+ 
+   [selectedViewController.tabScreenComponentView overrideScrollViewBehaviorInFirstDescendantChainIfNeeded];
++  if (selectedViewController.tabScreenComponentView.standardAppearance != nil) {
++    self.tabBar.standardAppearance = selectedViewController.tabScreenComponentView.standardAppearance;
++    self.tabBar.scrollEdgeAppearance = selectedViewController.tabScreenComponentView.scrollEdgeAppearance
++        ?: selectedViewController.tabScreenComponentView.standardAppearance;
++  }
+   [self setSelectedViewController:selectedViewController];
++  [self.tabBar setNeedsLayout];
+ }
+ 
+ - (void)updateTabBarAppearanceIfNeeded

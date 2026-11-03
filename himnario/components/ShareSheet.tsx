@@ -1,13 +1,16 @@
 /**
  * ShareSheet — Unified share sheet used by the reader, full player, and mini player (Workstream E).
  *
- * Actions (parity with `docs/js/sharing.js`):
- * - WhatsApp (`https://wa.me/?text=...`, no custom URL-scheme permission needed)
- * - Copy link (`https://himnarioebp.com/hymn/{id}/`)
- * - Copy full lyrics with title, author, reference, and canonical link
- * - System share sheet (`Share.share`)
+ * Actions, in this exact order (nothing more):
+ * 1. Messages — native SMS composer (`sms:`) with title + canonical link; falls back to the system
+ *    share sheet when SMS isn't available (e.g. iPad / simulator).
+ * 2. WhatsApp (`https://wa.me/?text=...`, no custom URL-scheme permission needed)
+ * 3. Create PDF — opens the in-app "Preparar PDF" editor (website parity: format, font size,
+ *    columns, fit-to-page, include title, live preview) — see `PdfEditor.tsx`.
+ * 4. Copy lyrics with title, author, reference, and canonical link
  *
  * iOS: Glass sheet with grabber. Android: Material 3 bottom sheet with ripple feedback.
+ * The PDF editor renders inside this same modal (no nested modals).
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,7 +21,6 @@ import {
   Pressable,
   Share,
   ScrollView,
-  Switch,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,14 +28,13 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
+import PdfEditor from './PdfEditor';
 
 const DEFAULT_COVER = require('../assets/images/EBP_HYMN_COVER.png');
 
@@ -59,14 +60,17 @@ export interface ShareSheetProps {
 
 export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' }: ShareSheetProps) {
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const es = language !== 'en';
   const insets = useSafeAreaInsets();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const [includePdfTitle, setIncludePdfTitle] = useState(true);
+  const [mode, setMode] = useState<'menu' | 'pdf'>('menu');
 
   useEffect(() => {
-    if (!visible) setStatusMessage(null);
+    if (!visible) {
+      setStatusMessage(null);
+      setMode('menu');
+    }
   }, [visible]);
 
   if (!hymn) return null;
@@ -74,6 +78,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const isChorus = String(hymn.id).startsWith('E');
   const label = `${isChorus ? 'Estribillo' : 'Himno'} ${hymn.number}`;
   const publicUrl = `https://himnarioebp.com/hymn/${encodeURIComponent(String(hymn.id))}/`;
+  const linkMessage = `${label} · ${hymn.title}\nHimnario El Buen Pastor\n\n${publicUrl}`;
   const fullLyricsText = [
     `${label} · ${hymn.title}`,
     'Himnario El Buen Pastor',
@@ -86,10 +91,30 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     .filter((line, idx) => idx < 4 || Boolean(line))
     .join('\n');
 
-  const handleCopyLink = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await Clipboard.setStringAsync(publicUrl);
-    setStatusMessage(t.shareLinkCopied);
+  const handleMessages = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const body = encodeURIComponent(linkMessage);
+    // iOS uses `sms:&body=`, Android uses `sms:?body=`.
+    const smsUrl = Platform.OS === 'ios' ? `sms:&body=${body}` : `sms:?body=${body}`;
+    onClose();
+    setTimeout(() => {
+      Linking.openURL(smsUrl).catch(() => {
+        Share.share({ title: `${label} · ${hymn.title}`, message: linkMessage, url: publicUrl }).catch(() => {});
+      });
+    }, 260);
+  };
+
+  const handleWhatsApp = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const waText = encodeURIComponent(linkMessage);
+    Linking.openURL(`https://wa.me/?text=${waText}`).catch(() => {});
+    onClose();
+  };
+
+  const handleOpenPdf = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStatusMessage(null);
+    setMode('pdf');
   };
 
   const handleCopyLyrics = async () => {
@@ -98,80 +123,15 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     setStatusMessage(t.shareLyricsCopied);
   };
 
-  const handleWhatsApp = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const waText = encodeURIComponent(`${label} · ${hymn.title}\nHimnario El Buen Pastor\n\n${publicUrl}`);
-    Linking.openURL(`https://wa.me/?text=${waText}`).catch(() => {});
-    onClose();
-  };
-
-  const handleSystemShare = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onClose();
-    setTimeout(() => {
-      Share.share({
-        title: `${label} · ${hymn.title}`,
-        message: fullLyricsText,
-        url: publicUrl,
-      }).catch(() => {});
-    }, 220);
-  };
-
-  const escapeHtml = (value: string) => value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/\n/g, '<br />');
-
-  const handlePdf = async () => {
-    if (exporting) return;
-    setExporting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const title = escapeHtml(`${label} · ${hymn.title}`);
-    const lyrics = escapeHtml(hymn.lyrics || '');
-    const author = hymn.author ? `<div class="meta">${escapeHtml(hymn.author)}</div>` : '';
-    const header = includePdfTitle ? `<div class="number">${escapeHtml(String(hymn.number))}</div><h1>${title}</h1>${author}` : '';
-    const copy = `<section class="copy">${header}<div class="lyrics">${lyrics}</div></section>`;
-    const html = `<!doctype html><html><head><meta charset="utf-8" /><style>
-      @page { size: Letter landscape; margin: 0.35in; }
-      * { box-sizing: border-box; } body { margin: 0; font-family: Georgia, serif; color: #17130f; }
-      .sheet { width: 100%; display: flex; }
-      .copy { width: 50%; padding: 0.18in 0.28in; border-right: 1px dashed #999; }
-      .copy:last-child { border-right: 0; } .number { font: 12px Arial, sans-serif; color: #6e1619; text-align: center; }
-      h1 { font-size: 20px; line-height: 1.08; text-align: center; margin: 0.05in 0 0.08in; }
-      .meta { font: 8px Arial, sans-serif; text-align: center; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.12in; }
-      .lyrics { font-size: 10px; line-height: 1.32; white-space: normal; }
-    </style></head><body><div class="sheet">${copy}${copy}</div></body></html>`;
-    try {
-      let file = await Print.printToFileAsync({ html, width: 792, height: 612, margins: { top: 0, right: 0, bottom: 0, left: 0 } });
-      // Check the generated page count instead of hiding overflowing lyrics.
-      for (let fontSize = 9.5; file.numberOfPages > 1 && fontSize >= 4; fontSize -= 0.5) {
-        file = await Print.printToFileAsync({
-          html: html.replace('font-size: 10px', `font-size: ${fontSize}px`),
-          width: 792, height: 612, margins: { top: 0, right: 0, bottom: 0, left: 0 },
-        });
-      }
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: `${label} PDF` });
-      }
-      onClose();
-    } catch {
-      setStatusMessage(t.sharePdfError);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const options = [
     {
-      key: 'copy-link',
-      icon: 'link' as const,
-      iconBg: theme.primary + '18',
-      iconColor: theme.primary,
-      title: t.shareCopyLink,
-      subtitle: t.shareCopyLinkSub,
-      onPress: handleCopyLink,
+      key: 'messages',
+      icon: 'sms' as const,
+      iconBg: 'rgba(52, 199, 89, 0.16)',
+      iconColor: '#34C759',
+      title: t.shareMessages,
+      subtitle: es ? 'Enviar enlace y título por mensaje' : 'Send link and title by text message',
+      onPress: handleMessages,
     },
     {
       key: 'whatsapp',
@@ -184,6 +144,15 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       onPress: handleWhatsApp,
     },
     {
+      key: 'pdf',
+      icon: 'picture-as-pdf' as const,
+      iconBg: theme.primary + '18',
+      iconColor: theme.primary,
+      title: es ? 'Crear PDF' : 'Create PDF',
+      subtitle: es ? 'Elige formato, tamaño y columnas' : 'Choose format, size, and columns',
+      onPress: handleOpenPdf,
+    },
+    {
       key: 'copy-lyrics',
       icon: 'content-copy' as const,
       iconBg: theme.primary + '18',
@@ -192,29 +161,12 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       subtitle: t.shareCopyLyricsSub,
       onPress: handleCopyLyrics,
     },
-    {
-      key: 'pdf',
-      icon: 'picture-as-pdf' as const,
-      iconBg: theme.primary + '18',
-      iconColor: theme.primary,
-      title: exporting ? t.sharePdfPreparing : t.sharePdf,
-      subtitle: t.sharePdfSub,
-      onPress: handlePdf,
-    },
-    {
-      key: 'more',
-      icon: 'ios-share' as const,
-      iconBg: theme.primary + '18',
-      iconColor: theme.primary,
-      title: t.shareSystemMore,
-      subtitle: t.shareSystemMoreSub,
-      onPress: handleSystemShare,
-    },
   ];
 
   const isIOS = Platform.OS === 'ios';
+  const isPdf = mode === 'pdf';
 
-  const sheetBody = (
+  const menuBody = (
     <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false} bounces={false}>
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
@@ -274,18 +226,6 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       )}
 
       {/* Share Action Rows */}
-      <View style={styles.pdfTitleRow}>
-        <Text style={[styles.optionTitle, { color: theme.onSurface, flex: 1 }]}>
-          {t.sharePdfIncludeTitle}
-        </Text>
-        <Switch
-          value={includePdfTitle}
-          onValueChange={setIncludePdfTitle}
-          disabled={exporting}
-          accessibilityLabel={t.sharePdfIncludeTitle}
-          trackColor={{ true: theme.primary }}
-        />
-      </View>
       <View style={styles.optionsList}>
         {options.map((opt) => (
           <Pressable
@@ -330,12 +270,21 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     </ScrollView>
   );
 
+  const sheetBody = isPdf ? (
+    <View style={styles.pdfInner}>
+      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant, marginBottom: 10 }]} />
+      <PdfEditor hymn={hymn} onBack={() => setMode('menu')} onClose={onClose} />
+    </View>
+  ) : (
+    menuBody
+  );
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={() => (isPdf ? setMode('menu') : onClose())}
     >
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
@@ -345,6 +294,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
             intensity={65}
             style={[
               styles.iosSheet,
+              isPdf && styles.pdfSheet,
               { paddingBottom: Math.max(insets.bottom, 20) + 12 },
             ]}
           >
@@ -354,6 +304,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
           <View
             style={[
               styles.androidSheet,
+              isPdf && styles.pdfSheet,
               {
                 backgroundColor: theme.surfaceVariants.containerLow,
                 paddingBottom: Math.max(insets.bottom, 20) + 14,
@@ -388,6 +339,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     elevation: 18,
+  },
+  pdfSheet: {
+    height: '92%',
+    maxHeight: '92%',
+  },
+  pdfInner: {
+    flex: 1,
   },
   inner: {
     gap: 14,
@@ -477,12 +435,6 @@ const styles = StyleSheet.create({
   optionsList: {
     gap: 8,
   },
-  pdfTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-  },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -515,4 +467,3 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
 });
-

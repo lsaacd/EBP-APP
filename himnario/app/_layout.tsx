@@ -41,6 +41,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import TrackPlayer from 'react-native-track-player';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
@@ -94,6 +95,11 @@ function ThemedStack() {
   const isIOS = Platform.OS === 'ios';
   const isPlaylist = pathname.startsWith('/playlist/');
   const isHymn = pathname.startsWith('/hymn/');
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
