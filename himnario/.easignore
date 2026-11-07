@@ -1,20 +1,20 @@
 # dependencies
-node_modules/
-node_modules/**/*
+/node_modules/
+/node_modules/**/*
 
 # Expo
-.expo/
-.expo/**/*
-dist/
-dist/**/*
-web-build/
-web-build/**/*
+/.expo/
+/.expo/**/*
+/dist/
+/dist/**/*
+/web-build/
+/web-build/**/*
 
 # Native build folders (these are HUGE and not needed for cloud builds)
-android/
-android/**/*
-ios/
-ios/**/*
+/android/
+/android/**/*
+/ios/
+/ios/**/*
 
 # Build artifacts
 .kotlin
@@ -35,6 +35,7 @@ yarn-error.*
 
 # macOS
 .DS_Store
+._*
 *.pem
 
 # local env files
@@ -47,7 +48,8 @@ yarn-error.*
 .git
 
 # scratch folders
-scratch
+/scratch
+/scratch/**/*
 
 # example
 app-example
