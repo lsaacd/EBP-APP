@@ -1,68 +1,102 @@
 {
   "expo": {
     "name": "Himnario El Buen Pastor",
-    "slug": "himnario",
-    "version": "1.0.0",
-    "scheme": "himnario",
+    "slug": "ElBuenPastorHimnario",
+    "version": "1.1.0",
+    "orientation": "default",
+    "icon": "./assets/images/android-legacy-app-logo.png",
+    "scheme": "el-buen-pastor-himnario",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "icon": "./assets/images/white-ios-logo.png",
     "ios": {
-      "icon": "./assets/images/AppIcon.icon",
       "supportsTablet": true,
-      "bundleIdentifier": "com.iddvelbuenpastor.himnario",
+      "icon": "./assets/images/AppIcon.icon",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "audio"
-        ]
-      }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.elbuenpastor",
+      "associatedDomains": [
+        "applinks:himnarioebp.com",
+        "applinks:www.himnarioebp.com"
+      ]
     },
     "android": {
-      "package": "com.iddvelbuenpastor.himnario",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-adaptive-foreground.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#FAF5EE",
+        "backgroundImage": "./assets/images/android-background-app-logo.png",
+        "foregroundImage": "./assets/images/android-foreground-app.png",
+        "monochromeImage": "./assets/images/android-monochrome-app-logo.png"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.elbuenpastor.himnario",
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
-      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/white-ios-logo.png"
     },
     "plugins": [
       "expo-router",
       [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-logo-light.png",
-          "imageWidth": 220,
+          "image": "./assets/images/EBP-LOGO1.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
-          "backgroundColor": "#FCF9F2",
+          "backgroundColor": "#FAF5EE",
           "dark": {
-            "image": "./assets/images/splash-logo-dark.png",
-            "backgroundColor": "#121212"
+            "backgroundColor": "#010101"
+          },
+          "android": {
+            "image": "./assets/images/SPLASH-SCREEN-ANDROID.png",
+            "backgroundColor": "#FAF5EE",
+            "dark": {
+              "backgroundColor": "#010101"
+            }
           }
         }
       ],
-      "expo-font",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-build-properties",
+      "expo-asset",
+      "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler": true
     },
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "0fdffbe6-ab68-4d61-ab66-491b42a634b2"
+        "projectId": "74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
       }
     },
+    "owner": "isaacduran",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/0fdffbe6-ab68-4d61-ab66-491b42a634b2"
+      "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }
   }
 }
