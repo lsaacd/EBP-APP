@@ -10,6 +10,7 @@
  * @returns {React.JSX.Element} The rendered Settings screen.
  */
 import Constants from 'expo-constants';
+import AboutHymnalContent from '../../components/AboutHymnalContent';
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -23,8 +24,8 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { fonts } from '../../theme/theme';
@@ -36,10 +37,8 @@ import { useNowPlaying } from '../../context/NowPlayingContext';
 import OfflineAudioCard from '../../components/OfflineAudioCard';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
-const IS_IOS = Platform.OS === 'ios';
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const navigation = useNavigation();
   const { theme, isDarkMode, toggleTheme, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
   const { t, language, setLanguage } = useLanguage();
@@ -61,48 +60,7 @@ export default function SettingsScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  // ── Android / web: collapsible header ─────────────────────────────────────
-  const [headerH, setHeaderH] = useState(0);
-  const headerTranslate = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const headerHidden = useRef(false);
-
-  const handleScroll = (e: any) => {
-    const y = e.nativeEvent.contentOffset.y;
-
-    if (y < 5 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-      lastScrollY.current = y;
-      return;
-    }
-
-    const dy = y - lastScrollY.current;
-    lastScrollY.current = y;
-    if (Math.abs(dy) < 3) return;
-
-    if (dy > 0 && !headerHidden.current && y > 10) {
-      headerHidden.current = true;
-      Animated.timing(headerTranslate, {
-        toValue: -headerH,
-        duration: 220,
-        useNativeDriver: true,
-      }).start();
-    } else if (dy < 0 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
-
-  // ── iOS: scroll-driven fade-out ───────────────────────────────────────────
+  // Native-driver scroll fade shared by iOS and Android; no opaque app-bar box.
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = scrollY.interpolate({
@@ -169,14 +127,16 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name="format-size" size={24} color={theme.primary} />
-              <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
-                {t.fontSize} · {Math.round(22 * fontSizeMultiplier)} px
-              </Text>
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, { color: theme.onSurface, marginBottom: 0 }]}>
+                  {t.fontSize} · {Math.round(22 * fontSizeMultiplier)} px
+                </Text>
+              </View>
             </View>
             {Math.round(22 * fontSizeMultiplier) !== 22 && (
               <TouchableOpacity
                 onPress={() => setFontSizeMultiplier(1.0)}
-                style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.primary + '16' }}
+                style={{ flexShrink: 0, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.primary + '16' }}
               >
                 <Text style={{ fontFamily: 'PublicSans_600SemiBold', fontSize: 12, color: theme.primary }}>
                   {t.textSizeReset}
@@ -416,43 +376,7 @@ export default function SettingsScreen() {
               indicatorStyle={isDarkMode ? 'white' : 'black'}
               contentContainerStyle={styles.aboutScroll}
             >
-              <View style={styles.aboutHeader}>
-                <Text style={[styles.aboutAppName, { color: theme.primary }]}>
-                  Himnario El Buen Pastor
-                </Text>
-                <Text style={[styles.aboutVersion, { color: theme.onSurfaceVariant }]}>
-                  {t.aboutVersion.replace(/\d+\.\d+\.\d+/, Constants.expoConfig?.version ?? '1.1.0')}
-                </Text>
-                <Text style={[styles.aboutTagline, { color: theme.primary, opacity: 0.5 }]}>
-                  {t.aboutTagline}
-                </Text>
-              </View>
-              <View style={[styles.aboutDivider, { backgroundColor: theme.outlineVariant, opacity: 0.2 }]} />
-              <Text style={[styles.aboutDescription, { color: theme.onSurface }]}>
-                {t.aboutDescription}
-              </Text>
-              <Text style={[styles.aboutSectionTitle, { color: theme.primary }]}>
-                {t.aboutChangelog}
-              </Text>
-              <Text style={[styles.aboutRelease, { color: theme.outline }]}>
-                {t.aboutFirstRelease}
-              </Text>
-              {(t.aboutChangelogItems as readonly string[]).map((item, i) => (
-                <View key={i} style={styles.aboutItem}>
-                  <View style={[styles.aboutBullet, { backgroundColor: theme.primary }]} />
-                  <Text style={[styles.aboutItemText, { color: theme.onSurface }]}>{item}</Text>
-                </View>
-              ))}
-              <View style={[styles.aboutDivider, { backgroundColor: theme.outlineVariant, opacity: 0.2 }]} />
-              <Text style={[styles.aboutSectionTitle, { color: theme.primary }]}>
-                {t.aboutBuiltBy}
-              </Text>
-              <Text style={[styles.aboutCredit, { color: theme.onSurface }]}>
-                {t.aboutBuiltByName}
-              </Text>
-              <Text style={[styles.aboutCopyright, { color: theme.outline }]}>
-                {t.aboutCopyright}
-              </Text>
+              <AboutHymnalContent />
             </ScrollView>
             <TouchableOpacity
               style={[styles.aboutCloseBtn, { backgroundColor: theme.primary }]}
@@ -515,10 +439,9 @@ export default function SettingsScreen() {
   );
 
   // ══════════════════════════════════════════════════════════════════════════
-  // iOS LAYOUT — fade-out title + Animated.ScrollView
+  // SHARED LAYOUT — transparent fade-out title + Animated.ScrollView
   // ══════════════════════════════════════════════════════════════════════════
-  if (IS_IOS) {
-    return (
+  return (
       <TabSwipeWrapper currentTab="settings" shouldIgnoreTouch={() => isSlidingFont.current} style={[styles.root, { backgroundColor: theme.background }]}>
         {/* Fade-out header */}
         <Animated.View
@@ -554,6 +477,8 @@ export default function SettingsScreen() {
 
         <Animated.ScrollView
           ref={scrollViewRef}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
           contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -570,63 +495,7 @@ export default function SettingsScreen() {
         {modals}
       </TabSwipeWrapper>
     );
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // ANDROID / WEB LAYOUT — collapsible header
-  // ══════════════════════════════════════════════════════════════════════════
-  return (
-      <TabSwipeWrapper currentTab="settings" shouldIgnoreTouch={() => isSlidingFont.current} style={[styles.root, { backgroundColor: theme.background }]}>
-
-      {/* Collapsible TopAppBar */}
-      <Animated.View
-        onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
-        pointerEvents="box-none"
-        style={[
-          styles.headerContainer,
-          { backgroundColor: theme.background, transform: [{ translateY: headerTranslate }] },
-        ]}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]} pointerEvents="box-none">
-          <Text
-            style={[styles.headerTitle, { color: theme.primary }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            {t.settings}
-          </Text>
-        </View>
-      </Animated.View>
-
-      {/* ── Status Bar Scrim ──────────────────────────────────── */}
-      <LinearGradient
-        colors={[
-          isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
-        ]}
-        style={[styles.statusBarScrim, { height: insets.top + 28 }]}
-        pointerEvents="none"
-      />
-
-      <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[styles.scroll, { paddingTop: headerH + 8 }]}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={true}
-          indicatorStyle={isDarkMode ? 'white' : 'black'}
-        >
-          {scrollContent}
-        </ScrollView>
-      </SafeAreaView>
-
-
-      {modals}
-      </TabSwipeWrapper>
-    );
-  }
+}
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -843,83 +712,6 @@ const styles = StyleSheet.create({
   aboutScroll: {
     paddingHorizontal: 28,
     paddingBottom: 24,
-  },
-  aboutHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  aboutAppName: {
-    fontFamily: fonts.boldItalic,
-    fontSize: 26,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  aboutVersion: {
-    fontFamily: 'PublicSans_500Medium',
-    fontSize: 13,
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  aboutTagline: {
-    fontFamily: fonts.regularItalic,
-    fontSize: 14,
-  },
-  aboutDivider: {
-    height: 1,
-    marginVertical: 20,
-  },
-  aboutDescription: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 24,
-    opacity: 0.85,
-  },
-  aboutSectionTitle: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 11,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  aboutRelease: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 12,
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    opacity: 0.6,
-  },
-  aboutItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 8,
-  },
-  aboutBullet: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    marginTop: 7,
-    flexShrink: 0,
-    opacity: 0.7,
-  },
-  aboutItemText: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 14,
-    lineHeight: 22,
-    flex: 1,
-  },
-  aboutCredit: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 15,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  aboutCopyright: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 12,
-    opacity: 0.45,
-    textAlign: 'center',
   },
   aboutCloseBtn: {
     marginHorizontal: 28,

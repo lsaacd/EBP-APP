@@ -6,7 +6,7 @@
  * - Manages the native splash screen visibility.
  * - Wraps the application in global context providers (Theme, Language, Favorites, Recents).
  * - Defines the application's navigation stack with custom transitions.
- * - Tab screens live inside the (tabs) group with NativeTabs (iOS liquid glass).
+ * - Tab screens live inside the (tabs) group with a NativeTabs (iOS) and interactive pager (Android).
  * - Non-tab screens (hymn detail, available songs) are rendered as Stack screens.
  *
  * @returns {React.JSX.Element | null} The application structure or a splash screen while loading.
@@ -18,6 +18,7 @@ import {
   Newsreader_400Regular,
   Newsreader_400Regular_Italic,
   Newsreader_500Medium,
+  Newsreader_600SemiBold,
   Newsreader_700Bold,
   Newsreader_700Bold_Italic,
 } from '@expo-google-fonts/newsreader';
@@ -27,7 +28,7 @@ import {
   PublicSans_600SemiBold,
   PublicSans_700Bold,
 } from '@expo-google-fonts/public-sans';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
@@ -92,6 +93,7 @@ function ThemedStack() {
   const { showFullPlayer, closeFullPlayer, currentHymnId } = useNowPlaying();
   const insets = useSafeAreaInsets();
 
+  const [miniPlayerHeight, setMiniPlayerHeight] = useState(Platform.OS === 'android' ? 74 : 57);
   const isIOS = Platform.OS === 'ios';
   const isPlaylist = pathname.startsWith('/playlist/');
   const isHymn = pathname.startsWith('/hymn/');
@@ -118,8 +120,8 @@ function ThemedStack() {
     // Playlist page has no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn) {
-    // iOS Main Tabs use NativeTabs (UITabBarController).
-    // Native tab bar is pinned to the absolute bottom: 49px + safe area inset.
+    // iOS tab artwork and bar retain their 49pt height.
+    // The tab bar is pinned to the absolute bottom: 49px + safe area inset.
     miniPlayerBottom = 49 + insets.bottom;
   } else if (!isIOS && !isHymn) {
     // Flush Android tabs include the safe inset beneath their 64px icon row.
@@ -152,7 +154,7 @@ function ThemedStack() {
         {/* ── Index / splash screen ─────────────────────────────────────── */}
         <Stack.Screen name="index" options={{ animation: 'none', gestureEnabled: false, fullScreenGestureEnabled: false }} />
 
-        {/* ── Tab group — NativeTabs handles internal navigation ────────── */}
+        {/* ── Tab group — platform-specific tabs handle internal navigation ────────── */}
         <Stack.Screen name="(tabs)" options={{ animation: 'none', gestureEnabled: false, fullScreenGestureEnabled: false }} />
 
         {/* ── Hymn detail — has its own sub-layout (hymn/_layout.tsx) ───── */}
@@ -160,9 +162,15 @@ function ThemedStack() {
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
-      {currentHymnId && !showFullPlayer && (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: miniPlayerBottom, zIndex: 50 }}>
-          <MiniPlayer />
+      {currentHymnId && (!showFullPlayer || !isIOS) && (
+        <View
+          pointerEvents={showFullPlayer ? 'none' : 'auto'}
+          accessibilityElementsHidden={showFullPlayer}
+          importantForAccessibility={showFullPlayer ? 'no-hide-descendants' : 'auto'}
+          onLayout={event => setMiniPlayerHeight(event.nativeEvent.layout.height)}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: miniPlayerBottom, zIndex: 50, opacity: isIOS ? 1 : (showFullPlayer ? 0 : 1) }}
+        >
+          <MiniPlayer showWhileExpanded={!isIOS} />
         </View>
       )}
 
@@ -170,6 +178,8 @@ function ThemedStack() {
       {currentHymnId && showFullPlayer && (
         <MusicPlayer
           visible={true}
+          miniPlayerBottom={miniPlayerBottom}
+          miniPlayerHeight={miniPlayerHeight}
           hymnId={currentHymnId}
           onClose={() => closeFullPlayer()}
           onViewLyrics={(id) => router.push(`/hymn/${id}`)}
@@ -180,17 +190,33 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Newsreader_400Regular,
-    Newsreader_400Regular_Italic,
-    Newsreader_500Medium,
-    Newsreader_700Bold,
-    Newsreader_700Bold_Italic,
-    PublicSans_400Regular,
-    PublicSans_500Medium,
-    PublicSans_600SemiBold,
-    PublicSans_700Bold,
-  });
+  const [fontsLoaded, fontError] = useFonts(
+    Platform.OS === 'ios'
+      ? {
+          Newsreader_400Regular: require('../assets/fonts/ios/NewYork-Regular.ttf'),
+          Newsreader_400Regular_Italic: require('../assets/fonts/ios/NewYork-RegularItalic.ttf'),
+          Newsreader_500Medium: require('../assets/fonts/ios/NewYork-Medium.ttf'),
+          Newsreader_600SemiBold: require('../assets/fonts/ios/NewYork-Semibold.ttf'),
+          Newsreader_700Bold: require('../assets/fonts/ios/NewYork-Bold.ttf'),
+          Newsreader_700Bold_Italic: require('../assets/fonts/ios/NewYork-BoldItalic.ttf'),
+          PublicSans_400Regular: require('../assets/fonts/ios/SFProText-Regular.otf'),
+          PublicSans_500Medium: require('../assets/fonts/ios/SFProText-Medium.otf'),
+          PublicSans_600SemiBold: require('../assets/fonts/ios/SFProText-Semibold.otf'),
+          PublicSans_700Bold: require('../assets/fonts/ios/SFProText-Bold.otf'),
+        }
+      : {
+          Newsreader_400Regular,
+          Newsreader_400Regular_Italic,
+          Newsreader_500Medium,
+          Newsreader_600SemiBold,
+          Newsreader_700Bold,
+          Newsreader_700Bold_Italic,
+          PublicSans_400Regular,
+          PublicSans_500Medium,
+          PublicSans_600SemiBold,
+          PublicSans_700Bold,
+        }
+  );
 
   useEffect(() => {
     if (fontError) {

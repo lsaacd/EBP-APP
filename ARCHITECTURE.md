@@ -7,28 +7,29 @@ Expo SDK 54, React 19, React Native 0.81, Expo Router, TypeScript. Check `himnar
 | Concern | Source under himnario/ |
 | --- | --- |
 | Entry and native background service | `index.js`, `service.js` |
-| Providers, fonts, global player, portrait lock | `app/_layout.tsx` |
-| iOS NativeTabs / Android bottom navigation + custom Home icon | `app/(tabs)/_layout.tsx`, `components/HomeTabIcon.tsx`, `components/androidBottomLayout.ts`, `assets/images/tab-home-*.png` |
-| Home (`Inicio`), catalog, favorites, settings | `app/(tabs)/` |
+| Providers, platform fonts (`New York` + `SF Pro Text` on iOS; `Newsreader` + `Public Sans` on Android), global player, portrait lock | `app/_layout.tsx`, `assets/fonts/ios/` |
+| iOS NativeTabs (32pt) / Android swipe pager + bottom navigation (28pt) | `app/(tabs)/_layout.tsx`, `components/SwipeTabsNavigator.tsx`, `components/TabPagerContext.tsx`, `components/TabSwipeWrapper.tsx`, `components/HomeTabIcon.tsx`, `components/androidBottomLayout.ts`, `assets/images/ios-tabs/tab-*.png` (32pt iOS, via `scripts/generate-ios-tab-icons.cjs`), `assets/images/tab-*.png` (28pt originals) |
+| Home (`Inicio` / `Home`), interactive Liquid Glass header capsule, burgundy leather hymnal cover card, full-bleed gradient sections, native menu, catalog, unified scroll-fade favorites & settings | `app/(tabs)/`, `components/HomeHeaderActions.tsx`, `components/HomeMenuSheet.tsx`, `components/AppMenuIcon.tsx`, `components/VerseCard.tsx`, `components/AboutHymnalContent.tsx`, `assets/images/hymnal-leather-cover.jpg` |
 | Reader and playlist details | `app/hymn/[id].tsx`, `app/playlist/[id].tsx`, `components/AndroidReaderControls.tsx` |
 | Shared playback state | `context/NowPlayingContext.tsx`, `audio/native-player.ts` |
 | Queue, repeat, shuffle, commands | `audio/android-playback-controller.ts` (used by the native adapter) |
-| Downloads and offline playback | `audio/offline-audio.ts`, `components/OfflineAudioCard.tsx` (in Settings) |
-| Mini/full player | `components/MiniPlayer.tsx`, `components/MusicPlayer.tsx` |
-| Native surfaces / Liquid Glass | `components/GlassSurface.tsx` (`expo-glass-effect` guarded by `isGlassEffectAPIAvailable`, fallback to `BlurView` via `expo-blur`) |
-| Sharing/PDF, projector (with orientation rotation), text sizing | `components/ShareSheet.tsx` (exactly 4 actions in order: Messages → WhatsApp → Crear PDF → Copiar letra), `components/PdfEditor.tsx` + `utils/pdfLayout.ts` ("Preparar PDF" editor, website parity with `docs/js/pdf-export.js`), `components/ProjectorModal.tsx`, `components/TextSizeSheet.tsx` |
-| Cross-platform icons / Haptics | `components/WebIcon.tsx`, `utils/haptics.ts` (Android haptics disabled, iOS preserved) |
+| Downloads and offline playback | `audio/offline-audio.ts`, `components/OfflineAudioCard.tsx` (in Settings and Home menu) |
+| Mini/full player (rounded-rectangle `16pt`/`18pt` radius, tap + swipe-up to expand, drag-down to collapse) | `components/MiniPlayer.tsx`, `components/MusicPlayer.tsx`, `utils/gestureMotion.ts` (tested by `scripts/test-gesture-motion.cjs`) |
+| Native surfaces / Liquid Glass | `components/GlassSurface.tsx` (`expo-glass-effect` guarded by `isLiquidGlassAvailable === true && isGlassEffectAPIAvailable === true`, fallback to `BlurView` via `expo-blur`, `stableBackdrop` frosted backing for modals/sheets, unclipped interactive `GlassView` on iOS) |
+| Sharing/PDF, projector (with orientation rotation), text sizing | `components/ShareSheet.tsx` (exactly 4 actions in order: Messages via `Share.share` with `imessage-brand.png` on iOS → WhatsApp with `whatsapp-brand.png` → Crear PDF → Copiar letra), `components/PdfEditor.tsx` + `utils/pdfLayout.ts` ("Preparar PDF" editor, website parity with `docs/js/pdf-export.js`), `components/ProjectorModal.tsx`, `components/TextSizeSheet.tsx` |
+| Cross-platform icons / Haptics | `components/WebIcon.tsx`, `components/AppMenuIcon.tsx`, `utils/haptics.ts` (Android haptics disabled, iOS preserved) |
 | Theme (with native OS appearance sync) and bilingual UI | `theme/ThemeContext.tsx`, `theme/theme.js`, `context/LanguageContext.tsx` |
 
 Android playback works. Preserve `patches/react-native-track-player+4.1.2.patch`, applied by `patch-package` during installation, and root playback-service registration in `index.js`. The native patch includes the New Architecture event fix.
 
-Also preserve `patches/react-native-screens+4.16.0.patch` (iOS `NativeTabs`): it applies tab-item appearances before selecting the tab, mirrors the selected tab's appearance onto `UITabBar`, and forces a relayout after mount. This fixes unselected tab labels (Himnos/Favoritos/Ajustes) rendering too low until the first tab switch. All four tabs use matching maximum-size 28pt template PNGs on iOS (`assets/images/tab-{home,hymns,favorites,settings}-{outline,filled}[@2x|@3x].png`), and 28pt icons on Android, with a tight vertical title adjustment (`vertical: -2`) so every label shares one baseline right below the enlarged icons. The Home trigger sets `overrideScrollViewContentInsetAdjustmentBehavior: false`, and `home.tsx` uses `contentInsetAdjustmentBehavior="never"`, so iOS doesn't add a second safe-area gap under the "Himnario" header.
+Also preserve `patches/react-native-screens+4.16.0.patch` (iOS `NativeTabs`): it applies tab-item appearances before selecting the tab, mirrors the selected tab's appearance onto `UITabBar`, and forces a relayout after mount. This fixes unselected tab labels (Himnos/Favoritos/Ajustes) rendering too low until the first tab switch. iOS `NativeTabs` uses 32pt template PNGs (`assets/images/ios-tabs/tab-{home,hymns,favorites,settings}-{outline,filled}[@2x|@3x].png`, generated by `scripts/generate-ios-tab-icons.cjs` from the `@3x` originals while leaving the 28pt root assets untouched), and Android uses 28pt icons on its custom `SwipeTabsNavigator` (`AndroidPagerTabs`), with a tight vertical title adjustment (`vertical: -2`) so every label shares one baseline right below the icons. The Home trigger sets `overrideScrollViewContentInsetAdjustmentBehavior: false`, and `home.tsx`, `favorites.tsx`, and `settings.tsx` use `contentInsetAdjustmentBehavior="never"`, so neither iOS nor Android adds a second safe-area gap under the top headers.
 
 **PDF editor:** `utils/pdfLayout.ts` is a pure layout engine that ports the website's measure/fit rules (Letter portrait single page, or landscape 2-up with a dashed cut line; 4–28pt; 1–2 columns; shrinks in 0.25pt steps until the hymn fits on one page). Both the live preview (`SvgXml` from `react-native-svg`) and the exported PDF (`expo-print` HTML wrapping the same SVG) come from one plan, so the preview matches the output.
 
 ## Native dependencies (Version 1.1.0)
 
 Version 1.1.0 includes:
+- `@react-native-menu/menu` (`2.0.0`, added in iOS Build 17 and Android APK `9f2eccb4` for the native anchored Home ellipsis menu in `components/HomeHeaderActions.tsx`, guarded at runtime by `UIManager.hasViewManagerConfig('MenuView')` with automatic fallback to `components/HomeMenuSheet.tsx`; iOS `MenuAction` items pass explicit `imageColor` so Fabric/UIKit does not tint SF Symbols transparent)
 - `expo-print` and `expo-sharing` (PDF export from the in-app "Preparar PDF" editor, `components/PdfEditor.tsx`, opened from `ShareSheet.tsx`)
 - `expo-navigation-bar` (to hide Android system navigation on startup/resume)
 - `expo-screen-orientation` (configured in `app.json` with `initialOrientation: "PORTRAIT_UP"` and `"orientation": "default"`, locked to Portrait globally in `app/_layout.tsx` and unlocked inside `ProjectorModal.tsx` so presentation mode supports both free Portrait/Landscape rotation and a manual rotate toggle button).
@@ -51,9 +52,10 @@ Adding or modifying native modules requires a full native build (`eas build`), n
 
 - `scripts/extract-hymns.js` generates `docs/data/hymns-data.js` from app data; web audio availability comes from `docs/audio/*.m4a`.
 - `scripts/generate-hymn-pages.js` generates share pages and the Apple association file. Edit the generator rather than generated pages.
+- The website (`docs/js/library.js`, `docs/js/legal.js`, `docs/identidad.html`, `docs/feedback.html`, and generated preview pages) defaults strictly to Light Mode on initial load (ignoring OS `prefers-color-scheme: dark`) and synchronizes both `ebp-dark` (boolean) and `ebp-theme` (`'dark'`/`'light'`) in `localStorage` when manually toggled.
 - Preserve canonical `https://himnarioebp.com/hymn/ID/` URLs, existing `/himno/` aliases and reader fragment links.
 - iOS association identifier: `VV6BQ35L5N.com.elbuenpastor`. Configuration alone does not prove device link handling.
 
 ## Product conventions
 
-Newsreader / Public Sans, parchment and burgundy light mode, pure-black dark mode. Favorites use bookmarks. Spanish UI uses “Himnario” and “alabanzas”. Keep detail routes outside the tab group.
+iOS uses Apple's `New York` serif + `SF Pro Text` sans-serif (aliased to `Newsreader_*` and `PublicSans_*` in `app/_layout.tsx`); Android uses `Newsreader` + `Public Sans`. Apple Books-inspired full-bleed top-to-bottom section gradients on `Inicio` (`['#1C1C1E', '#0B0B0C', '#000000']` in dark mode; `['#FFFFFF', '#F7F7FA', '#EAEAEF']` in light mode). Favorites use bookmarks. Keep detail routes outside the tab group.

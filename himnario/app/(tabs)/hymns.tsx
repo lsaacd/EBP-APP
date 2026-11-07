@@ -14,6 +14,8 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   View,
+  FlatList,
+  useWindowDimensions,
   Text,
   StyleSheet,
   TextInput,
@@ -92,6 +94,7 @@ function HighlightedText({
 
 export default function HymnListScreen() {
   const router = useRouter();
+  const { fontScale } = useWindowDimensions();
   const { theme, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
@@ -185,13 +188,12 @@ export default function HymnListScreen() {
   const [sliderTrackHeight, setSliderTrackHeight] = useState(0);
   const isDragging = useRef(false);
   const sliderTrackY = useRef(0);
-  const lastSliderHymnNum = useRef<number | null>(null);
 
   const handleScroll = useCallback((event: any) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const maxY = contentHeight.current - scrollViewHeight.current;
     if (maxY > 0) {
-      setScrollFraction(Math.min(1, Math.max(0, currentOffset / maxY)));
+      if (!isDragging.current) setScrollFraction(previous => Math.abs(previous - currentOffset / maxY) > 0.002 ? Math.min(1, Math.max(0, currentOffset / maxY)) : previous);
     }
 
     setSliderVisible(true);
@@ -205,53 +207,40 @@ export default function HymnListScreen() {
     return activeSubTab === 'estribillos' ? estribillosData : hymnsData;
   }, [activeSubTab]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (evt) => {
-          isDragging.current = true;
-          setSliderVisible(true);
-          if (sliderTimeout.current) clearTimeout(sliderTimeout.current);
-          if (sliderTrackHeight <= 0) return;
-          const touchY = evt.nativeEvent.pageY - sliderTrackY.current;
-          const fraction = Math.min(1, Math.max(0, touchY / sliderTrackHeight));
-          setScrollFraction(fraction);
-          const maxY = contentHeight.current - scrollViewHeight.current;
-          if (maxY > 0) {
-            flatListRef.current?.scrollToOffset({ offset: fraction * maxY, animated: false });
-          }
-        },
-        onPanResponderMove: (evt) => {
-          if (sliderTrackHeight <= 0) return;
-          const touchY = evt.nativeEvent.pageY - sliderTrackY.current;
-          const fraction = Math.min(1, Math.max(0, touchY / sliderTrackHeight));
-          setScrollFraction(fraction);
-          const idx = Math.max(
-            0,
-            Math.min(filtered.length - 1, Math.round(fraction * (filtered.length - 1)))
-          );
-          const num = Number(filtered[idx]?.number ?? 1);
-          if (lastSliderHymnNum.current !== num) {
-            lastSliderHymnNum.current = num;
-            Haptics.selectionAsync().catch(() => {});
-          }
-          const maxY = contentHeight.current - scrollViewHeight.current;
-          if (maxY > 0) {
-            flatListRef.current?.scrollToOffset({ offset: fraction * maxY, animated: false });
-          }
-        },
-        onPanResponderRelease: () => {
-          isDragging.current = false;
-          lastSliderHymnNum.current = null;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          if (sliderTimeout.current) clearTimeout(sliderTimeout.current);
-          sliderTimeout.current = setTimeout(() => setSliderVisible(false), 2000);
-        },
-      }),
-    [filtered, sliderTrackHeight]
-  );
+  const scrubFrame = useRef<number | null>(null);
+  const latestScrubFraction = useRef(0);
+  const flushScrub = useCallback(() => {
+    scrubFrame.current = null;
+    const fraction = latestScrubFraction.current;
+    setScrollFraction(fraction);
+    const maxY = Math.max(0, contentHeight.current - scrollViewHeight.current);
+    flatListRef.current?.scrollToOffset({ offset: fraction * maxY, animated: false });
+  }, []);
+  const queueScrub = useCallback((pageY: number) => {
+    if (sliderTrackHeight <= 0) return;
+    latestScrubFraction.current = Math.min(1, Math.max(0, (pageY - sliderTrackY.current) / sliderTrackHeight));
+    if (scrubFrame.current === null) scrubFrame.current = requestAnimationFrame(flushScrub);
+  }, [sliderTrackHeight, flushScrub]);
+  const finishScrub = useCallback(() => {
+    if (scrubFrame.current !== null) { cancelAnimationFrame(scrubFrame.current); flushScrub(); }
+    isDragging.current = false;
+    if (sliderTimeout.current) clearTimeout(sliderTimeout.current);
+    sliderTimeout.current = setTimeout(() => setSliderVisible(false), 2000);
+  }, [flushScrub]);
+  useEffect(() => () => { if (scrubFrame.current !== null) cancelAnimationFrame(scrubFrame.current); }, []);
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: event => {
+      isDragging.current = true;
+      setSliderVisible(true);
+      if (sliderTimeout.current) clearTimeout(sliderTimeout.current);
+      queueScrub(event.nativeEvent.pageY);
+    },
+    onPanResponderMove: event => queueScrub(event.nativeEvent.pageY),
+    onPanResponderRelease: finishScrub,
+    onPanResponderTerminate: finishScrub,
+  }), [queueScrub, finishScrub]);
 
   const onSliderTrackLayout = useCallback((e: LayoutChangeEvent) => {
     setSliderTrackHeight(e.nativeEvent.layout.height);
@@ -347,6 +336,16 @@ export default function HymnListScreen() {
     return grouped;
   }, [t, indiceSection]);
 
+  // Fixed index row geometry makes distant letter jumps exact without measurement retries.
+  const indexLayouts = useMemo(() => {
+    let offset = 8;
+    return indiceData.map(item => {
+      const length = (item.type === 'main_header' ? 104 : item.type === 'header' ? 52 : 40) * fontScale;
+      const layout = { length, offset };
+      offset += length;
+      return layout;
+    });
+  }, [indiceData, fontScale]);
   const letterIndices = useMemo(() => {
     const indices: Record<string, number> = {};
     indices['#'] = 0;
@@ -366,8 +365,8 @@ export default function HymnListScreen() {
   const handleSidebarDrag = useCallback(
     (pageY: number) => {
       if (sidebarTrackHeight.current === 0) return;
-      const relativeY = pageY - sidebarTrackY.current;
-      const fraction = Math.max(0, Math.min(1, relativeY / sidebarTrackHeight.current));
+      const relativeY = pageY - sidebarTrackY.current - 6;
+      const fraction = Math.max(0, Math.min(1, relativeY / Math.max(1, sidebarTrackHeight.current - 12)));
       const index = Math.min(ALPHABET.length - 1, Math.floor(fraction * ALPHABET.length));
       const letter = ALPHABET[index];
 
@@ -396,42 +395,40 @@ export default function HymnListScreen() {
         const targetIndex = letterIndices[targetLetter];
         if (targetIndex !== undefined && indiceListRef.current) {
           Haptics.selectionAsync().catch(() => {});
-          indiceListRef.current.scrollToIndex({ index: targetIndex, animated: false });
+          indiceListRef.current.scrollToIndex({ index: targetIndex, animated: false, viewPosition: 0 });
         }
         setDraggingLetter(targetLetter);
         if (bubbleFadeTimer.current) {
           clearTimeout(bubbleFadeTimer.current);
           bubbleFadeTimer.current = null;
         }
+        bubbleOpacity.stopAnimation();
         bubbleOpacity.setValue(1);
       }
     },
     [bubbleOpacity, letterIndices]
   );
 
-  const alphabetPanResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (evt) => handleSidebarDrag(evt.nativeEvent.pageY),
-        onPanResponderMove: (evt) => handleSidebarDrag(evt.nativeEvent.pageY),
-        onPanResponderRelease: () => {
-          lastScrolledLetter.current = null;
-          if (bubbleFadeTimer.current) clearTimeout(bubbleFadeTimer.current);
-          bubbleFadeTimer.current = setTimeout(() => {
-            Animated.timing(bubbleOpacity, {
-              toValue: 0,
-              duration: 280,
-              useNativeDriver: true,
-            }).start(({ finished }) => {
-              if (finished) setDraggingLetter(null);
-            });
-          }, 180);
-        },
-      }),
-    [bubbleOpacity, handleSidebarDrag]
-  );
+  const finishSidebarDrag = useCallback(() => {
+    lastScrolledLetter.current = null;
+    if (bubbleFadeTimer.current) clearTimeout(bubbleFadeTimer.current);
+    bubbleFadeTimer.current = setTimeout(() => {
+      Animated.timing(bubbleOpacity, { toValue: 0, duration: 180, useNativeDriver: true })
+        .start(({ finished }) => { if (finished) setDraggingLetter(null); });
+    }, 120);
+  }, [bubbleOpacity]);
+  useEffect(() => () => {
+    if (bubbleFadeTimer.current) clearTimeout(bubbleFadeTimer.current);
+    if (sliderTimeout.current) clearTimeout(sliderTimeout.current);
+  }, []);
+  const alphabetPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: event => handleSidebarDrag(event.nativeEvent.pageY),
+    onPanResponderMove: event => handleSidebarDrag(event.nativeEvent.pageY),
+    onPanResponderRelease: finishSidebarDrag,
+    onPanResponderTerminate: finishSidebarDrag,
+  }), [handleSidebarDrag, finishSidebarDrag]);
 
   const renderHymnBadges = (hymnId: string | number) => {
     const idStr = String(hymnId);
@@ -540,7 +537,7 @@ export default function HymnListScreen() {
           }}
           // @ts-ignore
           estimatedItemSize={93}
-          drawDistance={5000}
+          drawDistance={800}
           ListHeaderComponent={
             <View style={[styles.searchCluster, { marginTop: 0 }]}>
               <ScrollView
@@ -792,7 +789,7 @@ export default function HymnListScreen() {
 
         <View style={styles.indiceBody}>
           <View style={styles.indiceListContainer}>
-            <FlashList
+            <FlatList
               ref={indiceListRef}
               data={indiceData}
               extraData={`${language}-${offline.saved}-${indiceSection}`}
@@ -805,16 +802,17 @@ export default function HymnListScreen() {
               }
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              // @ts-ignore
-              estimatedItemSize={40}
-              drawDistance={1500}
+              getItemLayout={(_, index) => ({ ...indexLayouts[index], index })}
+              initialNumToRender={24}
+              maxToRenderPerBatch={24}
+              windowSize={7}
               renderItem={({ item }) => {
                 if (item.type === 'main_header') {
                   return (
                     <Text
                       style={[
                         styles.indiceMainHeader,
-                        { color: theme.onSurface, marginTop: item.marginTop || 0 },
+                        { color: theme.onSurface, height: 104 * fontScale, marginTop: 0, marginBottom: 0, textAlignVertical: 'center' },
                       ]}
                     >
                       {item.title}
@@ -823,7 +821,7 @@ export default function HymnListScreen() {
                 }
                 if (item.type === 'header') {
                   return (
-                    <View style={styles.indiceLetterHeader}>
+                    <View style={[styles.indiceLetterHeader, { height: 52 * fontScale, marginTop: 0 }]}>
                       <Text
                         style={[styles.indiceLetterText, { color: theme.onSurfaceVariant }]}
                       >
@@ -835,7 +833,7 @@ export default function HymnListScreen() {
                 const isSaved = offline.savedIds.has(String(item.hymn.id));
                 return (
                   <TouchableOpacity
-                    style={styles.indiceItemRow}
+                    style={[styles.indiceItemRow, { height: 40 * fontScale }]}
                     activeOpacity={0.7}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -856,15 +854,7 @@ export default function HymnListScreen() {
                         style={{ marginLeft: 5 }}
                       />
                     )}
-                    <View style={styles.indiceDotsWrapper}>
-                      <Text
-                        style={[styles.indiceDots, { color: theme.outlineVariant }]}
-                        numberOfLines={1}
-                        ellipsizeMode="clip"
-                      >
-                        {'.'.repeat(1000)}
-                      </Text>
-                    </View>
+                    <View style={[styles.indiceDotsWrapper, { borderBottomWidth: 1, borderStyle: 'dotted', borderColor: theme.outlineVariant }]} />
                     <Text style={[styles.indiceItemNumber, { color: theme.onSurface }]}>
                       {item.hymn.number}
                     </Text>
@@ -907,7 +897,7 @@ export default function HymnListScreen() {
               ]}
             >
               <GlassSurface
-                isInteractive
+                stableBackdrop
                 intensity={65}
                 tonalColor={theme.surfaceVariants.containerHighest}
                 style={[
@@ -965,9 +955,8 @@ export default function HymnListScreen() {
                                 : theme.outlineVariant + '66',
                             },
                           ]}
-                          adjustsFontSizeToFit
+                          allowFontScaling={false}
                           numberOfLines={1}
-                          minimumFontScale={0.5}
                         >
                           {letter}
                         </Text>
@@ -1763,6 +1752,8 @@ const styles = StyleSheet.create({
   alphabetText: {
     fontFamily: 'PublicSans_700Bold',
     fontSize: 10.5,
+    lineHeight: 13,
+    includeFontPadding: false,
   },
 
   // ── Empty State (Estribillos) ─────────────────────────────

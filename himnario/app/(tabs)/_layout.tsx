@@ -1,16 +1,6 @@
-/**
- * TabLayout — Platform-split tab navigation.
- *
- * iOS:     NativeTabs → system tab bar (UITabBarController) with custom Home icon,
- *          bolder label typography pulled closer to the icons, and consistent
- *          standard + scrollEdge appearances from initial mount.
- * Android: Bottom navigation bar with custom Home icon and bold labels positioned
- *          tightly underneath the icons (Hallow / Apple Books style), switching
- *          cleanly between dark and light mode.
- *
- * @returns {React.JSX.Element} The tab layout.
- */
+/** Main tabs: continuous adjacent-scene paging with platform-specific bar artwork. */
 import React from 'react';
+import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import {
   View,
   Text,
@@ -18,8 +8,11 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
-import { Tabs } from 'expo-router';
+import { withLayoutContext } from 'expo-router';
+import type { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import type { BottomTabNavigationOptions, BottomTabNavigationEventMap } from '@react-navigation/bottom-tabs';
+import { createSwipeTabsNavigator } from '../../components/SwipeTabsNavigator';
+import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { ANDROID_BOTTOM_BAR_HEIGHT } from '../../components/androidBottomLayout';
@@ -28,118 +21,14 @@ import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ══════════════════════════════════════════════════════════════════════════
-// iOS — NativeTabs with custom Home icon, bolder font & tighter spacing
-// ══════════════════════════════════════════════════════════════════════════
-function IOSTabs() {
-  const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+const SwipeTabs = createSwipeTabsNavigator();
+const Tabs = withLayoutContext<BottomTabNavigationOptions, typeof SwipeTabs.Navigator, TabNavigationState<ParamListBase>, BottomTabNavigationEventMap>(SwipeTabs.Navigator);
 
-  const activeColor = isDarkMode ? '#ffffff' : theme.primary;
-  const inactiveColor = isDarkMode ? '#8e8e93' : '#5c5b52';
-
-  // Apply identical appearance options to every Trigger so both standardAppearance
-  // and scrollEdgeAppearance match on initial mount (prevents unselected tab labels
-  // from dropping down before first tab switch on iOS) and pull labels closer to icons.
-  const sharedTriggerOptions = {
-    disableTransparentOnScrollEdge: true,
-    iconColor: inactiveColor,
-    selectedIconColor: activeColor,
-    titlePositionAdjustment: { vertical: -2 },
-    selectedTitlePositionAdjustment: { vertical: -2 },
-    labelStyle: {
-      fontSize: 10.5,
-      fontWeight: '700' as const,
-      color: inactiveColor,
-    },
-    selectedLabelStyle: {
-      fontSize: 10.5,
-      fontWeight: '700' as const,
-      color: activeColor,
-    },
-  };
-
-  return (
-    <NativeTabs
-      tintColor={activeColor}
-      iconColor={{
-        default: inactiveColor,
-        selected: activeColor,
-      }}
-      labelStyle={{
-        default: {
-          fontSize: 10.5,
-          fontWeight: '700',
-          color: inactiveColor,
-        },
-        selected: {
-          fontSize: 10.5,
-          fontWeight: '700',
-          color: activeColor,
-        },
-      }}
-      disableTransparentOnScrollEdge={true}
-    >
-      <NativeTabs.Trigger
-        name="home"
-        options={{
-          ...sharedTriggerOptions,
-          // Home positions its content manually below the large "Himnario" header,
-          // so stop react-native-screens from forcing automatic safe-area insets
-          // on its ScrollView (that produced a double top gap on iOS).
-          overrideScrollViewContentInsetAdjustmentBehavior: false,
-        } as any}
-      >
-        <Icon
-          src={{
-            default: require('../../assets/images/tab-home-outline.png'),
-            selected: require('../../assets/images/tab-home-filled.png'),
-          }}
-        />
-        <Label>{t.tabHome}</Label>
-      </NativeTabs.Trigger>
-
-      {/* All tabs use identical 23pt template PNGs (same as Home) so UIKit lays out
-          every label at the same baseline from the very first render. */}
-      <NativeTabs.Trigger name="hymns" options={sharedTriggerOptions as any}>
-        <Icon
-          src={{
-            default: require('../../assets/images/tab-hymns-outline.png'),
-            selected: require('../../assets/images/tab-hymns-filled.png'),
-          }}
-        />
-        <Label>{t.tabHymns}</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="favorites" options={sharedTriggerOptions as any}>
-        <Icon
-          src={{
-            default: require('../../assets/images/tab-favorites-outline.png'),
-            selected: require('../../assets/images/tab-favorites-filled.png'),
-          }}
-        />
-        <Label>{t.tabFavorites}</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="settings" options={sharedTriggerOptions as any}>
-        <Icon
-          src={{
-            default: require('../../assets/images/tab-settings-outline.png'),
-            selected: require('../../assets/images/tab-settings-filled.png'),
-          }}
-        />
-        <Label>{t.tabSettings}</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// Android — Clean Hallow-style bottom navigation (bold text close to icon)
-// ══════════════════════════════════════════════════════════════════════════
-function AndroidBottomBar({ state, descriptors, navigation }: any) {
+// Android bottom bar used by the shared gesture-driven scene pager.
+function PlatformBottomBar({ state, descriptors, navigation }: any) {
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const barHeight = ANDROID_BOTTOM_BAR_HEIGHT;
   const activeColor = isDarkMode ? '#ffffff' : '#6e1619';
   const inactiveColor = isDarkMode ? '#8e8e93' : '#747366';
 
@@ -150,7 +39,7 @@ function AndroidBottomBar({ state, descriptors, navigation }: any) {
         {
           backgroundColor: isDarkMode ? '#0d0d0d' : '#fcf9f2',
           paddingBottom: insets.bottom,
-          height: ANDROID_BOTTOM_BAR_HEIGHT + insets.bottom,
+          height: barHeight + insets.bottom,
         },
       ]}
     >
@@ -161,7 +50,7 @@ function AndroidBottomBar({ state, descriptors, navigation }: any) {
           { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.10)' : '#e3dfd3' },
         ]}
       />
-      <View style={navStyles.row}>
+      <View style={[navStyles.row, { height: barHeight }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           if (options.href === null) return null;
@@ -171,7 +60,7 @@ function AndroidBottomBar({ state, descriptors, navigation }: any) {
           return (
             <Pressable
               key={route.key}
-              style={navStyles.tab}
+              style={[navStyles.tab, { height: barHeight }]}
               accessibilityRole="tab"
               accessibilityLabel={options.title}
               accessibilityState={{ selected }}
@@ -185,6 +74,7 @@ function AndroidBottomBar({ state, descriptors, navigation }: any) {
                   canPreventDefault: true,
                 });
                 if (!selected && !event.defaultPrevented) {
+                  Haptics.selectionAsync().catch(() => {});
                   navigation.navigate(route.name);
                 }
               }}
@@ -224,12 +114,12 @@ function AndroidBottomBar({ state, descriptors, navigation }: any) {
   );
 }
 
-function AndroidTabs() {
+function AndroidPagerTabs() {
   const { t } = useLanguage();
 
   return (
     <Tabs
-      tabBar={(props) => <AndroidBottomBar {...props} />}
+      tabBar={(props: any) => <PlatformBottomBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -308,10 +198,119 @@ const navStyles = StyleSheet.create({
   },
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// Export — picks the right navigator per platform
-// ══════════════════════════════════════════════════════════════════════════
+function IOSTabs() {
+  const { theme, isDarkMode } = useTheme();
+  const { t } = useLanguage();
+
+  const activeColor = isDarkMode ? '#ffffff' : theme.primary;
+  const inactiveColor = isDarkMode ? '#8e8e93' : '#5c5b52';
+
+  // Apply identical appearance options to every Trigger so both standardAppearance
+  // and scrollEdgeAppearance match on initial mount (prevents unselected tab labels
+  // from dropping down before first tab switch on iOS) and pull labels closer to icons.
+  const sharedTriggerOptions = {
+    disableTransparentOnScrollEdge: true,
+    iconColor: inactiveColor,
+    selectedIconColor: activeColor,
+    titlePositionAdjustment: { vertical: -2 },
+    selectedTitlePositionAdjustment: { vertical: -2 },
+    labelStyle: {
+      fontSize: 10.5,
+      fontWeight: '700' as const,
+      color: inactiveColor,
+    },
+    selectedLabelStyle: {
+      fontSize: 10.5,
+      fontWeight: '700' as const,
+      color: activeColor,
+    },
+  };
+
+  return (
+    <NativeTabs
+      tintColor={activeColor}
+      iconColor={{
+        default: inactiveColor,
+        selected: activeColor,
+      }}
+      labelStyle={{
+        default: {
+          fontSize: 10.5,
+          fontWeight: '700',
+          color: inactiveColor,
+        },
+        selected: {
+          fontSize: 10.5,
+          fontWeight: '700',
+          color: activeColor,
+        },
+      }}
+      disableTransparentOnScrollEdge={true}
+    >
+      <NativeTabs.Trigger
+        name="home"
+        options={{
+          ...sharedTriggerOptions,
+          // Home positions its content manually below the large "Himnario" header,
+          // so stop react-native-screens from forcing automatic safe-area insets
+          // on its ScrollView (that produced a double top gap on iOS).
+          overrideScrollViewContentInsetAdjustmentBehavior: false,
+        } as any}
+      >
+        <Icon
+          src={{
+            default: require('../../assets/images/ios-tabs/tab-home-outline.png'),
+            selected: require('../../assets/images/ios-tabs/tab-home-filled.png'),
+          }}
+        />
+        <Label>{t.tabHome}</Label>
+      </NativeTabs.Trigger>
+
+      {/* iOS-only 32pt template PNGs share identical frames so UIKit lays out
+          every label at the same baseline from the very first render. */}
+      <NativeTabs.Trigger name="hymns" options={sharedTriggerOptions as any}>
+        <Icon
+          src={{
+            default: require('../../assets/images/ios-tabs/tab-hymns-outline.png'),
+            selected: require('../../assets/images/ios-tabs/tab-hymns-filled.png'),
+          }}
+        />
+        <Label>{t.tabHymns}</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="favorites" options={sharedTriggerOptions as any}>
+        <Icon
+          src={{
+            default: require('../../assets/images/ios-tabs/tab-favorites-outline.png'),
+            selected: require('../../assets/images/ios-tabs/tab-favorites-filled.png'),
+          }}
+        />
+        <Label>{t.tabFavorites}</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger
+        name="settings"
+        options={{
+          ...sharedTriggerOptions,
+          // Settings positions its content manually below the large header,
+          // so stop react-native-screens from forcing automatic safe-area insets
+          // on its ScrollView (which produced an extra top gap on iOS only).
+          overrideScrollViewContentInsetAdjustmentBehavior: false,
+        } as any}
+      >
+        <Icon
+          src={{
+            default: require('../../assets/images/ios-tabs/tab-settings-outline.png'),
+            selected: require('../../assets/images/ios-tabs/tab-settings-filled.png'),
+          }}
+        />
+        <Label>{t.tabSettings}</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
+  );
+}
+
+
 export default function TabLayout() {
-  if (Platform.OS === 'ios') return <IOSTabs />;
-  return <AndroidTabs />;
+  return Platform.OS === 'ios' ? <IOSTabs /> : <AndroidPagerTabs />;
 }

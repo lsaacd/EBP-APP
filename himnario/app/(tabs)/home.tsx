@@ -2,11 +2,10 @@
  * HomeScreen component — The primary landing screen of the Himnario application.
  *
  * This screen features:
- * - Apple Books-style large serif "Himnario" header title that fades out on scroll
- *   (both iOS and Android) with a prominent circular glassmorphic Search button on the right
- *   that redirects to /hymns?focusSearch=1.
+ * - Aligned serif title ("Inicio" / "Home"), compact platform menu and search bar.
+ * - Home menu opens shared About content, help and reading/download settings.
  * - Horizontal swipe support (Instagram-style) to switch to adjacent tabs.
- * - A dynamic hero card for exploring all hymns.
+ * - An Apple Books-style hero card featuring the burgundy leather hymnal cover.
  * - A "Verse of the Day" component.
  * - Church Identity & Motto block ("Verdad, honestidad, justicia, santidad y caridad") with "Ver más".
  * - Quick access to recently viewed hymns with saved-offline badges.
@@ -17,6 +16,7 @@ import React, { useState, useRef, useCallback, useEffect, useSyncExternalStore }
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -35,13 +35,14 @@ import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import VerseCard from '../../components/VerseCard';
-import GlassSurface from '../../components/GlassSurface';
+import HomeHeaderActions from '../../components/HomeHeaderActions';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const IS_IOS = Platform.OS === 'ios';
+const HYMNAL_BOOK_COVER = require('../../assets/images/hymnal-leather-cover.jpg');
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -54,6 +55,11 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
   const scrollViewRef = useRef<any>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const titleOpacity = scrollY.interpolate({ inputRange: [0, 35], outputRange: [1, 0], extrapolate: 'clamp' });
+  const titleTranslateY = scrollY.interpolate({ inputRange: [0, 40], outputRange: [0, -10], extrapolate: 'clamp' });
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   useEffect(() => {
     void refreshOfflineAudio();
@@ -86,21 +92,6 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // ── Scroll-driven Apple Books-style header fade-out (iOS & Android) ──────
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 35],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, -10],
-    extrapolate: 'clamp',
-  });
-
   const handleHeaderSearchPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
@@ -109,34 +100,54 @@ export default function HomeScreen() {
     });
   };
 
-  const headerTitleColor = isDarkMode ? '#ffffff' : theme.primary;
-  const searchIconColor = isDarkMode ? '#ffffff' : theme.primary;
-  const glassBorderColor = isDarkMode
-    ? 'rgba(255,255,255,0.22)'
-    : 'rgba(110,22,25,0.18)';
-  const glassFallbackBg = isDarkMode
-    ? 'rgba(38,38,40,0.82)'
-    : 'rgba(255,255,255,0.82)';
+  const rootBackgroundColor = isDarkMode ? '#010101' : '#FFFFFF';
+  const headerTitleColor = isDarkMode ? '#ffffff' : '#111111';
+  const sectionHeadingColor = isDarkMode ? '#ffffff' : '#111111';
+  const sectionSubColor = isDarkMode ? 'rgba(235,235,245,0.6)' : '#6E6E73';
+
+  // Apple Books top-to-bottom section band gradients:
+  // - Dark mode: lighter charcoal at top (#1C1C1E) -> pure black at bottom (#000000)
+  // - Light mode: crisp white at top (#FFFFFF) -> soft neutral gray at bottom (#EAEAEF)
+  const topBandGradientColors: [string, string, string] = isDarkMode
+    ? ['#010101', '#010101', '#000000']
+    : ['#FFFFFF', '#F7F7FA', '#EAEAEF'];
+  const bandGradientColors: [string, string, string] = isDarkMode
+    ? ['#1C1C1E', '#0B0B0C', '#000000']
+    : ['#FFFFFF', '#F7F7FA', '#EAEAEF'];
+  const bandTopBorderColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+
+  const heroSubtitle = language === 'es'
+    ? 'Colección completa de alabanzas y coritos'
+    : 'Complete hymn and chorus collection';
+  const recentsSubtitle = language === 'es'
+    ? 'Alabanzas que has abierto recientemente.'
+    : 'Hymns you have opened recently.';
+  const mottoLabelFormatted = language === 'es'
+    ? 'Lema de nuestra Iglesia'
+    : 'Our Church Motto';
 
   // ── Shared scroll content ─────────────────────────────────────────────────
   const scrollContent = (
     <>
-      {/* ─── Hero Card — "Explora Todos Los Himnos" ───────────────── */}
-      <View
+      {/* ─── Top Section — "Explora los Himnos" (Apple Books Continue style) ─── */}
+      <LinearGradient
+        colors={topBandGradientColors}
+        locations={[0, 0.55, 1]}
         style={[
-          styles.heroWrapper,
-          {
-            shadowColor: isDarkMode ? '#ffffff44' : theme.primary,
-            backgroundColor: isDarkMode ? '#1c1c1c' : theme.primary,
-          },
+          styles.topSection,
+          { paddingTop: (headerHeight || insets.top + 54) + 8 },
         ]}
       >
         <TouchableOpacity
           style={[
             styles.heroSurface,
-            { backgroundColor: isDarkMode ? '#1F1F1F' : theme.primary },
+            {
+              backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)',
+            },
+            !isDarkMode && styles.lightCardShadow,
           ]}
-          activeOpacity={0.8}
+          activeOpacity={0.82}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push({
@@ -145,96 +156,121 @@ export default function HomeScreen() {
             });
           }}
         >
-          <MaterialIcons
-            name="auto-stories"
-            size={45}
-            color="#ffffff"
-            style={styles.heroIconSide}
-          />
+          <View style={styles.bookCoverShadow}>
+            <Image
+              source={HYMNAL_BOOK_COVER}
+              style={styles.bookCoverImage}
+              resizeMode="cover"
+            />
+          </View>
+
           <View style={styles.heroTextSide}>
             <Text
-              style={[styles.heroHeadline, { color: '#ffffff' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {t.exploreAll}
-            </Text>
-            <Text
-              style={[styles.heroSub, { color: '#ffffff', opacity: 0.7 }]}
+              style={[styles.heroHeadline, { color: sectionHeadingColor }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
             >
-              {t.exploreCollection}
+              {t.exploreAll}
+            </Text>
+            <Text
+              style={[styles.heroSub, { color: sectionSubColor }]}
+              numberOfLines={2}
+            >
+              {heroSubtitle}
+            </Text>
+            <Text
+              style={[styles.heroMeta, { color: theme.primary }]}
+              numberOfLines={1}
+            >
+              {t.appName}
             </Text>
           </View>
-          <MaterialIcons name="arrow-forward-ios" size={16} color="rgba(255,255,255,0.5)" />
-        </TouchableOpacity>
-      </View>
 
-      {/* ─── Daily Verse ──────────────────────────────────────────── */}
+          <MaterialIcons
+            name="chevron-right"
+            size={24}
+            color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
+          />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* ─── Daily Verse (Full-Bleed Gradient Section Band) ───────────────── */}
       <VerseCard />
 
-      {/* ─── Temario / Doctrine & Church Motto Card ───────────────── */}
-      <TouchableOpacity
-        style={[
-          styles.doctrineCard,
-          {
-            backgroundColor: theme.surfaceVariants.containerLow,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.primary + '24',
-          },
-        ]}
-        activeOpacity={0.8}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setShowDoctrine(true);
-        }}
+      {/* ─── Temario / Doctrine & Church Motto (Full-Bleed Gradient Band) ─── */}
+      <LinearGradient
+        colors={bandGradientColors}
+        locations={[0, 0.55, 1]}
+        style={[styles.sectionBand, { borderTopColor: bandTopBorderColor }]}
       >
-        <View style={styles.doctrineTopRow}>
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowDoctrine(true);
+          }}
+        >
+          <View style={styles.sectionHeaderBlock}>
+            <View style={styles.sectionTitleInlineRow}>
+              <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
+                {t.doctrineCardTitle}
+              </Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={24}
+                color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
+                style={styles.sectionChevron}
+              />
+            </View>
+            <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
+              {t.doctrineCardSub}
+            </Text>
+          </View>
+
           <View
             style={[
-              styles.doctrineCardIconWrap,
-              { backgroundColor: theme.primary + '12' },
+              styles.mottoCard,
+              {
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+                borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              },
+              !isDarkMode && styles.lightCardShadow,
             ]}
           >
-            <MaterialIcons name="history-edu" size={24} color={theme.primary} />
-          </View>
-          <View style={styles.doctrineCardTextBlock}>
-            <Text style={[styles.doctrineCardTitle, { color: theme.onSurface }]}>
-              {t.doctrineCardTitle}
+            <Text style={[styles.mottoQuoteText, { color: theme.onSurface }]}>
+              {`“${t.churchMottoText}”`}
             </Text>
-            <Text style={[styles.doctrineSeeMore, { color: theme.primary }]}>
-              {t.seeMore} →
-            </Text>
+            <View style={styles.mottoFooterRow}>
+              <Text style={[styles.mottoLabelText, { color: theme.primary }]}>
+                — {mottoLabelFormatted}
+              </Text>
+              <Text style={[styles.doctrineSeeMore, { color: sectionSubColor }]}>
+                {t.seeMore} →
+              </Text>
+            </View>
           </View>
-          <MaterialIcons name="chevron-right" size={22} color={theme.outlineVariant} />
-        </View>
+        </TouchableOpacity>
+      </LinearGradient>
 
-        <View
-          style={[
-            styles.mottoDivider,
-            { backgroundColor: theme.outlineVariant + '33' },
-          ]}
-        />
-
-        <View style={styles.mottoQuoteWrap}>
-          <Text style={[styles.mottoQuoteText, { color: theme.onSurface }]}>
-            {`“${t.churchMottoText}”`}
-          </Text>
-          <Text style={[styles.mottoLabelText, { color: theme.primary }]}>
-            {t.churchMottoLabel}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* ─── Himnos Recientes ─────────────────────────────────────── */}
-      <View style={styles.recentsSection}>
+      {/* ─── Himnos Recientes (Full-Bleed Gradient Section Band) ──────────── */}
+      <LinearGradient
+        colors={bandGradientColors}
+        locations={[0, 0.55, 1]}
+        style={[
+          styles.sectionBand,
+          { borderTopColor: bandTopBorderColor, paddingBottom: bottomClearance },
+        ]}
+      >
         <View style={styles.recentsHeader}>
-          <Text style={[styles.recentsTitle, { color: theme.primary }]}>
-            {t.recentHymns}
-          </Text>
+          <View style={styles.recentsHeaderTextWrap}>
+            <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
+              {t.recentHymns}
+            </Text>
+            <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
+              {recentsSubtitle}
+            </Text>
+          </View>
           {recentHymns.length > 0 && (
             <TouchableOpacity
               onPress={() => {
@@ -242,25 +278,31 @@ export default function HomeScreen() {
                 clearRecent();
               }}
             >
-              <Text style={[styles.recentsLabel, { color: theme.outline }]}>
-                {t.clearHistory}
+              <Text style={[styles.recentsLabel, { color: theme.primary }]}>
+                {language === 'es' ? 'Limpiar' : 'Clear'}
               </Text>
             </TouchableOpacity>
           )}
         </View>
 
         {recentHymns.length === 0 ? (
-          <Text style={[styles.recentEmpty, { color: theme.outline }]}>
+          <Text style={[styles.recentEmpty, { color: sectionSubColor }]}>
             {t.recentEmpty}
           </Text>
         ) : (
-          <View>
-            {recentHymns.map((hymn) => {
+          <View style={styles.recentListWrap}>
+            {recentHymns.map((hymn, index) => {
               const isSaved = offline.savedIds.has(String(hymn.id));
               return (
                 <TouchableOpacity
                   key={hymn.id}
-                  style={styles.recentItem}
+                  style={[
+                    styles.recentItem,
+                    index > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: bandTopBorderColor,
+                    },
+                  ]}
                   activeOpacity={0.8}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -268,7 +310,7 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text
-                    style={[styles.recentNum, { color: theme.primary, opacity: 0.4 }]}
+                    style={[styles.recentNum, { color: theme.primary, opacity: 0.65 }]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.6}
@@ -280,8 +322,8 @@ export default function HomeScreen() {
                       {hymn.title}
                     </Text>
                     {hymn.categories ? (
-                      <Text style={[styles.recentCat, { color: theme.outline }]}>
-                        {translateCategories(hymn.categories, language).toUpperCase()}
+                      <Text style={[styles.recentCat, { color: sectionSubColor }]}>
+                        {translateCategories(hymn.categories, language)}
                       </Text>
                     ) : null}
                   </View>
@@ -297,17 +339,14 @@ export default function HomeScreen() {
                     name="chevron-right"
                     size={20}
                     color={theme.outline}
-                    style={{ opacity: 0.3 }}
+                    style={{ opacity: 0.35 }}
                   />
                 </TouchableOpacity>
               );
             })}
           </View>
         )}
-      </View>
-
-      {/* Bottom clearance so content scrolls above the native tab bar */}
-      <View style={{ height: bottomClearance }} />
+      </LinearGradient>
     </>
   );
 
@@ -383,81 +422,48 @@ export default function HomeScreen() {
     </Modal>
   );
 
-  // Shared Apple Books-style Header (Large Bold Serif "Himnario" + Larger Glassmorphic Search Button)
-  const appleBooksHeader = (
-    <View
+  // Compact Home actions preserve the original scroll-driven header fade.
+  const homeHeader = (
+    <Animated.View
+      pointerEvents={headerHidden ? "none" : "box-none"}
+      onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}
       style={[
         styles.headerContainer,
-        { paddingTop: insets.top + (IS_IOS ? 8 : 12) },
+        {
+          paddingTop: insets.top + (IS_IOS ? 2 : 6),
+          opacity: titleOpacity,
+          transform: [{ translateY: titleTranslateY }],
+        },
       ]}
-      pointerEvents="box-none"
     >
-      <Animated.View
-        style={[
-          styles.headerTitleRow,
-          {
-            opacity: titleOpacity,
-            transform: [{ translateY: titleTranslateY }],
-          },
-        ]}
-        pointerEvents="box-none"
-      >
-        <Text
-          style={[styles.headerTitle, { color: headerTitleColor }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.75}
-        >
-          Himnario
-        </Text>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={
-            language === 'es' ? 'Buscar himnos' : 'Search hymns'
-          }
-          activeOpacity={0.75}
-          onPress={handleHeaderSearchPress}
-        >
-          <GlassSurface
-            isInteractive
-            intensity={65}
-            tonalColor={glassFallbackBg}
-            style={[
-              styles.headerSearchGlassBtn,
-              {
-                borderColor: glassBorderColor,
-                backgroundColor: IS_IOS ? undefined : glassFallbackBg,
-              },
-            ]}
-          >
-            <MaterialIcons name="search" size={26} color={searchIconColor} />
-          </GlassSurface>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+      <View style={styles.headerTitleRow}>
+        <Text style={[styles.headerTitle, { color: headerTitleColor, fontSize: 34 }]}
+          numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{language === 'es' ? 'Inicio' : 'Home'}</Text>
+        <HomeHeaderActions onSearch={handleHeaderSearchPress} />
+      </View>
+    </Animated.View>
   );
 
   return (
     <TabSwipeWrapper
       currentTab="home"
-      style={[styles.root, { backgroundColor: theme.background }]}
+      shouldIgnoreTouch={(_, y) => y <= (headerHeight || insets.top + 60)}
+      style={[styles.root, { backgroundColor: rootBackgroundColor }]}
     >
       <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
         <Animated.ScrollView
           ref={scrollViewRef}
-          // Content is offset manually below the absolute "Himnario" header. "never" keeps
-          // iOS from adding safeAreaInsets.top again (the Home tab Trigger also disables
-          // react-native-screens' override that would flip this back to "automatic").
+          // The measured toolbar includes the top safe area; do not apply it twice.
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: insets.top + (IS_IOS ? 70 : 80) },
-          ]}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
+          contentContainerStyle={styles.scroll}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: true,
+            listener: (event: any) => {
+              const hidden = event.nativeEvent.contentOffset.y >= 35;
+              setHeaderHidden(current => current === hidden ? current : hidden);
+            },
+          })}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={true}
           indicatorStyle={isDarkMode ? 'white' : 'black'}
@@ -468,14 +474,14 @@ export default function HomeScreen() {
 
       <LinearGradient
         colors={[
-          isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
+          isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(255,255,255,0.95)',
+          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(255,255,255,0.0)',
         ]}
-        style={[styles.statusBarScrim, { height: insets.top + 32 }]}
+        style={[styles.statusBarScrim, { height: insets.top + 28 }]}
         pointerEvents="none"
       />
 
-      {appleBooksHeader}
+      {homeHeader}
 
       {doctrineModal}
     </TabSwipeWrapper>
@@ -491,8 +497,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 30,
-    elevation: 4,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 8,
   },
   statusBarScrim: {
@@ -504,8 +509,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: fonts.bold,
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 34,
+    lineHeight: 40,
+    includeFontPadding: false,
     letterSpacing: -0.4,
     textAlign: 'left',
     flex: 1,
@@ -517,161 +523,186 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
   },
-  headerSearchGlassBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   scroll: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
   },
 
-  // Hero
-  heroWrapper: {
-    borderRadius: 16,
-    marginBottom: 16,
+  // Top Hero Section (Apple Books "Continue" Card style with Leather Hymnal Cover)
+  topSection: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 26,
   },
   heroSurface: {
-    flex: 1,
-    overflow: 'hidden',
-    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingVertical: 20,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  heroIconSide: {
-    flexShrink: 0,
+  bookCoverShadow: {
+    width: 54,
+    height: 80,
+    borderRadius: 6,
     marginRight: 16,
-    zIndex: 2,
+    flexShrink: 0,
+    shadowColor: '#000000',
+    shadowOpacity: 0.32,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+    backgroundColor: '#3A0E12',
+  },
+  bookCoverImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   heroTextSide: {
     flex: 1,
     flexShrink: 1,
-    zIndex: 2,
-    gap: 4,
+    gap: 2,
+    marginRight: 8,
   },
   heroHeadline: {
     fontFamily: fonts.bold,
-    fontSize: 22,
+    fontSize: 20,
+    lineHeight: 25,
+    letterSpacing: -0.2,
   },
   heroSub: {
-    fontFamily: 'PublicSans_500Medium',
-    fontSize: 10,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    fontSize: 13.5,
+    lineHeight: 18,
+  },
+  heroMeta: {
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 12.5,
+    lineHeight: 16,
+    marginTop: 3,
   },
 
-  // Doctrine & Church Motto card
-  doctrineCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: 18,
-    marginBottom: 28,
+  // Full-Bleed Apple Books Section Bands
+  sectionBand: {
+    width: '100%',
+    paddingTop: 22,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  doctrineTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  doctrineCardTextBlock: {
-    flex: 1,
+  sectionHeaderBlock: {
+    marginBottom: 14,
     gap: 3,
   },
-  doctrineCardTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+  sectionTitleInlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 23,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+    flexShrink: 1,
+  },
+  sectionChevron: {
+    marginLeft: 2,
+    marginTop: 1,
+  },
+  sectionSub: {
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
     fontSize: 15,
+    lineHeight: 20,
   },
-  doctrineSeeMore: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 12,
+
+  // Doctrine & Church Motto inner quote block
+  mottoCard: {
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  doctrineCardIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  mottoDivider: {
-    height: StyleSheet.hairlineWidth,
-    width: '100%',
-    marginVertical: 14,
-  },
-  mottoQuoteWrap: {
-    alignItems: 'center',
-    paddingHorizontal: 6,
+  lightCardShadow: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   mottoQuoteText: {
     fontFamily: fonts.regularItalic,
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 6,
+    fontSize: 18,
+    lineHeight: 26,
+    marginBottom: 12,
+  },
+  mottoFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   mottoLabelText: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 10,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    textAlign: 'center',
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 13.5,
+  },
+  doctrineSeeMore: {
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 13.5,
   },
 
   // Recents
-  recentsSection: { gap: 16 },
   recentsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
   },
-  recentsTitle: {
-    fontFamily: fonts.boldItalic,
-    fontSize: 24,
+  recentsHeaderTextWrap: {
+    flex: 1,
+    gap: 2,
   },
   recentsLabel: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 10,
-    letterSpacing: 2,
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 14,
+    paddingTop: 4,
+  },
+  recentListWrap: {
+    marginTop: 2,
   },
   recentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    gap: 20,
+    paddingVertical: 13,
+    paddingHorizontal: 4,
+    gap: 16,
   },
   recentNum: {
     fontFamily: fonts.bold,
-    fontSize: 24,
-    width: 56,
+    fontSize: 22,
+    width: 48,
     textAlign: 'center',
   },
   recentTitle: {
-    fontFamily: 'PublicSans_500Medium',
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
     fontSize: 17,
+    lineHeight: 22,
     marginBottom: 2,
   },
   recentCat: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    fontSize: 13.5,
+    lineHeight: 18,
   },
   recentEmpty: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 14,
-    opacity: 0.5,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regularItalic,
+    fontSize: 15,
+    lineHeight: 21,
+    paddingVertical: 6,
   },
 
   // Doctrine modal
@@ -700,7 +731,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   docModalTitle: {
-    fontFamily: fonts.boldItalic,
+    fontFamily: fonts.bold,
     fontSize: 24,
     textAlign: 'center',
     marginBottom: 16,
@@ -711,23 +742,23 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   docSectionTitle: {
-    fontFamily: fonts.boldItalic,
+    fontFamily: fonts.bold,
     fontSize: 20,
     marginBottom: 10,
   },
   docBody: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 15,
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    fontSize: 15.5,
     lineHeight: 24,
-    opacity: 0.85,
+    opacity: 0.9,
   },
   docVerse: {
     fontFamily: fonts.regularItalic,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
     marginTop: 16,
-    opacity: 0.7,
+    opacity: 0.8,
   },
   docCloseBtn: {
     marginHorizontal: 28,
@@ -737,7 +768,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   docCloseTxt: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 15,
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 15.5,
   },
 });

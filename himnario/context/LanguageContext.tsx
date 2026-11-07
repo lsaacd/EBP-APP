@@ -8,6 +8,58 @@ const STORAGE_KEY = '@himnario_language';
 // ─── All translatable UI strings ────────────────────────────────────────────
 export const strings = {
   es: {
+    homeMenu: "Menú del Himnario",
+    homeMenuHistory: "Historia y créditos",
+    homeMenuHelp: "Consejos y ayuda",
+    homeMenuSettings: "Ajustes",
+    homeMenuHistorySub: "Conoce el Himnario y su versión actual",
+    homeMenuHelpSub: "Una guía sencilla para comenzar",
+    homeMenuSettingsSub: "Apariencia, descargas e idioma",
+    homeMenuBack: "Volver",
+    homeMenuDisplay: "Modo de pantalla",
+    homeMenuDark: "Modo oscuro",
+    homeMenuLight: "Modo claro",
+    homeMenuDownloads: "Audio descargado",
+    homeMenuDownloadsSub: "Consulta el espacio usado y administra tus grabaciones",
+    homeMenuDetails: "Información de la app",
+    homeMenuLanguageHint: "Elige el idioma de los menús. Las letras conservan su idioma original.",
+    homeMenuHelpIntro: "Encuentra una alabanza y léela a tu ritmo. Aquí tienes lo esencial.",
+    homeMenuFeedback: "Comparte una sugerencia",
+    homeMenuFeedbackSub: "¿Viste un error o quieres colaborar con una grabación? Cuéntanos en el formulario de nuestra web.",
+    homeMenuOpenFeedback: "Abrir formulario",
+    homeMenuOpenWebsite: "Visitar himnarioebp.com",
+    homeMenuLinkError: "No se pudo abrir el enlace. Intenta de nuevo o visita himnarioebp.com/feedback.html.",
+    homeMenuPrivacyHint: "Tus favoritos y listas se guardan en este dispositivo.",
+    homeMenuTips: [
+      {
+        "title": "Encuentra una alabanza",
+        "body": "Toca Buscar y escribe su número, parte del título o una frase de la letra. En Himnos puedes cambiar a Estribillos o usar el Índice."
+      },
+      {
+        "title": "Lee con comodidad",
+        "body": "Abre una alabanza y toca Texto para ajustar la letra. Puedes cambiar entre modo claro y oscuro sin perder tu lugar."
+      },
+      {
+        "title": "Escucha y guarda el audio",
+        "body": "Toca Audio cuando haya una grabación disponible. Sigue escuchando mientras exploras la app; toca el reproductor pequeño para ampliarlo. No todas las alabanzas tienen audio."
+      },
+      {
+        "title": "Ten tus alabanzas a mano",
+        "body": "Toca el marcador para guardar una favorita. Desde Favoritos también puedes crear listas y organizar las alabanzas del culto."
+      },
+      {
+        "title": "Comparte o prepara una hoja",
+        "body": "En Compartir puedes enviar el enlace, copiar la letra o crear un PDF. Revisa el título y el tamaño de letra antes de imprimir."
+      },
+      {
+        "title": "Muestra una estrofa a la vez",
+        "body": "Toca el icono de presentación en la letra. Elige 1, 2, 3… para una estrofa o C para el coro. Ajusta el texto y gira el teléfono si necesitas más espacio."
+      },
+      {
+        "title": "Prepárate para escuchar sin internet",
+        "body": "En Ajustes, abre Audio descargado. Usa Wi-Fi para guardar las grabaciones y espera a que termine. En iPhone, el sistema puede liberar este audio si necesita espacio."
+      }
+    ],
     audioPlaybackError: 'No se pudo reproducir el audio. Revisa tu conexión a internet y pulsa reproducir para intentar nuevamente.',
     offlineAudioSection: 'AUDIO SIN CONEXIÓN',
     offlineAudioTitle: 'Descargar todos los himnos',
@@ -78,8 +130,8 @@ export const strings = {
     feedbackAppTab: 'Aplicación y proyector',
     appName: 'Himnario El Buen Pastor',
     // Home
-    exploreAll: 'Explora Todos Los Himnos',
-    exploreCollection: 'EXPLORAR COLECCIÓN COMPLETA',
+    exploreAll: 'Explora los Himnos',
+    exploreCollection: 'EXPLORAR COLECCIÓN',
     availableSongs: 'Alabanzas Disponibles',
     availableSongsSub: 'Reproducir himnos con audio',
     recentHymns: 'Himnos Recientes',
@@ -186,15 +238,16 @@ export const strings = {
     aboutBuiltBy: 'Desarrollado por',
     aboutBuiltByName: 'Iglesia del Dios Vivo, Columna y Apoyo de la Verdad "El Buen Pastor"',
     aboutCopyright: '© 2026 El Buen Pastor. Todos los derechos reservados.',
-    aboutFirstRelease: 'Primera versión — Publicación inicial',
+    aboutFirstRelease: 'Para el culto y la lectura personal',
     aboutChangelog: 'Novedades en esta versión',
     aboutChangelogItems: [
-      'Catálogo completo de himnos con letras',
-      'Sistema de favoritos con persistencia local',
-      'Historial de himnos recientes',
-      'Alabanzas con reproducción de audio',
-      'Modo oscuro y tamaño de fuente ajustable',
-      'Soporte de idioma Español / English',
+      "Himnos y estribillos con búsqueda por número, título y letra",
+      "Favoritos, listas de reproducción e historial reciente",
+      "Reproductor de audio y administración de descargas",
+      "Texto ajustable, modo claro y oscuro, y menús en español e inglés",
+      "Presentación por estrofas y coro con rotación de pantalla",
+      "Compartir enlaces, copiar letras y preparar PDF para imprimir",
+      "Menú de inicio con ajustes, historia y ayuda",
     ],
     close: 'Cerrar',
     done: 'Listo',
@@ -226,6 +279,58 @@ export const strings = {
     favoritesQuoteAuthor: 'SALMOS 136:1',
   },
   en: {
+    homeMenu: "Hymnal menu",
+    homeMenuHistory: "History & credits",
+    homeMenuHelp: "Tips & help",
+    homeMenuSettings: "Settings",
+    homeMenuHistorySub: "About the Hymnal and its current version",
+    homeMenuHelpSub: "A simple guide to getting started",
+    homeMenuSettingsSub: "Appearance, downloads and language",
+    homeMenuBack: "Back",
+    homeMenuDisplay: "Display mode",
+    homeMenuDark: "Dark mode",
+    homeMenuLight: "Light mode",
+    homeMenuDownloads: "Downloaded audio",
+    homeMenuDownloadsSub: "Check storage use and manage your recordings",
+    homeMenuDetails: "App information",
+    homeMenuLanguageHint: "Choose the menu language. Hymn lyrics keep their original language.",
+    homeMenuHelpIntro: "Find a hymn and read at your own pace. Here are the essentials.",
+    homeMenuFeedback: "Share a suggestion",
+    homeMenuFeedbackSub: "Spotted an error or want to contribute a recording? Let us know through the form on our website.",
+    homeMenuOpenFeedback: "Open feedback form",
+    homeMenuOpenWebsite: "Visit himnarioebp.com",
+    homeMenuLinkError: "Could not open the link. Try again or visit himnarioebp.com/feedback.html.",
+    homeMenuPrivacyHint: "Your favorites and playlists are saved on this device.",
+    homeMenuTips: [
+      {
+        "title": "Find a hymn",
+        "body": "Tap Search and enter its number, part of the title or a phrase from the lyrics. In Hymns, switch to Choruses or use the Index."
+      },
+      {
+        "title": "Read comfortably",
+        "body": "Open a hymn and tap Text to change the font size. Switch between light and dark mode without losing your place."
+      },
+      {
+        "title": "Listen and save audio",
+        "body": "Tap Audio when a recording is available. Keep listening while browsing; tap the mini-player to expand it. Some hymns do not have a recording."
+      },
+      {
+        "title": "Keep your hymns close",
+        "body": "Tap the bookmark to save a favorite. In Favorites you can also create playlists and organize hymns for a service."
+      },
+      {
+        "title": "Share or prepare a printed copy",
+        "body": "In Share, send the link, copy the lyrics or create a PDF. Check the title and text size before printing."
+      },
+      {
+        "title": "Show one stanza at a time",
+        "body": "Tap the presentation icon in the lyrics. Choose 1, 2, 3… for a stanza or C for the chorus. Adjust the text and rotate your phone if you need more room."
+      },
+      {
+        "title": "Get ready to listen offline",
+        "body": "In Settings, open Downloaded audio. Use Wi-Fi to save recordings and wait for the download to finish. On iPhone, the system may clear this audio if it needs storage space."
+      }
+    ],
     audioPlaybackError: 'Audio could not be played. Check your internet connection and press play to try again.',
     offlineAudioSection: 'OFFLINE AUDIO',
     offlineAudioTitle: 'Download all hymns',
@@ -296,8 +401,8 @@ export const strings = {
     feedbackAppTab: 'App & projector',
     appName: 'El Buen Pastor Hymnal',
     // Home
-    exploreAll: 'Explore All Hymns',
-    exploreCollection: 'BROWSE FULL COLLECTION',
+    exploreAll: 'Explore Hymns',
+    exploreCollection: 'BROWSE COLLECTION',
     availableSongs: 'Available Hymns',
     availableSongsSub: 'Play hymns with audio',
     recentHymns: 'Recent Hymns',
@@ -404,15 +509,16 @@ export const strings = {
     aboutBuiltBy: 'Developed by',
     aboutBuiltByName: 'Iglesia del Dios Vivo, Columna y Apoyo de la Verdad "El Buen Pastor"',
     aboutCopyright: '© 2026 El Buen Pastor. All rights reserved.',
-    aboutFirstRelease: 'First release — Initial launch',
+    aboutFirstRelease: 'For worship and personal reading',
     aboutChangelog: "What's new in this version",
     aboutChangelogItems: [
-      'Full hymn catalog with complete lyrics',
-      'Favorites system with local persistence',
-      'Recently viewed hymns history',
-      'Hymns with audio playback',
-      'Dark mode and adjustable font size',
-      'Spanish / English language support',
+      "Hymns and choruses with number, title and lyric search",
+      "Favorites, playlists and recently viewed hymns",
+      "Audio player and download management",
+      "Adjustable text, light and dark mode, and Spanish/English menus",
+      "Stanza and chorus presentation with screen rotation",
+      "Share links, copy lyrics and prepare printable PDFs",
+      "Home menu with settings, history and help",
     ],
     close: 'Close',
     done: 'Done',

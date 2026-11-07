@@ -15,11 +15,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Animated,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useFavorites } from '../../context/FavoritesContext';
@@ -32,8 +31,6 @@ import * as Haptics from '../../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
-
-const IS_IOS = Platform.OS === 'ios';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -53,18 +50,16 @@ export default function FavoritesScreen() {
   const favoriteHymns = allHymns.filter((h) => favoriteIds.includes(String(h.id)));
 
   // ── Scroll state ─────────────────────────────────────────────────────────
-  const scrollRef = useRef<ScrollView>(null);
-  const iosScrollRef = useRef<any>(null);
+  const scrollViewRef = useRef<any>(null);
 
   const handleScrollToTop = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-    iosScrollRef.current?.scrollTo({ y: 0, animated: true });
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
-    const unsubscribe = navigation.addListener('tabPress' as any, (e: any) => {
+    const unsubscribe = navigation.addListener('tabPress' as any, () => {
       if (navigation.isFocused()) {
         handleScrollToTop();
       }
@@ -72,48 +67,7 @@ export default function FavoritesScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  // ── Android / web: collapsible header ─────────────────────────────────────
-  const [headerH, setHeaderH] = useState(0);
-  const headerTranslate = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const headerHidden = useRef(false);
-
-  const handleScroll = (e: any) => {
-    const y = e.nativeEvent.contentOffset.y;
-
-    if (y < 5 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-      lastScrollY.current = y;
-      return;
-    }
-
-    const dy = y - lastScrollY.current;
-    lastScrollY.current = y;
-    if (Math.abs(dy) < 3) return;
-
-    if (dy > 0 && !headerHidden.current && y > 10) {
-      headerHidden.current = true;
-      Animated.timing(headerTranslate, {
-        toValue: -headerH,
-        duration: 220,
-        useNativeDriver: true,
-      }).start();
-    } else if (dy < 0 && headerHidden.current) {
-      headerHidden.current = false;
-      Animated.timing(headerTranslate, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
-
-  // ── iOS: scroll-driven fade-out ───────────────────────────────────────────
+  // ── Shared iOS & Android scroll-driven fade-out header (matches Settings & Home) ──
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = scrollY.interpolate({
@@ -133,16 +87,22 @@ export default function FavoritesScreen() {
     <>
       {/* Sub Tabs */}
       <View style={styles.subTabBar}>
-        <TouchableOpacity 
-          style={[styles.subTabItem, activeTab === 'favorites' && styles.subTabActive]} 
+        <TouchableOpacity
+          style={[
+            styles.subTabItem,
+            activeTab === 'favorites' && [styles.subTabActive, { borderColor: theme.primary }],
+          ]}
           onPress={() => setActiveTab('favorites')}
         >
           <Text style={[styles.subTabText, { color: activeTab === 'favorites' ? theme.primary : theme.onSurfaceVariant }]}>
             {t.myFavorites}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.subTabItem, activeTab === 'playlists' && styles.subTabActive]} 
+        <TouchableOpacity
+          style={[
+            styles.subTabItem,
+            activeTab === 'playlists' && [styles.subTabActive, { borderColor: theme.primary }],
+          ]}
           onPress={() => setActiveTab('playlists')}
         >
           <Text style={[styles.subTabText, { color: activeTab === 'playlists' ? theme.primary : theme.onSurfaceVariant }]}>
@@ -160,7 +120,7 @@ export default function FavoritesScreen() {
           {activeTab === 'favorites' ? t.myFavorites : t.playlistsTitle}
         </Text>
         <Text style={[styles.pageSubhead, { color: theme.onSurfaceVariant }]}>
-          {activeTab === 'favorites' 
+          {activeTab === 'favorites'
             ? (favoriteHymns.length > 0
                 ? `${favoriteHymns.length} ${favoriteHymns.length !== 1 ? t.hymnsSaved_other : t.hymnsSaved_one}`
                 : t.savedForQuickAccess)
@@ -304,107 +264,57 @@ export default function FavoritesScreen() {
   );
 
   // ══════════════════════════════════════════════════════════════════════════
-  // iOS LAYOUT — fade-out title + Animated.ScrollView
-  // ══════════════════════════════════════════════════════════════════════════
-  if (IS_IOS) {
-    return (
-      <TabSwipeWrapper currentTab="favorites" style={[styles.root, { backgroundColor: theme.background }]}>
-        {/* Fade-out header */}
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              paddingTop: insets.top + 16,
-              opacity: titleOpacity,
-              transform: [{ translateY: titleTranslateY }],
-            },
-          ]}
-          pointerEvents="none"
-        >
-          <Text
-            style={[styles.headerTitle, { color: theme.primary }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            Himnario El Buen Pastor
-          </Text>
-        </Animated.View>
-
-        {/* ── Status Bar Scrim ──────────────────────────────────── */}
-        <LinearGradient
-          colors={[
-            isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-            isDarkMode ? 'rgba(1,1,1,0.0)'  : 'rgba(250,245,238,0.0)',
-          ]}
-          style={[styles.statusBarScrim, { height: insets.top + 28 }]}
-          pointerEvents="none"
-        />
-
-        <Animated.ScrollView
-          ref={(ref: any) => { iosScrollRef.current = ref?.getNode?.() ?? ref; }}
-          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-        >
-          {scrollContent}
-        </Animated.ScrollView>
-
-      </TabSwipeWrapper>
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // ANDROID / WEB LAYOUT — collapsible header
+  // SHARED LAYOUT — transparent fade-out title + Animated.ScrollView
   // ══════════════════════════════════════════════════════════════════════════
   return (
-      <TabSwipeWrapper currentTab="favorites" style={[styles.root, { backgroundColor: theme.background }]}>
-
-      {/* Collapsible TopAppBar */}
+    <TabSwipeWrapper currentTab="favorites" style={[styles.root, { backgroundColor: theme.background }]}>
+      {/* Fade-out header */}
       <Animated.View
-        onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
         style={[
           styles.headerContainer,
-          { backgroundColor: theme.background, transform: [{ translateY: headerTranslate }] },
+          {
+            paddingTop: insets.top + 16,
+            opacity: titleOpacity,
+            transform: [{ translateY: titleTranslateY }],
+          },
         ]}
+        pointerEvents="none"
       >
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <Text
-            style={[styles.headerTitle, { color: theme.primary }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            Himnario El Buen Pastor
-          </Text>
-        </View>
+        <Text
+          style={[styles.headerTitle, { color: theme.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          Himnario El Buen Pastor
+        </Text>
       </Animated.View>
 
       {/* ── Status Bar Scrim ──────────────────────────────────── */}
       <LinearGradient
         colors={[
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
-          isDarkMode ? 'rgba(1,1,1,0.0)'  : 'rgba(250,245,238,0.0)',
+          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
         ]}
         style={[styles.statusBarScrim, { height: insets.top + 28 }]}
         pointerEvents="none"
       />
 
-      <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={[styles.scroll, { paddingTop: headerH + 8 }]}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-        >
-          {scrollContent}
-        </ScrollView>
-      </SafeAreaView>
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={true}
+        indicatorStyle={isDarkMode ? 'white' : 'black'}
+      >
+        {scrollContent}
+      </Animated.ScrollView>
     </TabSwipeWrapper>
   );
 }
@@ -429,16 +339,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 12,
-  },
   headerTitle: {
     fontFamily: fonts.bold,
-    fontSize: 26,
+    fontSize: 31,
+    lineHeight: 40,
     letterSpacing: 0.3,
     textAlign: 'center',
   },

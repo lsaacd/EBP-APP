@@ -2,8 +2,7 @@
  * ShareSheet — Unified share sheet used by the reader, full player, and mini player (Workstream E).
  *
  * Actions, in this exact order (nothing more):
- * 1. Messages — native SMS composer (`sms:`) with title + canonical link; falls back to the system
- *    share sheet when SMS isn't available (e.g. iPad / simulator).
+ * 1. Messages — opens the system share menu with the hymn title and canonical link.
  * 2. WhatsApp (`https://wa.me/?text=...`, no custom URL-scheme permission needed)
  * 3. Create PDF — opens the in-app "Preparar PDF" editor (website parity: format, font size,
  *    columns, fit-to-page, include title, live preview) — see `PdfEditor.tsx`.
@@ -28,13 +27,14 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
 import PdfEditor from './PdfEditor';
+
 
 const DEFAULT_COVER = require('../assets/images/EBP_HYMN_COVER.png');
 
@@ -91,17 +91,21 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     .filter((line, idx) => idx < 4 || Boolean(line))
     .join('\n');
 
-  const handleMessages = () => {
+  const handleMessages = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const body = encodeURIComponent(linkMessage);
-    // iOS uses `sms:&body=`, Android uses `sms:?body=`.
-    const smsUrl = Platform.OS === 'ios' ? `sms:&body=${body}` : `sms:?body=${body}`;
-    onClose();
-    setTimeout(() => {
-      Linking.openURL(smsUrl).catch(() => {
-        Share.share({ title: `${label} · ${hymn.title}`, message: linkMessage, url: publicUrl }).catch(() => {});
-      });
-    }, 260);
+    setStatusMessage(null);
+    try {
+      // Present above this modal so dismissing the native menu returns to our options.
+      // iOS accepts a separate URL item; Android needs the link inside the message.
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { title: `${label} · ${hymn.title}`, message: `${label} · ${hymn.title}\nHimnario El Buen Pastor`, url: publicUrl }
+          : { title: `${label} · ${hymn.title}`, message: linkMessage },
+        { dialogTitle: es ? 'Compartir alabanza' : 'Share hymn' },
+      );
+    } catch {
+      setStatusMessage(es ? 'No se pudo abrir el menú para compartir. Inténtalo de nuevo.' : 'Could not open the share menu. Please try again.');
+    }
   };
 
   const handleWhatsApp = () => {
@@ -130,7 +134,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       iconBg: 'rgba(52, 199, 89, 0.16)',
       iconColor: '#34C759',
       title: t.shareMessages,
-      subtitle: es ? 'Enviar enlace y título por mensaje' : 'Send link and title by text message',
+      subtitle: es ? 'Mensajes y más aplicaciones de tu dispositivo' : 'Messages and more apps on your device',
       onPress: handleMessages,
     },
     {
@@ -243,9 +247,11 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
             ]}
             onPress={opt.onPress}
           >
-            <View style={[styles.optionIconWrap, { backgroundColor: opt.iconBg }]}>
-              {opt.iconFamily === 'fontawesome' ? (
-                <FontAwesome name={opt.icon} size={22} color={opt.iconColor} />
+            <View style={[styles.optionIconWrap, { backgroundColor: opt.key === 'whatsapp' || (isIOS && opt.key === 'messages') ? 'transparent' : opt.iconBg }]}>
+              {isIOS && opt.key === 'messages' ? (
+                <Image source={require('../assets/images/imessage-brand.png')} style={{ width: 38, height: 38 }} resizeMode="contain" />
+              ) : opt.iconFamily === 'fontawesome' ? (
+                <Image source={require('../assets/images/whatsapp-brand.png')} style={{ width: 42, height: 42 }} resizeMode="contain" />
               ) : (
                 <MaterialIcons name={opt.icon} size={22} color={opt.iconColor} />
               )}

@@ -2,7 +2,7 @@
  * MusicPlayer — Spotify-style full-screen player modal.
  *
  * Features:
- * - Slides up from bottom as a native modal sheet
+ * - Gesture-driven expansion/collapse into the global mini-player
  * - Album art (per-hymn or default cover)
  * - Title, number, author display
  * - Scrubable progress bar with elapsed/total timestamps
@@ -18,22 +18,24 @@
  *     onClose={() => setShowPlayer(false)}
  *   />
  */
-import React, { useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Dimensions,
-  Image,
   Platform,
   ActivityIndicator,
   Linking,
   StatusBar,
-  Animated,
-  PanResponder,
+  useWindowDimensions,
+  type LayoutRectangle,
 } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { cancelAnimation, Extrapolation, interpolate, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import MiniPlayer from './MiniPlayer';
+import { miniPlayerFrame, shouldCollapsePlayer } from '../utils/gestureMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -55,7 +57,7 @@ import { fonts } from '../theme/theme';
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
 const DEFAULT_COVER = require('../assets/images/EBP_HYMN_COVER.png');
 
 // ─────────────────────────────────────────────────────────────
@@ -79,46 +81,63 @@ const ProgressSection = React.memo(function ProgressSection({
 }) {
   const { position, duration } = useProgress(250);
   
-  // Use a Ref for instant locking to prevent "rubber-banding" on iOS
   const isSeekingRef = useRef(false);
+  const pendingSeek = useRef<number | null>(null);
+  const seekGeneration = useRef(0);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seekVal, setSeekVal] = useState(0);
-  const [, forceUpdate] = useState({});
-
-  // Convert seconds to ms for display
+  const [sliderValue, setSliderValue] = useState(0);
   const currentMs = Math.floor((position ?? 0) * 1000);
   const durationMs = Math.floor((duration ?? 0) * 1000);
-  
-  const displayValue = isSeekingRef.current ? seekVal : currentMs;
+  useEffect(() => {
+    if (pendingSeek.current !== null && Math.abs(currentMs - pendingSeek.current) < 1000) {
+      pendingSeek.current = null;
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    }
+    if (!isSeekingRef.current && pendingSeek.current === null) setSliderValue(currentMs);
+  }, [currentMs]);
+  useEffect(() => () => { if (settleTimer.current) clearTimeout(settleTimer.current); }, []);
+  const displayValue = isSeekingRef.current || pendingSeek.current !== null ? seekVal : currentMs;
 
   return (
     <View style={progressStyles.section}>
+      <GestureDetector gesture={Gesture.Native().disallowInterruption(true)}>
       <Slider
         style={progressStyles.slider}
         minimumValue={0}
         maximumValue={durationMs > 0 ? durationMs : 1}
-        value={displayValue}
+        value={sliderValue}
         onSlidingStart={() => {
+          ++seekGeneration.current;
+          if (settleTimer.current) clearTimeout(settleTimer.current);
+          pendingSeek.current = null;
           isSeekingRef.current = true;
           setSeekVal(currentMs);
-          forceUpdate({});
+
         }}
         onValueChange={(v) => {
           setSeekVal(Math.floor(v));
         }}
         onSlidingComplete={(v: number) => {
-          TrackPlayer.seekTo(v / 1000);
-          // Tiny delay before unlocking prevents the "snap back" 
-          // while the audio engine catches up to the new position
-          setTimeout(() => {
-            isSeekingRef.current = false;
-            forceUpdate({});
-          }, 150);
+          const target = Math.floor(v);
+          const generation = ++seekGeneration.current;
+          isSeekingRef.current = false;
+          pendingSeek.current = target;
+          setSeekVal(target);
+          setSliderValue(target);
+          if (settleTimer.current) clearTimeout(settleTimer.current);
+          // Keep stale progress polls from pulling the thumb back after release.
+          settleTimer.current = setTimeout(() => { pendingSeek.current = null; }, 2000);
+          void TrackPlayer.seekTo(target / 1000).catch(() => {
+            if (generation === seekGeneration.current) { pendingSeek.current = null; setSliderValue(currentMs); }
+          });
         }}
         minimumTrackTintColor={audioAvailable ? '#c0392b' : 'rgba(255,255,255,0.2)'}
         maximumTrackTintColor="rgba(255,255,255,0.15)"
         thumbTintColor={audioAvailable ? '#ffffff' : 'transparent'}
         disabled={!audioAvailable}
       />
+      </GestureDetector>
       <View style={progressStyles.timeRow}>
         <Text style={progressStyles.timeText}>{formatTime(displayValue)}</Text>
         <Text style={progressStyles.timeText}>{formatTime(durationMs)}</Text>
@@ -151,17 +170,25 @@ interface MusicPlayerProps {
   hymnId: string;
   onClose: () => void;
   onViewLyrics?: (hymnId: string) => void;
+  miniPlayerBottom: number;
+  miniPlayerHeight: number;
 }
 
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
-function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlayerProps) {
-  const { theme, isDarkMode } = useTheme();
+function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBottom, miniPlayerHeight }: MusicPlayerProps) {
+  const { isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const window = useWindowDimensions();
+  const [viewport, setViewport] = useState({ width: window.width, height: window.height });
+  const { width, height } = viewport;
+  const android = Platform.OS === 'android';
+  const artSize = Math.min(width - 56, height * 0.45, 500);
+  const [artwork, setArtwork] = useState<LayoutRectangle>({ x: (width - artSize) / 2, y: insets.top + 78, width: artSize, height: artSize });
 
   const {
     currentHymnId,
@@ -171,7 +198,6 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
     togglePlayPause,
     skipNext,
     skipPrev,
-    setCurrentHymnId,
     toggleShuffle,
     cycleRepeat,
     closeFullPlayer,
@@ -194,62 +220,87 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
   const handleNext = skipNext;
   const handlePrev = skipPrev;
 
-  const handleClose = () => {
+  const finishMinimize = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Don't pause — audio keeps playing and mini-player shows
     closeFullPlayer();
     onClose();
-  };
+  }, [closeFullPlayer, onClose]);
 
   const audioAvailable = hymn ? hasHymnAudio(String(hymn.id)) : false;
   const nextHymn = currentIndex < activeData.length - 1 ? activeData[currentIndex + 1] : null;
   const prevHymn = currentIndex > 0 ? activeData[currentIndex - 1] : null;
 
-  // ── Custom Smooth Swipe-Down gesture ──────────────────────
-  const translateY = useRef(new Animated.Value(0)).current;
+  // One animation owns the sheet, artwork and mini-player endpoint on the UI thread.
+  // A transparent overFullScreen modal avoids UIKit's second pageSheet dismissal.
+  const progress = useSharedValue(1);
+  const dragOrigin = useSharedValue(0);
+  const frame = miniPlayerFrame(width, height, miniPlayerBottom, android, miniPlayerHeight);
+  const travel = Math.max(1, frame.y);
+  const spring = { damping: 28, stiffness: 240, mass: 1, overshootClamping: true };
+  const animateMinimize = useCallback(() => {
+    progress.value = withSpring(1, { damping: 28, stiffness: 240, mass: 1, overshootClamping: true }, finished => {
+      if (finished) runOnJS(finishMinimize)();
+    });
+  }, [finishMinimize, progress]);
+  const handleClose = animateMinimize;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        const { dx, dy } = gestureState;
-        // Only trigger vertical drag down. Math.abs(dy) > Math.abs(dx) * 1.5 prevents interference with the slider.
-        return dy > 6 && Math.abs(dy) > Math.abs(dx) * 1.5;
-      },
-      onPanResponderGrant: () => {
-        translateY.setOffset(0);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateY.setValue(gestureState.dy);
-        } else {
-          // Resistance when dragging upwards
-          translateY.setValue(gestureState.dy * 0.15);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dy > 120 || gestureState.vy > 0.5) {
-          // Slide down completely off-screen and close
-          Animated.timing(translateY, {
-            toValue: SCREEN_H,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            translateY.setValue(0);
-            handleClose();
-          });
-        } else {
-          // Spring back to top smoothly
-          Animated.spring(translateY, {
-            toValue: 0,
-            tension: 45,
-            friction: 7.5,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
+  useEffect(() => {
+    if (visible) progress.value = withSpring(0, { damping: 28, stiffness: 240, mass: 1, overshootClamping: true });
+    return () => cancelAnimation(progress);
+  }, [progress, visible]);
+
+  const pan = Gesture.Pan()
+    .enabled(!showShareModal && !playlistModalVisible)
+    .activeOffsetY(12)
+    .failOffsetX([-18, 18])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(progress);
+      dragOrigin.value = progress.value;
     })
-  ).current;
+    .onUpdate(event => {
+      progress.value = Math.max(0, Math.min(1, dragOrigin.value + event.translationY / travel));
+    })
+    .onEnd(event => {
+      const collapse = shouldCollapsePlayer(progress.value * travel, event.velocityY, travel);
+      progress.value = withSpring(collapse ? 1 : 0, { ...spring, velocity: event.velocityY / travel }, finished => {
+        if (finished && collapse) runOnJS(finishMinimize)();
+      });
+    })
+    .onFinalize((_event, success) => {
+      if (!success) progress.value = withSpring(0, spring);
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    top: progress.value * frame.y,
+    left: progress.value * frame.x,
+    width: interpolate(progress.value, [0, 1], [width, frame.width]),
+    height: interpolate(progress.value, [0, 1], [height, frame.height]),
+    borderRadius: progress.value * (android ? 18 : 16),
+    backgroundColor: interpolateColor(progress.value, [0, 1], ['#0e0404', isDarkMode ? '#202020' : '#fcf9f2']),
+  }));
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.65, 0.85], [1, 0.3, 0], Extrapolation.CLAMP),
+  }));
+  const compactStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.65, 1], [0, 1], Extrapolation.CLAMP),
+  }));
+  const coverStyle = useAnimatedStyle(() => ({
+    top: interpolate(progress.value, [0, 1], [artwork.y, android ? 13 : 8.5]),
+    left: interpolate(progress.value, [0, 1], [artwork.x, android ? 13 : 10.5]),
+    width: interpolate(progress.value, [0, 1], [artwork.width, android ? 48 : 40]),
+    height: interpolate(progress.value, [0, 1], [artwork.height, android ? 48 : 40]),
+    borderRadius: interpolate(progress.value, [0, 1], [12, android ? 12 : 8]),
+    // Keep the existing loading/error overlays above the expanded cover.
+    opacity: 1,
+  }));
+  // Decode at expanded size on iOS; layout-resizing a thumbnail can retain a low-resolution decode.
+  const coverImageStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: interpolate(progress.value, [0, 1], [artwork.width, android ? 48 : 40]) / artSize },
+      { scaleY: interpolate(progress.value, [0, 1], [artwork.height, android ? 48 : 40]) / artSize }],
+  }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: (1 - progress.value) * 0.25 }));
 
   if (!hymn) return null;
 
@@ -259,23 +310,26 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      transparent={false}
-      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
+      animationType="none"
+      transparent
+      presentationStyle="overFullScreen"
       onRequestClose={handleClose}
-      statusBarTranslucent={Platform.OS === 'android'}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
-      {Platform.OS === 'android' && <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />}
+      <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
       
-      <Animated.View
-        style={[
-          styles.animatedWrapper,
-          {
-            transform: [{ translateY }],
-          }
-        ]}
-        {...panResponder.panHandlers}
+      <GestureHandlerRootView
+        style={{ flex: 1 }}
+        onLayout={event => {
+          const { width: nextWidth, height: nextHeight } = event.nativeEvent.layout;
+          setViewport(current => current.width === nextWidth && current.height === nextHeight ? current : { width: nextWidth, height: nextHeight });
+        }}
       >
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, backdropStyle]} />
+      <GestureDetector gesture={pan}>
+      <Animated.View style={[styles.animatedWrapper, sheetStyle]}>
+      <Animated.View style={[{ width, height }, contentStyle]}>
         {/* Dark background gradient */}
         <LinearGradient
           colors={['#2a0a0b', '#0e0404', '#000000']}
@@ -311,12 +365,10 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
         </View>
 
         {/* ─── Album Art (flex to fill available space) ────────── */}
-        <View style={styles.artContainer}>
-          <Image
-            source={DEFAULT_COVER}
-            style={styles.albumArt}
-            resizeMode="cover"
-          />
+        <View
+          style={[styles.artContainer, { width: artSize, height: artSize }]}
+          onLayout={event => setArtwork(event.nativeEvent.layout)}
+        >
           {/* No audio overlay */}
           {!audioAvailable && (
             <View style={styles.noAudioOverlay}>
@@ -324,13 +376,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
               <Text style={styles.noAudioText}>Audio no disponible</Text>
             </View>
           )}
-          {/* Loading spinner overlay */}
-          {isLoading && (
-            <View style={styles.noAudioOverlay}>
-              <ActivityIndicator size="large" color="#c0392b" />
-              <Text style={styles.noAudioText}>Cargando…</Text>
-            </View>
-          )}
+
         </View>
 
         {/* ─── Hymn Info (compact: title line 1, credit line 2) ── */}
@@ -559,6 +605,13 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
 
       </LinearGradient>
 
+      </Animated.View>
+      <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[StyleSheet.absoluteFill, compactStyle]}>
+        <MiniPlayer transitionPreview />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', overflow: 'hidden' }, coverStyle]}><Animated.Image source={DEFAULT_COVER} style={[{ width: artSize, height: artSize, transformOrigin: 'top left' }, coverImageStyle]} resizeMode="contain" /></Animated.View>
+      </Animated.View>
+      </GestureDetector>
       {/* ═══════ Unified Share Sheet (Workstream E) ════════════ */}
       <ShareSheet
         variant="player"
@@ -567,12 +620,12 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics }: MusicPlaye
         hymn={hymn}
       />
 
-      </Animated.View>
       <AddToPlaylistModal
         visible={playlistModalVisible}
         onClose={() => setPlaylistModalVisible(false)}
         hymnId={currentId}
       />
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -583,7 +636,6 @@ export default React.memo(MusicPlayerInner);
 // ─────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────
-const ART_SIZE = Math.min(SCREEN_W - 56, SCREEN_H * 0.45, 500);
 
 const styles = StyleSheet.create({
   root: {
@@ -617,8 +669,7 @@ const styles = StyleSheet.create({
   // Album art — takes up main space
   artContainer: {
     alignSelf: 'center',
-    width: ART_SIZE,
-    height: ART_SIZE,
+
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 28,
@@ -715,8 +766,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   animatedWrapper: {
-    flex: 1,
-    backgroundColor: '#000000',
+    position: 'absolute',
+    overflow: 'hidden',
   },
   dragHandleContainer: {
     alignItems: 'center',

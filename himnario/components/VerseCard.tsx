@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
+
+const IS_IOS = Platform.OS === 'ios';
 
 const DAILY_VERSES = [
   { es: { ref: 'Mateo 18:20', text: 'Porque donde están dos ó tres congregados en mi nombre, allí estoy yo en medio de ellos.' }, en: { ref: 'Matthew 18:20', text: 'For where two or three are gathered in my name, there am I among them.' } },
@@ -19,7 +22,7 @@ const DAILY_VERSES = [
   { es: { ref: '1 Corintios 16:14', text: 'Todas vuestras cosas sean hechas con caridad.' }, en: { ref: '1 Corinthians 16:14', text: 'Let all that you do be done in love.' } },
   { es: { ref: 'Josué 1:9', text: 'Mira que te mando que te esfuerces y seas valiente: no temas ni desmayes, porque Jehová tu Dios será contigo en donde quiera que fueres.' }, en: { ref: 'Joshua 1:9', text: 'Have I not commanded you? Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.' } },
   { es: { ref: 'Salmo 119:105', text: 'Lámpara es á mis pies tu palabra, Y lumbrera á mi camino.' }, en: { ref: 'Psalm 119:105', text: 'Your word is a lamp to my feet and a light to my path.' } },
-  { es: { ref: 'San Juan 3:16', text: 'Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.' }, en: { ref: 'John 3:16', text: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.' } },
+  { es: { ref: 'San Juan 3:16', text: 'Porque de tal manera amó Dios el mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.' }, en: { ref: 'John 3:16', text: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.' } },
   { es: { ref: '1 Timoteo 3:15', text: 'Y si no fuere tan presto, para que sepas cómo te conviene conversar en la casa de Dios, que es la iglesia del Dios vivo, columna y apoyo de la verdad.' }, en: { ref: '1 Timothy 3:15', text: 'If I delay, you may know how one ought to behave in the household of God, which is the church of the living God, a pillar and buttress of the truth.' } },
   { es: { ref: 'Salmos 100:1', text: 'Cantad alegres á Dios, habitantes de toda la tierra.' }, en: { ref: 'Psalm 100:1', text: 'Make a joyful noise to the LORD, all the earth!' } },
   { es: { ref: 'Salmos 139:23', text: 'Examíname, oh Dios, y conoce mi corazón: Pruébame y reconoce mis pensamientos:' }, en: { ref: 'Psalm 139:23', text: 'Search me, O God, and know my heart! Try me and know my thoughts!' } },
@@ -47,8 +50,7 @@ export default function VerseCard() {
 
   const verseData = dailyVerse[language];
 
-  // Provide fallback labels directly since they aren't in LanguageContext yet
-  const labelVerse = language === 'es' ? 'VERSÍCULO DE HOY' : 'VERSE OF THE DAY';
+  const labelVerse = language === 'es' ? 'Versículo de Hoy' : 'Verse of the Day';
   const labelShare = language === 'es' ? 'Compartir el Versículo' : 'Share Verse';
 
   const handleShare = async () => {
@@ -62,120 +64,134 @@ export default function VerseCard() {
     }
   };
 
-  return (
-    <View style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}>
-      {/* Decorative accent line at top */}
-      <View style={[styles.accentLine, { backgroundColor: theme.primary + '40' }]} />
+  // Apple Books gradient:
+  // - Dark mode: lighter charcoal at top (#1C1C1E) -> pure black at bottom (#000000)
+  // - Light mode: crisp white at top (#FFFFFF) -> soft neutral gray at bottom (#EAEAEF)
+  const gradientColors: [string, string, string] = isDarkMode
+    ? ['#1C1C1E', '#0B0B0C', '#000000']
+    : ['#FFFFFF', '#F7F7FA', '#EAEAEF'];
+  const topBorderColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const headingColor = isDarkMode ? '#ffffff' : '#111111';
+  const subColor = isDarkMode ? 'rgba(235,235,245,0.6)' : '#6E6E73';
 
-      {/* Label without icons */}
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, { color: theme.primary }]}>
+  return (
+    <LinearGradient
+      colors={gradientColors}
+      locations={[0, 0.55, 1]}
+      style={[styles.sectionBand, { borderTopColor: topBorderColor }]}
+    >
+      {/* Apple Books-style Section Header */}
+      <View style={styles.headerBlock}>
+        <Text style={[styles.sectionTitle, { color: headingColor }]}>
           {labelVerse}
         </Text>
-      </View>
-
-      {/* Opening quote mark */}
-      <Text style={[styles.quoteMark, { color: theme.primary + '20' }]}>{'"'}</Text>
-
-      {/* Scripture Text */}
-      <Text style={[styles.verseText, { color: theme.onSurface }]}>
-        {verseData.text}
-      </Text>
-
-      {/* Reference with thin rule */}
-      <View style={styles.refContainer}>
-        <View style={[styles.refRule, { backgroundColor: theme.primary + '30' }]} />
-        <Text style={[styles.reference, { color: theme.onSurfaceVariant }]}>
+        <Text style={[styles.sectionSub, { color: subColor }]}>
           {verseData.ref}
         </Text>
-        <View style={[styles.refRule, { backgroundColor: theme.primary + '30' }]} />
       </View>
 
-      {/* Share Button — pill style */}
-      <TouchableOpacity
-        style={[styles.shareBtn, {
-          backgroundColor: isDarkMode ? theme.surfaceVariants.container : theme.primary,
-        }]}
-        activeOpacity={0.8}
-        onPress={handleShare}
+      {/* Scripture Quote Block */}
+      <View
+        style={[
+          styles.quoteCard,
+          {
+            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          },
+          !isDarkMode && styles.lightCardShadow,
+        ]}
       >
-        <MaterialIcons name="share" size={16} color="#ffffff" style={{ marginRight: 8 }} />
-        <Text style={styles.shareText}>{labelShare}</Text>
-      </TouchableOpacity>
-    </View>
+        <Text style={[styles.verseText, { color: theme.onSurface }]}>
+          {`“${verseData.text}”`}
+        </Text>
+
+        <View style={styles.footerRow}>
+          <Text style={[styles.reference, { color: theme.primary }]}>
+            — {verseData.ref}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.shareBtn,
+              {
+                backgroundColor: isDarkMode ? '#2C2C2E' : theme.primary,
+              },
+            ]}
+            activeOpacity={0.8}
+            onPress={handleShare}
+          >
+            <MaterialIcons name="ios-share" size={15} color="#ffffff" style={{ marginRight: 6 }} />
+            <Text style={styles.shareText}>{labelShare}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 20,
-    paddingTop: 28,
-    paddingBottom: 22,
-    paddingHorizontal: 28,
-    marginBottom: 20,
-    alignItems: 'center',
-    overflow: 'hidden',
+  sectionBand: {
+    width: '100%',
+    paddingTop: 22,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  accentLine: {
-    position: 'absolute',
-    top: 0,
-    left: 28,
-    right: 28,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
+  headerBlock: {
+    marginBottom: 14,
+    gap: 3,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: 'PublicSans_700Bold',
-    fontSize: 11,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
-  quoteMark: {
+  sectionTitle: {
     fontFamily: fonts.bold,
-    fontSize: 64,
-    lineHeight: 50,
-    marginBottom: -4,
-    marginTop: -4,
+    fontSize: 23,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
+  sectionSub: {
+    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  quoteCard: {
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  lightCardShadow: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   verseText: {
     fontFamily: fonts.regularItalic,
-    fontSize: 19,
-    textAlign: 'center',
+    fontSize: 20,
     lineHeight: 30,
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  refContainer: {
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 12,
-  },
-  refRule: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   reference: {
-    fontFamily: 'PublicSans_500Medium',
-    fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    fontSize: 14,
   },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 24,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
     borderRadius: 100,
   },
   shareText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
     fontSize: 14,
     color: '#ffffff',
   },

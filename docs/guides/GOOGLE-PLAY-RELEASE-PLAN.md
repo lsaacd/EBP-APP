@@ -1,6 +1,6 @@
 # Google Play status
 
-Updated November 2, 2026.
+Updated November 6, 2026.
 
 Android music playback works properly. Notification controls and the player fix are complete; no further playback repair is currently requested.
 

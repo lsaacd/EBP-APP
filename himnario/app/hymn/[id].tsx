@@ -32,7 +32,6 @@ import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import MusicPlayer from '../../components/MusicPlayer';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import TextSizeSheet from '../../components/TextSizeSheet';
 import ProjectorModal from '../../components/ProjectorModal';
@@ -137,7 +136,7 @@ export default function HymnDetail() {
   }, [goToNext, goToPrev, nextHymn, prevHymn]);
 
   // ── Music Player via global context ──────────────────────────
-  const { showFullPlayer, openPlayer, closeFullPlayer, currentHymnId } = useNowPlaying();
+  const { showFullPlayer, openPlayer, currentHymnId } = useNowPlaying();
 
   // When the mini player is visible, shift nav buttons up to avoid overlap
   const miniPlayerVisible = !!currentHymnId && !showFullPlayer;
@@ -563,15 +562,7 @@ export default function HymnDetail() {
         </TouchableOpacity>
       )}
 
-      {/* ─── Music Player Modal ──────────────────────────── */}
-      {/* Only mount when visible — see BottomNavBar.js for rationale */}
-      {showFullPlayer && (
-        <MusicPlayer
-          visible={true}
-          hymnId={String(hymn.id)}
-          onClose={() => closeFullPlayer()}
-        />
-      )}
+      {/* Playback presentation is owned once by the root layout. */}
 
       {/* ─── Add to Playlist Modal ───────────────────────── */}
       <AddToPlaylistModal 

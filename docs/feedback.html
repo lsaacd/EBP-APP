@@ -117,10 +117,8 @@
 
       try {
         const savedTheme = JSON.parse(localStorage.getItem('ebp-dark'));
-        if (savedTheme === true || (savedTheme === null && matchMedia('(prefers-color-scheme: dark)').matches)) document.body.classList.add('dark');
-      } catch {
-        if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      }
+        if (savedTheme === true || localStorage.getItem('ebp-theme') === 'dark') document.body.classList.add('dark');
+      } catch {}
 
       selectForm(initialForm);
     })();

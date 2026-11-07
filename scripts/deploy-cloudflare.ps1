@@ -66,11 +66,10 @@ Write-Host 'Generating static hymn preview pages...'
 if ($LASTEXITCODE -ne 0) { throw 'Failed to generate static hymn preview pages.' }
 
 Write-Host 'Preparing the static Pages deployment (recordings stay in R2)...'
-if (Test-Path -LiteralPath $resolvedStagePath) {
-    Remove-Item -LiteralPath $resolvedStagePath -Recurse -Force
+if (-not (Test-Path -LiteralPath $resolvedStagePath)) {
+    New-Item -ItemType Directory -Path $resolvedStagePath | Out-Null
 }
-New-Item -ItemType Directory -Path $resolvedStagePath | Out-Null
-& robocopy $docsPath $resolvedStagePath /E /XD $audioPath /NFL /NDL /NJH /NJS /NP
+& robocopy $docsPath $resolvedStagePath /MIR /XD $audioPath /MT:16 /NFL /NDL /NJH /NJS /NP
 if ($LASTEXITCODE -ge 8) { throw "Could not prepare the Pages staging copy (robocopy exit code $LASTEXITCODE)." }
 
 $configPath = Join-Path $resolvedStagePath 'js\storage-config.js'

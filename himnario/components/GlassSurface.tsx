@@ -22,7 +22,7 @@ function checkLiquidGlass(): boolean {
       isLiquidGlassAvailable?: boolean;
       isGlassEffectAPIAvailable?: boolean;
     }>('ExpoGlassEffect');
-    if (mod && mod.isLiquidGlassAvailable && mod.isGlassEffectAPIAvailable !== false) {
+    if (mod?.isLiquidGlassAvailable === true && mod.isGlassEffectAPIAvailable === true) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const glassPkg = require('expo-glass-effect');
       CachedGlassView = glassPkg.GlassView ?? null;
@@ -49,6 +49,8 @@ export interface GlassSurfaceProps {
   tonalColor?: string;
   /** Force dark appearance (e.g. inside dark projector or full player) */
   forceDark?: boolean;
+  /** Use a predictable frosted backing in modals and floating players. */
+  stableBackdrop?: boolean;
 }
 
 export default function GlassSurface({
@@ -59,6 +61,7 @@ export default function GlassSurface({
   isInteractive = false,
   tonalColor,
   forceDark,
+  stableBackdrop = false,
 }: GlassSurfaceProps) {
   const { theme, isDarkMode } = useTheme();
   const dark = forceDark ?? isDarkMode;
@@ -68,14 +71,14 @@ export default function GlassSurface({
     const borderColor = dark ? 'rgba(255,255,255,0.13)' : 'rgba(110,22,25,0.10)';
     const washColor = dark ? 'rgba(20,20,20,0.62)' : 'rgba(252,249,242,0.74)';
 
-    if (useLiquid && CachedGlassView) {
+    if (useLiquid && CachedGlassView && !stableBackdrop) {
       const GlassViewComp = CachedGlassView;
       return (
         <GlassViewComp
           glassEffectStyle={glassEffectStyle}
           colorScheme={dark ? 'dark' : 'light'}
           isInteractive={isInteractive}
-          style={[styles.iosContainer, { borderColor }, style]}
+          style={[!isInteractive && styles.iosContainer, !isInteractive && { borderColor }, style]}
         >
           {children}
         </GlassViewComp>
@@ -86,10 +89,10 @@ export default function GlassSurface({
       <View style={[styles.iosContainer, { borderColor }, style]}>
         <BlurView
           intensity={intensity}
-          tint={dark ? 'dark' : 'light'}
+          tint={dark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
           style={StyleSheet.absoluteFill}
         />
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: washColor }]} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: stableBackdrop ? (dark ? 'rgba(24,24,24,0.94)' : 'rgba(252,249,242,0.96)') : washColor }]} />
         {children}
       </View>
     );

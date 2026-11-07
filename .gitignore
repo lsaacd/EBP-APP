@@ -6,6 +6,7 @@ himnario/node_modules/
 .expo/
 himnario/.expo/
 dist/
+himnario/dist/
 web-build/
 
 # OS / Scratch
@@ -15,16 +16,17 @@ logcat.txt
 scratch/
 .codex-remote-attachments/
 .cloudflare-pages-stage/
+.wrangler/
 .wrangler-cache/
 __pycache__/
 *.pyc
 
 
 # Native build folders
-android/
-ios/
-himnario/android/
-himnario/ios/
+/android/
+/ios/
+/himnario/android/
+/himnario/ios/
 
 # Editor configs
 .vscode/

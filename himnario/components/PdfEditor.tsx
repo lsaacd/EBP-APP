@@ -324,7 +324,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
             <>
               <MaterialIcons name="ios-share" size={18} color={theme.onPrimary} />
               <Text style={[styles.primaryTxt, { color: theme.onPrimary }]}>
-                {es ? 'Guardar / Compartir PDF' : 'Save / Share PDF'}
+                {es ? 'Guardar PDF' : 'Save PDF'}
               </Text>
             </>
           )}

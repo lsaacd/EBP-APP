@@ -19,7 +19,7 @@ Static site in this directory. Main origin: `https://himnarioebp.com/`. See [dep
 | Church identity | `identidad.html`, `css/identity.css` |
 | Legal pages | `privacy.html`, `terms.html`, `css/legal.css`, `js/legal.js` |
 
-Preserve stylesheet order in `index.html`. Use Newsreader/Public Sans and existing theme tokens. Update asset query versions when changing cached scripts/styles.
+Preserve stylesheet order in `index.html`. Use Newsreader/Public Sans and existing theme tokens. All pages (`js/library.js`, `js/legal.js`, `identidad.html`, `feedback.html`, and generated preview pages in `scripts/generate-hymn-pages.js`) open strictly in **Light Mode by default** (ignoring OS `prefers-color-scheme: dark`) and synchronize both `ebp-dark` and `ebp-theme` in `localStorage` when manually toggled. Update asset query versions when changing cached scripts/styles.
 
 ## Catalog and audio
 
@@ -51,4 +51,4 @@ Browser favorites/playlists remain local and independent of the mobile app. Web 
 - Form IDs and URLs live in `scripts/created_forms.json`; API helpers are in `scripts/google_forms_manager.py`. Protect OAuth credentials and tokens.
 - QR source: `downloads/ebp-app-icon.png`; regenerate with `python scripts/generate-app-qr.py` using `qrcode[pil]`.
 - Keep existing branded assets in `images/branding/`, promotional artwork in `mockups/`, and `.nojekyll`.
-- Google Play badges remain “Próximamente” until the public listing is ready; see [release status](guides/GOOGLE-PLAY-RELEASE-PLAN.md).
+- Clicking the Google Play badge or “Conviértete en tester” opens the 2-step closed testing onboarding dialog (`himnario-app-testers` Google Group → Play Store opt-in URL); see [release status](guides/GOOGLE-PLAY-RELEASE-PLAN.md).

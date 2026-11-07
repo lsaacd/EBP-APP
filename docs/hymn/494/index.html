@@ -33,8 +33,7 @@
 
   <!-- Apple Smart App Banner & Deep Linking -->
   <meta name="apple-itunes-app" content="app-id=6794435414, app-argument=el-buen-pastor-himnario://hymn/494">
-  <meta name="theme-color" content="#6e1619" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#010101" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#6e1619">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -178,17 +177,24 @@ Y que sea pasada lista allí he de estar.</p>
 
   <!-- Page Interactivity Scripts -->
   <script>
-    // Theme toggle & persistence
+    // Theme toggle & persistence (defaults to light mode)
     (function() {
       const themeToggle = document.getElementById('theme-toggle');
-      const savedTheme = localStorage.getItem('ebp-theme');
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      let isDark = false;
+      try {
+        const savedTheme = localStorage.getItem('ebp-theme');
+        const savedDark = JSON.parse(localStorage.getItem('ebp-dark'));
+        isDark = savedTheme === 'dark' || savedDark === true;
+      } catch (e) {}
+      if (isDark) {
         document.body.classList.add('dark');
       }
       themeToggle?.addEventListener('click', function() {
-        document.body.classList.toggle('dark');
-        localStorage.setItem('ebp-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+        const dark = document.body.classList.toggle('dark');
+        try {
+          localStorage.setItem('ebp-theme', dark ? 'dark' : 'light');
+          localStorage.setItem('ebp-dark', JSON.stringify(dark));
+        } catch (e) {}
       });
     })();
 

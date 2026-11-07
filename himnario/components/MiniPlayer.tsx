@@ -2,31 +2,42 @@
  * MiniPlayer — Floating compact player bar above the BottomNavBar.
  *
  * Visible whenever a hymn is loaded (playing or paused).
- * Tap the bar to open the full-screen MusicPlayer.
+ * Tap or swipe up on the bar to open the full-screen MusicPlayer.
  * Prev / Play-Pause / Next controls on the right.
  */
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Platform,
+  Pressable,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNowPlaying } from '../context/NowPlayingContext';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
 import { hasHymnAudio } from '../data/audioRegistry';
+import * as Haptics from '../utils/haptics';
 import WebIcon from './WebIcon';
 import GlassSurface from './GlassSurface';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const DEFAULT_COVER = require('../assets/images/EBP_HYMN_COVER.png');
 
-export default function MiniPlayer() {
+export default function MiniPlayer({ showWhileExpanded = false, transitionPreview = false }: {
+  showWhileExpanded?: boolean;
+  /** Noninteractive visual endpoint used while the full player collapses. */
+  transitionPreview?: boolean;
+}) {
   const android = Platform.OS === 'android';
+  const ios = Platform.OS === 'ios';
+  const [surfaceSize, setSurfaceSize] = useState({ width: 360, height: 72 });
   const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const {
@@ -39,8 +50,26 @@ export default function MiniPlayer() {
     openPlayer,
   } = useNowPlaying();
 
+  const handleSwipeOpen = useCallback(() => {
+    if (transitionPreview || !currentHymnId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    openPlayer(String(currentHymnId));
+  }, [transitionPreview, currentHymnId, openPlayer]);
+
+  const swipeUpGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(!transitionPreview && Boolean(currentHymnId))
+        .activeOffsetY(-8)
+        .failOffsetX([-24, 24])
+        .onStart(() => {
+          runOnJS(handleSwipeOpen)();
+        }),
+    [transitionPreview, currentHymnId, handleSwipeOpen]
+  );
+
   // Don't render if nothing is loaded or full player is open
-  if (!currentHymnId || showFullPlayer) return null;
+  if (!currentHymnId || (showFullPlayer && !showWhileExpanded && !transitionPreview)) return null;
 
   const activeData = String(currentHymnId).startsWith('E') ? estribillosData : hymnsData;
   const hymn = activeData.find((h: any) => String(h.id) === String(currentHymnId));
@@ -56,22 +85,48 @@ export default function MiniPlayer() {
   const playBtnIcon = isDarkMode ? '#010101' : '#ffffff';
   const controlColor = isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(28,28,24,0.55)';
 
+  // CSS linear-gradient(155deg, #2b2b2b, #171717 70%). Calculate
+  // endpoints in the measured rectangle so the angle survives aspect changes.
+  const angle = 155 * Math.PI / 180;
+  const dx = Math.sin(angle);
+  const dy = -Math.cos(angle);
+  const lineLength = Math.abs(surfaceSize.width * dx) + Math.abs(surfaceSize.height * dy);
+  const halfX = dx * lineLength / (2 * surfaceSize.width);
+  const halfY = dy * lineLength / (2 * surfaceSize.height);
+
   return (
-    <View style={[styles.wrapper, android && { paddingHorizontal: 12 }]}>
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={() => openPlayer(String(hymn.id))}
-      >
+    <GestureDetector gesture={swipeUpGesture}>
+      <View style={[styles.wrapper, ios && styles.iosShadow, android && { paddingHorizontal: 12 }, transitionPreview && { paddingHorizontal: 0 }]}>
         <GlassSurface
-          style={[styles.container, android && { borderRadius: 26, borderWidth: 1, borderColor: isDarkMode ? '#ffffff26' : '#e3dfd3', elevation: 8 }]}
-          intensity={50}
+          stableBackdrop={!ios || transitionPreview}
+          style={[
+            styles.container,
+            ios && styles.iosRoundedRect,
+            android && { borderRadius: 18, borderWidth: 1, borderColor: isDarkMode ? '#ffffff35' : '#e3dfd3', elevation: 8 },
+          ]}
+          intensity={55}
           isInteractive
-          tonalColor={android ? (isDarkMode ? '#202020' : '#fcf9f2') : (isDarkMode ? '#1C1C1C' : theme.surfaceVariants.containerHigh)}
+          tonalColor={android ? (isDarkMode ? '#202020' : '#fcf9f2') : theme.surfaceVariants.containerLow}
         >
+          {android && isDarkMode && <>
+            <LinearGradient pointerEvents="none" colors={['#2b2b2b', '#171717']} locations={[0, 0.7]}
+              start={{ x: 0.5 - halfX, y: 0.5 - halfY }} end={{ x: 0.5 + halfX, y: 0.5 + halfY }}
+              style={StyleSheet.absoluteFill}
+              onLayout={({ nativeEvent: { layout } }) => {
+                if (layout.width <= 0 || layout.height <= 0) return;
+                setSurfaceSize(current => current.width === layout.width && current.height === layout.height
+                  ? current : { width: layout.width, height: layout.height });
+              }} />
+            <View pointerEvents="none" style={styles.androidHighlight} />
+          </>}
           {/* Content row */}
-          <View style={[styles.content, android && { padding: 12, gap: 12 }]}>
+          <Pressable
+            disabled={transitionPreview}
+            onPress={() => openPlayer(String(hymn.id))}
+            style={[styles.content, android && { padding: 12, gap: 12 }]}
+          >
             {/* Album art thumbnail */}
-            <Image source={DEFAULT_COVER} style={[styles.cover, android && { width: 48, height: 48, borderRadius: 12 }]} />
+            <Image source={DEFAULT_COVER} style={[styles.cover, android && { width: 48, height: 48, borderRadius: 12 }, transitionPreview && { opacity: 0 }]} />
 
             {/* Text block */}
             <View style={styles.textBlock}>
@@ -95,7 +150,7 @@ export default function MiniPlayer() {
                 onPress={event => { event.stopPropagation(); togglePlayPause(); }}
                 accessibilityRole="button"
                 accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                style={[styles.playBtn, android && { width: 46, height: 46, borderRadius: 16 }, { backgroundColor: playBtnBg }]}
+                style={[styles.playBtn, android && { width: 46, height: 46, borderRadius: 14 }, { backgroundColor: playBtnBg }]}
               >
                 {android ? <WebIcon name={isPlaying ? 'pause' : 'play'} color={playBtnIcon} /> : <MaterialIcons
                   name={isPlaying ? 'pause' : 'play-arrow'}
@@ -107,10 +162,10 @@ export default function MiniPlayer() {
                 {android ? <WebIcon name="next" color={controlColor} /> : <MaterialIcons name="skip-next" size={22} color={controlColor} />}
               </TouchableOpacity>
             </View>
-          </View>
+          </Pressable>
         </GlassSurface>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -121,6 +176,9 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
   },
+  iosRoundedRect: { borderRadius: 16 },
+  iosShadow: { shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 5 } },
+  androidHighlight: { position: 'absolute', top: 0, left: 20, right: 20, height: StyleSheet.hairlineWidth, backgroundColor: '#ffffff12' },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -156,7 +214,7 @@ const styles = StyleSheet.create({
   playBtn: {
     width: 34,
     height: 34,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
