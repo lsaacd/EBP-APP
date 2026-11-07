@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 
 const IS_IOS = Platform.OS === 'ios';
+const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
 
 const DAILY_VERSES = [
   { es: { ref: 'Mateo 18:20', text: 'Porque donde están dos ó tres congregados en mi nombre, allí estoy yo en medio de ellos.' }, en: { ref: 'Matthew 18:20', text: 'For where two or three are gathered in my name, there am I among them.' } },
@@ -80,49 +81,51 @@ export default function VerseCard() {
       locations={[0, 0.55, 1]}
       style={[styles.sectionBand, { borderTopColor: topBorderColor }]}
     >
-      {/* Apple Books-style Section Header */}
-      <View style={styles.headerBlock}>
-        <Text style={[styles.sectionTitle, { color: headingColor }]}>
-          {labelVerse}
-        </Text>
-        <Text style={[styles.sectionSub, { color: subColor }]}>
-          {verseData.ref}
-        </Text>
-      </View>
+      <View style={IS_IPAD ? styles.tabletCenter : undefined}>
+        {/* Apple Books-style Section Header */}
+        <View style={styles.headerBlock}>
+          <Text style={[styles.sectionTitle, { color: headingColor }]}>
+            {labelVerse}
+          </Text>
+          <Text style={[styles.sectionSub, { color: subColor }]}>
+            {verseData.ref}
+          </Text>
+        </View>
 
-      {/* Scripture Quote Block */}
-      <View
-        style={[
-          styles.quoteCard,
-          {
-            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-          },
-          !isDarkMode && styles.lightCardShadow,
-        ]}
-      >
-        <Text style={[styles.verseText, { color: theme.onSurface }]}>
-          {`“${verseData.text}”`}
-        </Text>
-
-        <View style={styles.footerRow}>
-          <Text style={[styles.reference, { color: theme.primary }]}>
-            — {verseData.ref}
+        {/* Scripture Quote Block */}
+        <View
+          style={[
+            styles.quoteCard,
+            {
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            },
+            !isDarkMode && styles.lightCardShadow,
+          ]}
+        >
+          <Text style={[styles.verseText, { color: theme.onSurface }]}>
+            {`“${verseData.text}”`}
           </Text>
 
-          <TouchableOpacity
-            style={[
-              styles.shareBtn,
-              {
-                backgroundColor: isDarkMode ? '#2C2C2E' : theme.primary,
-              },
-            ]}
-            activeOpacity={0.8}
-            onPress={handleShare}
-          >
-            <MaterialIcons name="ios-share" size={15} color="#ffffff" style={{ marginRight: 6 }} />
-            <Text style={styles.shareText}>{labelShare}</Text>
-          </TouchableOpacity>
+          <View style={styles.footerRow}>
+            <Text style={[styles.reference, { color: theme.primary }]}>
+              — {verseData.ref}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.shareBtn,
+                {
+                  backgroundColor: isDarkMode ? '#2C2C2E' : theme.primary,
+                },
+              ]}
+              activeOpacity={0.8}
+              onPress={handleShare}
+            >
+              <MaterialIcons name="ios-share" size={15} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.shareText}>{labelShare}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </LinearGradient>
@@ -136,6 +139,11 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 20,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  tabletCenter: {
+    maxWidth: 780,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerBlock: {
     marginBottom: 14,

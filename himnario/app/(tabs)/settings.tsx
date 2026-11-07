@@ -37,12 +37,14 @@ import { useNowPlaying } from '../../context/NowPlayingContext';
 import OfflineAudioCard from '../../components/OfflineAudioCard';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
+const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode, toggleTheme, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
   const { t, language, setLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
+  const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId, showFullPlayer } = useNowPlaying();
   const hasMiniPlayer = !!currentHymnId && !showFullPlayer;
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -448,7 +450,7 @@ export default function SettingsScreen() {
           style={[
             styles.headerContainer,
             {
-              paddingTop: insets.top + 16,
+              paddingTop: insets.top + ipadTopOffset + 16,
               opacity: titleOpacity,
               transform: [{ translateY: titleTranslateY }],
             },
@@ -471,7 +473,7 @@ export default function SettingsScreen() {
             isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
             isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
           ]}
-          style={[styles.statusBarScrim, { height: insets.top + 28 }]}
+          style={[styles.statusBarScrim, { height: insets.top + ipadTopOffset + 28 }]}
           pointerEvents="none"
         />
 
@@ -479,7 +481,11 @@ export default function SettingsScreen() {
           ref={scrollViewRef}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
-          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + ipadTopOffset + 64 },
+            IS_IPAD && styles.tabletCenter,
+          ]}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: true },
@@ -500,6 +506,11 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
+  tabletCenter: {
+    maxWidth: 780,
+    width: '100%',
+    alignSelf: 'center',
+  },
   headerContainer: {
     position: 'absolute',
     top: 0,

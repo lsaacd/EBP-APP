@@ -251,7 +251,7 @@ function IOSTabs() {
         name="home"
         options={{
           ...sharedTriggerOptions,
-          // Home positions its content manually below the large "Himnario" header,
+          // Home positions its content manually below the large "Inicio" header,
           // so stop react-native-screens from forcing automatic safe-area insets
           // on its ScrollView (that produced a double top gap on iOS).
           overrideScrollViewContentInsetAdjustmentBehavior: false,
@@ -278,7 +278,16 @@ function IOSTabs() {
         <Label>{t.tabHymns}</Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="favorites" options={sharedTriggerOptions as any}>
+      <NativeTabs.Trigger
+        name="favorites"
+        options={{
+          ...sharedTriggerOptions,
+          // Favorites positions its content manually below the large header,
+          // so stop react-native-screens from forcing automatic safe-area insets
+          // on its ScrollView (which produced an extra top gap on iOS only).
+          overrideScrollViewContentInsetAdjustmentBehavior: false,
+        } as any}
+      >
         <Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-favorites-outline.png'),

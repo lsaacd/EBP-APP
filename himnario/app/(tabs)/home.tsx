@@ -42,6 +42,7 @@ import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const IS_IOS = Platform.OS === 'ios';
+const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
 const HYMNAL_BOOK_COVER = require('../../assets/images/hymnal-leather-cover.jpg');
 
 export default function HomeScreen() {
@@ -53,6 +54,7 @@ export default function HomeScreen() {
   const { currentHymnId } = useNowPlaying();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const insets = useSafeAreaInsets();
+  const ipadTopOffset = IS_IPAD ? 50 : 0;
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
   const scrollViewRef = useRef<any>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -135,64 +137,66 @@ export default function HomeScreen() {
         locations={[0, 0.55, 1]}
         style={[
           styles.topSection,
-          { paddingTop: (headerHeight || insets.top + 54) + 8 },
+          { paddingTop: (headerHeight || insets.top + ipadTopOffset + 54) + 8 },
         ]}
       >
-        <TouchableOpacity
-          style={[
-            styles.heroSurface,
-            {
-              backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)',
-            },
-            !isDarkMode && styles.lightCardShadow,
-          ]}
-          activeOpacity={0.82}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push({
-              pathname: '/hymns',
-              params: { tab: 'himnos', t: String(Date.now()) },
-            });
-          }}
-        >
-          <View style={styles.bookCoverShadow}>
-            <Image
-              source={HYMNAL_BOOK_COVER}
-              style={styles.bookCoverImage}
-              resizeMode="cover"
+        <View style={IS_IPAD ? styles.tabletCenter : undefined}>
+          <TouchableOpacity
+            style={[
+              styles.heroSurface,
+              {
+                backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
+                borderColor: isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)',
+              },
+              !isDarkMode && styles.lightCardShadow,
+            ]}
+            activeOpacity={0.82}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({
+                pathname: '/hymns',
+                params: { tab: 'himnos', t: String(Date.now()) },
+              });
+            }}
+          >
+            <View style={styles.bookCoverShadow}>
+              <Image
+                source={HYMNAL_BOOK_COVER}
+                style={styles.bookCoverImage}
+                resizeMode="cover"
+              />
+            </View>
+
+            <View style={styles.heroTextSide}>
+              <Text
+                style={[styles.heroHeadline, { color: sectionHeadingColor }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {t.exploreAll}
+              </Text>
+              <Text
+                style={[styles.heroSub, { color: sectionSubColor }]}
+                numberOfLines={2}
+              >
+                {heroSubtitle}
+              </Text>
+              <Text
+                style={[styles.heroMeta, { color: theme.primary }]}
+                numberOfLines={1}
+              >
+                {t.appName}
+              </Text>
+            </View>
+
+            <MaterialIcons
+              name="chevron-right"
+              size={24}
+              color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
             />
-          </View>
-
-          <View style={styles.heroTextSide}>
-            <Text
-              style={[styles.heroHeadline, { color: sectionHeadingColor }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-            >
-              {t.exploreAll}
-            </Text>
-            <Text
-              style={[styles.heroSub, { color: sectionSubColor }]}
-              numberOfLines={2}
-            >
-              {heroSubtitle}
-            </Text>
-            <Text
-              style={[styles.heroMeta, { color: theme.primary }]}
-              numberOfLines={1}
-            >
-              {t.appName}
-            </Text>
-          </View>
-
-          <MaterialIcons
-            name="chevron-right"
-            size={24}
-            color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
-          />
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* ─── Daily Verse (Full-Bleed Gradient Section Band) ───────────────── */}
@@ -204,53 +208,55 @@ export default function HomeScreen() {
         locations={[0, 0.55, 1]}
         style={[styles.sectionBand, { borderTopColor: bandTopBorderColor }]}
       >
-        <TouchableOpacity
-          activeOpacity={0.82}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowDoctrine(true);
-          }}
-        >
-          <View style={styles.sectionHeaderBlock}>
-            <View style={styles.sectionTitleInlineRow}>
-              <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
-                {t.doctrineCardTitle}
-              </Text>
-              <MaterialIcons
-                name="chevron-right"
-                size={24}
-                color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
-                style={styles.sectionChevron}
-              />
-            </View>
-            <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
-              {t.doctrineCardSub}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.mottoCard,
-              {
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-                borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-              },
-              !isDarkMode && styles.lightCardShadow,
-            ]}
+        <View style={IS_IPAD ? styles.tabletCenter : undefined}>
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowDoctrine(true);
+            }}
           >
-            <Text style={[styles.mottoQuoteText, { color: theme.onSurface }]}>
-              {`“${t.churchMottoText}”`}
-            </Text>
-            <View style={styles.mottoFooterRow}>
-              <Text style={[styles.mottoLabelText, { color: theme.primary }]}>
-                — {mottoLabelFormatted}
-              </Text>
-              <Text style={[styles.doctrineSeeMore, { color: sectionSubColor }]}>
-                {t.seeMore} →
+            <View style={styles.sectionHeaderBlock}>
+              <View style={styles.sectionTitleInlineRow}>
+                <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
+                  {t.doctrineCardTitle}
+                </Text>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
+                  style={styles.sectionChevron}
+                />
+              </View>
+              <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
+                {t.doctrineCardSub}
               </Text>
             </View>
-          </View>
-        </TouchableOpacity>
+
+            <View
+              style={[
+                styles.mottoCard,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+                !isDarkMode && styles.lightCardShadow,
+              ]}
+            >
+              <Text style={[styles.mottoQuoteText, { color: theme.onSurface }]}>
+                {`“${t.churchMottoText}”`}
+              </Text>
+              <View style={styles.mottoFooterRow}>
+                <Text style={[styles.mottoLabelText, { color: theme.primary }]}>
+                  — {mottoLabelFormatted}
+                </Text>
+                <Text style={[styles.doctrineSeeMore, { color: sectionSubColor }]}>
+                  {t.seeMore} →
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* ─── Himnos Recientes (Full-Bleed Gradient Section Band) ──────────── */}
@@ -262,90 +268,92 @@ export default function HomeScreen() {
           { borderTopColor: bandTopBorderColor, paddingBottom: bottomClearance },
         ]}
       >
-        <View style={styles.recentsHeader}>
-          <View style={styles.recentsHeaderTextWrap}>
-            <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
-              {t.recentHymns}
-            </Text>
-            <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
-              {recentsSubtitle}
-            </Text>
-          </View>
-          {recentHymns.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                clearRecent();
-              }}
-            >
-              <Text style={[styles.recentsLabel, { color: theme.primary }]}>
-                {language === 'es' ? 'Limpiar' : 'Clear'}
+        <View style={IS_IPAD ? styles.tabletCenter : undefined}>
+          <View style={styles.recentsHeader}>
+            <View style={styles.recentsHeaderTextWrap}>
+              <Text style={[styles.sectionTitle, { color: sectionHeadingColor }]}>
+                {t.recentHymns}
               </Text>
-            </TouchableOpacity>
+              <Text style={[styles.sectionSub, { color: sectionSubColor }]}>
+                {recentsSubtitle}
+              </Text>
+            </View>
+            {recentHymns.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  clearRecent();
+                }}
+              >
+                <Text style={[styles.recentsLabel, { color: theme.primary }]}>
+                  {language === 'es' ? 'Limpiar' : 'Clear'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {recentHymns.length === 0 ? (
+            <Text style={[styles.recentEmpty, { color: sectionSubColor }]}>
+              {t.recentEmpty}
+            </Text>
+          ) : (
+            <View style={styles.recentListWrap}>
+              {recentHymns.map((hymn, index) => {
+                const isSaved = offline.savedIds.has(String(hymn.id));
+                return (
+                  <TouchableOpacity
+                    key={hymn.id}
+                    style={[
+                      styles.recentItem,
+                      index > 0 && {
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: bandTopBorderColor,
+                      },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push(`/hymn/${hymn.id}`);
+                    }}
+                  >
+                    <Text
+                      style={[styles.recentNum, { color: theme.primary, opacity: 0.65 }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                    >
+                      {hymn.number}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.recentTitle, { color: theme.onSurface }]}>
+                        {hymn.title}
+                      </Text>
+                      {hymn.categories ? (
+                        <Text style={[styles.recentCat, { color: sectionSubColor }]}>
+                          {translateCategories(hymn.categories, language)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {isSaved && (
+                      <MaterialIcons
+                        name="offline-pin"
+                        size={16}
+                        color={theme.primary}
+                        style={{ opacity: 0.85 }}
+                      />
+                    )}
+                    <MaterialIcons
+                      name="chevron-right"
+                      size={20}
+                      color={theme.outline}
+                      style={{ opacity: 0.35 }}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
         </View>
-
-        {recentHymns.length === 0 ? (
-          <Text style={[styles.recentEmpty, { color: sectionSubColor }]}>
-            {t.recentEmpty}
-          </Text>
-        ) : (
-          <View style={styles.recentListWrap}>
-            {recentHymns.map((hymn, index) => {
-              const isSaved = offline.savedIds.has(String(hymn.id));
-              return (
-                <TouchableOpacity
-                  key={hymn.id}
-                  style={[
-                    styles.recentItem,
-                    index > 0 && {
-                      borderTopWidth: StyleSheet.hairlineWidth,
-                      borderTopColor: bandTopBorderColor,
-                    },
-                  ]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(`/hymn/${hymn.id}`);
-                  }}
-                >
-                  <Text
-                    style={[styles.recentNum, { color: theme.primary, opacity: 0.65 }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.6}
-                  >
-                    {hymn.number}
-                  </Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.recentTitle, { color: theme.onSurface }]}>
-                      {hymn.title}
-                    </Text>
-                    {hymn.categories ? (
-                      <Text style={[styles.recentCat, { color: sectionSubColor }]}>
-                        {translateCategories(hymn.categories, language)}
-                      </Text>
-                    ) : null}
-                  </View>
-                  {isSaved && (
-                    <MaterialIcons
-                      name="offline-pin"
-                      size={16}
-                      color={theme.primary}
-                      style={{ opacity: 0.85 }}
-                    />
-                  )}
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.outline}
-                    style={{ opacity: 0.35 }}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
       </LinearGradient>
     </>
   );
@@ -430,13 +438,13 @@ export default function HomeScreen() {
       style={[
         styles.headerContainer,
         {
-          paddingTop: insets.top + (IS_IOS ? 2 : 6),
+          paddingTop: insets.top + ipadTopOffset + (IS_IOS ? 2 : 6),
           opacity: titleOpacity,
           transform: [{ translateY: titleTranslateY }],
         },
       ]}
     >
-      <View style={styles.headerTitleRow}>
+      <View style={[styles.headerTitleRow, IS_IPAD && styles.tabletCenter]}>
         <Text style={[styles.headerTitle, { color: headerTitleColor, fontSize: 34 }]}
           numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{language === 'es' ? 'Inicio' : 'Home'}</Text>
         <HomeHeaderActions onSearch={handleHeaderSearchPress} />
@@ -491,6 +499,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safeArea: { flex: 1 },
+  tabletCenter: {
+    maxWidth: 780,
+    width: '100%',
+    alignSelf: 'center',
+  },
   headerContainer: {
     position: 'absolute',
     top: 0,

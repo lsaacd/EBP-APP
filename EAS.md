@@ -100,6 +100,13 @@ A Git commit, EAS Update, native build, store submission, and website deployment
 
 ## Release status
 
+### November 7, 2026 — Liquid Glass `AppIcon.icon`, `Favoritos` Top Safe-Area Fix, iPad (`supportsTablet: true`) Compatibility & Privacy Policy Update (Committed for Mac Local/EAS Build)
+
+- **Liquid Glass App Icon (`himnario/assets/images/AppIcon.icon`, `icon-composer-svgs/`, `himnario/app.json`)**: Extracted 5 `1024 × 1024` vector SVG layers (`00-background.svg` through `04-EBP.svg`) from `white-ios-logo.ai`, composed `AppIcon.icon` in Apple's Icon Composer (Default, Dark, Clear, and Tinted appearances), placed it at `himnario/assets/images/AppIcon.icon`, and configured `"ios": { "icon": "./assets/images/AppIcon.icon" }` in `himnario/app.json`.
+- **iOS `Favoritos` Top Gap Fix (`himnario/app/(tabs)/_layout.tsx`)**: Added `overrideScrollViewContentInsetAdjustmentBehavior: false` to the `favorites` `<NativeTabs.Trigger>` (matching `home` and `settings`), eliminating the double top safe-area gap above the `Mis Favoritos | Listas de Reproducción` sub-tab bar on iOS.
+- **iPad / Tablet Support (`himnario/app.json`, `app/_layout.tsx`, `components/ProjectorModal.tsx`, `app/(tabs)/*.tsx`, `components/VerseCard.tsx`, `app/hymn/[id].tsx`)**: Enabled `"supportsTablet": true` under `"ios"` in `app.json`, unlocked orientation rotation on iPad (`Platform.isPad`) while keeping phones locked to `PORTRAIT_UP`, added `50pt` top clearance on iPad for the iPadOS floating top tab bar pill, set `miniPlayerBottom` to `pillBottom` on iPad, and added `maxWidth: 780` centered containers on iPad.
+- **Privacy Policy Polish (`docs/privacy.html`)**: Updated Section 5 (*Aplicación móvil* / *Mobile App*) in Spanish and English to explicitly cover both phones and tablets (`iPhone, iPad, or Android`) and bumped the update date to **November 2026**.
+
 ### November 6, 2026 (Night) — Apple Books `Inicio` Redesign, iOS `New York` + `SF Pro` Fonts, Leather Hymnal Cover, Unified `Favoritos` Scroll Header & Swipeable Rounded-Rect `MiniPlayer` OTA
 
 Published to both iOS (`production`) and Android (`preview`) on runtime `1.1.0`:

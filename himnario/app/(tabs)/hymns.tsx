@@ -98,6 +98,7 @@ export default function HymnListScreen() {
   const { theme, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
+  const ipadTopOffset = Platform.OS === 'ios' && Boolean((Platform as any).isPad) ? 50 : 0;
   const { search, setSearch, searchFilter, setSearchFilter, activeSubTab, setActiveSubTab } =
     useHymnFilter();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
@@ -1171,7 +1172,7 @@ export default function HymnListScreen() {
         {/* Unified Top Search Bar */}
         <View
           style={{
-            paddingTop: insets.top,
+            paddingTop: insets.top + ipadTopOffset,
             zIndex: 10,
             paddingHorizontal: 16,
             paddingBottom: 4,
@@ -1231,7 +1232,7 @@ export default function HymnListScreen() {
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            { zIndex: 5, opacity: blurAnim, top: insets.top + 60 },
+            { zIndex: 5, opacity: blurAnim, top: insets.top + ipadTopOffset + 60 },
           ]}
           pointerEvents={isSearchActive ? 'auto' : 'none'}
         >

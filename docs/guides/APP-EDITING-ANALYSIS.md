@@ -184,3 +184,7 @@ These are Isaac's latest UI/UX decisions implemented on November 2–3, 2026. **
    - **Live Cloudflare Release**: Successfully deployed to Cloudflare Pages (`ebp-himnario`) and live at `https://himnarioebp.com/`.
    - **Generated Preview Pages**: All 761 static hymn pages in `/himno/` and `/hymn/` use the production CDN base `https://audio.himnarioebp.com/` and the updated Apple App Site Association.
    - **Agent Tooling**: 19 Cloudflare skills installed at `~/.agents/skills` and Cloudflare Streamable HTTP MCP registered at `https://mcp.cloudflare.com/mcp`.
+   - **November 7, 2026 Update (Liquid Glass Icon, iOS `Favoritos` Top Gap Fix, iPad Support & Privacy Policy)**:
+     - `himnario/app.json` sets `"ios.icon": "./assets/images/AppIcon.icon"` and `"ios.supportsTablet": true`.
+     - `himnario/app/(tabs)/_layout.tsx` sets `overrideScrollViewContentInsetAdjustmentBehavior: false` on `home`, `favorites`, and `settings` `NativeTabs.Trigger` items so iOS never adds a double safe-area gap.
+     - On iPad (`Platform.OS === 'ios' && Platform.isPad`), orientation is unlocked, tab screens add `ipadTopOffset = 50` for the iPadOS floating top tab bar, `miniPlayerBottom` uses `pillBottom`, and inner content is centered with `maxWidth: 780`.

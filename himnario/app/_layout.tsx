@@ -95,12 +95,17 @@ function ThemedStack() {
 
   const [miniPlayerHeight, setMiniPlayerHeight] = useState(Platform.OS === 'android' ? 74 : 57);
   const isIOS = Platform.OS === 'ios';
+  const isPad = isIOS && Boolean((Platform as any).isPad);
   const isPlaylist = pathname.startsWith('/playlist/');
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    if (Platform.OS === 'ios' && (Platform as any).isPad) {
+      ScreenOrientation.unlockAsync().catch(() => {});
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -120,9 +125,9 @@ function ThemedStack() {
     // Playlist page has no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn) {
-    // iOS tab artwork and bar retain their 49pt height.
-    // The tab bar is pinned to the absolute bottom: 49px + safe area inset.
-    miniPlayerBottom = 49 + insets.bottom;
+    // On iPhone, iOS tab bar retains its 49pt height at the bottom.
+    // On iPadOS, NativeTabs renders as a top floating pill so bottom is clear.
+    miniPlayerBottom = isPad ? pillBottom : 49 + insets.bottom;
   } else if (!isIOS && !isHymn) {
     // Flush Android tabs include the safe inset beneath their 64px icon row.
     miniPlayerBottom = insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;

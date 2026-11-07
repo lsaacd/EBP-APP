@@ -32,6 +32,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
+const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
+
 export default function FavoritesScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -39,6 +41,7 @@ export default function FavoritesScreen() {
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
+  const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId } = useNowPlaying();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
 
@@ -273,7 +276,7 @@ export default function FavoritesScreen() {
         style={[
           styles.headerContainer,
           {
-            paddingTop: insets.top + 16,
+            paddingTop: insets.top + ipadTopOffset + 16,
             opacity: titleOpacity,
             transform: [{ translateY: titleTranslateY }],
           },
@@ -296,7 +299,7 @@ export default function FavoritesScreen() {
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.95)',
           isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
         ]}
-        style={[styles.statusBarScrim, { height: insets.top + 28 }]}
+        style={[styles.statusBarScrim, { height: insets.top + ipadTopOffset + 28 }]}
         pointerEvents="none"
       />
 
@@ -304,7 +307,11 @@ export default function FavoritesScreen() {
         ref={scrollViewRef}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 64 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + ipadTopOffset + 64 },
+          IS_IPAD && styles.tabletCenter,
+        ]}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true },
@@ -322,6 +329,11 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
+  tabletCenter: {
+    maxWidth: 780,
+    width: '100%',
+    alignSelf: 'center',
+  },
   statusBarScrim: {
     position: 'absolute',
     top: 0,

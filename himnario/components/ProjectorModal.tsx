@@ -112,17 +112,20 @@ export default function ProjectorModal({
   }, []);
 
   // Unlock orientation (allow both Portrait & Landscape) while ProjectorModal is open;
-  // lock back to Portrait on exit.
+  // lock back to Portrait on exit on phones (iPad stays unlocked).
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
     if (visible) {
       ScreenOrientation.unlockAsync().catch(() => {});
     } else {
       setManualLandscape(false);
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      if (!isPad) {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      }
     }
     return () => {
-      if (visible) {
+      if (visible && !isPad) {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
       }
     };
@@ -178,7 +181,7 @@ export default function ProjectorModal({
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setManualLandscape(false);
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== 'web' && !(Platform.OS === 'ios' && Boolean((Platform as any).isPad))) {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     }
     onClose();

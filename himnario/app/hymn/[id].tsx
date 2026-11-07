@@ -48,6 +48,7 @@ import PageFlipTransition, { type FlipDirection } from '../../components/PageFli
 // Module-level constants — defined outside the component so they are never
 // recreated on each render. CORO_RE detects chorus stanzas by their prefix.
 const CORO_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo|er\.|do\.|ro\.|to\.)?\s*)?coro)[:\s]*/i;
+const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: string };
 
 export default function HymnDetail() {
@@ -366,7 +367,7 @@ export default function HymnDetail() {
         <SafeAreaView style={styles.safe} edges={['left', 'right']}>
           {/* ─── Scrollable Lyrics Canvas ─────────────────────────── */}
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[styles.scroll, IS_IPAD && styles.tabletCenter]}
             showsVerticalScrollIndicator={false}
           >
             {/* ─── Hymn Title Section ────────────────────── */}
@@ -601,6 +602,11 @@ const { width: windowWidth } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  tabletCenter: {
+    maxWidth: 780,
+    width: '100%',
+    alignSelf: 'center',
+  },
   safe: { flex: 1 },
   container: { flex: 1 },
 
