@@ -100,6 +100,28 @@ A Git commit, EAS Update, native build, store submission, and website deployment
 
 ## Release status
 
+### November 8, 2026 — iOS App Store v1.1.0 (Build 19) Approval, Presentation Mode Crash/Landscape Fix, Auto-Foreground OTA Updates & Offline Audio Revision Cache Invalidation
+
+- **iOS `production`, build 19 (`1.1.0 (19)`) — APPROVED & LIVE ON APP STORE**:
+  - [EAS build c3693e64](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/c3693e64-9693-45e0-be0e-5b286636cb54) · [Submission 1d1da2e0](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/1d1da2e0-ac74-4a39-965c-f33349c3c3b2).
+  - Fixed Build 18's `EAGER_BUNDLE` failure (`Unable to resolve module ../assets/fonts/ios/NewYork-Regular.ttf`) by anchoring `/ios/` and `/android/` in `himnario/.easignore` (`ce97111`) so `assets/fonts/ios/` is never excluded from the EAS upload archive.
+  - Set `"supportsTablet": false` under `"ios"` in `himnario/app.json` (`11fb627`) so App Store Connect only requires iPhone screenshots (while keeping the responsive `Platform.isPad` layout adjustments in code if tablet support is re-enabled later).
+- **Latest `production` OTA Updates (Runtime `1.1.0`, targeting iOS App Store Build 19 / TestFlight & Android)**:
+  - **Update Group `9778957d-6545-4d72-b8d7-393e734f92ec`** ([EAS Dashboard](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/9778957d-6545-4d72-b8d7-393e734f92ec) · iOS `01a1ba2e-5806-78fa-9614-b2d8657980d1` · Android `01a1ba2e-5806-711d-a1b8-2ca4a8235008`), superseding earlier November 8 groups `372319f0`, `e1e936f0`, and `5aa1d988`:
+    1. **Presentation Mode (`ProjectorModal.tsx`) iOS Background/Foreground Crash Fix & Landscape Viewport Sizing (`a921214`, `84845e0`)**:
+       - Removed all `ScreenOrientation.lockAsync` / `unlockAsync` calls on iOS (`app/_layout.tsx`, `components/ProjectorModal.tsx`). Calling `expo-screen-orientation` on iOS while a `fullScreen` `<Modal>` was mounted triggered an `EXScreenOrientationRegistry` thread-safety crash + `UIApplicationInvalidInterfaceOrientation` exception when backgrounding and foregrounding the app.
+       - Replaced iOS manual landscape rotation in `ProjectorModal.tsx` with a pure `90deg` view transform (`useTransformLandscape`) using `flex: 0, width: windowDims.height, height: windowDims.width, maxHeight: windowDims.width` on `styles.root` so React Native's Yoga layout engine does not stretch the rotated container to `852×852`, keeping the top `Salir` button, stanza counter, auto-sized lyrics, and bottom controls toolbar 100% inside the visible screen.
+    2. **Centered Single-Line Report Error Link (`app/hymn/[id].tsx`, `a921214`)**:
+       - Added `numberOfLines={1}`, `adjustsFontSizeToFit`, `minimumFontScale={0.82}`, `alignSelf: 'center'`, and `textAlign: 'center'` to `footerReportBtn` / `footerReportText` so `"¿Encontraste un error? Reportar por correo"` stays centered on a single line.
+    3. **Hymn 198 Chorus Lyric Fix (`data/alabanzasPaginas.js`, `docs/`, `a921214`)**:
+       - Fixed `"Estaba esparcid"` → `"Estaba esparcido"` in Hymn 198 (`El Señor Jesús Está Llamando`) and regenerated `docs/data/hymns-data.js`, `docs/himno/198/index.html`, and `docs/hymn/198/index.html`.
+    4. **Automatic Foreground OTA Updates (`app/_layout.tsx`, `bb91e3e`)**:
+       - Added a foreground `AppState` listener in `ThemedStack` that calls `Updates.checkForUpdateAsync()` → `Updates.fetchUpdateAsync()` → `Updates.reloadAsync()` whenever the app opens or resumes (`AppState === 'active'`), safely skipping `reloadAsync()` while hymn audio is actively playing (`isPlayingRef.current === true`).
+    5. **Per-Hymn Offline Audio Cache Invalidation (`data/audioRegistry.native.ts`, `data/audioRegistry.ts`, `audio/offline-audio.ts`, `d6c337d`)**:
+       - Added `AUDIO_REVISIONS: Record<string, number>` and `getHymnAudioRevision(hymnId)`. When a recording on Cloudflare R2 is fixed/replaced, bumping its revision in `AUDIO_REVISIONS` (e.g. `'198': 2`) appends `?v=2` to the remote URL, stores the local file as `hymn_198_v2.m4a`, deletes the superseded `hymn_198.m4a` during `refreshOfflineAudio()`, and automatically re-downloads the updated recording in the background.
+- **Planned for Future Native Build (Saved for Later)**:
+  - **Custom App Icon Switcher (DuckDuckGo-style)**: Requires a native build (`eas build`) with `expo-alternate-app-icons` (or equivalent config plugin) registering alternate icons in iOS `Info.plist` (`CFBundleAlternateIcons`) and Android `AndroidManifest.xml` (`<activity-alias>`). Once pre-bundled in a future native release, the Settings picker UI and icon unlocking can be managed via OTA.
+
 ### November 7, 2026 — Liquid Glass `AppIcon.icon`, `Favoritos` Top Safe-Area Fix, iPad (`supportsTablet: true`) Compatibility & Privacy Policy Update (Committed for Mac Local/EAS Build)
 
 - **Liquid Glass App Icon (`himnario/assets/images/AppIcon.icon`, `icon-composer-svgs/`, `himnario/app.json`)**: Extracted 5 `1024 × 1024` vector SVG layers (`00-background.svg` through `04-EBP.svg`) from `white-ios-logo.ai`, composed `AppIcon.icon` in Apple's Icon Composer (Default, Dark, Clear, and Tinted appearances), placed it at `himnario/assets/images/AppIcon.icon`, and configured `"ios": { "icon": "./assets/images/AppIcon.icon" }` in `himnario/app.json`.

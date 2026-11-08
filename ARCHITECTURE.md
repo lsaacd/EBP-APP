@@ -7,16 +7,16 @@ Expo SDK 54, React 19, React Native 0.81, Expo Router, TypeScript. Check `himnar
 | Concern | Source under himnario/ |
 | --- | --- |
 | Entry and native background service | `index.js`, `service.js` |
-| Providers, platform fonts (`New York` + `SF Pro Text` on iOS; `Newsreader` + `Public Sans` on Android), Liquid Glass `AppIcon.icon`, iPad tablet support (`supportsTablet: true`, free rotation & `780pt` max-width centering on iPad), global player, phone portrait lock | `app.json`, `app/_layout.tsx`, `assets/images/AppIcon.icon/`, `assets/fonts/ios/` |
+| Providers, platform fonts (`New York` + `SF Pro Text` on iOS; `Newsreader` + `Public Sans` on Android), Liquid Glass `AppIcon.icon`, automatic foreground OTA update check (`Updates.checkForUpdateAsync` on `AppState === 'active'`), global player, phone portrait lock (`supportsTablet: false` on iOS for iPhone-only App Store listing) | `app.json`, `app/_layout.tsx`, `assets/images/AppIcon.icon/`, `assets/fonts/ios/` |
 | iOS NativeTabs (32pt) / Android swipe pager + bottom navigation (28pt) | `app/(tabs)/_layout.tsx`, `components/SwipeTabsNavigator.tsx`, `components/TabPagerContext.tsx`, `components/TabSwipeWrapper.tsx`, `components/HomeTabIcon.tsx`, `components/androidBottomLayout.ts`, `assets/images/ios-tabs/tab-*.png` (32pt iOS, via `scripts/generate-ios-tab-icons.cjs`), `assets/images/tab-*.png` (28pt originals) |
 | Home (`Inicio` / `Home`), interactive Liquid Glass header capsule, burgundy leather hymnal cover card, full-bleed gradient sections, native menu, catalog, unified scroll-fade favorites & settings | `app/(tabs)/`, `components/HomeHeaderActions.tsx`, `components/HomeMenuSheet.tsx`, `components/AppMenuIcon.tsx`, `components/VerseCard.tsx`, `components/AboutHymnalContent.tsx`, `assets/images/hymnal-leather-cover.jpg` |
 | Reader and playlist details | `app/hymn/[id].tsx`, `app/playlist/[id].tsx`, `components/AndroidReaderControls.tsx` |
 | Shared playback state | `context/NowPlayingContext.tsx`, `audio/native-player.ts` |
 | Queue, repeat, shuffle, commands | `audio/android-playback-controller.ts` (used by the native adapter) |
-| Downloads and offline playback | `audio/offline-audio.ts`, `components/OfflineAudioCard.tsx` (in Settings and Home menu) |
+| Downloads, per-hymn revision cache invalidation (`AUDIO_REVISIONS`), and offline playback | `audio/offline-audio.ts`, `data/audioRegistry.native.ts`, `components/OfflineAudioCard.tsx` (in Settings and Home menu) |
 | Mini/full player (rounded-rectangle `16pt`/`18pt` radius, tap + swipe-up to expand, drag-down to collapse) | `components/MiniPlayer.tsx`, `components/MusicPlayer.tsx`, `utils/gestureMotion.ts` (tested by `scripts/test-gesture-motion.cjs`) |
 | Native surfaces / Liquid Glass | `components/GlassSurface.tsx` (`expo-glass-effect` guarded by `isLiquidGlassAvailable === true && isGlassEffectAPIAvailable === true`, fallback to `BlurView` via `expo-blur`, `stableBackdrop` frosted backing for modals/sheets, unclipped interactive `GlassView` on iOS) |
-| Sharing/PDF, projector (with orientation rotation), text sizing | `components/ShareSheet.tsx` (exactly 4 actions in order: Messages via `Share.share` with `imessage-brand.png` on iOS → WhatsApp with `whatsapp-brand.png` → Crear PDF → Copiar letra), `components/PdfEditor.tsx` + `utils/pdfLayout.ts` ("Preparar PDF" editor, website parity with `docs/js/pdf-export.js`), `components/ProjectorModal.tsx`, `components/TextSizeSheet.tsx` |
+| Sharing/PDF, projector (with crash-safe `90deg` view rotation on iOS & `ScreenOrientation` on Android), text sizing | `components/ShareSheet.tsx` (exactly 4 actions in order: Messages via `Share.share` with `imessage-brand.png` on iOS → WhatsApp with `whatsapp-brand.png` → Crear PDF → Copiar letra), `components/PdfEditor.tsx` + `utils/pdfLayout.ts` ("Preparar PDF" editor, website parity with `docs/js/pdf-export.js`), `components/ProjectorModal.tsx`, `components/TextSizeSheet.tsx` |
 | Cross-platform icons / Haptics | `components/WebIcon.tsx`, `components/AppMenuIcon.tsx`, `utils/haptics.ts` (Android haptics disabled, iOS preserved) |
 | Theme (with native OS appearance sync) and bilingual UI | `theme/ThemeContext.tsx`, `theme/theme.js`, `context/LanguageContext.tsx` |
 
@@ -32,15 +32,15 @@ Version 1.1.0 includes:
 - `@react-native-menu/menu` (`2.0.0`, added in iOS Build 17 and Android APK `9f2eccb4` for the native anchored Home ellipsis menu in `components/HomeHeaderActions.tsx`, guarded at runtime by `UIManager.hasViewManagerConfig('MenuView')` with automatic fallback to `components/HomeMenuSheet.tsx`; iOS `MenuAction` items pass explicit `imageColor` so Fabric/UIKit does not tint SF Symbols transparent)
 - `expo-print` and `expo-sharing` (PDF export from the in-app "Preparar PDF" editor, `components/PdfEditor.tsx`, opened from `ShareSheet.tsx`)
 - `expo-navigation-bar` (to hide Android system navigation on startup/resume)
-- `expo-screen-orientation` (configured in `app.json` with `initialOrientation: "PORTRAIT_UP"` and `"orientation": "default"`, locked to Portrait globally in `app/_layout.tsx` and unlocked inside `ProjectorModal.tsx` so presentation mode supports both free Portrait/Landscape rotation and a manual rotate toggle button).
+- `expo-screen-orientation` (configured in `app.json` with `initialOrientation: "PORTRAIT_UP"` and `"orientation": "default"`; used on Android in `app/_layout.tsx` and `ProjectorModal.tsx`. **Critical iOS rule**: Do NOT call `ScreenOrientation.lockAsync` or `unlockAsync` on iOS, because `EXScreenOrientationRegistry` mutates its internal dictionary on a concurrent queue without `.barrier` during `OnAppEntersBackground` / `OnAppEntersForeground` and conflicts with UIKit's fullScreen `<Modal>`, causing a native crash on background/foreground resume. On iOS, `ProjectorModal.tsx` uses a pure `90deg` view transform (`useTransformLandscape` with `flex: 0, width: windowDims.height, height: windowDims.width, maxHeight: windowDims.width`)).
 
-Adding or modifying native modules requires a full native build (`eas build`), not an OTA update.
+Adding or modifying native modules (or adding native alternate home-screen icons via `CFBundleAlternateIcons` / Android `<activity-alias>`, planned for a future native release) requires a full native build (`eas build`), not an OTA update.
 
 ## Data and storage
 
 - Lyrics and metadata: `himnario/data/alabanzasPaginas.js`. Keep hymn IDs as strings; E-prefixed estribillos are distinct.
-- Recording IDs, filenames and streaming URLs: `himnario/data/audioRegistry.native.ts`. Base and Android registry files re-export it; avoid circular platform imports.
-- Audio base: `https://audio.himnarioebp.com/`. Recordings use `hymn_ID.m4a`; `315 A` maps to `hymn_315.m4a`.
+- Recording IDs, filenames, streaming URLs, and per-hymn cache-busting revisions (`AUDIO_REVISIONS`): `himnario/data/audioRegistry.native.ts`. Base and Android registry files re-export it; avoid circular platform imports.
+- Audio base: `https://audio.himnarioebp.com/`. Recordings use `hymn_ID.m4a` (or `hymn_ID_v<rev>.m4a` locally and `?v=<rev>` remotely when `AUDIO_REVISIONS[id] > 1`); `315 A` maps to `hymn_315.m4a`. When a recording is replaced on Cloudflare R2, bump its entry in `AUDIO_REVISIONS` and publish an OTA update so `refreshOfflineAudio()` in `audio/offline-audio.ts` automatically deletes the superseded local `.m4a` file and re-downloads the updated recording.
 - Local recordings in `himnario/assets/audio/` are source assets, excluded from EAS archives. Adding a local file alone does not publish it to R2 or register it.
 - Saved recordings use iOS cache storage and Android document storage. Unsaved recordings need a connection.
 - Preserve AsyncStorage keys and user data. Native playlists use `hymnIds`; web playlists use `ids` in `ebp-lists`.

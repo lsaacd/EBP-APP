@@ -2,12 +2,20 @@
 
 Mobile app in `himnario/`; companion website in `docs/`.
 
-## Status — November 6, 2026
+## Status — November 8, 2026
 
+- **iOS App Store v1.1.0 (Build 19 — `c3693e64`) Approved & Live**:
+  - **Version `1.1.0` (Build 19)** with the new Liquid Glass `AppIcon.icon` (`supportsTablet: false` so iPhone-only screenshots are used on App Store Connect) was approved by Apple and is **live on the iOS App Store** (`1d1da2e0`).
+  - **Latest Production OTA (`9778957d-6545-4d72-b8d7-393e734f92ec` on runtime `1.1.0`)**: Published to both iOS and Android (`production` branch), including:
+    1. **Automatic Foreground OTA Updates (`app/_layout.tsx`)**: Checks, downloads, and applies new EAS OTA updates whenever the app opens or resumes to the foreground (`AppState === 'active'`), safely skipping reload if hymn audio is actively playing (`isPlaying`).
+    2. **Presentation Mode (`ProjectorModal.tsx`) Crash & Landscape Fix**: Removed `expo-screen-orientation` native lock/unlock calls on iOS (which caused an `EXScreenOrientationRegistry` thread-safety crash on background/foreground transitions while a fullScreen `<Modal>` was mounted) and switched iOS manual landscape rotation to a pure `90deg` view transform (`useTransformLandscape`) with `flex: 0, width: windowDims.height, height: windowDims.width, maxHeight: windowDims.width` so the top `Salir` bar, auto-sized lyrics, and bottom controls bar stay 100% inside the phone viewport.
+    3. **Centered Single-Line Report Error Footer Link (`app/hymn/[id].tsx`)**: `footerReportBtn` and `footerReportText` use `numberOfLines={1}`, `adjustsFontSizeToFit`, and `minimumFontScale={0.82}` so `"¿Encontraste un error? Reportar por correo"` never wraps awkwardly.
+    4. **Hymn 198 Chorus Lyric Fix (`data/alabanzasPaginas.js`, `docs/`)**: Corrected `"Estaba esparcid"` → `"Estaba esparcido"` across the app and all generated static web pages.
+    5. **Per-Hymn Offline Audio Cache Invalidation (`data/audioRegistry.native.ts`, `audio/offline-audio.ts`)**: Added `AUDIO_REVISIONS` (`getHymnAudioRevision(id)`) so bumping a hymn's revision number automatically deletes its superseded local `.m4a` file and re-downloads the updated recording (`?v=<rev>`) on devices that already saved it offline.
 - **Android playback**: Fixed and working, including notification controls (confirmed by Isaac). The release is actively in the 14-day Google Play closed testing period.
-- **Latest Native Builds & November 6 OTA Releases**:
-  - **iOS 1.1.0 (Build 17 — `fc6d5e27`) + Production OTA**: Built and auto-submitted to App Store Connect for TestFlight (`ba7d443f`), followed by the November 6 OTA updates on channel `production`.
-  - **Android 1.1.0 (`preview-arm64` APK — `9f2eccb4`) + Preview OTA**: Built ([Download APK](https://expo.dev/artifacts/eas/qgaKiHjywocNarS-cS4MRiBbDPuziLy3j7ARC0GRobM.apk)), followed by the November 6 OTA updates on channel `preview`. See [EAS.md](EAS.md) for all build and OTA links (including builds 14, 15, 16, and 17).
+- **Latest Native Builds & OTA Releases**:
+  - **iOS 1.1.0 (Build 19 — `c3693e64`) + Production OTA (`9778957d`)**: Approved on the App Store (`1d1da2e0`), running the November 8 `production` OTA update.
+  - **Android 1.1.0 (`preview-arm64` APK — `9f2eccb4`) + Preview/Production OTA**: Built ([Download APK](https://expo.dev/artifacts/eas/qgaKiHjywocNarS-cS4MRiBbDPuziLy3j7ARC0GRobM.apk)). See [EAS.md](EAS.md) for all build and OTA links (including builds 14–19).
 - **Apple Books-Inspired `Inicio` (`Home`) Redesign, iOS `New York` + `SF Pro` Fonts & Interactive Liquid Glass Capsule (`home.tsx`, `VerseCard.tsx`, `HomeHeaderActions.tsx`, `GlassSurface.tsx`, `_layout.tsx`)**:
   - **Header Alignment & Title**: Top-left header displays **`Inicio`** (`"Home"` in English) positioned tightly below the status bar (`paddingTop: insets.top + 8`), baseline-aligned with the top-right action capsule.
   - **Interactive iOS 26 Liquid Glass Capsule**: Uses native `isInteractive` on `<GlassSurface>` without a middle divider or outer overflow clip on iOS so UIKit's native fluid press/drag stretch works across the joined capsule, with bold SF Symbols (`magnifyingglass` `22pt`, `ellipsis` `23pt`, `weight="bold"`). Android retains its native tonal capsule with a center hairline divider.
