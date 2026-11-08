@@ -339,8 +339,10 @@ export default function ProjectorModal({
             styles.root,
             { backgroundColor: bg, paddingHorizontal: horizontalPad },
             useTransformLandscape && {
+              flex: 0,
               width: windowDims.height,
               height: windowDims.width,
+              maxHeight: windowDims.width,
               transform: [{ rotate: '90deg' }],
             },
           ]}
