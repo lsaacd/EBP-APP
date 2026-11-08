@@ -4,6 +4,8 @@
 // a circular self-import on iOS or Android.
 export {
   AUDIO_BASE_URL,
+  AUDIO_REVISIONS,
+  getHymnAudioRevision,
   getHymnAudio,
   hasHymnAudio,
   getAllAudioIds,

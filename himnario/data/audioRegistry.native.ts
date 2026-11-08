@@ -69,11 +69,25 @@ const FILE_NAME_EXCEPTIONS: Record<string, string> = {
   '315 A': 'hymn_315.m4a',
 };
 
+/**
+ * Optional per-hymn cache-busting revision numbers (e.g. { '198': 2 }).
+ * When a recording on Cloudflare R2 is replaced/fixed, bump its revision here
+ * and push an OTA update: devices that already downloaded the old recording
+ * will automatically replace the local file with the new version.
+ */
+export const AUDIO_REVISIONS: Record<string, number> = {};
+
+/** Current revision number for a hymn's audio recording (defaults to 1). */
+export const getHymnAudioRevision = (hymnId: string): number =>
+  AUDIO_REVISIONS[hymnId] ?? 1;
+
 /** Remote URL of a hymn's recording, or null if it has none. */
 export const getHymnAudio = (hymnId: string): string | null => {
   if (!audioIds.has(hymnId)) return null;
   const fileName = FILE_NAME_EXCEPTIONS[hymnId] ?? `hymn_${hymnId}.m4a`;
-  return AUDIO_BASE_URL + encodeURIComponent(fileName);
+  const rev = getHymnAudioRevision(hymnId);
+  const query = rev > 1 ? `?v=${rev}` : '';
+  return AUDIO_BASE_URL + encodeURIComponent(fileName) + query;
 };
 
 export const hasHymnAudio = (hymnId: string): boolean => audioIds.has(hymnId);

@@ -11,7 +11,7 @@
  */
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { getAllAudioIds, getHymnAudio } from '../data/audioRegistry.native';
+import { getAllAudioIds, getHymnAudio, getHymnAudioRevision } from '../data/audioRegistry.native';
 
 export type DownloadAllState = {
   status: 'idle' | 'downloading' | 'done' | 'error';
@@ -30,7 +30,12 @@ const BASE_DIR =
     : (FileSystem.documentDirectory || FileSystem.cacheDirectory || '');
 const DIR = `${BASE_DIR}hymn-audio/`;
 const CONCURRENCY = 3;
-const fileFor = (id: string) => `${DIR}hymn_${encodeURIComponent(id)}.m4a`;
+const fileBaseFor = (id: string) => {
+  const rev = getHymnAudioRevision(id);
+  const revSuffix = rev > 1 ? `_v${rev}` : '';
+  return `hymn_${encodeURIComponent(id)}${revSuffix}.m4a`;
+};
+const fileFor = (id: string) => `${DIR}${fileBaseFor(id)}`;
 const STARTED_MARKER = `${DIR}.download-all-started`;
 
 const inFlight = new Map<string, Promise<boolean>>();
@@ -150,13 +155,29 @@ export async function resolvePlaybackUri(id: string): Promise<string> {
 export async function refreshOfflineAudio(): Promise<void> {
   try {
     await ensureDir();
-    const names = new Set(await FileSystem.readDirectoryAsync(DIR));
+    const rawNames = await FileSystem.readDirectoryAsync(DIR);
+    const names = new Set(rawNames);
     const started = names.has('.download-all-started');
     let saved = 0, bytes = 0;
     savedIdSet.clear();
     const allIds = getAllAudioIds();
+    const expectedFiles = new Set<string>();
+    const staleIdsToRedownload: string[] = [];
+
     for (const id of allIds) {
-      if (!names.has(`hymn_${encodeURIComponent(id)}.m4a`)) continue;
+      const expectedName = fileBaseFor(id);
+      expectedFiles.add(expectedName);
+      if (!names.has(expectedName)) {
+        // Check if an older revision of this hymn exists on disk (e.g. hymn_198.m4a when expected is hymn_198_v2.m4a)
+        const legacyPrefix = `hymn_${encodeURIComponent(id)}`;
+        const hasOldRevision = rawNames.some(
+          n => n === `${legacyPrefix}.m4a` || (n.startsWith(`${legacyPrefix}_v`) && n.endsWith('.m4a') && n !== expectedName)
+        );
+        if (hasOldRevision) {
+          staleIdsToRedownload.push(id);
+        }
+        continue;
+      }
       const size = await savedSize(id);
       if (size) {
         saved += 1;
@@ -164,6 +185,14 @@ export async function refreshOfflineAudio(): Promise<void> {
         savedIdSet.add(id);
       }
     }
+
+    // Clean up any superseded audio revision files
+    for (const name of rawNames) {
+      if (name.endsWith('.m4a') && !expectedFiles.has(name)) {
+        await FileSystem.deleteAsync(`${DIR}${name}`, { idempotent: true }).catch(() => {});
+      }
+    }
+
     const nextStatus =
       state.status === 'downloading'
         ? 'downloading'
@@ -179,6 +208,11 @@ export async function refreshOfflineAudio(): Promise<void> {
       status: nextStatus,
       savedIds: new Set(savedIdSet),
     });
+
+    // Automatically re-download any recordings that had a previous revision saved on this device
+    for (const id of staleIdsToRedownload) {
+      void saveHymnAudio(id);
+    }
   } catch (error) {
     console.warn('[OfflineAudio] Refresh failed', error);
   }
