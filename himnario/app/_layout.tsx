@@ -28,7 +28,7 @@ import {
   PublicSans_600SemiBold,
   PublicSans_700Bold,
 } from '@expo-google-fonts/public-sans';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
@@ -43,6 +43,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import TrackPlayer from 'react-native-track-player';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as Updates from 'expo-updates';
 import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
@@ -90,14 +91,48 @@ function ThemedStack() {
   const { isDarkMode } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const { showFullPlayer, closeFullPlayer, currentHymnId } = useNowPlaying();
+  const { showFullPlayer, closeFullPlayer, currentHymnId, isPlaying } = useNowPlaying();
   const insets = useSafeAreaInsets();
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  const checkingUpdateRef = useRef(false);
 
   const [miniPlayerHeight, setMiniPlayerHeight] = useState(Platform.OS === 'android' ? 74 : 57);
   const isIOS = Platform.OS === 'ios';
   const isPad = isIOS && Boolean((Platform as any).isPad);
   const isPlaylist = pathname.startsWith('/playlist/');
   const isHymn = pathname.startsWith('/hymn/');
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || __DEV__ || !Updates.isEnabled) return;
+
+    const checkAndApplyUpdate = async () => {
+      if (checkingUpdateRef.current) return;
+      checkingUpdateRef.current = true;
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (result.isAvailable) {
+          const fetched = await Updates.fetchUpdateAsync();
+          // Apply immediately unless hymn audio is actively playing
+          if (fetched.isNew && !isPlayingRef.current) {
+            await Updates.reloadAsync();
+          }
+        }
+      } catch {
+        // Ignore transient offline or update check errors
+      } finally {
+        checkingUpdateRef.current = false;
+      }
+    };
+
+    void checkAndApplyUpdate();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void checkAndApplyUpdate();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
