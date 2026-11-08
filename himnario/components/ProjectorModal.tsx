@@ -111,21 +111,22 @@ export default function ProjectorModal({
     return () => sub?.remove?.();
   }, []);
 
-  // Unlock orientation (allow both Portrait & Landscape) while ProjectorModal is open;
-  // lock back to Portrait on exit on phones (iPad stays unlocked).
+  // On Android, unlock orientation while ProjectorModal is open and lock back to Portrait on exit.
+  // On iOS, keep native window orientation untouched (Info.plist PORTRAIT_UP) and use pure 90deg view rotation
+  // (useTransformLandscape) so backgrounding/foregrounding never triggers ExpoScreenOrientation's native crash.
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
+    if (Platform.OS !== 'android') {
+      if (!visible) setManualLandscape(false);
+      return;
+    }
     if (visible) {
       ScreenOrientation.unlockAsync().catch(() => {});
     } else {
       setManualLandscape(false);
-      if (!isPad) {
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-      }
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     }
     return () => {
-      if (visible && !isPad) {
+      if (visible) {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
       }
     };
@@ -153,9 +154,8 @@ export default function ProjectorModal({
   const handleToggleOrientation = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isLandscape) {
-      // Switch back to Portrait, then re-unlock after transition so physical rotation still works
       setManualLandscape(false);
-      if (Platform.OS !== 'web') {
+      if (Platform.OS === 'android') {
         try {
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
           setTimeout(() => {
@@ -166,9 +166,8 @@ export default function ProjectorModal({
         }
       }
     } else {
-      // Switch to Landscape
       setManualLandscape(true);
-      if (Platform.OS !== 'web') {
+      if (Platform.OS === 'android') {
         try {
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         } catch {
@@ -181,7 +180,7 @@ export default function ProjectorModal({
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setManualLandscape(false);
-    if (Platform.OS !== 'web' && !(Platform.OS === 'ios' && Boolean((Platform as any).isPad))) {
+    if (Platform.OS === 'android') {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     }
     onClose();
@@ -328,13 +327,7 @@ export default function ProjectorModal({
       animationType="fade"
       presentationStyle="fullScreen"
       statusBarTranslucent
-      supportedOrientations={[
-        'portrait',
-        'portrait-upside-down',
-        'landscape',
-        'landscape-left',
-        'landscape-right',
-      ]}
+      supportedOrientations={['portrait']}
       onRequestClose={handleClose}
     >
       <KeepAwakeGuard />
@@ -374,7 +367,7 @@ export default function ProjectorModal({
 
           {/* Main Stage (Tap Zones + Swipe Left/Right) */}
           <Pressable
-            style={styles.stage}
+            style={[styles.stage, !controlsVisible && { paddingTop: topPad }]}
             onLayout={(e) => {
               const { width, height } = e.nativeEvent.layout;
               if (width > 0 && height > 0) {

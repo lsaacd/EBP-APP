@@ -441,8 +441,13 @@ export default function HymnDetail() {
                 style={styles.footerReportBtn}
                 activeOpacity={0.7}
               >
-                <MaterialIcons name="mail-outline" size={16} color={theme.primary} />
-                <Text style={[styles.footerReportText, { color: theme.primary }]}>
+                <MaterialIcons name="mail-outline" size={15} color={theme.primary} />
+                <Text
+                  style={[styles.footerReportText, { color: theme.primary }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                >
                   {t.reportHymnError}
                 </Text>
                 <MaterialIcons name="chevron-right" size={16} color={theme.primary} />
@@ -745,15 +750,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     gap: 6,
     marginTop: 20,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    maxWidth: '100%',
   },
   footerReportText: {
+    flexShrink: 1,
     fontFamily: 'PublicSans_500Medium',
-    fontSize: 13,
-    letterSpacing: 0.5,
+    fontSize: 12.5,
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
 
   // Floating pill controls

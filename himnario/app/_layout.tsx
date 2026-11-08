@@ -100,12 +100,8 @@ function ThemedStack() {
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    if (Platform.OS === 'ios' && (Platform as any).isPad) {
-      ScreenOrientation.unlockAsync().catch(() => {});
-    } else {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    }
+    if (Platform.OS !== 'android') return;
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
   }, []);
 
   useEffect(() => {
