@@ -89,13 +89,13 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
           android_ripple={{ color: theme.primary + '20', borderless: false }}
           style={buttonStyle}
         >
-          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 23 : 23} weight="bold" color={theme.primary} />
+          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 25 : 24} containerSize={33} weight="bold" color={theme.primary} />
         </Pressable>
       </GlassSurface>
       <GlassSurface intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.searchPlaceholder}
           onPress={onSearch} android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
-          <AppMenuIcon ios="magnifyingglass" android="search" size={isIOS ? 22 : 21} weight="bold" color={theme.primary} />
+          <AppMenuIcon ios="magnifyingglass" android="search" size={isIOS ? 25 : 24} containerSize={33} weight="bold" color={theme.primary} />
         </Pressable>
         {!isIOS && (
           <View pointerEvents="none" style={[styles.separator, { backgroundColor: theme.outlineVariant }]} />

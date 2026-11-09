@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Animated, {
+  cancelAnimation,
+  FadeIn,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
@@ -32,6 +45,88 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
   const menuWidth = Math.min(300, width - 32);
   const menuHeight = Math.min(menuContentHeight, Math.max(120, height - insets.top - insets.bottom - 24));
   const menuTop = Math.max(insets.top + 8, Math.min(anchor.y + anchor.height + 8, height - insets.bottom - menuHeight - 8));
+  const travel = Math.max(420, Math.round(height * 0.88));
+  const tallSheetHeight = Math.round(height * 0.9);
+  const isScrollablePage = page === 'about' || page === 'help';
+
+  const progress = useSharedValue(initialPage === 'menu' ? 0 : 1);
+  const dragOrigin = useSharedValue(0);
+  const spring = {
+    damping: 28,
+    stiffness: 240,
+    mass: 1,
+    overshootClamping: true,
+  };
+
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    if (page === 'menu') {
+      onClose();
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    progress.value = withSpring(1, spring, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+  }, [finishClose, onClose, page, progress]);
+
+  useEffect(() => {
+    if (page !== 'menu') {
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
+    } else {
+      progress.value = 0;
+    }
+    return () => cancelAnimation(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page === 'menu']);
+
+  const pan = Gesture.Pan()
+    .enabled(page !== 'menu' && !showTextSize)
+    .activeOffsetY(8)
+    .failOffsetX([-20, 20])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(progress);
+      dragOrigin.value = progress.value;
+    })
+    .onUpdate((event) => {
+      progress.value = Math.max(
+        0,
+        Math.min(1, dragOrigin.value + event.translationY / travel)
+      );
+    })
+    .onEnd((event) => {
+      const collapse = shouldCollapsePlayer(
+        progress.value * travel,
+        event.velocityY,
+        travel * 0.55
+      );
+      progress.value = withSpring(
+        collapse ? 1 : 0,
+        { ...spring, velocity: event.velocityY / travel },
+        (finished) => {
+          if (finished && collapse) runOnJS(finishClose)();
+        }
+      );
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        progress.value = withSpring(0, spring);
+      }
+    });
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: page === 'menu' ? 1 : 1 - progress.value,
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: page === 'menu' ? 0 : progress.value * travel }],
+  }));
+
   const titles: Record<Page, string> = {
     menu: t.homeMenu, settings: t.homeMenuSettings, downloads: t.homeMenuDownloads,
     about: t.homeMenuHistory, help: t.homeMenuHelp,
@@ -44,7 +139,7 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
     setPage(next);
   };
   const back = () => {
-    if (page === 'menu' || page === initialPage) onClose();
+    if (page === 'menu' || page === initialPage) animateClose();
     else setPage(page === 'downloads' ? 'settings' : page === 'about' ? aboutParent : 'menu');
   };
   const openLink = async (url: string) => {
@@ -131,63 +226,165 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
     {linkError && <Text accessibilityRole="alert" style={[styles.note, { color: theme.primary }]}>{t.homeMenuLinkError}</Text>}
   </>;
 
-  return <Modal transparent visible animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent navigationBarTranslucent onRequestClose={back}>
-    <View style={styles.overlay} onAccessibilityEscape={onClose}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={onClose} style={[StyleSheet.absoluteFill, { backgroundColor: page === 'menu' ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.35)' }]} />
-      <Animated.View key={page === 'menu' ? 'menu' : 'sheet'} entering={FadeIn.duration(160)} accessibilityViewIsModal style={page === 'menu'
-        ? [styles.menuPosition, { width: menuWidth, height: menuHeight, top: menuTop, left: Math.max(16, Math.min(width - menuWidth - 16, anchor.x + anchor.width - menuWidth)) }]
-        : [styles.sheetPosition, { top: Math.max(insets.top + 12, height * 0.08), bottom: 0, maxWidth: 640 }]}>
-        <GlassSurface stableBackdrop intensity={80} style={[styles.surface, page !== 'menu' && styles.sheetSurface, Platform.OS !== 'ios' && { borderRadius: page === 'menu' ? 16 : 28 }]}>
-          {page === 'menu' ? <ScrollView bounces={false} showsVerticalScrollIndicator={false}
-            onContentSizeChange={(_width, contentHeight) => setMenuContentHeight(contentHeight + 12)}>
-            <Text style={[styles.menuCaption, { color: theme.onSurfaceVariant }]}>Himnario El Buen Pastor</Text>
-            {row(t.homeMenuHistory, 'clock', 'history', () => go('about'), t.homeMenuHistorySub, true)}
-            {divider}
-            {row(t.homeMenuHelp, 'questionmark.circle', 'help-outline', () => go('help'), t.homeMenuHelpSub, true)}
-            {divider}
-            {row(t.homeMenuSettings, 'gearshape', 'settings', () => go('settings'), t.homeMenuSettingsSub, true)}
-          </ScrollView> : <>
-            <View style={styles.sheetHeader}>
-              <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t.homeMenuBack} style={styles.headerButton}>
-                <AppMenuIcon ios="chevron.left" android="arrow-back" color={theme.primary} />
-              </Pressable>
-              <Text accessibilityRole="header" style={[styles.sheetTitle, { color: theme.onSurface }]} numberOfLines={2}>{titles[page]}</Text>
-              <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t.close} style={styles.headerButton}>
-                <View style={[styles.closeCircle, { backgroundColor: theme.surfaceVariants.containerHighest }]}><AppMenuIcon ios="xmark" android="close" color={theme.onSurfaceVariant} size={17} /></View>
-              </Pressable>
-            </View>
-            <ScrollView key={page} contentInsetAdjustmentBehavior="never" showsVerticalScrollIndicator indicatorStyle={isDarkMode ? 'white' : 'black'}
-              contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}>
-              {page === 'settings' ? settings : page === 'downloads' ? <OfflineAudioCard /> : page === 'about' ? <AboutHymnalContent /> : help}
+  const pageBody = page === 'settings' ? settings : page === 'downloads' ? <OfflineAudioCard /> : page === 'about' ? <AboutHymnalContent /> : help;
 
-            </ScrollView>
-          </>}
-        </GlassSurface>
-      </Animated.View>
-      {showTextSize && <TextSizeSheet visible onClose={() => setShowTextSize(false)} />}
-    </View>
-  </Modal>;
+  return (
+    <Modal
+      transparent
+      visible
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={back}
+    >
+      <GestureHandlerRootView
+        style={[styles.overlay, page !== 'menu' && styles.sheetOverlay]}
+        onAccessibilityEscape={animateClose}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: page === 'menu' ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.42)' },
+            backdropStyle,
+          ]}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.close}
+          onPress={animateClose}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {page === 'menu' ? (
+          <Animated.View
+            key="menu"
+            entering={FadeIn.duration(160)}
+            accessibilityViewIsModal
+            style={[
+              styles.menuPosition,
+              {
+                width: menuWidth,
+                height: menuHeight,
+                top: menuTop,
+                left: Math.max(16, Math.min(width - menuWidth - 16, anchor.x + anchor.width - menuWidth)),
+              },
+            ]}
+          >
+            <GlassSurface
+              stableBackdrop
+              intensity={80}
+              style={[styles.surface, Platform.OS !== 'ios' && { borderRadius: 16 }]}
+            >
+              <ScrollView
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                onContentSizeChange={(_width, contentHeight) => setMenuContentHeight(contentHeight + 12)}
+              >
+                <Text style={[styles.menuCaption, { color: theme.onSurfaceVariant }]}>Himnario El Buen Pastor</Text>
+                {row(t.homeMenuHistory, 'clock', 'history', () => go('about'), t.homeMenuHistorySub, true)}
+                {divider}
+                {row(t.homeMenuHelp, 'questionmark.circle', 'help-outline', () => go('help'), t.homeMenuHelpSub, true)}
+                {divider}
+                {row(t.homeMenuSettings, 'gearshape', 'settings', () => go('settings'), t.homeMenuSettingsSub, true)}
+              </ScrollView>
+            </GlassSurface>
+          </Animated.View>
+        ) : (
+          <GestureDetector gesture={pan}>
+            <Animated.View
+              key="sheet"
+              accessibilityViewIsModal
+              style={[styles.sheetWrap, { maxWidth: 640 }, sheetAnimatedStyle]}
+            >
+              <GlassSurface
+                stableBackdrop
+                intensity={80}
+                style={[
+                  styles.sheetSurface,
+                  isScrollablePage && { height: tallSheetHeight },
+                ]}
+              >
+                <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
+                <View style={styles.sheetHeader}>
+                  <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t.homeMenuBack} style={styles.headerButton}>
+                    {page !== initialPage && (
+                      <AppMenuIcon ios="chevron.left" android="arrow-back" color={theme.primary} />
+                    )}
+                  </Pressable>
+                  <Text accessibilityRole="header" style={[styles.sheetTitle, { color: theme.onSurface }]} numberOfLines={2}>
+                    {titles[page]}
+                  </Text>
+                  <Pressable onPress={animateClose} accessibilityRole="button" accessibilityLabel={t.close} style={styles.headerButton}>
+                    <View style={[styles.closeCircle, { backgroundColor: theme.surfaceVariants.containerHighest }]}>
+                      <AppMenuIcon ios="xmark" android="close" color={theme.onSurfaceVariant} size={17} />
+                    </View>
+                  </Pressable>
+                </View>
+
+                {isScrollablePage ? (
+                  <ScrollView
+                    key={page}
+                    contentInsetAdjustmentBehavior="never"
+                    showsVerticalScrollIndicator
+                    indicatorStyle={isDarkMode ? 'white' : 'black'}
+                    contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}
+                  >
+                    {pageBody}
+                  </ScrollView>
+                ) : (
+                  <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}>
+                    {pageBody}
+                  </View>
+                )}
+              </GlassSurface>
+            </Animated.View>
+          </GestureDetector>
+        )}
+
+        {showTextSize && <TextSizeSheet visible onClose={() => setShowTextSize(false)} />}
+      </GestureHandlerRootView>
+    </Modal>
+  );
 }
 
 const styles = StyleSheet.create({
   overlay: { flex: 1 },
+  sheetOverlay: { justifyContent: 'flex-end' },
   menuPosition: { position: 'absolute', elevation: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
-  sheetPosition: { position: 'absolute', width: '100%', alignSelf: 'center' },
+  sheetWrap: { width: '100%', alignSelf: 'center' },
   surface: { flex: 1, borderRadius: 24, overflow: 'hidden', paddingVertical: 6 },
-  sheetSurface: { flex: 1, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  sheetSurface: {
+    width: '100%',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 10,
+    overflow: 'hidden',
+  },
+  grabber: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    opacity: 0.35,
+    marginBottom: 4,
+  },
   menuCaption: { fontFamily: fonts.sansMedium, fontSize: 12, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 6 },
   row: { minHeight: 56, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: { fontFamily: fonts.sansSemiBold, fontSize: 16, lineHeight: 22 },
   rowSubtitle: { fontFamily: fonts.sansRegular, fontSize: 13, lineHeight: 19, marginTop: 4 },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.65, marginLeft: 54, marginRight: 18 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingTop: 4, paddingBottom: 6 },
   headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   closeCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   sheetTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.sansSemiBold, fontSize: 17, lineHeight: 23 },
   content: { paddingHorizontal: 20, paddingTop: 4 },
   group: { borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  sectionLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 22, marginBottom: 10, marginLeft: 14 },
+  sectionLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 18, marginBottom: 10, marginLeft: 14 },
   note: { fontFamily: fonts.sansRegular, fontSize: 13, lineHeight: 20, marginTop: 10, marginHorizontal: 12 },
   languageRow: { flexDirection: 'row', gap: 10, padding: 12 },
   languageOption: { flex: 1, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 12, alignItems: 'center' },

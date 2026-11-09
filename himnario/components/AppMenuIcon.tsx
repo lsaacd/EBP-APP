@@ -9,15 +9,18 @@ export default function AppMenuIcon({
   android,
   color,
   size = 22,
+  containerSize,
   weight = 'bold',
 }: {
   ios: SymbolViewProps['name'];
   android: React.ComponentProps<typeof MaterialIcons>['name'];
   color: string;
   size?: number;
+  containerSize?: number;
   weight?: SymbolViewProps['weight'];
 }) {
+  const iosBox = containerSize ?? size;
   return Platform.OS === 'ios'
-    ? <SymbolView name={ios} tintColor={color} size={size} weight={weight} style={{ width: size, height: size }} />
+    ? <SymbolView name={ios} tintColor={color} size={iosBox} weight={weight} resizeMode="scaleAspectFit" style={{ width: iosBox, height: iosBox }} />
     : <MaterialIcons name={android} color={color} size={size} />;
 }
