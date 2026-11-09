@@ -11,13 +11,11 @@
  * iOS: Glass sheet with grabber. Android: Material 3 bottom sheet with ripple feedback.
  * The PDF editor renders inside this same modal (no nested modals).
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Animated,
   Image,
   Linking,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   Share,
@@ -25,8 +23,25 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Animated, {
+  cancelAnimation,
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -65,70 +80,110 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const { t, language } = useLanguage();
   const es = language !== 'en';
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetTravel = Math.max(420, Math.round(windowHeight * 0.78));
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [mode, setMode] = useState<'menu' | 'pdf'>('menu');
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scrollOffsetY = useRef(0);
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
+
+  const translateY = useSharedValue(sheetTravel);
+  const dragOrigin = useSharedValue(0);
+  const scrollOffsetY = useSharedValue(0);
+  const springConfig = {
+    damping: 28,
+    stiffness: 260,
+    mass: 0.9,
+    overshootClamping: true,
+  };
+
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    translateY.value = withTiming(sheetTravel, { duration: 220 }, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+  }, [finishClose, sheetTravel, translateY]);
 
   useEffect(() => {
-    if (!visible) {
+    if (visible) {
+      scrollOffsetY.value = 0;
+      translateY.value = sheetTravel;
+      translateY.value = withSpring(0, springConfig);
+    } else {
       setStatusMessage(null);
       setMode('menu');
-      translateY.setValue(0);
-      scrollOffsetY.current = 0;
-    } else {
-      translateY.setValue(0);
+      translateY.value = sheetTravel;
+      scrollOffsetY.value = 0;
     }
-  }, [visible, translateY]);
+    return () => cancelAnimation(translateY);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, sheetTravel]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_evt, gs) =>
-          modeRef.current === 'menu' &&
-          scrollOffsetY.current <= 2 &&
-          gs.dy > 8 &&
-          gs.dy > Math.abs(gs.dx) * 1.2,
-        onMoveShouldSetPanResponderCapture: (_evt, gs) =>
-          modeRef.current === 'menu' &&
-          scrollOffsetY.current <= 2 &&
-          gs.dy > 10 &&
-          gs.dy > Math.abs(gs.dx) * 1.3,
-        onPanResponderMove: (_evt, gs) => {
-          translateY.setValue(Math.max(0, gs.dy));
-        },
-        onPanResponderRelease: (_evt, gs) => {
-          if (gs.dy > 90 || gs.vy > 0.65) {
-            Animated.timing(translateY, {
-              toValue: 650,
-              duration: 210,
-              useNativeDriver: true,
-            }).start(() => {
-              onClose();
-            });
-          } else {
-            Animated.spring(translateY, {
-              toValue: 0,
-              damping: 22,
-              stiffness: 240,
-              useNativeDriver: true,
-            }).start();
+  const pan = Gesture.Pan()
+    .enabled(mode === 'menu')
+    .activeOffsetY(10)
+    .failOffsetX([-20, 20])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(translateY);
+      dragOrigin.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      if (scrollOffsetY.value > 2 && dragOrigin.value === 0) return;
+      const next = dragOrigin.value + event.translationY;
+      translateY.value = next < 0 ? next * 0.18 : next;
+    })
+    .onEnd((event) => {
+      if (scrollOffsetY.value > 2 && translateY.value <= 0) {
+        translateY.value = withSpring(0, springConfig);
+        return;
+      }
+      const dismiss = shouldCollapsePlayer(
+        Math.max(0, translateY.value),
+        event.velocityY,
+        360
+      );
+      if (dismiss) {
+        translateY.value = withSpring(
+          sheetTravel,
+          {
+            damping: 28,
+            stiffness: 260,
+            mass: 0.9,
+            overshootClamping: true,
+            velocity: event.velocityY,
+          },
+          (finished) => {
+            if (finished) runOnJS(finishClose)();
           }
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            damping: 22,
-            stiffness: 240,
-            useNativeDriver: true,
-          }).start();
-        },
-      }),
-    [onClose, translateY]
-  );
+        );
+      } else {
+        translateY.value = withSpring(0, {
+          ...springConfig,
+          velocity: event.velocityY,
+        });
+      }
+    })
+    .onFinalize((_event, success) => {
+      if (!success && translateY.value < sheetTravel * 0.5) {
+        translateY.value = withSpring(0, springConfig);
+      }
+    });
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      translateY.value,
+      [0, sheetTravel * 0.85],
+      [1, 0],
+      Extrapolation.CLAMP
+    ),
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(-24, translateY.value) }],
+  }));
 
   if (!hymn) return null;
 
@@ -234,7 +289,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       bounces={false}
       scrollEventThrottle={16}
       onScroll={(e) => {
-        scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+        scrollOffsetY.value = e.nativeEvent.contentOffset.y;
       }}
     >
       {/* Grabber */}
@@ -246,7 +301,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
           {t.shareHymnTitle}
         </Text>
         <TouchableOpacity
-          onPress={onClose}
+          onPress={animateClose}
           style={[styles.closeBtn, { backgroundColor: theme.surfaceVariants.containerHighest }]}
           accessibilityLabel={t.close}
         >
@@ -354,43 +409,50 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={() => (isPdf ? setMode('menu') : onClose())}
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={() => (isPdf ? setMode('menu') : animateClose())}
     >
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
+      <GestureHandlerRootView style={styles.overlay}>
         <Animated.View
-          style={{ width: '100%', transform: [{ translateY }] }}
-          {...panResponder.panHandlers}
-        >
-          {isIOS ? (
-            <GlassSurface
-              intensity={65}
-              style={[
-                styles.iosSheet,
-                isPdf && styles.pdfSheet,
-                { paddingBottom: Math.max(insets.bottom, 20) + 12 },
-              ]}
-            >
-              {sheetBody}
-            </GlassSurface>
-          ) : (
-            <View
-              style={[
-                styles.androidSheet,
-                isPdf && styles.pdfSheet,
-                {
-                  backgroundColor: theme.surfaceVariants.containerLow,
-                  paddingBottom: Math.max(insets.bottom, 20) + 14,
-                },
-              ]}
-            >
-              {sheetBody}
-            </View>
-          )}
-        </Animated.View>
-      </View>
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={animateClose} />
+
+        <GestureDetector gesture={pan}>
+          <Animated.View style={[{ width: '100%' }, sheetAnimatedStyle]}>
+            {isIOS ? (
+              <GlassSurface
+                intensity={65}
+                stableBackdrop
+                style={[
+                  styles.iosSheet,
+                  isPdf && styles.pdfSheet,
+                  { paddingBottom: Math.max(insets.bottom, 20) + 12 },
+                ]}
+              >
+                {sheetBody}
+              </GlassSurface>
+            ) : (
+              <View
+                style={[
+                  styles.androidSheet,
+                  isPdf && styles.pdfSheet,
+                  {
+                    backgroundColor: theme.surfaceVariants.containerLow,
+                    paddingBottom: Math.max(insets.bottom, 20) + 14,
+                  },
+                ]}
+              >
+                {sheetBody}
+              </View>
+            )}
+          </Animated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -399,6 +461,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  backdrop: {
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
   iosSheet: {

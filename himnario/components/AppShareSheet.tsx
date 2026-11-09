@@ -11,14 +11,12 @@
  *    - Compartir imagen promocional (Shares the actual PNG banner via expo-sharing)
  *    - Copiar enlace (Copies https://himnarioebp.com/app/ to clipboard)
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   Image,
   Linking,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -29,6 +27,22 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Animated, {
+  cancelAnimation,
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { Asset } from 'expo-asset';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
@@ -57,72 +71,115 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const { language } = useLanguage();
   const es = language !== 'en';
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const cardWidth = Math.max(240, windowWidth - 40);
   const bannerHeight = Math.round((cardWidth * 630) / 1200);
+  const sheetTravel = Math.max(420, Math.round(windowHeight * 0.78));
 
   const [tab, setTab] = useState<'banner' | 'qr'>('banner');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [sharingImage, setSharingImage] = useState(false);
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scrollOffsetY = useRef(0);
+
+  const translateY = useSharedValue(sheetTravel);
+  const dragOrigin = useSharedValue(0);
+  const scrollOffsetY = useSharedValue(0);
+  const springConfig = {
+    damping: 28,
+    stiffness: 260,
+    mass: 0.9,
+    overshootClamping: true,
+  };
+
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    translateY.value = withTiming(sheetTravel, { duration: 220 }, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+  }, [finishClose, sheetTravel, translateY]);
 
   useEffect(() => {
-    if (!visible) {
+    if (visible) {
+      scrollOffsetY.value = 0;
+      translateY.value = sheetTravel;
+      translateY.value = withSpring(0, springConfig);
+    } else {
       setStatusMessage(null);
       setTab('banner');
       setSharingImage(false);
-      translateY.setValue(0);
-      scrollOffsetY.current = 0;
-    } else {
-      translateY.setValue(0);
+      translateY.value = sheetTravel;
+      scrollOffsetY.value = 0;
     }
-  }, [visible, translateY]);
+    return () => cancelAnimation(translateY);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, sheetTravel]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_evt, gs) =>
-          scrollOffsetY.current <= 2 &&
-          gs.dy > 8 &&
-          gs.dy > Math.abs(gs.dx) * 1.2,
-        onMoveShouldSetPanResponderCapture: (_evt, gs) =>
-          scrollOffsetY.current <= 2 &&
-          gs.dy > 10 &&
-          gs.dy > Math.abs(gs.dx) * 1.3,
-        onPanResponderMove: (_evt, gs) => {
-          translateY.setValue(Math.max(0, gs.dy));
-        },
-        onPanResponderRelease: (_evt, gs) => {
-          if (gs.dy > 90 || gs.vy > 0.65) {
-            Animated.timing(translateY, {
-              toValue: 650,
-              duration: 210,
-              useNativeDriver: true,
-            }).start(() => {
-              onClose();
-            });
-          } else {
-            Animated.spring(translateY, {
-              toValue: 0,
-              damping: 22,
-              stiffness: 240,
-              useNativeDriver: true,
-            }).start();
+  const pan = Gesture.Pan()
+    .activeOffsetY(10)
+    .failOffsetX([-20, 20])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(translateY);
+      dragOrigin.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      if (scrollOffsetY.value > 2 && dragOrigin.value === 0) return;
+      const next = dragOrigin.value + event.translationY;
+      // Rubber-band resistance when pulling upward above resting position
+      translateY.value = next < 0 ? next * 0.18 : next;
+    })
+    .onEnd((event) => {
+      if (scrollOffsetY.value > 2 && translateY.value <= 0) {
+        translateY.value = withSpring(0, springConfig);
+        return;
+      }
+      const dismiss = shouldCollapsePlayer(
+        Math.max(0, translateY.value),
+        event.velocityY,
+        360
+      );
+      if (dismiss) {
+        translateY.value = withSpring(
+          sheetTravel,
+          {
+            damping: 28,
+            stiffness: 260,
+            mass: 0.9,
+            overshootClamping: true,
+            velocity: event.velocityY,
+          },
+          (finished) => {
+            if (finished) runOnJS(finishClose)();
           }
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            damping: 22,
-            stiffness: 240,
-            useNativeDriver: true,
-          }).start();
-        },
-      }),
-    [onClose, translateY]
-  );
+        );
+      } else {
+        translateY.value = withSpring(0, {
+          ...springConfig,
+          velocity: event.velocityY,
+        });
+      }
+    })
+    .onFinalize((_event, success) => {
+      if (!success && translateY.value < sheetTravel * 0.5) {
+        translateY.value = withSpring(0, springConfig);
+      }
+    });
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      translateY.value,
+      [0, sheetTravel * 0.85],
+      [1, 0],
+      Extrapolation.CLAMP
+    ),
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(-24, translateY.value) }],
+  }));
 
   const inviteTitle = es
     ? 'Himnario El Buen Pastor — App Oficial'
@@ -263,7 +320,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       bounces={false}
       scrollEventThrottle={16}
       onScroll={(e) => {
-        scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+        scrollOffsetY.value = e.nativeEvent.contentOffset.y;
       }}
     >
       {/* Grabber */}
@@ -275,7 +332,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
           {es ? 'Compartir Aplicación' : 'Share App'}
         </Text>
         <TouchableOpacity
-          onPress={onClose}
+          onPress={animateClose}
           style={[
             styles.closeBtn,
             { backgroundColor: theme.surfaceVariants.containerHighest },
@@ -553,42 +610,48 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={animateClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
+      <GestureHandlerRootView style={styles.overlay}>
         <Animated.View
-          style={{ width: '100%', transform: [{ translateY }] }}
-          {...panResponder.panHandlers}
-        >
-          {isIOS ? (
-            <GlassSurface
-              intensity={65}
-              stableBackdrop
-              style={[
-                styles.iosSheet,
-                { paddingBottom: Math.max(insets.bottom, 20) + 12 },
-              ]}
-            >
-              {sheetContent}
-            </GlassSurface>
-          ) : (
-            <View
-              style={[
-                styles.androidSheet,
-                {
-                  backgroundColor: theme.surfaceVariants.containerLow,
-                  paddingBottom: Math.max(insets.bottom, 20) + 14,
-                },
-              ]}
-            >
-              {sheetContent}
-            </View>
-          )}
-        </Animated.View>
-      </View>
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={animateClose} />
+
+        <GestureDetector gesture={pan}>
+          <Animated.View style={[{ width: '100%' }, sheetAnimatedStyle]}>
+            {isIOS ? (
+              <GlassSurface
+                intensity={65}
+                stableBackdrop
+                style={[
+                  styles.iosSheet,
+                  { paddingBottom: Math.max(insets.bottom, 20) + 12 },
+                ]}
+              >
+                {sheetContent}
+              </GlassSurface>
+            ) : (
+              <View
+                style={[
+                  styles.androidSheet,
+                  {
+                    backgroundColor: theme.surfaceVariants.containerLow,
+                    paddingBottom: Math.max(insets.bottom, 20) + 14,
+                  },
+                ]}
+              >
+                {sheetContent}
+              </View>
+            )}
+          </Animated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -597,6 +660,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  backdrop: {
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
   iosSheet: {
