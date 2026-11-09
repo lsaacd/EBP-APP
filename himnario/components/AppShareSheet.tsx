@@ -11,12 +11,14 @@
  *    - Compartir imagen promocional (Shares the actual PNG banner via expo-sharing)
  *    - Copiar enlace (Copies https://himnarioebp.com/app/ to clipboard)
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -62,14 +64,65 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const [tab, setTab] = useState<'banner' | 'qr'>('banner');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [sharingImage, setSharingImage] = useState(false);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scrollOffsetY = useRef(0);
 
   useEffect(() => {
     if (!visible) {
       setStatusMessage(null);
       setTab('banner');
       setSharingImage(false);
+      translateY.setValue(0);
+      scrollOffsetY.current = 0;
+    } else {
+      translateY.setValue(0);
     }
-  }, [visible]);
+  }, [visible, translateY]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_evt, gs) =>
+          scrollOffsetY.current <= 2 &&
+          gs.dy > 8 &&
+          gs.dy > Math.abs(gs.dx) * 1.2,
+        onMoveShouldSetPanResponderCapture: (_evt, gs) =>
+          scrollOffsetY.current <= 2 &&
+          gs.dy > 10 &&
+          gs.dy > Math.abs(gs.dx) * 1.3,
+        onPanResponderMove: (_evt, gs) => {
+          translateY.setValue(Math.max(0, gs.dy));
+        },
+        onPanResponderRelease: (_evt, gs) => {
+          if (gs.dy > 90 || gs.vy > 0.65) {
+            Animated.timing(translateY, {
+              toValue: 650,
+              duration: 210,
+              useNativeDriver: true,
+            }).start(() => {
+              onClose();
+            });
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              damping: 22,
+              stiffness: 240,
+              useNativeDriver: true,
+            }).start();
+          }
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(translateY, {
+            toValue: 0,
+            damping: 22,
+            stiffness: 240,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [onClose, translateY]
+  );
 
   const inviteTitle = es
     ? 'Himnario El Buen Pastor — App Oficial'
@@ -208,6 +261,10 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       contentContainerStyle={styles.inner}
       showsVerticalScrollIndicator={false}
       bounces={false}
+      scrollEventThrottle={16}
+      onScroll={(e) => {
+        scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+      }}
     >
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
@@ -502,30 +559,35 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        {isIOS ? (
-          <GlassSurface
-            intensity={65}
-            stableBackdrop
-            style={[
-              styles.iosSheet,
-              { paddingBottom: Math.max(insets.bottom, 20) + 12 },
-            ]}
-          >
-            {sheetContent}
-          </GlassSurface>
-        ) : (
-          <View
-            style={[
-              styles.androidSheet,
-              {
-                backgroundColor: theme.surfaceVariants.containerLow,
-                paddingBottom: Math.max(insets.bottom, 20) + 14,
-              },
-            ]}
-          >
-            {sheetContent}
-          </View>
-        )}
+        <Animated.View
+          style={{ width: '100%', transform: [{ translateY }] }}
+          {...panResponder.panHandlers}
+        >
+          {isIOS ? (
+            <GlassSurface
+              intensity={65}
+              stableBackdrop
+              style={[
+                styles.iosSheet,
+                { paddingBottom: Math.max(insets.bottom, 20) + 12 },
+              ]}
+            >
+              {sheetContent}
+            </GlassSurface>
+          ) : (
+            <View
+              style={[
+                styles.androidSheet,
+                {
+                  backgroundColor: theme.surfaceVariants.containerLow,
+                  paddingBottom: Math.max(insets.bottom, 20) + 14,
+                },
+              ]}
+            >
+              {sheetContent}
+            </View>
+          )}
+        </Animated.View>
       </View>
     </Modal>
   );

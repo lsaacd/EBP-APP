@@ -11,11 +11,13 @@
  * iOS: Glass sheet with grabber. Android: Material 3 bottom sheet with ripple feedback.
  * The PDF editor renders inside this same modal (no nested modals).
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Image,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   Share,
@@ -65,13 +67,68 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const insets = useSafeAreaInsets();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [mode, setMode] = useState<'menu' | 'pdf'>('menu');
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scrollOffsetY = useRef(0);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
   useEffect(() => {
     if (!visible) {
       setStatusMessage(null);
       setMode('menu');
+      translateY.setValue(0);
+      scrollOffsetY.current = 0;
+    } else {
+      translateY.setValue(0);
     }
-  }, [visible]);
+  }, [visible, translateY]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_evt, gs) =>
+          modeRef.current === 'menu' &&
+          scrollOffsetY.current <= 2 &&
+          gs.dy > 8 &&
+          gs.dy > Math.abs(gs.dx) * 1.2,
+        onMoveShouldSetPanResponderCapture: (_evt, gs) =>
+          modeRef.current === 'menu' &&
+          scrollOffsetY.current <= 2 &&
+          gs.dy > 10 &&
+          gs.dy > Math.abs(gs.dx) * 1.3,
+        onPanResponderMove: (_evt, gs) => {
+          translateY.setValue(Math.max(0, gs.dy));
+        },
+        onPanResponderRelease: (_evt, gs) => {
+          if (gs.dy > 90 || gs.vy > 0.65) {
+            Animated.timing(translateY, {
+              toValue: 650,
+              duration: 210,
+              useNativeDriver: true,
+            }).start(() => {
+              onClose();
+            });
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              damping: 22,
+              stiffness: 240,
+              useNativeDriver: true,
+            }).start();
+          }
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(translateY, {
+            toValue: 0,
+            damping: 22,
+            stiffness: 240,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [onClose, translateY]
+  );
 
   if (!hymn) return null;
 
@@ -171,7 +228,15 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const isPdf = mode === 'pdf';
 
   const menuBody = (
-    <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false} bounces={false}>
+    <ScrollView
+      contentContainerStyle={styles.inner}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      scrollEventThrottle={16}
+      onScroll={(e) => {
+        scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+      }}
+    >
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
 
@@ -295,31 +360,36 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        {isIOS ? (
-          <GlassSurface
-            intensity={65}
-            style={[
-              styles.iosSheet,
-              isPdf && styles.pdfSheet,
-              { paddingBottom: Math.max(insets.bottom, 20) + 12 },
-            ]}
-          >
-            {sheetBody}
-          </GlassSurface>
-        ) : (
-          <View
-            style={[
-              styles.androidSheet,
-              isPdf && styles.pdfSheet,
-              {
-                backgroundColor: theme.surfaceVariants.containerLow,
-                paddingBottom: Math.max(insets.bottom, 20) + 14,
-              },
-            ]}
-          >
-            {sheetBody}
-          </View>
-        )}
+        <Animated.View
+          style={{ width: '100%', transform: [{ translateY }] }}
+          {...panResponder.panHandlers}
+        >
+          {isIOS ? (
+            <GlassSurface
+              intensity={65}
+              style={[
+                styles.iosSheet,
+                isPdf && styles.pdfSheet,
+                { paddingBottom: Math.max(insets.bottom, 20) + 12 },
+              ]}
+            >
+              {sheetBody}
+            </GlassSurface>
+          ) : (
+            <View
+              style={[
+                styles.androidSheet,
+                isPdf && styles.pdfSheet,
+                {
+                  backgroundColor: theme.surfaceVariants.containerLow,
+                  paddingBottom: Math.max(insets.bottom, 20) + 14,
+                },
+              ]}
+            >
+              {sheetBody}
+            </View>
+          )}
+        </Animated.View>
       </View>
     </Modal>
   );
