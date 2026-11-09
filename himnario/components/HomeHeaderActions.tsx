@@ -6,6 +6,8 @@ import { useLanguage } from '../context/LanguageContext';
 import GlassSurface from './GlassSurface';
 import AppMenuIcon from './AppMenuIcon';
 import HomeMenuSheet, { type HomeMenuPage, type MenuAnchor } from './HomeMenuSheet';
+import AppShareSheet from './AppShareSheet';
+import * as Haptics from '../utils/haptics';
 
 // Loading an unregistered Fabric component can crash an older installed binary.
 // Web and pre-menu builds retain the existing accessible menu as a fallback.
@@ -21,11 +23,12 @@ if (Platform.OS === 'ios' || Platform.OS === 'android') {
 
 export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }) {
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const menuAnchorRef = useRef<View>(null);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [sheet, setSheet] = useState<{ anchor: MenuAnchor; page: 'menu' | HomeMenuPage } | null>(null);
+  const [shareAppVisible, setShareAppVisible] = useState(false);
 
   useEffect(() => () => {
     if (selectionTimer.current) clearTimeout(selectionTimer.current);
@@ -71,35 +74,56 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
     !isIOS && { backgroundColor: pressed ? theme.primary + '18' : 'transparent' },
   ];
 
+  const handleShareAppPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShareAppVisible(true);
+  };
+
   return <>
-    <GlassSurface intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t.searchPlaceholder}
-        onPress={onSearch} android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
-        <AppMenuIcon ios="magnifyingglass" android="search" size={isIOS ? 22 : 21} weight="bold" color={theme.primary} />
-      </Pressable>
-      {!isIOS && (
-        <View pointerEvents="none" style={[styles.separator, { backgroundColor: theme.outlineVariant }]} />
-      )}
-      <View ref={menuAnchorRef} collapsable={false} style={styles.menuAnchor}>
-        {NativeMenu ? <NativeMenu
-          title="Himnario El Buen Pastor" actions={groupedActions} themeVariant={isDarkMode ? 'dark' : 'light'}
-          isAnchoredToRight shouldOpenOnLongPress={false} onPressAction={selectAction}
-          onOpenMenu={() => setExpanded(true)} onCloseMenu={() => setExpanded(false)}
-          accessible accessibilityRole="button" accessibilityLabel={t.homeMenu} accessibilityState={{ expanded }}
-          style={styles.button}>
-          <View pointerEvents="none" accessible={false} style={styles.button}>{menuIcon}</View>
-        </NativeMenu> : <Pressable accessibilityRole="button" accessibilityLabel={t.homeMenu}
-          accessibilityState={{ expanded: sheet !== null }} onPress={() => openSheet('menu')}
-          android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
-          {menuIcon}
-        </Pressable>}
-      </View>
-    </GlassSurface>
+    <View style={styles.actionsRow}>
+      <GlassSurface intensity={55} isInteractive style={[styles.shareCircle, Platform.OS === 'android' && styles.androidCapsule]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={language === 'es' ? 'Compartir aplicación' : 'Share app'}
+          onPress={handleShareAppPress}
+          android_ripple={{ color: theme.primary + '20', borderless: false }}
+          style={buttonStyle}
+        >
+          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 20 : 20} weight="bold" color={theme.primary} />
+        </Pressable>
+      </GlassSurface>
+      <GlassSurface intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.searchPlaceholder}
+          onPress={onSearch} android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
+          <AppMenuIcon ios="magnifyingglass" android="search" size={isIOS ? 22 : 21} weight="bold" color={theme.primary} />
+        </Pressable>
+        {!isIOS && (
+          <View pointerEvents="none" style={[styles.separator, { backgroundColor: theme.outlineVariant }]} />
+        )}
+        <View ref={menuAnchorRef} collapsable={false} style={styles.menuAnchor}>
+          {NativeMenu ? <NativeMenu
+            title="Himnario El Buen Pastor" actions={groupedActions} themeVariant={isDarkMode ? 'dark' : 'light'}
+            isAnchoredToRight shouldOpenOnLongPress={false} onPressAction={selectAction}
+            onOpenMenu={() => setExpanded(true)} onCloseMenu={() => setExpanded(false)}
+            accessible accessibilityRole="button" accessibilityLabel={t.homeMenu} accessibilityState={{ expanded }}
+            style={styles.button}>
+            <View pointerEvents="none" accessible={false} style={styles.button}>{menuIcon}</View>
+          </NativeMenu> : <Pressable accessibilityRole="button" accessibilityLabel={t.homeMenu}
+            accessibilityState={{ expanded: sheet !== null }} onPress={() => openSheet('menu')}
+            android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
+            {menuIcon}
+          </Pressable>}
+        </View>
+      </GlassSurface>
+    </View>
     {sheet && <HomeMenuSheet initialPage={sheet.page} anchor={sheet.anchor} onClose={() => setSheet(null)} />}
+    <AppShareSheet visible={shareAppVisible} onClose={() => setShareAppVisible(false)} />
   </>;
 }
 
 const styles = StyleSheet.create({
+  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
+  shareCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   capsule: { flexDirection: 'row', alignItems: 'center', borderRadius: 22, flexShrink: 0, paddingHorizontal: 3 },
   androidCapsule: { borderRadius: 22 },
   button: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
