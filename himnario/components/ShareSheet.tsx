@@ -19,7 +19,6 @@ import {
   Platform,
   Pressable,
   Share,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -33,13 +32,10 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
-  Extrapolation,
-  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import * as Clipboard from 'expo-clipboard';
@@ -81,17 +77,17 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const es = language !== 'en';
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const sheetTravel = Math.max(420, Math.round(windowHeight * 0.78));
+  const travel = Math.max(420, Math.round(windowHeight * 0.82));
+  const pdfHeight = Math.round(windowHeight * 0.92);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [mode, setMode] = useState<'menu' | 'pdf'>('menu');
 
-  const translateY = useSharedValue(sheetTravel);
+  const progress = useSharedValue(1);
   const dragOrigin = useSharedValue(0);
-  const scrollOffsetY = useSharedValue(0);
-  const springConfig = {
+  const spring = {
     damping: 28,
-    stiffness: 260,
-    mass: 0.9,
+    stiffness: 240,
+    mass: 1,
     overshootClamping: true,
   };
 
@@ -101,88 +97,65 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
 
   const animateClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    translateY.value = withTiming(sheetTravel, { duration: 220 }, (finished) => {
+    progress.value = withSpring(1, spring, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-  }, [finishClose, sheetTravel, translateY]);
+  }, [finishClose, progress]);
 
   useEffect(() => {
     if (visible) {
-      scrollOffsetY.value = 0;
-      translateY.value = sheetTravel;
-      translateY.value = withSpring(0, springConfig);
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
     } else {
       setStatusMessage(null);
       setMode('menu');
-      translateY.value = sheetTravel;
-      scrollOffsetY.value = 0;
+      progress.value = 1;
     }
-    return () => cancelAnimation(translateY);
+    return () => cancelAnimation(progress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, sheetTravel]);
+  }, [visible]);
 
   const pan = Gesture.Pan()
     .enabled(mode === 'menu')
-    .activeOffsetY(10)
+    .activeOffsetY(8)
     .failOffsetX([-20, 20])
     .maxPointers(1)
     .onStart(() => {
-      cancelAnimation(translateY);
-      dragOrigin.value = translateY.value;
+      cancelAnimation(progress);
+      dragOrigin.value = progress.value;
     })
     .onUpdate((event) => {
-      if (scrollOffsetY.value > 2 && dragOrigin.value === 0) return;
-      const next = dragOrigin.value + event.translationY;
-      translateY.value = next < 0 ? next * 0.18 : next;
+      progress.value = Math.max(
+        0,
+        Math.min(1, dragOrigin.value + event.translationY / travel)
+      );
     })
     .onEnd((event) => {
-      if (scrollOffsetY.value > 2 && translateY.value <= 0) {
-        translateY.value = withSpring(0, springConfig);
-        return;
-      }
-      const dismiss = shouldCollapsePlayer(
-        Math.max(0, translateY.value),
+      const collapse = shouldCollapsePlayer(
+        progress.value * travel,
         event.velocityY,
-        360
+        travel * 0.55
       );
-      if (dismiss) {
-        translateY.value = withSpring(
-          sheetTravel,
-          {
-            damping: 28,
-            stiffness: 260,
-            mass: 0.9,
-            overshootClamping: true,
-            velocity: event.velocityY,
-          },
-          (finished) => {
-            if (finished) runOnJS(finishClose)();
-          }
-        );
-      } else {
-        translateY.value = withSpring(0, {
-          ...springConfig,
-          velocity: event.velocityY,
-        });
-      }
+      progress.value = withSpring(
+        collapse ? 1 : 0,
+        { ...spring, velocity: event.velocityY / travel },
+        (finished) => {
+          if (finished && collapse) runOnJS(finishClose)();
+        }
+      );
     })
     .onFinalize((_event, success) => {
-      if (!success && translateY.value < sheetTravel * 0.5) {
-        translateY.value = withSpring(0, springConfig);
+      if (!success) {
+        progress.value = withSpring(0, spring);
       }
     });
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateY.value,
-      [0, sheetTravel * 0.85],
-      [1, 0],
-      Extrapolation.CLAMP
-    ),
+    opacity: 1 - progress.value,
   }));
 
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(-24, translateY.value) }],
+    transform: [{ translateY: progress.value * travel }],
   }));
 
   if (!hymn) return null;
@@ -283,15 +256,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const isPdf = mode === 'pdf';
 
   const menuBody = (
-    <ScrollView
-      contentContainerStyle={styles.inner}
-      showsVerticalScrollIndicator={false}
-      bounces={false}
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        scrollOffsetY.value = e.nativeEvent.contentOffset.y;
-      }}
-    >
+    <View style={styles.inner}>
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
 
@@ -393,7 +358,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
           </Pressable>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 
   const sheetBody = isPdf ? (
@@ -430,7 +395,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
                 stableBackdrop
                 style={[
                   styles.iosSheet,
-                  isPdf && styles.pdfSheet,
+                  isPdf && { height: pdfHeight },
                   { paddingBottom: Math.max(insets.bottom, 20) + 12 },
                 ]}
               >
@@ -440,7 +405,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
               <View
                 style={[
                   styles.androidSheet,
-                  isPdf && styles.pdfSheet,
+                  isPdf && { height: pdfHeight },
                   {
                     backgroundColor: theme.surfaceVariants.containerLow,
                     paddingBottom: Math.max(insets.bottom, 20) + 14,
@@ -466,14 +431,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
   iosSheet: {
-    maxHeight: '90%',
+    width: '100%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
   },
   androidSheet: {
-    maxHeight: '90%',
+    width: '100%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,

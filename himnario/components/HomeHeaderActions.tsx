@@ -89,7 +89,7 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
           android_ripple={{ color: theme.primary + '20', borderless: false }}
           style={buttonStyle}
         >
-          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 20 : 20} weight="bold" color={theme.primary} />
+          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 23 : 23} weight="bold" color={theme.primary} />
         </Pressable>
       </GlassSurface>
       <GlassSurface intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>

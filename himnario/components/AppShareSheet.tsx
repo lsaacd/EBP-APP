@@ -19,7 +19,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -34,13 +33,10 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
-  Extrapolation,
-  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { Asset } from 'expo-asset';
@@ -74,19 +70,18 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const cardWidth = Math.max(240, windowWidth - 40);
   const bannerHeight = Math.round((cardWidth * 630) / 1200);
-  const sheetTravel = Math.max(420, Math.round(windowHeight * 0.78));
+  const travel = Math.max(420, Math.round(windowHeight * 0.82));
 
   const [tab, setTab] = useState<'banner' | 'qr'>('banner');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [sharingImage, setSharingImage] = useState(false);
 
-  const translateY = useSharedValue(sheetTravel);
+  const progress = useSharedValue(1);
   const dragOrigin = useSharedValue(0);
-  const scrollOffsetY = useSharedValue(0);
-  const springConfig = {
+  const spring = {
     damping: 28,
-    stiffness: 260,
-    mass: 0.9,
+    stiffness: 240,
+    mass: 1,
     overshootClamping: true,
   };
 
@@ -96,89 +91,65 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
 
   const animateClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    translateY.value = withTiming(sheetTravel, { duration: 220 }, (finished) => {
+    progress.value = withSpring(1, spring, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-  }, [finishClose, sheetTravel, translateY]);
+  }, [finishClose, progress]);
 
   useEffect(() => {
     if (visible) {
-      scrollOffsetY.value = 0;
-      translateY.value = sheetTravel;
-      translateY.value = withSpring(0, springConfig);
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
     } else {
       setStatusMessage(null);
       setTab('banner');
       setSharingImage(false);
-      translateY.value = sheetTravel;
-      scrollOffsetY.value = 0;
+      progress.value = 1;
     }
-    return () => cancelAnimation(translateY);
+    return () => cancelAnimation(progress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, sheetTravel]);
+  }, [visible]);
 
   const pan = Gesture.Pan()
-    .activeOffsetY(10)
+    .activeOffsetY(8)
     .failOffsetX([-20, 20])
     .maxPointers(1)
     .onStart(() => {
-      cancelAnimation(translateY);
-      dragOrigin.value = translateY.value;
+      cancelAnimation(progress);
+      dragOrigin.value = progress.value;
     })
     .onUpdate((event) => {
-      if (scrollOffsetY.value > 2 && dragOrigin.value === 0) return;
-      const next = dragOrigin.value + event.translationY;
-      // Rubber-band resistance when pulling upward above resting position
-      translateY.value = next < 0 ? next * 0.18 : next;
+      progress.value = Math.max(
+        0,
+        Math.min(1, dragOrigin.value + event.translationY / travel)
+      );
     })
     .onEnd((event) => {
-      if (scrollOffsetY.value > 2 && translateY.value <= 0) {
-        translateY.value = withSpring(0, springConfig);
-        return;
-      }
-      const dismiss = shouldCollapsePlayer(
-        Math.max(0, translateY.value),
+      const collapse = shouldCollapsePlayer(
+        progress.value * travel,
         event.velocityY,
-        360
+        travel * 0.55
       );
-      if (dismiss) {
-        translateY.value = withSpring(
-          sheetTravel,
-          {
-            damping: 28,
-            stiffness: 260,
-            mass: 0.9,
-            overshootClamping: true,
-            velocity: event.velocityY,
-          },
-          (finished) => {
-            if (finished) runOnJS(finishClose)();
-          }
-        );
-      } else {
-        translateY.value = withSpring(0, {
-          ...springConfig,
-          velocity: event.velocityY,
-        });
-      }
+      progress.value = withSpring(
+        collapse ? 1 : 0,
+        { ...spring, velocity: event.velocityY / travel },
+        (finished) => {
+          if (finished && collapse) runOnJS(finishClose)();
+        }
+      );
     })
     .onFinalize((_event, success) => {
-      if (!success && translateY.value < sheetTravel * 0.5) {
-        translateY.value = withSpring(0, springConfig);
+      if (!success) {
+        progress.value = withSpring(0, spring);
       }
     });
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateY.value,
-      [0, sheetTravel * 0.85],
-      [1, 0],
-      Extrapolation.CLAMP
-    ),
+    opacity: 1 - progress.value,
   }));
 
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(-24, translateY.value) }],
+    transform: [{ translateY: progress.value * travel }],
   }));
 
   const inviteTitle = es
@@ -313,16 +284,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   ];
 
   const sheetContent = (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.inner}
-      showsVerticalScrollIndicator={false}
-      bounces={false}
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        scrollOffsetY.value = e.nativeEvent.contentOffset.y;
-      }}
-    >
+    <View style={styles.inner}>
       {/* Grabber */}
       <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
 
@@ -603,7 +565,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
           </Pressable>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 
   return (
@@ -666,7 +628,6 @@ const styles = StyleSheet.create({
   },
   iosSheet: {
     width: '100%',
-    maxHeight: '92%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -674,15 +635,11 @@ const styles = StyleSheet.create({
   },
   androidSheet: {
     width: '100%',
-    maxHeight: '92%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
     elevation: 18,
-  },
-  scroll: {
-    width: '100%',
   },
   inner: {
     width: '100%',
