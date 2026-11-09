@@ -148,18 +148,6 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
 
   const options = [
     {
-      key: 'whatsapp',
-      title: 'WhatsApp',
-      subtitle: es
-        ? 'Enviar invitación con vista previa a un chat o grupo'
-        : 'Send invite with preview banner to a chat or group',
-      onPress: handleWhatsApp,
-      iconBg: 'transparent',
-      iconColor: '#25D366',
-      customImage: WHATSAPP_ICON,
-      customImageSize: 42,
-    },
-    {
       key: 'messages',
       title: es ? 'Mensajes y más…' : 'Messages & more…',
       subtitle: es
@@ -170,6 +158,18 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       iconColor: '#34C759',
       icon: 'sms' as const,
       customImage: isIOS ? IMESSAGE_ICON : undefined,
+      customImageSize: 38,
+    },
+    {
+      key: 'whatsapp',
+      title: 'WhatsApp',
+      subtitle: es
+        ? 'Enviar invitación con vista previa a un chat o grupo'
+        : 'Send invite with preview banner to a chat or group',
+      onPress: handleWhatsApp,
+      iconBg: 'transparent',
+      iconColor: '#25D366',
+      customImage: WHATSAPP_ICON,
       customImageSize: 38,
     },
     {

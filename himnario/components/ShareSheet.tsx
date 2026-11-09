@@ -251,7 +251,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
               {isIOS && opt.key === 'messages' ? (
                 <Image source={require('../assets/images/imessage-brand.png')} style={{ width: 38, height: 38 }} resizeMode="contain" />
               ) : opt.iconFamily === 'fontawesome' ? (
-                <Image source={require('../assets/images/whatsapp-brand.png')} style={{ width: 42, height: 42 }} resizeMode="contain" />
+                <Image source={require('../assets/images/whatsapp-brand.png')} style={{ width: 38, height: 38 }} resizeMode="contain" />
               ) : (
                 <MaterialIcons name={opt.icon} size={22} color={opt.iconColor} />
               )}
