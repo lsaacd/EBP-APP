@@ -24,6 +24,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Asset } from 'expo-asset';
@@ -54,6 +55,9 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const { language } = useLanguage();
   const es = language !== 'en';
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = Math.max(240, windowWidth - 40);
+  const bannerHeight = Math.round((cardWidth * 630) / 1200);
 
   const [tab, setTab] = useState<'banner' | 'qr'>('banner');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -200,6 +204,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
 
   const sheetContent = (
     <ScrollView
+      style={styles.scroll}
       contentContainerStyle={styles.inner}
       showsVerticalScrollIndicator={false}
       bounces={false}
@@ -268,6 +273,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
                     : 'PublicSans_500Medium',
               },
             ]}
+            numberOfLines={1}
           >
             {es ? 'Tarjeta' : 'Banner'}
           </Text>
@@ -304,8 +310,9 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
                   tab === 'qr' ? 'PublicSans_700Bold' : 'PublicSans_500Medium',
               },
             ]}
+            numberOfLines={1}
           >
-            {es ? 'Código QR en persona' : 'In-Person QR'}
+            {es ? 'Código QR' : 'In-Person QR'}
           </Text>
         </Pressable>
       </View>
@@ -317,6 +324,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
           style={[
             styles.bannerCard,
             {
+              width: cardWidth,
               backgroundColor: '#FCF9F2',
               borderColor: isDarkMode
                 ? 'rgba(255,255,255,0.14)'
@@ -326,7 +334,10 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
         >
           <Image
             source={APP_SHARE_BANNER}
-            style={styles.bannerImage}
+            style={[
+              styles.bannerImage,
+              { width: cardWidth, height: bannerHeight },
+            ]}
             resizeMode="contain"
           />
           <View
@@ -371,6 +382,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
           style={[
             styles.qrCard,
             {
+              width: cardWidth,
               backgroundColor: isDarkMode
                 ? 'rgba(255,255,255,0.05)'
                 : 'rgba(110,22,25,0.04)',
@@ -493,6 +505,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
         {isIOS ? (
           <GlassSurface
             intensity={65}
+            stableBackdrop
             style={[
               styles.iosSheet,
               { paddingBottom: Math.max(insets.bottom, 20) + 12 },
@@ -525,6 +538,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
   iosSheet: {
+    width: '100%',
     maxHeight: '92%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -532,6 +546,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   androidSheet: {
+    width: '100%',
     maxHeight: '92%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -539,7 +554,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     elevation: 18,
   },
+  scroll: {
+    width: '100%',
+  },
   inner: {
+    width: '100%',
     gap: 13,
   },
   grabber: {
@@ -594,10 +613,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    alignSelf: 'center',
   },
   bannerImage: {
-    width: '100%',
-    aspectRatio: 1200 / 630,
+    alignSelf: 'center',
   },
   bannerFooter: {
     flexDirection: 'row',
