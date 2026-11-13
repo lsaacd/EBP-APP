@@ -16,3 +16,6 @@
 @media(max-width:480px){.share-options{gap:10px}.share-options .share-option{padding:14px;gap:12px}.share-options .share-option-icon{width:40px;height:40px;flex-basis:40px}}
 @media(prefers-reduced-motion:reduce){.share-options .share-option{transition:none}}
 .pdf-controls input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:var(--accent)}
+@media(max-width:600px){
+  .share-dialog{margin:auto 0 0;width:100%;max-width:100%;border-radius:26px 26px 0 0;border-bottom:0;max-height:90dvh;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+}

@@ -161,3 +161,45 @@ body.dark .tester-step-btn-primary{color:#1c1e19}
   .tester-step-body h3{font-size:14px}
   .tester-step-btn{width:100%;justify-content:center}
 }
+
+/* Mobile UI polish & App Store gallery upgrades */
+.header-tools{display:flex;align-items:center;gap:4px;justify-self:end}
+#mobile-search-btn{display:none;border:0;background:none;color:var(--ink);min-width:44px;min-height:44px;align-items:center;justify-content:center;padding:8px;border-radius:50%;cursor:pointer}
+#mobile-search-btn svg{width:22px;height:22px;display:block}
+.app-feature-gallery{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.feature-art{background:#fff;border-radius:18px;padding:8px;box-shadow:0 8px 24px rgba(30,20,14,.06)}
+body.dark .feature-art{background:#18181a;border-color:rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.feature-art img{border-radius:12px;height:430px}
+@media(max-width:1080px){.app-feature-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
+@media(max-width:700px){
+  .has-audio-player .mobile-app-link{display:none!important}
+  .app-feature-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;gap:14px;padding:4px 2px 12px;margin:0 -4px;scrollbar-width:none}
+  .app-feature-gallery::-webkit-scrollbar{display:none}
+  .app-feature-card{flex:0 0 76vw;max-width:295px;scroll-snap-align:center}
+  .feature-art img{height:auto;max-height:470px;width:100%}
+}
+@media(max-width:600px){
+  #mobile-search-btn{display:inline-flex}
+  .website-header{padding:10px 16px 8px}
+  .welcome{padding:22px 0 14px;gap:6px}
+  .welcome h1{font-size:38px;line-height:1.1}
+  .hero-description{font-size:14px;line-height:1.6;margin-top:14px}
+  .hero-store-badges{flex-wrap:nowrap;justify-content:flex-start;align-items:flex-start;gap:12px;margin-top:18px}
+  .hero-store-badges .app-store-badge-link,.hero-store-badges .google-play-wrapper{flex:1 1 0;min-width:0;max-width:168px}
+  .hero-store-badges .app-store-badge,.hero-store-badges .google-play-art img{width:100%;height:auto;max-height:48px;object-fit:contain}
+  .hero-store-badges .google-play-art{height:auto;width:100%}
+  .tester-badge-caption{font-size:10.5px;padding:4px 6px}
+  .book-art{height:236px;min-height:236px;padding:0}
+  .book-cover{transform:rotate(-5deg) scale(.68)}
+  .home-links>a:active,.app-store-badge-link:active,.google-play-badge-link:active{transform:scale(.97);transition:transform .12s ease}
+  .android-tester-dialog{margin:auto 0 0;width:100%;max-width:100%;border-radius:26px 26px 0 0;border-bottom:0;max-height:90dvh}
+  .tester-dialog-content{padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+  .tester-dialog-content::before{content:'';display:block;width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 2px}
+}
+
+/* Leather-bound 3D book cover styling */
+.book-cover{position:relative;padding:0;overflow:hidden;background:#3a0c11;border:1px solid #5c2227;outline:0;border-radius:6px 14px 14px 6px;box-shadow:inset 9px 0 14px rgba(10,2,4,.55),inset -5px 0 1px #d6bb86,5px 4px 0 -1px #ebe1cc,6px 5px 0 -1px #b89f6f,16px 26px 36px rgba(36,27,23,.38),0 12px 60px rgba(53,41,27,.22)}
+.book-cover::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(90deg,rgba(0,0,0,.42) 0,rgba(255,255,255,.12) 10px,rgba(0,0,0,.22) 15px,transparent 24px,transparent calc(100% - 7px),rgba(235,214,168,.4) calc(100% - 3px),rgba(0,0,0,.25) 100%)}
+.book-cover img{display:block;width:100%;height:100%;object-fit:cover;padding:0;background:none;border-radius:0;filter:none}
+body.dark .book-cover{background:#2d090d;border-color:#693035;outline:0;box-shadow:inset 9px 0 14px rgba(0,0,0,.7),inset -5px 0 1px #b69a63,5px 4px 0 -1px #3b352c,6px 5px 0 -1px #8c764e,18px 28px 42px rgba(0,0,0,.8),0 0 48px rgba(248,232,201,.14)}
+body.dark .book-cover img{filter:none}
