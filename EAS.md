@@ -100,6 +100,15 @@ A Git commit, EAS Update, native build, store submission, and website deployment
 
 ## Release status
 
+### November 14, 2026 — iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers & Hymn 429 Lyric Fix (OTA-Compatible on Runtime `1.1.0`)
+
+- **All November 8–14 app changes are 100% JS/TS/asset changes compatible with runtime `1.1.0`** (`eas update --branch production` / `preview`; no native rebuild required):
+  - **iOS 26 Liquid Glass Remount (`GlassSurface.tsx`, `home.tsx`, `HomeHeaderActions.tsx`)**: Automatic `GlassView` remount on navigation focus, app foregrounding (`AppState === 'active'`), and scrolling back into the top header range (`contentOffset.y < 35`).
+  - **Header Share App Circle, Optical Centering & 120Hz Sheet Gestures (`HomeHeaderActions.tsx`, `AppMenuIcon.tsx`, `AppShareSheet.tsx`, `ShareSheet.tsx`, `HomeMenuSheet.tsx`)**: `44×44pt` Share App circle + `84×44pt` Search/Menu capsule with WWDC25 optical centering on iOS and 120Hz Reanimated swipe-down dismissal.
+  - **`Favoritos` Sub-Tab Single-Line Fit (`favorites.tsx`)**: `numberOfLines={1}` + `adjustsFontSizeToFit` (`minimumFontScale={0.8}`).
+  - **Quick Web Feedback Form & Auto-Prefill (`utils/feedback.ts`, `HomeMenuSheet.tsx`, `LanguageContext.tsx`, `docs/feedback.html`)**: Choice between in-app browser quick form (`?form=audio&hymn=...&title=...`, prefilling Google Form `entry.323314423`) and `mailto:` email with web-form fallback.
+  - **Hymn 429 Lyric Fix (`data/alabanzasPaginas.js`, `docs/`)**: Removed duplicate leading `"Salmos 100:1-5"` line from Hymn 429 lyrics so Stanza 1 begins with `"Cantad alegres a Dios,"`.
+
 ### November 8, 2026 — iOS App Store v1.1.0 (Build 19) Approval, Presentation Mode Crash/Landscape Fix, Auto-Foreground OTA Updates & Offline Audio Revision Cache Invalidation
 
 - **iOS `production`, build 19 (`1.1.0 (19)`) — APPROVED & LIVE ON APP STORE**:

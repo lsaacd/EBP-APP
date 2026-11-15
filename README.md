@@ -2,8 +2,15 @@
 
 Mobile app in `himnario/`; companion website in `docs/`.
 
-## Status — November 8, 2026
+## Status — November 14, 2026
 
+- **November 12–14, 2026 — iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers, AppShareSheet & Hymn 429 Lyric Fix**:
+  - **iOS 26 Liquid Glass Lifecycle & Scroll-Fade Refresh (`GlassSurface.tsx`, `home.tsx`, `HomeHeaderActions.tsx`)**: `GlassSurface` remounts `GlassView` after `@react-navigation/native` `blur` → `focus` transitions and `AppState` `'active'` foregrounding, and `home.tsx` increments `headerGlassEpoch` when scrolling back into the top header range (`contentOffset.y < 35`) so the header glass circle and capsule never lose their native glass shader.
+  - **WWDC25 Optical Centering & Header Action Capsule (`HomeHeaderActions.tsx`, `AppMenuIcon.tsx`, `AppShareSheet.tsx`)**: Top-right `Inicio` header features a `44×44pt` Share App glass circle (`square.and.arrow.up` / `share`, opening `AppShareSheet` with banner, QR code & `/app/` smart link) beside an `84×44pt` joined Search + Menu glass capsule (`two 42×44pt buttons`), with WWDC25 optical centering offsets on iOS (`translateY: -1` on share, `translateX: +1` on search, `translateX: -1` on menu) and 120Hz Reanimated UI-thread swipe-down sheet dismissal (`AppShareSheet`, `ShareSheet`, `HomeMenuSheet`).
+  - **`Favoritos` Sub-Tab Single-Line Fit (`favorites.tsx`)**: Added `numberOfLines={1}`, `adjustsFontSizeToFit`, and `minimumFontScale={0.8}` to `Mis Favoritos | Listas de Reproducción` sub-tab labels.
+  - **Quick Web Feedback Form & Auto-Prefill (`utils/feedback.ts`, `HomeMenuSheet.tsx`, `LanguageContext.tsx`, `docs/feedback.html`)**: Reporting an error prompts users to choose **"Formulario rápido (Recomendado)"** (opens `https://himnarioebp.com/feedback.html?form=audio&hymn=...&title=...` in `expo-web-browser` with Google Form field `entry.323314423` prefilled, requiring no email app setup) or **"Enviar por correo electrónico"** (`mailto:` with automatic web-form fallback).
+  - **Website 3D Leather Hymnal Covers & Full-Res App Store Mockups (`docs/index.html`, `docs/js/library.js`, `docs/images/branding/hymnal-leather-cover*.jpg`, `docs/mockups/*.jpg`)**: Added 3D burgundy leather cover for Light Mode and black leather & silver foil cover for Dark Mode on the website, updated full-resolution App Store mockups, and refined mobile web CSS (`catalog.css`, `reading-player.css`, `refinements.css`, `sharing.css`).
+  - **Hymn 429 Lyric Fix (`himnario/data/alabanzasPaginas.js`, `docs/`)**: Removed the duplicate leading `"Salmos 100:1-5"` line from Hymn 429 (`Cantad Alegres A Dios`, already in `reference: 'Salmos 100:1-5'`) so Stanza 1 begins with `"Cantad alegres a Dios,"`, and regenerated `docs/data/hymns-data.js`, `docs/hymn/429/index.html`, and `docs/himno/429/index.html`.
 - **iOS App Store v1.1.0 (Build 19 — `c3693e64`) Approved & Live**:
   - **Version `1.1.0` (Build 19)** with the new Liquid Glass `AppIcon.icon` (`supportsTablet: false` so iPhone-only screenshots are used on App Store Connect) was approved by Apple and is **live on the iOS App Store** (`1d1da2e0`).
   - **Latest Production OTA (`9778957d-6545-4d72-b8d7-393e734f92ec` on runtime `1.1.0`)**: Published to both iOS and Android (`production` branch), including:

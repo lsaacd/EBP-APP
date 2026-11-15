@@ -29,7 +29,7 @@ import TextSizeSheet from './TextSizeSheet';
 type Page = 'menu' | 'settings' | 'downloads' | 'about' | 'help';
 export type HomeMenuPage = 'settings' | 'about' | 'help';
 export type MenuAnchor = { x: number; y: number; width: number; height: number };
-const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html';
+const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html?form=audio';
 
 /** One modal with in-sheet navigation: no stacked settings/about presentation races. */
 export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }: { anchor: MenuAnchor; initialPage?: Page; onClose: () => void }) {

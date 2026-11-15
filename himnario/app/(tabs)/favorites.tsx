@@ -97,7 +97,12 @@ export default function FavoritesScreen() {
           ]}
           onPress={() => setActiveTab('favorites')}
         >
-          <Text style={[styles.subTabText, { color: activeTab === 'favorites' ? theme.primary : theme.onSurfaceVariant }]}>
+          <Text
+            style={[styles.subTabText, { color: activeTab === 'favorites' ? theme.primary : theme.onSurfaceVariant }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             {t.myFavorites}
           </Text>
         </TouchableOpacity>
@@ -108,7 +113,12 @@ export default function FavoritesScreen() {
           ]}
           onPress={() => setActiveTab('playlists')}
         >
-          <Text style={[styles.subTabText, { color: activeTab === 'playlists' ? theme.primary : theme.onSurfaceVariant }]}>
+          <Text
+            style={[styles.subTabText, { color: activeTab === 'playlists' ? theme.primary : theme.onSurfaceVariant }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             {t.playlistsTitle}
           </Text>
         </TouchableOpacity>
@@ -372,7 +382,9 @@ const styles = StyleSheet.create({
   subTabItem: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 4,
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 2,
     borderColor: 'transparent',
   },
@@ -382,6 +394,7 @@ const styles = StyleSheet.create({
   subTabText: {
     fontFamily: 'PublicSans_600SemiBold',
     fontSize: 14,
+    textAlign: 'center',
   },
   pageHeader: {
     marginBottom: 48,

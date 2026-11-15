@@ -1,7 +1,34 @@
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+
+const FEEDBACK_BASE_URL = 'https://himnarioebp.com/feedback.html';
+
+export const openFeedbackForm = async (
+  hymnNumber?: string | number,
+  hymnTitle?: string
+) => {
+  const params = new URLSearchParams({ form: 'audio' });
+  if (hymnNumber !== undefined) {
+    params.set('hymn', `#${hymnNumber}`);
+  }
+  if (hymnTitle !== undefined) {
+    params.set('title', hymnTitle);
+  }
+  const formUrl = `${FEEDBACK_BASE_URL}?${params.toString()}`;
+
+  try {
+    await WebBrowser.openBrowserAsync(formUrl);
+  } catch {
+    Linking.openURL(formUrl).catch((err) => {
+      console.error('Failed to open feedback form:', err);
+    });
+  }
+};
 
 /**
- * Sends a feedback email to support using the mailto: protocol.
+ * Prompts the user to report an error or send a suggestion via the quick web form
+ * (which requires no email setup on their phone) or via their email app (with automatic
+ * fallback to the web form if mailto: fails).
  *
  * @param language - Current language code ('es' or 'en')
  * @param hymnNumber - Optional hymn or estribillo number (e.g. 45 or 'E32')
@@ -34,9 +61,36 @@ export const sendFeedbackEmail = (
     }
   }
 
-  const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  
-  Linking.openURL(url).catch((err) => {
-    console.error('Failed to open mail app:', err);
-  });
+  const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  const openMailWithFallback = () => {
+    Linking.openURL(mailtoUrl).catch(() => {
+      void openFeedbackForm(hymnNumber, hymnTitle);
+    });
+  };
+
+  Alert.alert(
+    language === 'es' ? 'Reportar error o sugerencia' : 'Report error or suggestion',
+    language === 'es'
+      ? 'Elige cómo deseas enviarnos tu reporte. El formulario rápido funciona directamente sin necesidad de tener correo configurado en tu teléfono.'
+      : 'Choose how you would like to send your report. The quick form works directly without needing an email app configured on your phone.',
+    [
+      {
+        text: language === 'es' ? 'Formulario rápido (Recomendado)' : 'Quick Form (Recommended)',
+        isPreferred: true,
+        onPress: () => {
+          void openFeedbackForm(hymnNumber, hymnTitle);
+        },
+      },
+      {
+        text: language === 'es' ? 'Enviar por correo electrónico' : 'Send via Email App',
+        onPress: openMailWithFallback,
+      },
+      {
+        text: language === 'es' ? 'Cancelar' : 'Cancel',
+        style: 'cancel',
+      },
+    ],
+    { cancelable: true }
+  );
 };

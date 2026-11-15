@@ -111,7 +111,10 @@
 
       if (hymn || title) {
         const reference = [hymn, title].filter(Boolean).join(' · ');
-        context.textContent = `Alabanza relacionada: ${reference}. Incluye este título en tu comentario si tu respuesta se refiere a ella.`;
+        const encodedRef = encodeURIComponent(reference);
+        forms.audio.view = `${forms.audio.view}?usp=pp_url&entry.323314423=${encodedRef}`;
+        forms.audio.embed = `${forms.audio.embed}&usp=pp_url&entry.323314423=${encodedRef}`;
+        context.textContent = `Alabanza relacionada: ${reference}. Ya prellenamos este título en el formulario.`;
         context.hidden = false;
       }
 

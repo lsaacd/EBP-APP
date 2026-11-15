@@ -47,7 +47,7 @@ Browser favorites/playlists remain local and independent of the mobile app. Web 
 ## Feedback and artwork
 
 - Two forms are embedded in `feedback.html`: Alabanzas y Audio, and Sitio Web y Proyector.
-- `?hymn=` / `?title=` selects audio feedback and displays context; it does not prefill Google Forms. `?form=audio` explicitly selects that tab.
+- `?hymn=` / `?title=` selects audio feedback, displays context, and automatically prefills Google Form field `entry.323314423` (`?usp=pp_url&entry.323314423=...`) with the `hymn · title` reference. `?form=audio` explicitly selects that tab.
 - Form IDs and URLs live in `scripts/created_forms.json`; API helpers are in `scripts/google_forms_manager.py`. Protect OAuth credentials and tokens.
 - QR source: `downloads/ebp-app-icon.png`; regenerate with `python scripts/generate-app-qr.py` using `qrcode[pil]`.
 - Keep existing branded assets in `images/branding/`, promotional artwork in `mockups/`, and `.nojekyll`.

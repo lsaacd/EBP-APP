@@ -5,8 +5,9 @@
  * - Older iOS: Translucent `BlurView` (`expo-blur`) with a Sacred Ink wash.
  * - Android / Web: Material 3 tonal surface without heavy blur.
  */
-import React from 'react';
-import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { AppState, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTheme } from '../theme/ThemeContext';
@@ -51,6 +52,8 @@ export interface GlassSurfaceProps {
   forceDark?: boolean;
   /** Use a predictable frosted backing in modals and floating players. */
   stableBackdrop?: boolean;
+  /** Optional counter to force a fresh native GlassView mount after scroll/visibility changes */
+  refreshKey?: number;
 }
 
 export default function GlassSurface({
@@ -62,9 +65,38 @@ export default function GlassSurface({
   tonalColor,
   forceDark,
   stableBackdrop = false,
+  refreshKey = 0,
 }: GlassSurfaceProps) {
   const { theme, isDarkMode } = useTheme();
   const dark = forceDark ?? isDarkMode;
+  const navigation = useContext(NavigationContext);
+  const wasBlurredRef = useRef(false);
+  const [glassKey, setGlassKey] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || stableBackdrop || !checkLiquidGlass()) return;
+
+    const unsubBlur = navigation?.addListener('blur', () => {
+      wasBlurredRef.current = true;
+    });
+    const unsubFocus = navigation?.addListener('focus', () => {
+      if (wasBlurredRef.current) {
+        wasBlurredRef.current = false;
+        setGlassKey((k) => k + 1);
+      }
+    });
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        setGlassKey((k) => k + 1);
+      }
+    });
+
+    return () => {
+      unsubBlur?.();
+      unsubFocus?.();
+      appStateSub.remove();
+    };
+  }, [navigation, stableBackdrop]);
 
   if (Platform.OS === 'ios') {
     const useLiquid = checkLiquidGlass();
@@ -75,6 +107,7 @@ export default function GlassSurface({
       const GlassViewComp = CachedGlassView;
       return (
         <GlassViewComp
+          key={`glass-${glassKey}-${refreshKey}-${dark ? 'd' : 'l'}`}
           glassEffectStyle={glassEffectStyle}
           colorScheme={dark ? 'dark' : 'light'}
           isInteractive={isInteractive}

@@ -21,7 +21,7 @@ if (Platform.OS === 'ios' || Platform.OS === 'android') {
   } catch { /* Native module is available only after a full rebuild. */ }
 }
 
-export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }) {
+export default function HomeHeaderActions({ onSearch, glassEpoch = 0 }: { onSearch: () => void; glassEpoch?: number }) {
   const { theme, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
   const menuAnchorRef = useRef<View>(null);
@@ -67,9 +67,25 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
   ] : actions;
 
   const isIOS = Platform.OS === 'ios';
-  const menuIcon = <AppMenuIcon ios="ellipsis" android="more-vert" size={isIOS ? 23 : 22} weight="bold" color={theme.primary} />;
-  const buttonStyle = ({ pressed }: { pressed: boolean }) => [
-    styles.button,
+  const menuIcon = (
+    <AppMenuIcon
+      ios="ellipsis"
+      android="more-vert"
+      size={22}
+      containerSize={24}
+      scale="large"
+      weight="medium"
+      color={theme.primary}
+      style={isIOS ? styles.menuIconOptical : undefined}
+    />
+  );
+  const shareButtonStyle = ({ pressed }: { pressed: boolean }) => [
+    styles.shareButton,
+    !isIOS && styles.androidButtonClip,
+    !isIOS && { backgroundColor: pressed ? theme.primary + '18' : 'transparent' },
+  ];
+  const capsuleButtonStyle = ({ pressed }: { pressed: boolean }) => [
+    styles.capsuleButton,
     !isIOS && styles.androidButtonClip,
     !isIOS && { backgroundColor: pressed ? theme.primary + '18' : 'transparent' },
   ];
@@ -81,21 +97,39 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
 
   return <>
     <View style={styles.actionsRow}>
-      <GlassSurface intensity={55} isInteractive style={[styles.shareCircle, Platform.OS === 'android' && styles.androidCapsule]}>
+      <GlassSurface refreshKey={glassEpoch} intensity={55} isInteractive style={[styles.shareCircle, Platform.OS === 'android' && styles.androidCapsule]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={language === 'es' ? 'Compartir aplicación' : 'Share app'}
           onPress={handleShareAppPress}
           android_ripple={{ color: theme.primary + '20', borderless: false }}
-          style={buttonStyle}
+          style={shareButtonStyle}
         >
-          <AppMenuIcon ios="square.and.arrow.up" android="share" size={isIOS ? 25 : 24} containerSize={33} weight="bold" color={theme.primary} />
+          <AppMenuIcon
+            ios="square.and.arrow.up"
+            android="share"
+            size={23}
+            containerSize={26}
+            scale="large"
+            weight="regular"
+            color={theme.primary}
+            style={isIOS ? styles.shareIconOptical : undefined}
+          />
         </Pressable>
       </GlassSurface>
-      <GlassSurface intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>
+      <GlassSurface refreshKey={glassEpoch} intensity={55} isInteractive style={[styles.capsule, Platform.OS === 'android' && styles.androidCapsule]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.searchPlaceholder}
-          onPress={onSearch} android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
-          <AppMenuIcon ios="magnifyingglass" android="search" size={isIOS ? 25 : 24} containerSize={33} weight="bold" color={theme.primary} />
+          onPress={onSearch} android_ripple={{ color: theme.primary + '20', borderless: false }} style={capsuleButtonStyle}>
+          <AppMenuIcon
+            ios="magnifyingglass"
+            android="search"
+            size={23}
+            containerSize={24}
+            scale="large"
+            weight="regular"
+            color={theme.primary}
+            style={isIOS ? styles.searchIconOptical : undefined}
+          />
         </Pressable>
         {!isIOS && (
           <View pointerEvents="none" style={[styles.separator, { backgroundColor: theme.outlineVariant }]} />
@@ -106,11 +140,11 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
             isAnchoredToRight shouldOpenOnLongPress={false} onPressAction={selectAction}
             onOpenMenu={() => setExpanded(true)} onCloseMenu={() => setExpanded(false)}
             accessible accessibilityRole="button" accessibilityLabel={t.homeMenu} accessibilityState={{ expanded }}
-            style={styles.button}>
-            <View pointerEvents="none" accessible={false} style={styles.button}>{menuIcon}</View>
+            style={styles.capsuleButton}>
+            <View pointerEvents="none" accessible={false} style={styles.capsuleButton}>{menuIcon}</View>
           </NativeMenu> : <Pressable accessibilityRole="button" accessibilityLabel={t.homeMenu}
             accessibilityState={{ expanded: sheet !== null }} onPress={() => openSheet('menu')}
-            android_ripple={{ color: theme.primary + '20', borderless: false }} style={buttonStyle}>
+            android_ripple={{ color: theme.primary + '20', borderless: false }} style={capsuleButtonStyle}>
             {menuIcon}
           </Pressable>}
         </View>
@@ -124,10 +158,17 @@ export default function HomeHeaderActions({ onSearch }: { onSearch: () => void }
 const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   shareCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  capsule: { flexDirection: 'row', alignItems: 'center', borderRadius: 22, flexShrink: 0, paddingHorizontal: 3 },
+  capsule: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 22, flexShrink: 0 },
   androidCapsule: { borderRadius: 22 },
-  button: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  shareButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  capsuleButton: { width: 42, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
   androidButtonClip: { overflow: 'hidden' },
-  menuAnchor: { width: 44, height: 44 },
+  menuAnchor: { width: 42, height: 44 },
   separator: { width: StyleSheet.hairlineWidth, height: 18, opacity: 0.65 },
+  // WWDC25 optical centering:
+  // - `square.and.arrow.up` has an upward arrow stem; -1pt Y centers its visual mass inside the 44x44 circle.
+  // - In the 84x44 capsule (two 42x44 buttons), +/-1pt X aligns each icon with the 22pt radius center of its hemispherical cap.
+  shareIconOptical: { transform: [{ translateY: -1 }] },
+  searchIconOptical: { transform: [{ translateX: 1 }] },
+  menuIconOptical: { transform: [{ translateX: -1 }] },
 });

@@ -194,6 +194,7 @@ function offlineFixture({ failIds = [], platformOS = 'android' } = {}) {
     '../data/audioRegistry.native': {
       getAllAudioIds: () => ids,
       getHymnAudio: id => (ids.includes(id) ? `https://audio.example/hymn_${id}.m4a` : null),
+      getHymnAudioRevision: () => 1,
     },
   });
   return { offline, files, downloads };

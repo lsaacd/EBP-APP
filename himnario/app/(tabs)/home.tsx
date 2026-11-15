@@ -62,6 +62,7 @@ export default function HomeScreen() {
   const titleOpacity = scrollY.interpolate({ inputRange: [0, 35], outputRange: [1, 0], extrapolate: 'clamp' });
   const titleTranslateY = scrollY.interpolate({ inputRange: [0, 40], outputRange: [0, -10], extrapolate: 'clamp' });
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [headerGlassEpoch, setHeaderGlassEpoch] = useState(0);
 
   useEffect(() => {
     void refreshOfflineAudio();
@@ -447,7 +448,7 @@ export default function HomeScreen() {
       <View style={[styles.headerTitleRow, IS_IPAD && styles.tabletCenter]}>
         <Text style={[styles.headerTitle, { color: headerTitleColor, fontSize: 34 }]}
           numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{language === 'es' ? 'Inicio' : 'Home'}</Text>
-        <HomeHeaderActions onSearch={handleHeaderSearchPress} />
+        <HomeHeaderActions glassEpoch={headerGlassEpoch} onSearch={handleHeaderSearchPress} />
       </View>
     </Animated.View>
   );
@@ -469,7 +470,13 @@ export default function HomeScreen() {
             useNativeDriver: true,
             listener: (event: any) => {
               const hidden = event.nativeEvent.contentOffset.y >= 35;
-              setHeaderHidden(current => current === hidden ? current : hidden);
+              setHeaderHidden(current => {
+                if (current === hidden) return current;
+                if (current && !hidden && IS_IOS) {
+                  setHeaderGlassEpoch(e => e + 1);
+                }
+                return hidden;
+              });
             },
           })}
           scrollEventThrottle={16}

@@ -32,7 +32,28 @@ node scripts/test-web-search.js
 
 Distinguish existing lint issues from regressions. Native audio and screen-orientation locking require a compatible native build, not Expo Go. Validate changed behavior on the target device; mocked checks do not establish lock-screen or Universal Link behavior.
 
-Latest checks (November 6, 2026): `npx tsc --noEmit` passes with 0 errors; scoped ESLint passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 8 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (24/24 total); both iOS and Android Metro/Hermes bundles export cleanly.
+Latest checks (November 14, 2026): `npx tsc --noEmit` passes with 0 errors; scoped ESLint passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 8 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (24/24 total); `node scripts/test-web-search.js` passes across all 761 hymns and choruses.
+
+## November 14, 2026 — iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers, 120Hz Sheet Gestures & Hymn 429 Lyric Fix
+
+- **iOS 26 Liquid Glass Lifecycle & Scroll-Fade Remount (`components/GlassSurface.tsx`, `app/(tabs)/home.tsx`, `components/HomeHeaderActions.tsx`)**:
+  - `GlassSurface.tsx` subscribes to `@react-navigation/native` `blur`/`focus` events and `AppState` `'active'` transitions on iOS when native Liquid Glass is active (`!stableBackdrop`), bumping `glassKey` (combined with `refreshKey` and `dark` in `key="glass-${glassKey}-${refreshKey}-${dark ? 'd' : 'l'}"`) so UIKit `GlassView` cleanly remounts after tab switches or app backgrounding.
+  - `home.tsx` tracks `headerGlassEpoch` and increments it when scrolling back to the top (`contentOffset.y < 35` after being hidden) on iOS, passing `glassEpoch` to `HomeHeaderActions` as `refreshKey`.
+- **WWDC25 Optical Centering, Share App Button & 120Hz Sheet Gestures (`components/HomeHeaderActions.tsx`, `components/AppMenuIcon.tsx`, `components/AppShareSheet.tsx`, `components/ShareSheet.tsx`, `components/HomeMenuSheet.tsx`)**:
+  - `HomeHeaderActions.tsx` renders a `44×44pt` Share App glass circle (`square.and.arrow.up` / `share`, opening `AppShareSheet` with banner + QR code + `/app/` smart redirect link) and an `84×44pt` joined Search + Menu glass capsule (`two 42×44pt buttons`), with WWDC25 optical centering on iOS (`shareIconOptical: translateY(-1)`, `searchIconOptical: translateX(1)`, `menuIconOptical: translateX(-1)`).
+  - `AppShareSheet`, `ShareSheet`, and `HomeMenuSheet` use 120Hz Reanimated UI-thread pan gestures with velocity-spring dismissal and backdrop interpolation.
+- **`Favoritos` Sub-Tab Single-Line Fit (`app/(tabs)/favorites.tsx`)**:
+  - Added `numberOfLines={1}`, `adjustsFontSizeToFit`, `minimumFontScale={0.8}`, and centered alignment to the `Mis Favoritos | Listas de Reproducción` sub-tab labels.
+- **Quick Web Feedback Form & Google Form Auto-Prefill (`utils/feedback.ts`, `components/HomeMenuSheet.tsx`, `context/LanguageContext.tsx`, `docs/feedback.html`)**:
+  - `sendFeedbackEmail` in `utils/feedback.ts` prompts the user with a native `Alert` offering **"Formulario rápido (Recomendado)"** (opens `https://himnarioebp.com/feedback.html?form=audio&hymn=...&title=...` via `expo-web-browser` with no mail client required) or **"Enviar por correo electrónico"** (`mailto:` with automatic fallback to the web form).
+  - `docs/feedback.html` automatically prefills Google Form field `entry.323314423` with the `hymn · title` reference (`?usp=pp_url&entry.323314423=...`).
+  - Updated `reportHymnError` in `LanguageContext.tsx` to `"¿Encontraste un error? Reportar aquí"` / `"Found an error? Report here"`.
+- **Website 3D Leather Covers & Full-Res Mockups (`docs/index.html`, `docs/js/library.js`, `docs/images/branding/hymnal-leather-cover*.jpg`, `docs/mockups/*.jpg`, `fe8efe3`–`9a4d348`)**:
+  - Added 3D burgundy leather cover (`hymnal-leather-cover.jpg`) for Light Mode and black leather with silver foil (`hymnal-leather-cover-dark.jpg`) for Dark Mode, full-res App Store mockups, and mobile web CSS refinements; removed duplicate root `.ai` and `.png` source files and temporary staging folders.
+- **Hymn 429 Lyric Fix (`data/alabanzasPaginas.js`, `docs/data/hymns-data.js`, `docs/hymn/429/index.html`, `docs/himno/429/index.html`)**:
+  - Removed the redundant leading `"Salmos 100:1-5\n\n"` line from Hymn 429 (`Cantad Alegres A Dios`, already stored in `reference: 'Salmos 100:1-5'`) so Stanza 1 starts directly with `"Cantad alegres a Dios,"`, and regenerated the web catalog and static hymn preview pages.
+- **Test Harness Update (`scripts/test-android-playback.cjs`)**:
+  - Added `getHymnAudioRevision: () => 1` to the `../data/audioRegistry.native` mock in `offlineFixture` so all 16 playback/offline tests pass alongside the 8 gesture tests (24/24).
 
 ## November 8, 2026 — iOS App Store v1.1.0 (Build 19) Approval, Presentation Mode Crash/Landscape Fix, Auto-Foreground OTA Updates & Offline Audio Revision Cache Invalidation
 

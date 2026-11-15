@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
@@ -10,7 +10,10 @@ export default function AppMenuIcon({
   color,
   size = 22,
   containerSize,
-  weight = 'bold',
+  weight = 'medium',
+  scale = 'default',
+  resizeMode = 'scaleAspectFit',
+  style,
 }: {
   ios: SymbolViewProps['name'];
   android: React.ComponentProps<typeof MaterialIcons>['name'];
@@ -18,9 +21,22 @@ export default function AppMenuIcon({
   size?: number;
   containerSize?: number;
   weight?: SymbolViewProps['weight'];
+  scale?: SymbolViewProps['scale'];
+  resizeMode?: SymbolViewProps['resizeMode'];
+  style?: StyleProp<ViewStyle>;
 }) {
   const iosBox = containerSize ?? size;
   return Platform.OS === 'ios'
-    ? <SymbolView name={ios} tintColor={color} size={iosBox} weight={weight} resizeMode="scaleAspectFit" style={{ width: iosBox, height: iosBox }} />
+    ? (
+      <SymbolView
+        name={ios}
+        tintColor={color}
+        size={iosBox}
+        weight={weight}
+        scale={scale}
+        resizeMode={resizeMode}
+        style={[{ width: iosBox, height: iosBox }, style]}
+      />
+    )
     : <MaterialIcons name={android} color={color} size={size} />;
 }
