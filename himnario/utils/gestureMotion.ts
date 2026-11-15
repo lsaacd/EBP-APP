@@ -19,3 +19,52 @@ export function miniPlayerFrame(width: number, height: number, bottom: number, a
   const miniHeight = measuredHeight ?? (android ? 74 : 57);
   return { x: inset, y: Math.max(0, height - bottom - miniHeight), width: width - inset * 2, height: miniHeight };
 }
+
+export function clampMiniPlayerDrag(
+  translationX: number,
+  slotWidth: number,
+  hasPrev: boolean,
+  hasNext: boolean,
+) {
+  'worklet';
+  const width = Math.max(120, slotWidth);
+  if (translationX < 0) {
+    if (!hasNext) return Math.max(-width * 0.35, translationX * 0.25);
+    return Math.max(-width, translationX);
+  }
+  if (translationX > 0) {
+    if (!hasPrev) return Math.min(width * 0.35, translationX * 0.25);
+    return Math.min(width, translationX);
+  }
+  return 0;
+}
+
+/**
+ * Returns 1 to advance to next track (swipe left), -1 for previous track (swipe right),
+ * or 0 to cancel and snap back to the current track.
+ */
+export function miniPlayerSwipeDirection(
+  translationX: number,
+  velocityX: number,
+  slotWidth: number,
+  hasPrev: boolean,
+  hasNext: boolean,
+): -1 | 0 | 1 {
+  'worklet';
+  const width = Math.max(120, slotWidth);
+  if (translationX < 0) {
+    if (!hasNext || velocityX > 350) return 0;
+    if (translationX < -width * 0.28 || (translationX < -14 && velocityX < -520)) {
+      return 1;
+    }
+    return 0;
+  }
+  if (translationX > 0) {
+    if (!hasPrev || velocityX < -350) return 0;
+    if (translationX > width * 0.28 || (translationX > 14 && velocityX > 520)) {
+      return -1;
+    }
+    return 0;
+  }
+  return 0;
+}

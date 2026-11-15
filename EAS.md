@@ -100,9 +100,12 @@ A Git commit, EAS Update, native build, store submission, and website deployment
 
 ## Release status
 
-### November 14, 2026 — iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers & Hymn 429 Lyric Fix (OTA-Compatible on Runtime `1.1.0`)
+### November 14, 2026 — YouTube Music Horizontal Track Swipe in `MiniPlayer`, iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers & Hymn 429 Lyric Fix (Published via OTA on Runtime `1.1.0`)
 
-- **All November 8–14 app changes are 100% JS/TS/asset changes compatible with runtime `1.1.0`** (`eas update --branch production` / `preview`; no native rebuild required):
+- **Published via EAS Update (OTA) on Runtime `1.1.0`**:
+  - **`production` Update Group (`7fb0f557-81d9-402e-8fac-18c2751d3d94`)**: [EAS Dashboard](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/7fb0f557-81d9-402e-8fac-18c2751d3d94) · iOS `01a1dddb-67f1-773a-be21-194b66036ea8` · Android `01a1dddb-67f1-7ce4-bb4e-0322defa98aa`.
+  - **`preview` Update Group (`c2caeb70-190e-4f31-af52-e281a5bec7bd`)**: [EAS Dashboard](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/c2caeb70-190e-4f31-af52-e281a5bec7bd) · iOS `01a1dddc-242c-7ea5-925a-2938d6d9eb7e` · Android `01a1dddc-242c-7cfa-88ca-92f957850b47`.
+  - **YouTube Music-Style Horizontal Track Carousel (`MiniPlayer.tsx`, `gestureMotion.ts`, `scripts/test-gesture-motion.cjs`)**: Swiping left or right on the `MiniPlayer` scrubs a 120Hz 3-slot track strip (`[prevHymn, hymn, nextHymn]`) inside the stationary `GlassSurface` capsule while keeping `Prev / Play-Pause / Next` anchored on the right, committing `skipNext()` or `skipPrev()` past `28%` width or `520pt/s` flick velocity and rubber-banding at non-wrapping boundaries.
   - **iOS 26 Liquid Glass Remount (`GlassSurface.tsx`, `home.tsx`, `HomeHeaderActions.tsx`)**: Automatic `GlassView` remount on navigation focus, app foregrounding (`AppState === 'active'`), and scrolling back into the top header range (`contentOffset.y < 35`).
   - **Header Share App Circle, Optical Centering & 120Hz Sheet Gestures (`HomeHeaderActions.tsx`, `AppMenuIcon.tsx`, `AppShareSheet.tsx`, `ShareSheet.tsx`, `HomeMenuSheet.tsx`)**: `44×44pt` Share App circle + `84×44pt` Search/Menu capsule with WWDC25 optical centering on iOS and 120Hz Reanimated swipe-down dismissal.
   - **`Favoritos` Sub-Tab Single-Line Fit (`favorites.tsx`)**: `numberOfLines={1}` + `adjustsFontSizeToFit` (`minimumFontScale={0.8}`).

@@ -10,7 +10,13 @@ const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
 }).outputText;
 const loaded = { exports: {} };
 new Function('module', 'exports', compiled)(loaded, loaded.exports);
-const { tabReleaseTarget, shouldCollapsePlayer, miniPlayerFrame } = loaded.exports;
+const {
+  tabReleaseTarget,
+  shouldCollapsePlayer,
+  miniPlayerFrame,
+  clampMiniPlayerDrag,
+  miniPlayerSwipeDirection,
+} = loaded.exports;
 
 test('slow partial swipes cancel; completed drags select either neighbor', () => {
   assert.equal(tabReleaseTarget(1.35, 0, 1, 4), 1);
@@ -52,4 +58,29 @@ test('Android endpoint honors its larger cover, edge bar and gesture inset', () 
   assert.equal(frame.height, 74);
   assert.equal(frame.y + frame.height, 915 - 88);
   assert.equal(miniPlayerFrame(412, 915, 220, true).y + frame.height, 695);
+});
+test('mini-player horizontal track swipe commits past distance or velocity threshold and cancels on reversal', () => {
+  // Partial drag without flick cancels (0)
+  assert.equal(miniPlayerSwipeDirection(-40, 0, 210, true, true), 0);
+  assert.equal(miniPlayerSwipeDirection(40, 0, 210, true, true), 0);
+  // Long drag left commits next (+1); long drag right commits previous (-1)
+  assert.equal(miniPlayerSwipeDirection(-70, 0, 210, true, true), 1);
+  assert.equal(miniPlayerSwipeDirection(70, 0, 210, true, true), -1);
+  // Deliberate flick left or right commits
+  assert.equal(miniPlayerSwipeDirection(-25, -700, 210, true, true), 1);
+  assert.equal(miniPlayerSwipeDirection(25, 700, 210, true, true), -1);
+  // Direction reversal cancels even after a long drag
+  assert.equal(miniPlayerSwipeDirection(-95, 500, 210, true, true), 0);
+  assert.equal(miniPlayerSwipeDirection(95, -500, 210, true, true), 0);
+});
+test('mini-player horizontal track swipe respects first/last boundaries and rubber-bands', () => {
+  // Cannot swipe right to previous when hasPrev is false
+  assert.equal(miniPlayerSwipeDirection(100, 900, 210, false, true), 0);
+  // Cannot swipe left to next when hasNext is false
+  assert.equal(miniPlayerSwipeDirection(-100, -900, 210, true, false), 0);
+  // Rubber-band resistance at boundaries vs full slot range when neighbor exists
+  assert.equal(clampMiniPlayerDrag(100, 200, false, true), 25);
+  assert.equal(clampMiniPlayerDrag(-100, 200, true, false), -25);
+  assert.equal(clampMiniPlayerDrag(-250, 200, true, true), -200);
+  assert.equal(clampMiniPlayerDrag(250, 200, true, true), 200);
 });

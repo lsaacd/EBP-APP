@@ -32,10 +32,14 @@ node scripts/test-web-search.js
 
 Distinguish existing lint issues from regressions. Native audio and screen-orientation locking require a compatible native build, not Expo Go. Validate changed behavior on the target device; mocked checks do not establish lock-screen or Universal Link behavior.
 
-Latest checks (November 14, 2026): `npx tsc --noEmit` passes with 0 errors; scoped ESLint passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 8 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (24/24 total); `node scripts/test-web-search.js` passes across all 761 hymns and choruses.
+Latest checks (November 14, 2026): `npx tsc --noEmit` passes with 0 errors; scoped ESLint passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 10 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (26/26 total); `node scripts/test-web-search.js` passes across all 761 hymns and choruses.
 
-## November 14, 2026 — iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers, 120Hz Sheet Gestures & Hymn 429 Lyric Fix
+## November 14, 2026 — YouTube Music Horizontal Track Swipe in `MiniPlayer`, iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers, 120Hz Sheet Gestures & Hymn 429 Lyric Fix
 
+- **YouTube Music-Style Horizontal Track Carousel in `MiniPlayer` (`components/MiniPlayer.tsx`, `utils/gestureMotion.ts`, `scripts/test-gesture-motion.cjs`)**:
+  - Added `clampMiniPlayerDrag` and `miniPlayerSwipeDirection` worklets in `utils/gestureMotion.ts`.
+  - `MiniPlayer.tsx` keeps the outer `GlassSurface` capsule and right-hand `Prev / Play-Pause / Next` buttons stationary while rendering a clipped 3-slot track strip (`[prevHymn, hymn, nextHymn]`) inside `styles.trackViewport`.
+  - Horizontal thumb swipes scrub between previous and next tracks at 120Hz on the UI thread (with `0.25×` rubber-banding at non-wrapping queue boundaries), committing `skipNext()` or `skipPrev()` past `28%` slot width or `520pt/s` flick velocity and synchronously resetting `translateX.value = 0` in `useLayoutEffect([currentHymnId])` with zero frame flash. Vertical swipe-up (`dy < -8`) and tap continue to expand the full-screen `MusicPlayer`.
 - **iOS 26 Liquid Glass Lifecycle & Scroll-Fade Remount (`components/GlassSurface.tsx`, `app/(tabs)/home.tsx`, `components/HomeHeaderActions.tsx`)**:
   - `GlassSurface.tsx` subscribes to `@react-navigation/native` `blur`/`focus` events and `AppState` `'active'` transitions on iOS when native Liquid Glass is active (`!stableBackdrop`), bumping `glassKey` (combined with `refreshKey` and `dark` in `key="glass-${glassKey}-${refreshKey}-${dark ? 'd' : 'l'}"`) so UIKit `GlassView` cleanly remounts after tab switches or app backgrounding.
   - `home.tsx` tracks `headerGlassEpoch` and increments it when scrolling back to the top (`contentOffset.y < 35` after being hidden) on iOS, passing `glassEpoch` to `HomeHeaderActions` as `refreshKey`.
