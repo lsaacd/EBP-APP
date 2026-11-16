@@ -16,6 +16,7 @@ import { usePlaylists } from '../../context/PlaylistsContext';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
@@ -28,14 +29,19 @@ export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { theme, isDarkMode } = useTheme();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
   const bottomClearance = Math.max(insets.bottom, 20) + 90;
   const { playlists, deletePlaylist, removeHymnFromPlaylist } = usePlaylists();
 
   const playlist = playlists.find(p => p.id === id);
   const allHymns = [...hymnsData, ...estribillosData];
-  const playlistHymns = playlist ? playlist.hymnIds.map(hId => allHymns.find(h => String(h.id) === hId)).filter(Boolean) : [];
+  const playlistHymns = playlist
+    ? playlist.hymnIds
+        .map(hId => allHymns.find(h => String(h.id) === hId))
+        .filter(Boolean)
+        .map(h => getLocalizedHymn(h as any, hymnLanguage))
+    : [];
 
   const handleDeletePlaylist = () => {
     Alert.alert(

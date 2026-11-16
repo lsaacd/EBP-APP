@@ -25,6 +25,7 @@ import { useFavorites } from '../../context/FavoritesContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
@@ -39,7 +40,7 @@ export default function FavoritesScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode } = useTheme();
   const { favoriteIds, toggleFavorite } = useFavorites();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId } = useNowPlaying();
@@ -50,7 +51,9 @@ export default function FavoritesScreen() {
 
   // Resolve full hymn objects for saved IDs
   const allHymns = [...hymnsData, ...estribillosData];
-  const favoriteHymns = allHymns.filter((h) => favoriteIds.includes(String(h.id)));
+  const favoriteHymns = allHymns
+    .filter((h) => favoriteIds.includes(String(h.id)))
+    .map((h) => getLocalizedHymn(h, hymnLanguage));
 
   // ── Scroll state ─────────────────────────────────────────────────────────
   const scrollViewRef = useRef<any>(null);

@@ -35,6 +35,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage, translateCategory, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
+import { getLocalizedHymns } from '../../data/alabanzasEnglish';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -49,13 +50,33 @@ import {
   create as createSearchEngine,
   normalize as normalizeSearch,
   segmentTextByRanges,
+  type SearchableHymn,
   type SearchResult,
 } from '../../utils/search-engine';
 
 const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 
-const himnosSearchEngine = createSearchEngine(hymnsData as any[]);
-const estribillosSearchEngine = createSearchEngine(estribillosData as any[]);
+const himnosSearchEngineEs = createSearchEngine(hymnsData as any[]);
+const estribillosSearchEngineEs = createSearchEngine(estribillosData as any[]);
+
+function mergeBilingualHits<T extends SearchableHymn>(
+  primaryHits: SearchResult<T>[],
+  secondaryHits: SearchResult<T>[],
+  localizedById: Map<string, T>,
+): SearchResult<T>[] {
+  if (secondaryHits.length === 0) return primaryHits;
+  const seen = new Set(primaryHits.map((r) => String(r.hymn.id)));
+  const merged = [...primaryHits];
+  for (const hit of secondaryHits) {
+    const id = String(hit.hymn.id);
+    if (!seen.has(id)) {
+      seen.add(id);
+      const localized = localizedById.get(id) ?? hit.hymn;
+      merged.push({ ...hit, hymn: localized });
+    }
+  }
+  return merged;
+}
 
 function HighlightedText({
   text,
@@ -96,7 +117,36 @@ export default function HymnListScreen() {
   const router = useRouter();
   const { fontScale } = useWindowDimensions();
   const { theme, isDarkMode } = useTheme();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
+  const englishHymnsData = useMemo(
+    () => getLocalizedHymns(hymnsData as any[], 'en'),
+    [],
+  );
+  const englishEstribillosData = useMemo(
+    () => getLocalizedHymns(estribillosData as any[], 'en'),
+    [],
+  );
+  const localizedHymnsData = hymnLanguage === 'en' ? englishHymnsData : (hymnsData as any[]);
+  const localizedEstribillosData =
+    hymnLanguage === 'en' ? englishEstribillosData : (estribillosData as any[]);
+
+  const localizedHymnsById = useMemo(
+    () => new Map(localizedHymnsData.map((h: any) => [String(h.id), h])),
+    [localizedHymnsData],
+  );
+  const localizedEstribillosById = useMemo(
+    () => new Map(localizedEstribillosData.map((h: any) => [String(h.id), h])),
+    [localizedEstribillosData],
+  );
+
+  const himnosSearchEngineEn = useMemo(
+    () => createSearchEngine(englishHymnsData),
+    [englishHymnsData],
+  );
+  const estribillosSearchEngineEn = useMemo(
+    () => createSearchEngine(englishEstribillosData),
+    [englishEstribillosData],
+  );
   const insets = useSafeAreaInsets();
   const ipadTopOffset = Platform.OS === 'ios' && Boolean((Platform as any).isPad) ? 50 : 0;
   const { search, setSearch, searchFilter, setSearchFilter, activeSubTab, setActiveSubTab } =
@@ -205,8 +255,8 @@ export default function HymnListScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    return activeSubTab === 'estribillos' ? estribillosData : hymnsData;
-  }, [activeSubTab]);
+    return activeSubTab === 'estribillos' ? localizedEstribillosData : localizedHymnsData;
+  }, [activeSubTab, localizedEstribillosData, localizedHymnsData]);
 
   const scrubFrame = useRef<number | null>(null);
   const latestScrubFraction = useRef(0);
@@ -292,22 +342,50 @@ export default function HymnListScreen() {
     };
 
     const rawQuery = search.trim();
+    const primaryHimnosEngine =
+      hymnLanguage === 'en' ? himnosSearchEngineEn : himnosSearchEngineEs;
+    const secondaryHimnosEngine =
+      hymnLanguage === 'en' ? himnosSearchEngineEs : himnosSearchEngineEn;
+    const primaryEstribillosEngine =
+      hymnLanguage === 'en' ? estribillosSearchEngineEn : estribillosSearchEngineEs;
+    const secondaryEstribillosEngine =
+      hymnLanguage === 'en' ? estribillosSearchEngineEs : estribillosSearchEngineEn;
+
     const himnosHits = rawQuery
-      ? himnosSearchEngine(rawQuery, { field: 'all' })
-      : hymnsData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
+      ? mergeBilingualHits(
+          primaryHimnosEngine(rawQuery, { field: 'all' }),
+          secondaryHimnosEngine(rawQuery, { field: 'all' }),
+          localizedHymnsById,
+        )
+      : localizedHymnsData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
     const estribillosHits = rawQuery
-      ? estribillosSearchEngine(rawQuery, { field: 'all' })
-      : estribillosData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
+      ? mergeBilingualHits(
+          primaryEstribillosEngine(rawQuery, { field: 'all' }),
+          secondaryEstribillosEngine(rawQuery, { field: 'all' }),
+          localizedEstribillosById,
+        )
+      : localizedEstribillosData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
 
     return {
       himnos: himnosHits.filter((r) => matchesFilters(r.hymn)),
       estribillos: estribillosHits.filter((r) => matchesFilters(r.hymn)),
     };
-  }, [search, searchFilter, language]);
+  }, [
+    search,
+    searchFilter,
+    language,
+    hymnLanguage,
+    himnosSearchEngineEn,
+    estribillosSearchEngineEn,
+    localizedHymnsById,
+    localizedEstribillosById,
+    localizedHymnsData,
+    localizedEstribillosData,
+  ]);
 
   // ── Índice Logic (switches between Himnos and Coritos/Estribillos) ──────────
   const indiceData = useMemo(() => {
-    const sourceList = indiceSection === 'estribillos' ? estribillosData : hymnsData;
+    const sourceList = indiceSection === 'estribillos' ? localizedEstribillosData : localizedHymnsData;
     const sorted = [...sourceList].sort((a, b) =>
       normalizeSearch(a.title).localeCompare(normalizeSearch(b.title))
     );
@@ -335,7 +413,7 @@ export default function HymnListScreen() {
     });
 
     return grouped;
-  }, [t, indiceSection]);
+  }, [t, indiceSection, localizedEstribillosData, localizedHymnsData]);
 
   // Fixed index row geometry makes distant letter jumps exact without measurement retries.
   const indexLayouts = useMemo(() => {

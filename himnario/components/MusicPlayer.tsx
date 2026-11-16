@@ -47,6 +47,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../data/alabanzasEnglish';
 import { hasHymnAudio } from '../data/audioRegistry';
 import { offlineAudio } from '../audio/offline-audio';
 import AddToPlaylistModal from './AddToPlaylistModal';
@@ -179,7 +180,7 @@ interface MusicPlayerProps {
 // ─────────────────────────────────────────────────────────────
 function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBottom, miniPlayerHeight }: MusicPlayerProps) {
   const { isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, hymnLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -210,7 +211,8 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const currentId = currentHymnId ?? hymnId;
   const activeData = String(currentId).startsWith('E') ? estribillosData : hymnsData;
-  const hymn = activeData.find((h: any) => String(h.id) === String(currentId));
+  const rawHymn = activeData.find((h: any) => String(h.id) === String(currentId));
+  const hymn = rawHymn ? getLocalizedHymn(rawHymn, hymnLanguage) : undefined;
   const currentIndex = activeData.findIndex((h: any) => String(h.id) === String(currentId));
   const isSavedOffline = offlineSnapshot.savedIds.has(String(currentId));
 
@@ -228,8 +230,10 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   }, [closeFullPlayer, onClose]);
 
   const audioAvailable = hymn ? hasHymnAudio(String(hymn.id)) : false;
-  const nextHymn = currentIndex < activeData.length - 1 ? activeData[currentIndex + 1] : null;
-  const prevHymn = currentIndex > 0 ? activeData[currentIndex - 1] : null;
+  const rawNextHymn = currentIndex < activeData.length - 1 ? activeData[currentIndex + 1] : null;
+  const rawPrevHymn = currentIndex > 0 ? activeData[currentIndex - 1] : null;
+  const nextHymn = rawNextHymn ? getLocalizedHymn(rawNextHymn, hymnLanguage) : null;
+  const prevHymn = rawPrevHymn ? getLocalizedHymn(rawPrevHymn, hymnLanguage) : null;
 
   // One animation owns the sheet, artwork and mini-player endpoint on the UI thread.
   // A transparent overFullScreen modal avoids UIKit's second pageSheet dismissal.

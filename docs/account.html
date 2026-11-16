@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://ebp-himnario-sync.himnario.workers.dev https://ebp-himnario-sync-security.himnario.workers.dev; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Tu cuenta — Himnario El Buen Pastor</title>
+  <!-- Blocking, first-party script clears the action fragment before rendering. -->
+  <script src="js/account.js"></script>
+  <link rel="stylesheet" href="css/account.css">
+</head>
+<body>
+  <a class="skip" href="#account-content" data-text="skip">Ir al contenido</a>
+  <header class="account-header">
+    <a class="brand" href="index.html">El Buen Pastor<small data-text="brand">HIMNARIO DIGITAL</small></a>
+    <div class="account-tools">
+      <label class="sr-only" for="account-language">Idioma / Language</label>
+      <select id="account-language">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+      <button id="account-theme" type="button" aria-label="Activar modo oscuro" aria-pressed="false">◐</button>
+    </div>
+  </header>
+  <main id="account-content" tabindex="-1">
+    <div class="account-heading">
+      <p class="eyebrow">HIMNARIO EL BUEN PASTOR</p>
+      <p id="account-environment" class="environment" data-text="securityEnvironment" hidden>Entorno de pruebas de seguridad</p>
+      <h1 id="account-title">Tu cuenta</h1>
+      <p id="account-lead" class="lead">Abre el enlace que recibiste por correo para confirmar tu dirección o restablecer tu contraseña.</p>
+    </div>
+    <section class="account-panel" aria-labelledby="account-title">
+      <p id="account-status" class="status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">El enlace no es válido o está incompleto. Solicita uno nuevo desde la aplicación.</p>
+      <form id="account-form" method="post" novalidate hidden>
+        <fieldset id="account-fields" disabled>
+          <legend class="sr-only" data-text="formLegend">Confirmar la acción de tu cuenta</legend>
+          <div id="password-fields" hidden>
+            <p id="password-help" class="hint" data-text="passwordHelp">Usa entre 12 y 128 caracteres. Elige una contraseña que no uses en otros servicios.</p>
+            <label for="new-password" data-text="newPassword">Nueva contraseña</label>
+            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
+            <label for="confirm-password" data-text="confirmPassword">Confirmar nueva contraseña</label>
+            <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
+            <button id="password-visibility" class="visibility" type="button" aria-controls="new-password confirm-password" aria-pressed="false" data-text="showPasswords">Mostrar contraseñas</button>
+          </div>
+          <button id="account-submit" class="primary" type="submit">Confirmar correo</button>
+        </fieldset>
+      </form>
+      <p id="account-privacy" class="hint" data-text="privacy">Nada se confirma al abrir este enlace. La acción solo se envía cuando pulsas el botón.</p>
+      <p id="account-return" hidden><a class="primary" href="el-buen-pastor-himnario://" data-text="returnApp">Volver a la aplicación</a></p>
+      <noscript><p lang="es">Activa JavaScript y vuelve a abrir el enlace original del correo para continuar.</p><p lang="en">Enable JavaScript and reopen the original email link to continue.</p></noscript>
+    </section>
+    <p class="home-link"><a href="index.html" data-text="home">Volver al inicio del sitio</a></p>
+  </main>
+  <footer><span>Himnario El Buen Pastor</span><a href="privacy.html" data-text="privacyLink">Política de privacidad</a></footer>
+</body>
+</html>

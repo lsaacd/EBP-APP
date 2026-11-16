@@ -18,6 +18,7 @@ interface PlaylistsContextType {
   addHymnToPlaylist: (playlistId: string, hymnId: string) => void;
   removeHymnFromPlaylist: (playlistId: string, hymnId: string) => void;
   isHymnInPlaylist: (playlistId: string, hymnId: string) => boolean;
+  setAllPlaylists: (next: Playlist[]) => void;
 }
 
 const PlaylistsContext = createContext<PlaylistsContextType>({
@@ -28,6 +29,7 @@ const PlaylistsContext = createContext<PlaylistsContextType>({
   addHymnToPlaylist: () => {},
   removeHymnFromPlaylist: () => {},
   isHymnInPlaylist: () => false,
+  setAllPlaylists: () => {},
 });
 
 export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
@@ -88,6 +90,10 @@ export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
     return playlist ? playlist.hymnIds.includes(hymnId) : false;
   }, [playlists]);
 
+  const setAllPlaylists = useCallback((next: Playlist[]) => {
+    savePlaylists(next);
+  }, []);
+
   return (
     <PlaylistsContext.Provider value={{
       playlists,
@@ -96,7 +102,8 @@ export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
       updatePlaylistName,
       addHymnToPlaylist,
       removeHymnFromPlaylist,
-      isHymnInPlaylist
+      isHymnInPlaylist,
+      setAllPlaylists,
     }}>
       {children}
     </PlaylistsContext.Provider>

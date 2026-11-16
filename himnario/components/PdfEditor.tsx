@@ -59,7 +59,7 @@ export interface PdfEditorProps {
 
 export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
   const { theme, isDarkMode } = useTheme();
-  const { language } = useLanguage();
+  const { language, hymnLanguage } = useLanguage();
   const es = language !== 'en';
   const { width: windowWidth } = useWindowDimensions();
 
@@ -76,8 +76,8 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
   );
   const plan = useMemo(() => buildPdfPlan(hymn, requested, opts), [hymn, requested, opts]);
   const previewXml = useMemo(
-    () => buildPdfSvg(hymn, plan, opts, PREVIEW_FONTS),
-    [hymn, plan, opts]
+    () => buildPdfSvg(hymn, plan, opts, PREVIEW_FONTS, hymnLanguage),
+    [hymn, plan, opts, hymnLanguage]
   );
 
   const previewWidth = Math.min(windowWidth - 48, 520);
@@ -86,7 +86,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
   const tap = () => Haptics.selectionAsync().catch(() => {});
 
   const createPdfFile = async () => {
-    const svg = buildPdfSvg(hymn, plan, opts, PDF_FONTS);
+    const svg = buildPdfSvg(hymn, plan, opts, PDF_FONTS, hymnLanguage);
     const page = plan.page;
     let file = await Print.printToFileAsync({
       html: buildPdfHtml(svg, plan),
@@ -117,7 +117,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
           UTI: 'com.adobe.pdf',
-          dialogTitle: `${hymnKindLabel(hymn)} · ${hymn.title}`,
+          dialogTitle: `${hymnKindLabel(hymn, hymnLanguage)} · ${hymn.title}`,
         });
       } else {
         await Print.printAsync({ uri });

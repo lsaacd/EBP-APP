@@ -24,6 +24,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
@@ -47,7 +48,21 @@ import PageFlipTransition, { type FlipDirection } from '../../components/PageFli
 
 // Module-level constants — defined outside the component so they are never
 // recreated on each render. CORO_RE detects chorus stanzas by their prefix.
-const CORO_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo|er\.|do\.|ro\.|to\.)?\s*)?coro)[:\s]*/i;
+const CORO_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo|st|nd|rd|th)?\.?\s*)?(?:coro|chorus))[:\s]*/i;
+
+function formatChorusLabel(rawLabel: string | undefined, hymnLanguage: 'es' | 'en'): string {
+  const fallback = hymnLanguage === 'en' ? 'CHORUS' : 'CORO';
+  if (!rawLabel) return fallback;
+  const upper = rawLabel.trim().toUpperCase();
+  if (hymnLanguage === 'en') {
+    return upper
+      .replace(/\b1\s*ER\.?\s*CORO\b/, '1ST CHORUS')
+      .replace(/\b2\s*DO\.?\s*CORO\b/, '2ND CHORUS')
+      .replace(/\b3\s*ER\.?\s*CORO\b/, '3RD CHORUS')
+      .replace(/\bCORO\b/, 'CHORUS');
+  }
+  return upper.replace(/\bCHORUS\b/, 'CORO');
+}
 const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: string };
 
@@ -58,7 +73,7 @@ export default function HymnDetail() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addRecent } = useRecentHymns();
   const { playlists } = usePlaylists();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
 
   // Combine both for navigation
@@ -171,7 +186,11 @@ export default function HymnDetail() {
     setShareSheetVisible(true);
   };
 
-  const hymn = allHymns.find((h) => h.id === id || h.id === String(id));
+  const rawHymn = allHymns.find((h) => h.id === id || h.id === String(id));
+  const hymn = useMemo(
+    () => (rawHymn ? getLocalizedHymn(rawHymn, hymnLanguage) : undefined),
+    [rawHymn, hymnLanguage],
+  );
 
   // Record this hymn as recently viewed
   useEffect(() => {
@@ -198,13 +217,14 @@ export default function HymnDetail() {
   // Shown underneath the current page during swipe gestures.
   const renderStaticHymnPreview = useCallback((hymnData: typeof hymn | null) => {
     if (!hymnData) return null;
+    const localizedPreview = getLocalizedHymn(hymnData, hymnLanguage);
 
     // Quick stanza split without complex context
-    const previewStanzas = hymnData.lyrics.split('\n\n').map((raw: string) => {
+    const previewStanzas = localizedPreview.lyrics.split('\n\n').map((raw: string) => {
       const trimmed = raw.trimStart();
       const match = trimmed.match(CORO_RE);
       const isCoro = !!match;
-      const coroLabel = isCoro ? match![1].toUpperCase() : undefined;
+      const coroLabel = isCoro ? formatChorusLabel(match![1], hymnLanguage) : undefined;
       const text = isCoro ? trimmed.replace(CORO_RE, '').trim() : trimmed;
       return { isCoro, text, coroLabel };
     });
@@ -218,10 +238,10 @@ export default function HymnDetail() {
         >
           <View style={styles.hymnHeader}>
             <Text style={[styles.hymnNumber, { color: theme.primary, opacity: 0.6 }]}>
-              {hymnData.number}
+              {localizedPreview.number}
             </Text>
             <Text style={[styles.hymnTitle, { color: theme.primary }]}>
-              {hymnData.title}
+              {localizedPreview.title}
             </Text>
           </View>
           <View style={styles.lyricsArea}>
@@ -234,7 +254,7 @@ export default function HymnDetail() {
                     stanza.isCoro && { color: CORO_COLOR, opacity: 1 },
                   ]}
                 >
-                  {stanza.isCoro ? (stanza.coroLabel || 'CORO') : ''}
+                  {stanza.isCoro ? (stanza.coroLabel || formatChorusLabel(undefined, hymnLanguage)) : ''}
                 </Text>
                 <Text style={[
                   styles.stanzaText,
@@ -250,7 +270,7 @@ export default function HymnDetail() {
         </ScrollView>
       </View>
     );
-  }, [theme, lyricFontSize, CORO_COLOR]);
+  }, [theme, lyricFontSize, CORO_COLOR, hymnLanguage]);
 
   if (!hymn) {
     return (
@@ -263,7 +283,7 @@ export default function HymnDetail() {
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.onSurface, fontFamily: fonts.regular, fontSize: 18 }}>
-            Himno no encontrado
+            {t.hymnNotFound}
           </Text>
         </View>
       </SafeAreaView>
@@ -279,7 +299,7 @@ export default function HymnDetail() {
     const trimmed = raw.trimStart();
     const match = trimmed.match(CORO_RE);
     const isCoro = !!match;
-    const coroLabel = isCoro ? match[1].toUpperCase() : undefined;
+    const coroLabel = isCoro ? formatChorusLabel(match[1], hymnLanguage) : undefined;
     const text = isCoro ? trimmed.replace(CORO_RE, '').trim() : trimmed;
 
     if (!isCoro) verseCounter++;
@@ -411,7 +431,7 @@ export default function HymnDetail() {
                       stanza.isCoro && { color: CORO_COLOR, opacity: 1 },
                     ]}
                   >
-                    {stanza.isCoro ? (stanza.coroLabel || 'CORO') : String(stanza.verseNum)}
+                    {stanza.isCoro ? (stanza.coroLabel || formatChorusLabel(undefined, hymnLanguage)) : String(stanza.verseNum)}
                   </Text>
                   <Text style={[
                     styles.stanzaText,

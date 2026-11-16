@@ -2,7 +2,7 @@
   "expo": {
     "name": "Himnario El Buen Pastor",
     "slug": "ElBuenPastorHimnario",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "orientation": "default",
     "icon": "./assets/images/android-legacy-app-logo.png",
     "scheme": "el-buen-pastor-himnario",
@@ -79,7 +79,8 @@
       ],
       "expo-build-properties",
       "expo-asset",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -92,9 +93,7 @@
       }
     },
     "owner": "isaacduran",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "2.0.0-securestore-1",
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

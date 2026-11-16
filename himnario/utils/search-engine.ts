@@ -94,7 +94,7 @@ export function create<T extends SearchableHymn>(hymns: readonly T[]) {
 
     const numeric = String(raw)
       .trim()
-      .match(/^(?:(himno|h|estribillo|coro|e)\s*#?\s*|#\s*)?(\d+)$/i);
+      .match(/^(?:(himno|hymn|h|estribillo|coro|chorus|e)\s*#?\s*|#\s*)?(\d+)$/i);
     const tokens = [...new Set(q.split(' '))].slice(0, 20);
     const results: SearchResult<T>[] = [];
 
@@ -107,8 +107,8 @@ export function create<T extends SearchableHymn>(hymns: readonly T[]) {
         const prefix = (numeric[1] || '').toLowerCase();
         const extra = String(r.h.id).startsWith('E');
         if (
-          (['e', 'estribillo', 'coro'].includes(prefix) && !extra) ||
-          (['h', 'himno'].includes(prefix) && extra)
+          (['e', 'estribillo', 'coro', 'chorus'].includes(prefix) && !extra) ||
+          (['h', 'himno', 'hymn'].includes(prefix) && extra)
         ) {
           continue;
         }

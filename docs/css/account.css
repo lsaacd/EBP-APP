@@ -1,0 +1,83 @@
+/* Legal-page palette and proportions, with system fonts and no asset imports. */
+:root {
+  --bg: #fcf9f2;
+  --surface: #f3f0e7;
+  --ink: #24251f;
+  --muted: #666559;
+  --accent: #6e1619;
+  --line: #e3dfd3;
+  --card: #fffefa;
+  color-scheme: light;
+  font: 15px/1.8 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); }
+body.dark {
+  --bg: #010101;
+  --surface: #1c1c1c;
+  --ink: #ffffff;
+  --muted: #c2bfba;
+  --accent: #fdf9f2;
+  --line: #525252;
+  --card: #373737;
+  color-scheme: dark;
+}
+a { color: var(--accent); text-underline-offset: 4px; }
+a:hover { text-decoration-thickness: 2px; }
+button, input, select { font: inherit; color: inherit; }
+button, select { cursor: pointer; }
+button, select, input { border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+button, select { padding: 10px 14px; min-height: 44px; }
+button:disabled { opacity: .55; cursor: wait; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  padding: 22px max(4%, calc((100vw - 1320px) / 2));
+}
+.brand { font: 700 25px/1.2 Georgia, "Times New Roman", serif; text-decoration: none; }
+.brand small { display: block; margin-top: 7px; font: 9px/1.5 system-ui, sans-serif; letter-spacing: 1.8px; color: var(--muted); }
+.account-tools { display: flex; align-items: center; gap: 12px; }
+.account-tools select { background: var(--bg); border-radius: 24px; font-size: 12px; }
+#account-theme { border: 0; background: transparent; font-size: 23px; line-height: 1; }
+main { max-width: 1000px; min-height: 70vh; margin: auto; padding: 0 clamp(22px, 4vw, 64px) 70px; }
+.account-heading { padding: 54px 0 28px; }
+.eyebrow { margin: 0 0 18px; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--accent); }
+h1 { font: 700 clamp(38px, 4.5vw, 64px)/1.12 Georgia, "Times New Roman", serif; letter-spacing: -.7px; margin: 0 0 18px; }
+.lead { max-width: 680px; color: var(--muted); font-size: 16px; margin: 0; }
+.environment { display: inline-block; border: 1px solid var(--accent); border-radius: 5px; padding: 4px 10px; color: var(--accent); font-size: 12px; margin: 0 0 20px; }
+.account-panel { border-top: 1px solid var(--line); padding-top: 28px; max-width: 680px; }
+.status { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; padding: 22px 26px; margin: 0 0 26px; overflow-wrap: anywhere; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+input { display: block; width: 100%; min-height: 48px; padding: 12px 14px; margin-bottom: 22px; }
+input[aria-invalid="true"] { border: 2px solid var(--accent); }
+.hint { font-size: 13px; color: var(--muted); margin: 0 0 22px; }
+.visibility { display: block; background: transparent; margin: -4px 0 24px; font-size: 13px; }
+.primary { display: inline-block; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); border-radius: 5px; padding: 13px 22px; font-size: 14px; font-weight: 600; text-decoration: none; min-height: 48px; }
+.primary:hover { text-decoration: underline; }
+#account-privacy { margin: 24px 0 0; }
+#account-return { margin: 0; }
+.home-link { margin: 30px 0 0; font-size: 13px; }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; padding: 28px max(4%, calc((100vw - 1192px) / 2)); border-top: 1px solid var(--line); background: var(--surface); font-size: 12px; color: var(--muted); }
+.sr-only, .skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip:focus { display: block; padding: 15px; }
+@media (max-width: 600px) {
+  .account-header { padding: 18px 22px; gap: 12px; }
+  .brand { font-size: 21px; }
+  .brand small { font-size: 7px; letter-spacing: 1px; }
+  .account-tools { gap: 2px; }
+  .account-tools select { padding: 8px; max-width: 100px; }
+  .account-heading { padding: 34px 0 26px; }
+  .lead { font-size: 14px; }
+  .status { padding: 18px; font-size: 14px; }
+}
+@media (forced-colors: active) {
+  .primary, .status, input[aria-invalid="true"] { border: 2px solid ButtonText; }
+}

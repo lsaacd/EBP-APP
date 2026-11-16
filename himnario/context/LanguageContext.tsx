@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type Language = 'es' | 'en';
 
 const STORAGE_KEY = '@himnario_language';
+const HYMN_LANGUAGE_STORAGE_KEY = '@himnario_hymn_language';
 
 // ─── All translatable UI strings ────────────────────────────────────────────
 export const strings = {
@@ -22,7 +23,9 @@ export const strings = {
     homeMenuDownloads: "Audio descargado",
     homeMenuDownloadsSub: "Consulta el espacio usado y administra tus grabaciones",
     homeMenuDetails: "Información de la app",
-    homeMenuLanguageHint: "Elige el idioma de los menús. Las letras conservan su idioma original.",
+    homeMenuAppLanguage: "Idioma de la app",
+    homeMenuHymnLanguage: "Idioma de los himnos",
+    homeMenuLanguageHint: "Elige el idioma de la app y el de los títulos y letras de los himnos de forma independiente.",
     homeMenuHelpIntro: "Encuentra una alabanza y léela a tu ritmo. Aquí tienes lo esencial.",
     homeMenuFeedback: "Comparte una sugerencia",
     homeMenuFeedbackSub: "¿Viste un error o quieres colaborar con una grabación? Cuéntanos en el formulario de nuestra web.",
@@ -204,6 +207,10 @@ export const strings = {
     general: 'GENERAL',
     language: 'Idioma',
     languageSub: 'Configura el idioma de la app',
+    appLanguage: 'Idioma de la app',
+    appLanguageSub: 'Menús, pestañas y ajustes',
+    hymnLanguage: 'Idioma de los himnos',
+    hymnLanguageSub: 'Títulos y letras de las alabanzas',
     about: 'Acerca del Himnario',
     aboutSub: 'Versión, créditos e historia',
     reportError: 'Reportar un error',
@@ -231,7 +238,7 @@ export const strings = {
     spanish: 'Español',
     english: 'English',
     // About modal
-    aboutVersion: 'Versión 1.1.0',
+    aboutVersion: 'Versión 2.0.0',
     aboutTagline: 'Solo A Dios La Gloria',
     aboutDescription:
       'Himnario El Buen Pastor es una colección digital de himnos de alabanza de la Iglesia del Dios Vivo, Columna y Apoyo de la Verdad "El Buen Pastor" — fundada sobre la Roca inamovible que es Jesucristo, la Piedra Angular. \n\nCada himno en esta colección es ancla de fe en el glorioso Nombre de nuestro Señor y Salvador Jesucristo, bajo cuyo nombre hemos sido sanados, liberados y perdonados. Porque como dice Su Palabra: "Edificados sobre el fundamento de los apóstoles y profetas, siendo la principal piedra del ángulo Jesucristo mismo;" — Efesios 2:20 \n\nEstos himnos son los mismos que han resonado en nuestros cultos, en nuestras vigilias, en momentos donde solo el Nombre de Jesucristo era el ancla del alma. Incluye letras completas para adorar, para preparar el culto, o para llevar los himnos a donde vayas — porque la alabanza no termina cuando termina el servicio. \n\nY si hoy el camino se siente pesado, que estos himnos te recuerden que el Señor Jesucristo aún reina, aún sana, y aún viene. \n\n"Así que, ofrezcamos por medio de él á Dios siempre sacrificio de alabanza, es á saber, fruto de labios que confiesen á su nombre." — Hebreos 13:15 \n\nQue Su gracia te sostenga, Su paz te guarde, y Su Nombre sea siempre tu fortaleza. Amén.',
@@ -241,13 +248,14 @@ export const strings = {
     aboutFirstRelease: 'Para el culto y la lectura personal',
     aboutChangelog: 'Novedades en esta versión',
     aboutChangelogItems: [
-      "Himnos y estribillos con búsqueda por número, título y letra",
+      "Títulos y letras en español o inglés independientes del idioma de la app",
+      "Himnos y estribillos con búsqueda por número, título y letra en ambos idiomas",
+      "Desliza a los lados en el reproductor pequeño para cambiar de alabanza",
       "Favoritos, listas de reproducción e historial reciente",
       "Reproductor de audio y administración de descargas",
       "Texto ajustable, modo claro y oscuro, y menús en español e inglés",
       "Presentación por estrofas y coro con rotación de pantalla",
       "Compartir enlaces, copiar letras y preparar PDF para imprimir",
-      "Menú de inicio con ajustes, historia y ayuda",
     ],
     close: 'Cerrar',
     done: 'Listo',
@@ -277,6 +285,72 @@ export const strings = {
     footerQuoteAuthor: 'SALMO 100:1',
     favoritesQuoteText: '"Alabad á Jehová, porque es bueno; Porque para siempre es su misericordia."',
     favoritesQuoteAuthor: 'SALMOS 136:1',
+    // Auth & Cloud Sync (v2.0)
+    authSignIn: 'Iniciar sesión',
+    authCreateAccount: 'Crear cuenta',
+    authResetPasswordTitle: 'Restablecer contraseña',
+    authAccountTitle: 'Cuenta',
+    authSyncSubtitle: 'Sincroniza tus favoritos, listas y ajustes en todos tus dispositivos',
+    authOptionalNote: 'El inicio de sesión es opcional. Tus himnos y favoritos siempre funcionan sin conexión.',
+    authNameLabel: 'Nombre completo',
+    authNamePlaceholder: 'Ej. Juan Pérez',
+    authEmailLabel: 'Correo electrónico',
+    authEmailPlaceholder: 'correo@ejemplo.com',
+    authPasswordLabel: 'Contraseña',
+    authPasswordPlaceholder: 'Mínimo 6 caracteres',
+    authLoginPasswordPlaceholder: 'Tu contraseña actual',
+    authRegisterPasswordPlaceholder: 'Mínimo 12 caracteres',
+    authRecoveryUnavailable: 'La recuperación segura de contraseña está temporalmente desactivada. Puedes seguir usando la app y tus datos guardados.',
+    authRecoveryHelp: 'Ingresa tu correo para solicitar un enlace. Abre el enlace del correo para cambiar tu contraseña en el sitio web y luego vuelve a iniciar sesión aquí.',
+    authSendRecovery: 'Enviar enlace de recuperación',
+    authRecoveryRequested: 'Si existe una cuenta con ese correo, recibirás un enlace para restablecer tu contraseña. Revisa también el correo no deseado.',
+    authEmailVerified: 'Correo verificado',
+    authEmailUnverified: 'Correo sin verificar',
+    authVerificationHelp: 'Abre el enlace del correo para verificar tu dirección en el sitio web y luego actualiza el estado aquí. Tus himnos, favoritos y sincronización siguen disponibles.',
+    authSendVerification: 'Enviar correo de verificación',
+    authRefreshVerification: 'Actualizar estado de verificación',
+    authVerificationRequested: 'Se solicitó el correo de verificación. Revisa tu bandeja de entrada y el correo no deseado; abre el enlace y luego actualiza el estado aquí.',
+    authVerificationPending: 'Tu correo aún aparece sin verificar. Abre el enlace del correo y vuelve a actualizar el estado.',
+    authVerificationUnavailable: 'La verificación de correo no está disponible por el momento. Puedes seguir usando la app y sincronizando tus datos.',
+    authSyncPausedStatus: 'Sincronización en pausa',
+    authSyncConflictError: 'La sincronización se pausó para proteger tus cambios en este dispositivo. Tus datos locales se conservaron.',
+    authLoginReplaceWarning: 'Al iniciar sesión, los favoritos, las listas, el historial y los ajustes de tu cuenta reemplazarán los de este dispositivo. Se guardará una copia local de tus datos actuales.',
+    authLocalBackupError: 'No se pudo guardar una copia de tus datos locales. No se inició sesión ni se reemplazaron tus datos. Intenta de nuevo.',
+    authNewPasswordLabel: 'Nueva contraseña',
+    authShowPassword: 'Mostrar contraseña',
+    authHidePassword: 'Ocultar contraseña',
+    authSubmitSignIn: 'Continuar',
+    authSubmitRegister: 'Crear cuenta y sincronizar',
+    authSubmitReset: 'Actualizar contraseña',
+    authForgotPassword: '¿Olvidaste tu contraseña?',
+    authBackToSignIn: 'Volver a iniciar sesión',
+    authSwitchToRegister: '¿No tienes cuenta? Crear una',
+    authSwitchToSignIn: '¿Ya tienes cuenta? Iniciar sesión',
+    authSyncedStatus: 'Sincronizado en la nube',
+    authSyncingStatus: 'Sincronizando…',
+    authSyncNow: 'Sincronizar ahora',
+    authSignOut: 'Cerrar sesión',
+    authDeleteAccount: 'Eliminar cuenta',
+    authDeleteConfirmTitle: '¿Eliminar cuenta permanentemente?',
+    authDeleteConfirmBody: 'Se borrarán tus datos respaldados en la nube. Tus favoritos y listas guardados en este teléfono no se perderán.',
+    authDeleteConfirmAction: 'Eliminar',
+    authCancel: 'Cancelar',
+    authSaveProfile: 'Guardar nombre',
+    authProfileSaved: 'Nombre actualizado',
+    authShareAppRow: 'Compartir aplicación',
+    authShareAppSub: 'Invita a otros hermanos a descargar el Himnario',
+    authMenuSignInSub: 'Respalda tus favoritos y listas en la nube',
+    authSettingsSignInCta: 'Entrar',
+    authSettingsCardHint: 'Guarda tus himnos favoritos, listas personalizadas y tamaño de fuente en todos tus dispositivos. Iniciar sesión es opcional; tus himnos siempre están disponibles sin conexión.',
+    authSectionTitle: 'CUENTA Y NUBE',
+    authStatsSummary: '{favs} favoritos · {lists} listas',
+    authPasswordResetSuccess: 'Contraseña actualizada. Ahora puedes iniciar sesión.',
+    authErrorEmailRequired: 'Ingresa un correo electrónico válido.',
+    authErrorPasswordLength: 'La contraseña debe tener al menos 6 caracteres.',
+    authErrorPasswordRequired: 'Ingresa tu contraseña actual.',
+    authErrorRegisterPasswordLength: 'La contraseña nueva debe tener al menos 12 caracteres.',
+    authErrorNetwork: 'No se pudo conectar con el servidor. Verifica tu conexión.',
+    authRateLimitedError: 'Demasiados intentos. Espera {secs} segundos e inténtalo de nuevo.',
   },
   en: {
     homeMenu: "Hymnal menu",
@@ -293,7 +367,9 @@ export const strings = {
     homeMenuDownloads: "Downloaded audio",
     homeMenuDownloadsSub: "Check storage use and manage your recordings",
     homeMenuDetails: "App information",
-    homeMenuLanguageHint: "Choose the menu language. Hymn lyrics keep their original language.",
+    homeMenuAppLanguage: "App language",
+    homeMenuHymnLanguage: "Hymn language",
+    homeMenuLanguageHint: "Choose the app interface language and hymn lyrics language independently.",
     homeMenuHelpIntro: "Find a hymn and read at your own pace. Here are the essentials.",
     homeMenuFeedback: "Share a suggestion",
     homeMenuFeedbackSub: "Spotted an error or want to contribute a recording? Let us know through the form on our website.",
@@ -475,6 +551,10 @@ export const strings = {
     general: 'GENERAL',
     language: 'Language',
     languageSub: 'Set the app language',
+    appLanguage: 'App language',
+    appLanguageSub: 'Menus, tabs and settings',
+    hymnLanguage: 'Hymn language',
+    hymnLanguageSub: 'Hymn titles and lyrics',
     about: 'About the Hymnal',
     aboutSub: 'Version, credits and history',
     reportError: 'Report an Error',
@@ -502,7 +582,7 @@ export const strings = {
     spanish: 'Español',
     english: 'English',
     // About modal
-    aboutVersion: 'Version 1.1.0',
+    aboutVersion: 'Version 2.0.0',
     aboutTagline: 'Solo A Dios La Gloria',
     aboutDescription:
       'Himnario El Buen Pastor is a digital collection of praise hymns from the Church of the Living God, Pillar and Ground of the Truth "El Buen Pastor" — founded upon the unmovable Rock that is Jesus Christ, the Chief Cornerstone. \n\nEvery hymn in this collection is an expression of faith in the glorious Name of our Lord and Savior Jesus Christ — the Name under which we have been healed, set free, and forgiven. For as His Word declares: "Built upon the foundation of the apostles and prophets, Jesus Christ himself being the chief corner stone;" — Ephesians 2:20 \n\nThese are the same hymns that have echoed through our services, our prayer vigils, in moments when the Name of Jesus Christ was the only anchor the soul had. It includes full lyrics to worship, to prepare for service, or to carry these hymns wherever you go — because praise does not end when the service does. \n\nAnd if the road feels heavy today, let these hymns remind you that the Lord Jesus Christ still reigns, still heals, and is still coming. \n\n"By him therefore let us offer the sacrifice of praise to God continually, that is, the fruit of our lips giving thanks to his name." — Hebrews 13:15 \n\nMay His grace sustain you, His peace guard you, and His Name be your fortress forevermore. Amen.',
@@ -512,13 +592,14 @@ export const strings = {
     aboutFirstRelease: 'For worship and personal reading',
     aboutChangelog: "What's new in this version",
     aboutChangelogItems: [
-      "Hymns and choruses with number, title and lyric search",
+      "Spanish and English hymn titles and lyrics independent from app language",
+      "Hymns and choruses with number, title and lyric search in either language",
+      "Horizontal thumb swipe on the mini-player to switch tracks",
       "Favorites, playlists and recently viewed hymns",
       "Audio player and download management",
       "Adjustable text, light and dark mode, and Spanish/English menus",
       "Stanza and chorus presentation with screen rotation",
       "Share links, copy lyrics and prepare printable PDFs",
-      "Home menu with settings, history and help",
     ],
     close: 'Close',
     done: 'Done',
@@ -548,6 +629,72 @@ export const strings = {
     footerQuoteAuthor: 'PSALM 100:1',
     favoritesQuoteText: '"O give thanks unto the LORD; for He is good: for His mercy endureth for ever."',
     favoritesQuoteAuthor: 'PSALM 136:1',
+    // Auth & Cloud Sync (v2.0)
+    authSignIn: 'Sign In',
+    authCreateAccount: 'Create Account',
+    authResetPasswordTitle: 'Reset Password',
+    authAccountTitle: 'Account',
+    authSyncSubtitle: 'Sync your favorites, playlists, and settings across your devices',
+    authOptionalNote: 'Sign-in is completely optional. Your hymns and favorites always work offline.',
+    authNameLabel: 'Full Name',
+    authNamePlaceholder: 'e.g. John Doe',
+    authEmailLabel: 'Email Address',
+    authEmailPlaceholder: 'name@example.com',
+    authPasswordLabel: 'Password',
+    authPasswordPlaceholder: 'At least 6 characters',
+    authLoginPasswordPlaceholder: 'Your current password',
+    authRegisterPasswordPlaceholder: 'At least 12 characters',
+    authRecoveryUnavailable: 'Secure password recovery is temporarily disabled. You can keep using the app and your saved data.',
+    authRecoveryHelp: 'Enter your email to request a link. Open the email link to change your password on the website, then sign in here again.',
+    authSendRecovery: 'Send Recovery Link',
+    authRecoveryRequested: 'If an account exists with that email, you will receive a password reset link. Check your spam folder too.',
+    authEmailVerified: 'Email verified',
+    authEmailUnverified: 'Email unverified',
+    authVerificationHelp: 'Open the email link to verify your address on the website, then refresh the status here. Your hymns, favorites, and sync remain available.',
+    authSendVerification: 'Send Verification Email',
+    authRefreshVerification: 'Refresh Verification Status',
+    authVerificationRequested: 'A verification email was requested. Check your inbox and spam folder, open the link, then refresh the status here.',
+    authVerificationPending: 'Your email still appears unverified. Open the email link, then refresh the status again.',
+    authVerificationUnavailable: 'Email verification is temporarily unavailable. You can keep using the app and syncing your data.',
+    authSyncPausedStatus: 'Sync paused',
+    authSyncConflictError: 'Sync was paused to protect your changes on this device. Your local data was kept.',
+    authLoginReplaceWarning: 'Signing in replaces this device’s favorites, playlists, history, and settings with those from your account. A local copy of your current data will be saved.',
+    authLocalBackupError: 'Your local data could not be backed up. Sign-in was stopped and your data was kept. Please try again.',
+    authNewPasswordLabel: 'New Password',
+    authShowPassword: 'Show password',
+    authHidePassword: 'Hide password',
+    authSubmitSignIn: 'Continue',
+    authSubmitRegister: 'Create Account & Sync',
+    authSubmitReset: 'Update Password',
+    authForgotPassword: 'Forgot password?',
+    authBackToSignIn: 'Back to Sign In',
+    authSwitchToRegister: "Don't have an account? Create one",
+    authSwitchToSignIn: 'Already have an account? Sign In',
+    authSyncedStatus: 'Synced to cloud',
+    authSyncingStatus: 'Syncing…',
+    authSyncNow: 'Sync Now',
+    authSignOut: 'Sign Out',
+    authDeleteAccount: 'Delete Account',
+    authDeleteConfirmTitle: 'Permanently delete account?',
+    authDeleteConfirmBody: 'Your cloud backup will be permanently deleted. Favorites and playlists saved on this device will remain intact.',
+    authDeleteConfirmAction: 'Delete',
+    authCancel: 'Cancel',
+    authSaveProfile: 'Save Name',
+    authProfileSaved: 'Name updated',
+    authShareAppRow: 'Share App',
+    authShareAppSub: 'Invite others to download the Hymnal',
+    authMenuSignInSub: 'Back up your favorites and playlists to the cloud',
+    authSettingsSignInCta: 'Sign In',
+    authSettingsCardHint: 'Back up your favorite hymns, custom playlists, and reading preferences across all your devices. Signing in is optional—your hymns always work offline.',
+    authSectionTitle: 'ACCOUNT & CLOUD',
+    authStatsSummary: '{favs} favorites · {lists} playlists',
+    authPasswordResetSuccess: 'Password updated. You can now sign in.',
+    authErrorEmailRequired: 'Please enter a valid email address.',
+    authErrorPasswordLength: 'Password must be at least 6 characters.',
+    authErrorPasswordRequired: 'Enter your current password.',
+    authErrorRegisterPasswordLength: 'New passwords must contain at least 12 characters.',
+    authErrorNetwork: 'Could not reach the server. Please check your connection.',
+    authRateLimitedError: 'Too many attempts. Please wait {secs} seconds and try again.',
   },
 };
 
@@ -640,22 +787,30 @@ export type Strings = typeof strings.es;
 
 interface LanguageContextType {
   language: Language;
+  hymnLanguage: Language;
   t: Strings;
   setLanguage: (lang: Language) => void;
+  setHymnLanguage: (lang: Language) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   language: 'es',
+  hymnLanguage: 'es',
   t: strings.es,
   setLanguage: () => { },
+  setHymnLanguage: () => { },
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('es');
+  const [hymnLanguage, setHymnLanguageState] = useState<Language>('es');
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw === 'en' || raw === 'es') setLanguageState(raw);
+    AsyncStorage.multiGet([STORAGE_KEY, HYMN_LANGUAGE_STORAGE_KEY]).then((entries) => {
+      const uiRaw = entries[0]?.[1];
+      const hymnRaw = entries[1]?.[1];
+      if (uiRaw === 'en' || uiRaw === 'es') setLanguageState(uiRaw);
+      if (hymnRaw === 'en' || hymnRaw === 'es') setHymnLanguageState(hymnRaw);
     });
   }, []);
 
@@ -664,8 +819,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, lang);
   }, []);
 
+  const setHymnLanguage = useCallback((lang: Language) => {
+    setHymnLanguageState(lang);
+    AsyncStorage.setItem(HYMN_LANGUAGE_STORAGE_KEY, lang);
+  }, []);
+
   return (
-    <LanguageContext.Provider value={{ language, t: strings[language], setLanguage }}>
+    <LanguageContext.Provider
+      value={{ language, hymnLanguage, t: strings[language], setLanguage, setHymnLanguage }}
+    >
       {children}
     </LanguageContext.Provider>
   );

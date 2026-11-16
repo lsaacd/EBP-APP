@@ -29,6 +29,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNowPlaying } from '../context/NowPlayingContext';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../data/alabanzasEnglish';
 import { hasHymnAudio } from '../data/audioRegistry';
 import { clampMiniPlayerDrag, miniPlayerSwipeDirection } from '../utils/gestureMotion';
 import * as Haptics from '../utils/haptics';
@@ -55,7 +56,7 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
   const [surfaceSize, setSurfaceSize] = useState({ width: 360, height: 72 });
   const [slotWidthState, setSlotWidthState] = useState(210);
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, hymnLanguage } = useLanguage();
   const {
     currentHymnId,
     currentQueueIds,
@@ -95,20 +96,23 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
         ? ALL_ESTRIBILLO_AUDIO_IDS
         : ALL_HYMN_AUDIO_IDS;
     const idx = list.indexOf(idStr);
+    const localizedCurrent = getLocalizedHymn(current, hymnLanguage);
     if (idx < 0 || list.length <= 1) {
-      return { hymn: current, prevHymn: null, nextHymn: null };
+      return { hymn: localizedCurrent, prevHymn: null, nextHymn: null };
     }
 
     const wraps = Boolean(custom?.length) || repeatMode === 'all';
     const prevIdx = idx > 0 ? idx - 1 : wraps ? list.length - 1 : -1;
     const nextIdx = idx < list.length - 1 ? idx + 1 : wraps ? 0 : -1;
+    const prevRaw = prevIdx >= 0 ? (HYMN_BY_ID.get(list[prevIdx]) ?? null) : null;
+    const nextRaw = nextIdx >= 0 ? (HYMN_BY_ID.get(list[nextIdx]) ?? null) : null;
 
     return {
-      hymn: current,
-      prevHymn: prevIdx >= 0 ? (HYMN_BY_ID.get(list[prevIdx]) ?? null) : null,
-      nextHymn: nextIdx >= 0 ? (HYMN_BY_ID.get(list[nextIdx]) ?? null) : null,
+      hymn: localizedCurrent,
+      prevHymn: prevRaw ? getLocalizedHymn(prevRaw, hymnLanguage) : null,
+      nextHymn: nextRaw ? getLocalizedHymn(nextRaw, hymnLanguage) : null,
     };
-  }, [currentHymnId, currentQueueIds, repeatMode]);
+  }, [currentHymnId, currentQueueIds, repeatMode, hymnLanguage]);
 
   useEffect(() => {
     hasPrevShared.value = Boolean(prevHymn);

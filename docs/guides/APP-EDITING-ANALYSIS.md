@@ -1,5 +1,11 @@
 # App editing
 
+## Current local security handoff — November 15, 2026
+
+**Updated live status:** The user retained source version **2.0.0** and authorized only the reset containment for deployment. Worker `b5bc8c5b-5fbe-435f-8f78-a1cd5d793735` now rejects POST `/auth/reset-password` (including trailing slash) with 503 `recovery_unavailable`. Other local Worker changes remain unreleased; existing cloud login/sync behavior was preserved. See [EAS evidence](../../EAS.md). Older test binaries with the same 2.0.0 runtime can lack SecureStore: a native rebuild and compatibility isolation are still required before later app releases/OTA.
+
+Read [SECURITY-REMEDIATION-PLAN.md](SECURITY-REMEDIATION-PLAN.md) before changing auth/sync or releasing. Source is now unreleased `2.0.0`; protected credential storage adds a native module and must not be sent OTA to older 2.0.0 test binaries that lack SecureStore. Earlier feature and release notes remain historical evidence, not a security assurance. The unsafe password-reset method is disabled locally and in the reset-only live patch; automatic sync now uses revision preconditions. Full email recovery, email verification, sensitive-action reauthentication, automatic conflict reconciliation and cloud operational checks remain outstanding.
+
 Use [ARCHITECTURE.md](../../ARCHITECTURE.md) for the source map, [EAS.md](../../EAS.md) for builds, and [README.md](../../README.md) for current status. These replace the old future-fixes and agent handoff plans.
 
 ## Before changing code
@@ -32,7 +38,72 @@ node scripts/test-web-search.js
 
 Distinguish existing lint issues from regressions. Native audio and screen-orientation locking require a compatible native build, not Expo Go. Validate changed behavior on the target device; mocked checks do not establish lock-screen or Universal Link behavior.
 
-Latest checks (November 14, 2026): `npx tsc --noEmit` passes with 0 errors; scoped ESLint passes; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 10 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (26/26 total); `node scripts/test-web-search.js` passes across all 761 hymns and choruses.
+Latest checks (November 15, 2026): `npx tsc --noEmit` passes with 0 errors; live Cloudflare Worker auth/sync and anti-bot rate-limit tests (`429` after 5 failed attempts + honeypot rejection) pass; all 16 playback/offline/search regression tests in `scripts/test-android-playback.cjs` and all 10 gesture motion tests in `scripts/test-gesture-motion.cjs` pass (26/26 total); `node scripts/test-web-search.js` passes across all 761 hymns and choruses.
+
+## November 15, 2026 — Version `2.0.0` Handoff: Optional Account & Cloud Sync (`AuthContext`, `AuthSheet`, Cloudflare Worker + D1), Apple Books `ID` Header & iOS 26 Connecting Liquid Glass (`GlassContainer`), Anti-Bot Hardening & Settings UI Polish
+
+**Published on Runtime `2.0.0` via EAS Update (`production` & `preview` Update Group `23922bbe-f53b-41d2-8d34-eef7c739cf64` — iOS `01a1defb-5ee9-72e6-a284-c692d779a3f2`, Android `01a1defb-5ee9-7963-9199-48900315adac`) and deployed to Cloudflare Worker `ebp-himnario-sync` (`5e626283-1559-462e-830f-56d0e19f86fc`).** Supersedes the 3-item `HomeHeaderActions` layout from November 14 below.
+
+### 1. Cloudflare Worker + D1 Cloud Sync Backend (`workers/ebp-auth-sync/`)
+- **Files**: `workers/ebp-auth-sync/index.js`, `workers/ebp-auth-sync/schema.sql`, `workers/ebp-auth-sync/wrangler.jsonc`.
+- **Live Endpoints**: Base URL `https://ebp-himnario-sync.himnario.workers.dev` (D1 database `ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`).
+  - `GET /health`
+  - `POST /auth/register` (`{ name, email, password, localData }`)
+  - `POST /auth/login` (`{ email, password, localData }`)
+  - `POST /auth/reset-password` (`{ email, name, newPassword }` — verifies registered email + case-insensitive full name, updates PBKDF2 hash/salt, and revokes all active sessions in `sessions`)
+  - `PUT /auth/profile` (`{ name }`, Bearer auth)
+  - `GET /sync` & `PUT /sync` (`{ favorites, playlists, recents, preferences }`, Bearer auth)
+  - `POST /auth/logout` & `DELETE /auth/account` (Bearer auth)
+- **Cryptography & Storage**:
+  - Passwords hashed with Web Crypto `PBKDF2-HMAC-SHA256` (`100,000` iterations, `16-byte` random salt per user) and verified with `timingSafeEqualHex`. Raw passwords are never stored.
+  - Session tokens are `32-byte` random hex strings; only `SHA-256(token)` (`token_hash`) is stored in `sessions`.
+- **Anti-Bot & Brute-Force Protection (`rate_limits` D1 table)**:
+  - Bucket keys hash `rl:<scope>` with `SHA-256` using `CF-Connecting-IP` + normalized email.
+  - `POST /auth/login`: 5 failed attempts per `(IP, email)` within 15m triggers progressive lockout (`1m` → `5m` → `15m`), returning HTTP `429` with `Retry-After` and `retryAfterSeconds`. Successful login clears the bucket. Also caps total login attempts at 20 per IP per 15m.
+  - `POST /auth/register`: Max 3 account creations and 8 attempts per IP per hour.
+  - `POST /auth/reset-password`: Max 3 failed verifications per `(IP, email)` per hour and 5 attempts per IP per hour.
+  - `PUT /sync`: Max 60 writes per user per minute.
+  - Rejects payloads `> 64 KB` (`413`), rejects filled `website` honeypot fields (`429`), and enforces a `120ms` minimum response duration (`ensureMinDuration`) on failed auth paths.
+- **Windows Wrangler Command Rule**: Always run `npx wrangler` from `himnario/` with `-c "../workers/ebp-auth-sync/wrangler.jsonc"` (see [CLOUDFLARE-DEPLOYMENT.md](CLOUDFLARE-DEPLOYMENT.md)).
+
+### 2. Client Auth & Auto-Sync State (`himnario/context/AuthContext.tsx`, `FavoritesContext.tsx`, `PlaylistsContext.tsx`, `RecentHymnsContext.tsx`)
+- **Non-Blocking / Offline-First**: No login wall anywhere. Session is cached in `AsyncStorage` under `@ebp_auth_session_v1`.
+- **Bulk Setters**: `FavoritesContext` exposes `setAllFavorites(ids)`, `PlaylistsContext` exposes `setAllPlaylists(lists)`, and `RecentHymnsContext` exposes `setAllRecents(ids)` so `applyServerSync` in `AuthContext.tsx` can hydrate merged cloud state without triggering feedback loops (`isHydratingRef.current = true` during hydration).
+- **Logout & Race-Condition Safety**:
+  - `AuthContext.tsx` maintains `sessionEpochRef` and `syncAbortRef` (`AbortController`).
+  - Calling `signOut()` or `deleteAccount()` increments `sessionEpochRef.current`, clears `syncTimeoutRef.current`, aborts any in-flight `pushSyncToCloud` `fetch()`, and immediately resets `setIsSyncing(false)` before clearing storage so an in-flight sync can never re-save a logged-out session or leave a spinner running.
+  - `signIn`, `register`, and `resetPassword` do **not** toggle `isSyncing` (form submission state is owned locally by `submitting` in `AuthSheet.tsx`) and throw `Error("rate_limited:<retryAfterSeconds>")` on HTTP `429`.
+
+### 3. Unified Apple Books Account & App Menu Sheet (`himnario/components/AuthSheet.tsx`)
+- **Single-Modal Sub-Page Architecture**: `AuthSheet.tsx` is mounted once at the root (`app/_layout.tsx`) and manages `page: 'account' | 'share' | 'settings' | 'downloads' | 'help' | 'about'` internally. Navigating to "Compartir aplicación", "Ajustes", " Audio sin conexión", "Consejos y ayuda", or "Acerca del himnario" transitions inside the same sheet instead of stacking two React Native `<Modal>` components on iOS (which previously froze UIKit).
+- **Standalone `AppShareSheet.tsx` Guard**: `AppShareSheet.tsx` also has `if (!visible) return null` before rendering its `<Modal>` so it never mounts an invisible overlay when closed, and is used when triggered directly from `settings.tsx`.
+- **Keyboard Trap Fix (`AuthSheet.tsx`)**:
+  - Subscribes to `Keyboard.addListener('keyboardWillShow' / 'keyboardWillHide')` on iOS (`keyboardDidShow` / `keyboardDidHide` on Android) to track `keyboardHeight`.
+  - Dynamically clamps `sheetMaxHeight = Math.max(260, Math.min(availableHeight, 720))` where `availableHeight = keyboardHeight > 0 ? windowHeight - keyboardHeight - (insets.top + 12) : windowHeight * 0.9`. This prevents `KeyboardAvoidingView` from pushing the sheet's top grabber and **`Listo`** exit button above `y = 0` behind the Dynamic Island when the keyboard opens.
+  - Keeps the grabber and header bar pinned outside `<ScrollView>` with a subtle bottom hairline border, calls `Keyboard.dismiss()` inside `animateClose()`, and sets `keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}`.
+- **Password Visibility Toggle & Rate-Limit Feedback**:
+  - Password and New Password fields include a `42×42pt` right-hand eye button (`eye.fill` / `eye.slash.fill` on iOS; `visibility` / `visibility-off` on Android) controlling `secureTextEntry={!showPassword}` (`showPassword` resets on mode switch, submit, and sheet close).
+  - Catches `rate_limited:<secs>` errors and displays localized `t.authRateLimitedError`.
+
+### 4. Home Header Apple Books Profile Circle & iOS 26 Connecting Liquid Glass (`himnario/components/HomeHeaderActions.tsx`)
+- **2-Circle Header Layout**: Renders two `46×46pt` circular buttons (`gap: 10`):
+  1. **Left Circle (`46×46pt`)**: Search (`magnifyingglass` `24pt` / `search`).
+  2. **Right Circle (`46×46pt`)**: Apple Books Profile / Unified Menu. When signed in, renders a `42×42pt` `LinearGradient` (`APPLE_AVATAR_GRADIENT = ['#9EA9DC', '#7683BE']`) inside the `46×46pt` glass rim (leaving a `2pt` glass halo ring) with bold white initials (`17px`). When signed out, renders `person.crop.circle.fill` (`30pt`) / `account-circle`.
+- **iOS 26 Connecting / Morphing Liquid Glass (`GlassContainer`)**:
+  - Verified in `node_modules/expo-glass-effect/ios/GlassContainer.swift`: `GlassContainer` (`UIGlassContainerEffect`) requires child `GlassView` instances to be **direct native subviews** of `containerEffectView.contentView`.
+  - On iOS 26+ (`checkLiquidGlassContainer()`), `HomeHeaderActions.tsx` renders `<GlassContainer spacing={18} style={styles.actionsRow}>` containing two direct `AnimatedGlassView = Animated.createAnimatedComponent(GlassView)` children (`isInteractive={true}`, `glassEffectStyle="regular"`).
+  - Each circle wraps its inner `Pressable` in a `GestureDetector` with `Gesture.Pan()` (`±20pt` damped horizontal / `±8pt` vertical drag with `withSpring` return). Dragging either circle toward the other brings their edges within `spacing={18}`, causing iOS 26's native Metal shader to render the connecting Liquid Glass metaball bridge between the two circles.
+
+### 5. Settings Screen Upgrades & Dark Mode Switch Fix (`himnario/app/(tabs)/settings.tsx`, `HomeMenuSheet.tsx`, `AuthSheet.tsx`, `LanguageContext.tsx`)
+- **Upgraded `'Iniciar sesión'` Card (`settings.tsx`)**:
+  - Signed-out state features a `44×44pt` circular avatar badge (`person-outline`), accented title (`#6e1619` in Light Mode; `#F2D7B6` warm cream in Dark Mode), a trailing `"Entrar ›"` / `"Sign In ›"` CTA pill (`styles.accountCtaPill`), subtle hairline card border, and an Apple/Gospel Library-inspired explanatory footnote (`t.authSettingsCardHint`) directly below the card.
+- **Share App Row in Settings (`settings.tsx`)**:
+  - Added **Compartir aplicación / Share App** (`t.authShareAppRow` / `t.authShareAppSub`) under the `General` section (right below `Reportar un error`), opening `<AppShareSheet visible={showShareApp} onClose={() => setShowShareApp(false)} />`.
+- **Dark Mode Switch Contrast Fix (`settings.tsx`, `AuthSheet.tsx`, `HomeMenuSheet.tsx`)**:
+  - In `theme/theme.js`, `darkTheme.primary` and `darkTheme.inverseSurface` are both `#fdf9f2` (cream-white), which previously made the Dark Mode `<Switch>` render white-on-white, and `theme.outlineVariant + '66'` produced an invalid `'rgba(...)66'` string in dark mode.
+  - All three `<Switch>` components now keep Light Mode unchanged (`trackColor.true = theme.primary` `#6e1619`, white thumb) and in Dark Mode use `thumbColor = '#FFFFFF'`, `trackColor.true = theme.surfaceVariants.container` (`#373737`, our darkest elevated gray above the `#1c1c1c` `containerLow` card), and `trackColor.false = ios_backgroundColor = 'rgba(255, 255, 255, 0.20)'`.
+- **Placeholder Cleanup (`LanguageContext.tsx`)**:
+  - Changed `authNamePlaceholder` from `'Ej. Isaac Durán'` / `'e.g. Isaac Duran'` to `'Ej. Juan Pérez'` / `'e.g. John Doe'`.
 
 ## November 14, 2026 — YouTube Music Horizontal Track Swipe in `MiniPlayer`, iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers, 120Hz Sheet Gestures & Hymn 429 Lyric Fix
 
@@ -227,3 +298,28 @@ These are Isaac's latest UI/UX decisions implemented on November 2–3, 2026. **
      - `himnario/app.json` sets `"ios.icon": "./assets/images/AppIcon.icon"` and `"ios.supportsTablet": true`.
      - `himnario/app/(tabs)/_layout.tsx` sets `overrideScrollViewContentInsetAdjustmentBehavior: false` on `home`, `favorites`, and `settings` `NativeTabs.Trigger` items so iOS never adds a double safe-area gap.
      - On iPad (`Platform.OS === 'ios' && Platform.isPad`), orientation is unlocked, tab screens add `ipadTopOffset = 50` for the iPadOS floating top tab bar, `miniPlayerBottom` uses `pillBottom`, and inner content is centered with `maxWidth: 780`.
+
+
+## Security, Email-Auth & Post-Build-22 Handoff (November 15, 2026)
+
+### Live Completed Infrastructure & Releases
+- **Cloudflare D1 (`ebp-himnario-db` / `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migration `0002_email_auth.sql` applied (`email_verified_at` column on `users`, `email_tokens` table + indexes).
+- **Cloudflare Email Sending & Worker (`ebp-himnario-sync`):** `auth.himnarioebp.com` onboarded and enabled (`MX`, `SPF`, `DKIM`, `DMARC` verified). Worker version `6e056043-383c-44e6-9187-22ee9aad0c52` deployed at `https://ebp-himnario-sync.himnario.workers.dev` with `env.EMAIL` (`cuenta@auth.himnarioebp.com`), `ACCOUNT_ACTION_URL` (`https://himnarioebp.com/account.html`), `expectedRevision` conflict checks, and `security.js` rate limiting.
+- **Cloudflare Pages (`ebp-himnario`):** Deployed `docs/account.html`, `docs/css/account.css`, `docs/js/account.js`, `docs/_headers`, and `docs/privacy.html` (`https://himnarioebp.com/account.html`, deploy `f21d7e62`).
+- **Native Rebuilds (`himnario/`, `runtimeVersion: "2.0.0-securestore-1"`, with `expo-secure-store`):**
+  - Android `preview-arm64` build: `45c31c43-e36e-4952-a15a-238ac2c1521c`
+  - iOS `production` Build `22`: `a72551f5-58d3-403c-b8d6-589f048c0ad6` (auto-submit `c1d9bbc6-4df7-4301-bb98-965a42c4d974`)
+- **Latest OTA Update (`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a` on `production` & `preview`, runtime `2.0.0-securestore-1`):**
+  - Fixed `AuthSheet.tsx` Settings Font Size `12 px` lock bug (`changeFontSize` expects an absolute multiplier, not a delta) and replaced it with a live lyric preview (`¡Cuán Grande es Él!`), `12–64 px` `Slider`, 1 px `−`/`+` steppers, and `Reset` (`22 px`).
+  - Restored authentic iOS `UISwitch` appearance (`#34C759` green ON track, `#39393D`/`#E9E9EA` OFF track, native UIKit thumb on iOS) across `AuthSheet.tsx`, `app/(tabs)/settings.tsx`, and `HomeMenuSheet.tsx`.
+  - Replaced `APPLE_AVATAR_GRADIENT` (`#9EA9DC → #7683BE`) with classic Himnario warm cream (`#F3EEE8` / `#1A1A1A`) and burgundy (`#6B0F1A` / `#FFFFFF`) avatars in `HomeHeaderActions.tsx`, `AuthSheet.tsx`, and `settings.tsx`.
+  - Fixed `HomeHeaderActions.tsx` Liquid Glass bubbles touching at rest (`gap: 12`, `GlassContainer spacing={6}`) and tightened pan drag (`±7 pt`, `stiffness: 420, damping: 28`).
+  - Deleted `himnario/assets/fonts/ios/` (`SFProText-*.otf` & `NewYork-*.ttf`) to eliminate App Store Connect warning `ITMS-91182`, and unified `app/_layout.tsx` on `@expo-google-fonts/newsreader` + `@expo-google-fonts/public-sans`.
+
+### Pending / Optional Next Work for Codex & Claude
+1. **Next Clean iOS App Store Binary (`Build 23+`)**: Build `22` delivered with App Store Connect warning `ITMS-91182` (`SFProText-Semibold.otf`). Now that `assets/fonts/ios/` is deleted, triggering a fresh iOS + Android native build will produce a warning-free binary with OTA `f2dae896` baked in natively.
+2. **Email Verification UX Upgrades (User Asked & Scoped)**:
+   - Upgrade `workers/ebp-auth-sync/email-auth.js` line 74 from plain 3-line `<p>` HTML to a branded Himnario HTML email template (header, burgundy CTA button, clear 24h/15m expiry note).
+   - Auto-call `refreshUser()` in `himnario/context/AuthContext.tsx` on `AppState === 'active'` while signed in with `!user.emailVerified` so users don't have to tap **Refresh Verification Status** manually.
+   - Make the **Return to the app** action on `docs/account.html` / `docs/js/account.js` open `himnario://` directly after email confirmation.
+3. **Sync Paused Note for Older Logins**: Users who signed in before `expectedRevision` rolled out (missing local revision) see `Sync paused` cleanly without losing data; tapping **Sign Out** → **Sign In** once restores normal `Synced to cloud` state. Also double-check `utils/authSessionStorage.ts` (`@himnario_auth_session` vs older `@ebp_auth_session_v1`) if legacy pre-v2 migration needs extending.

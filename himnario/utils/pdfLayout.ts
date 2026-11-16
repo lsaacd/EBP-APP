@@ -73,8 +73,12 @@ export function pageGeometry(format: PdfFormat): PageGeometry {
     : { w: 612, h: 792, copyW: 612, margin: 36, top: 70, limit: 752 };
 }
 
-export function hymnKindLabel(hymn: PdfHymn): string {
-  return `${String(hymn.id).startsWith('E') ? 'Estribillo' : 'Himno'} ${hymn.number}`;
+export function hymnKindLabel(hymn: PdfHymn, language: 'es' | 'en' = 'es'): string {
+  const isChorus = String(hymn.id).startsWith('E');
+  if (language === 'en') {
+    return `${isChorus ? 'Chorus' : 'Hymn'} ${hymn.number}`;
+  }
+  return `${isChorus ? 'Estribillo' : 'Himno'} ${hymn.number}`;
 }
 
 /** Default columns used by the website when the editor opens. */
@@ -117,7 +121,7 @@ function wrap(text: string, width: number, size: number, bold = false, italic = 
   return lines.length ? lines : [''];
 }
 
-const CHORUS_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo)?\s*)?coro)[:\s]*/i;
+const CHORUS_RE = /^((?:\d+\s*(?:er|do|ro|to|ndo|st|nd|rd|th)?\.?\s*)?(?:coro|chorus))[:\s]*/i;
 
 function measure(hymn: PdfHymn, f: number, opts: PdfOptions) {
   const p = pageGeometry(opts.format);
@@ -221,7 +225,14 @@ export interface SvgFonts {
 /** Baseline offset for a text whose box top is `y` (alphabetic baseline ≈ 0.8em). */
 const baseline = (y: number, size: number) => (y + size * 0.8).toFixed(2);
 
-function copySvg(hymn: PdfHymn, plan: PdfPlan, opts: PdfOptions, offset: number, fonts: SvgFonts): string {
+function copySvg(
+  hymn: PdfHymn,
+  plan: PdfPlan,
+  opts: PdfOptions,
+  offset: number,
+  fonts: SvgFonts,
+  language: 'es' | 'en' = 'es',
+): string {
   const p = plan.page;
   const cx = (offset + p.copyW / 2).toFixed(2);
   const parts: string[] = [];
@@ -230,7 +241,7 @@ function copySvg(hymn: PdfHymn, plan: PdfPlan, opts: PdfOptions, offset: number,
 
   if (opts.includeTitle) {
     parts.push(
-      `<text x="${cx}" y="${baseline(28, 9)}" font-family="${sans}" font-size="9" fill="#555555" text-anchor="middle">${escapeXml(`HIMNARIO EL BUEN PASTOR · ${hymnKindLabel(hymn)}`)}</text>`
+      `<text x="${cx}" y="${baseline(28, 9)}" font-family="${sans}" font-size="9" fill="#555555" text-anchor="middle">${escapeXml(`HIMNARIO EL BUEN PASTOR · ${hymnKindLabel(hymn, language).toUpperCase()}`)}</text>`
     );
     let y = 51;
     for (const line of plan.titles) {
@@ -268,12 +279,18 @@ function copySvg(hymn: PdfHymn, plan: PdfPlan, opts: PdfOptions, offset: number,
   return parts.join('');
 }
 
-export function buildPdfSvg(hymn: PdfHymn, plan: PdfPlan, opts: PdfOptions, fonts: SvgFonts): string {
+export function buildPdfSvg(
+  hymn: PdfHymn,
+  plan: PdfPlan,
+  opts: PdfOptions,
+  fonts: SvgFonts,
+  language: 'es' | 'en' = 'es',
+): string {
   const p = plan.page;
   let body = `<rect x="0" y="0" width="${p.w}" height="${p.h}" fill="#ffffff"/>`;
-  body += copySvg(hymn, plan, opts, 0, fonts);
+  body += copySvg(hymn, plan, opts, 0, fonts, language);
   if (opts.format === 'two-up') {
-    body += copySvg(hymn, plan, opts, p.copyW, fonts);
+    body += copySvg(hymn, plan, opts, p.copyW, fonts, language);
     body += `<line x1="${p.copyW}" y1="0" x2="${p.copyW}" y2="${p.h}" stroke="#999999" stroke-width="0.8" stroke-dasharray="5,4"/>`;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}" height="${p.h}">${body}</svg>`;
@@ -294,7 +311,7 @@ export function buildPdfHtml(svg: string, plan: PdfPlan, widthPercent = 99.6): s
   </style></head><body><div class="page">${svg.replace(/ width="\d+" height="\d+">/, '>')}</div></body></html>`;
 }
 
-export function pdfFileBaseName(hymn: PdfHymn): string {
-  return `${hymnKindLabel(hymn)} - ${hymn.title}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim();
+export function pdfFileBaseName(hymn: PdfHymn, language: 'es' | 'en' = 'es'): string {
+  return `${hymnKindLabel(hymn, language)} - ${hymn.title}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim();
 }
 

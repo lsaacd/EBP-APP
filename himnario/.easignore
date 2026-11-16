@@ -40,6 +40,12 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+credentials.json
+token.json
 
 # typescript
 *.tsbuildinfo

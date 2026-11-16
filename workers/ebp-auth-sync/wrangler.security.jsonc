@@ -1,0 +1,18 @@
+{
+  "name": "ebp-himnario-sync-security",
+  "main": "index.js",
+  "account_id": "472a1ca7a061c510594065fceeee37f7",
+  "compatibility_date": "2026-03-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ebp-himnario-security-db",
+      "database_id": "add898b4-400c-4d58-b603-adac423091e7"
+    }
+  ],
+  "vars": {
+    "EMAIL_ENABLED": "false",
+    "EMAIL_FROM": "Himnario El Buen Pastor <cuenta@auth.himnarioebp.com>",
+    "ACCOUNT_ACTION_URL": "https://himnarioebp.com/account.html?env=security"
+  }
+}

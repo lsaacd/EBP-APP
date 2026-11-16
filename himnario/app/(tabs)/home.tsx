@@ -34,6 +34,7 @@ import * as Haptics from '../../utils/haptics';
 import { useRecentHymns } from '../../context/RecentHymnsContext';
 import { useLanguage, translateCategories } from '../../context/LanguageContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
+import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import VerseCard from '../../components/VerseCard';
 import HomeHeaderActions from '../../components/HomeHeaderActions';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
@@ -50,7 +51,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode } = useTheme();
   const { recentIds, clearRecent } = useRecentHymns();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const { currentHymnId } = useNowPlaying();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const insets = useSafeAreaInsets();
@@ -84,7 +85,8 @@ export default function HomeScreen() {
   const recentHymns = recentIds
     .map((rid) => allHymns.find((h) => String(h.id) === rid))
     .filter(Boolean)
-    .slice(0, 10) as typeof hymnsData;
+    .slice(0, 10)
+    .map((h) => getLocalizedHymn(h as any, hymnLanguage)) as typeof hymnsData;
 
   // ── Android: block hardware/swipe back so home never navigates to index ──
   useFocusEffect(

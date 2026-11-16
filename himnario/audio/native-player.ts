@@ -7,6 +7,13 @@ import { createAndroidPlaybackController } from './android-playback-controller';
 
 let ready = false;
 let preparing: Promise<void> | null = null;
+let trackTitleResolver: ((id: string, fallbackTitle: string) => string) | null = null;
+
+export function setTrackTitleResolver(
+  resolver: ((id: string, fallbackTitle: string) => string) | null,
+) {
+  trackTitleResolver = resolver;
+}
 
 async function prepare() {
   if (ready) return;
@@ -41,11 +48,13 @@ export const nativePlayer = createAndroidPlaybackController({
     const url = await resolvePlaybackUri(id);
     const data = id.startsWith('E') ? estribillosData : hymnsData;
     const hymn = data.find((item: { id: string | number }) => String(item.id) === id);
+    const fallbackTitle = hymn?.title || `Himno ${id}`;
+    const title = trackTitleResolver ? trackTitleResolver(id, fallbackTitle) : fallbackTitle;
     let artwork: string | undefined;
     try { artwork = await assetUri(require('../assets/images/EBP_HYMN_COVER.png')); }
     catch (error) { console.warn('[NativePlayback] Artwork unavailable:', error); }
     await TrackPlayer.reset();
-    await TrackPlayer.add({ id, url, title: hymn?.title || `Himno ${id}`, artist: hymn?.author || 'Himnario El Buen Pastor', artwork });
+    await TrackPlayer.add({ id, url, title, artist: hymn?.author || 'Himnario El Buen Pastor', artwork });
   },
   play: () => TrackPlayer.play(),
   pause: () => TrackPlayer.pause(),

@@ -1,14 +1,23 @@
 # Native builds and updates
 
-Run native commands from `himnario/`. Configuration lives in `app.json` and `eas.json`; credentials belong outside source control.
+## November 15, 2026 — Full Security, Email Auth & UI Polish Live Status (`2.0.0`, `runtimeVersion: "2.0.0-securestore-1"`)
 
+All security, Email Auth, Cloudflare Pages, and `expo-secure-store` native rebuilds are live, followed by OTA Update **`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`** (`production` and `preview`, runtime `2.0.0-securestore-1`):
+- **Production Worker & D1**: `ebp-himnario-sync` version **`6e056043-383c-44e6-9187-22ee9aad0c52`** deployed with `env.EMAIL` bound (`cuenta@auth.himnarioebp.com`), `auth.himnarioebp.com` Email Sending enabled in Cloudflare, and D1 migration `0002_email_auth.sql` applied on `ebp-himnario-db`.
+- **Cloudflare Pages**: `https://himnarioebp.com/account.html` + `_headers` + `privacy.html` deployed (`f21d7e62.ebp-himnario.pages.dev`).
+- **Native Rebuilds (`runtimeVersion: "2.0.0-securestore-1"`)**:
+  - **Android (`preview-arm64` APK)**: `45c31c43-e36e-4952-a15a-238ac2c1521c`
+  - **iOS (`production`, Build `22`)**: `a72551f5-58d3-403c-b8d6-589f048c0ad6` (App Store Connect auto-submit `c1d9bbc6-4df7-4301-bb98-965a42c4d974`). *Note: Build `22` delivered to App Store Connect with early warning `ITMS-91182` for `assets/fonts/ios/SFProText-Semibold.otf`; `assets/fonts/ios/` has since been deleted so Build `23+` will be completely clean.*
+- **Latest OTA Update (`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`, `production` & `preview`, runtime `2.0.0-securestore-1`)**: Fixed `AuthSheet` Settings Font Size `12 px` lock bug (full Slider + live preview + 1 px steppers), restored native iOS `UISwitch` colors (`#34C759`), restored classic cream/burgundy profile avatar (removing the Apple blue gradient), separated/tightened `HomeHeaderActions` glass bubbles (`gap: 12`, `spacing: 6`, `±7 pt`), and unified `app/_layout.tsx` on `@expo-google-fonts/newsreader` + `@expo-google-fonts/public-sans`. See [SECURITY-REMEDIATION-PLAN.md](docs/guides/SECURITY-REMEDIATION-PLAN.md) and [APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md).
+
+Run native commands from `himnario/`. Configuration lives in `app.json` and `eas.json`; credentials belong outside source control.
 ## Configuration
 
 - Expo account: `isaacduran`; project: `74ef3b4c-fe90-4c2c-8521-b52f4b6a5441`.
 - iOS bundle: `com.elbuenpastor`; App Store Connect ID: `6794435414`.
 - Provisioning Profile: `ZM5HK4A7JT` (has `Associated Domains` enabled for `applinks:himnarioebp.com`).
 - Android package: `com.elbuenpastor.himnario`.
-- Runtime policy: `appVersion`; current source version: 1.1.0.
+- Runtime version: explicit `"2.0.0-securestore-1"` in `himnario/app.json`; current source `version`: `2.0.0`.
 - Profiles include `development`, `ios-simulator`, `preview`, `preview-arm64`, `production`. `preview-arm64` builds an Android APK; `production` produces the store build.
 - Production submission config supplies the iOS App Store Connect ID (`6794435414`). Android automated submission is not configured there.
 
@@ -34,7 +43,7 @@ For this Windows path, use PowerShell `-LiteralPath`. The helpers scope the EAS 
 
 ## Over-The-Air (OTA) Updates (`eas update`)
 
-EAS Update allows pushing instantaneous JavaScript, TypeScript, styling, and asset updates directly to already-installed apps on physical devices (TestFlight, iOS App Store, Google Play Store, and Preview APKs) **without needing a new app store review, binary upload, or 15-minute cloud build**.
+EAS Update allows delivering compatible JavaScript, TypeScript, styling, and asset updates to already-installed apps on physical devices (TestFlight, iOS App Store, Google Play Store, and Preview APKs) **without needing a new app store review, binary upload, or 15-minute cloud build**.
 
 ### 1. Channel & Branch Architecture (`eas.json`)
 
@@ -72,18 +81,18 @@ Or run the helper script:
 ### 3. Runtime Version Policy (`runtimeVersion`)
 
 In `app.json`, `"runtimeVersion": { "policy": "appVersion" }`.
-- EAS Update matches the user-facing `version` (currently `1.1.0`).
-- Any device running a binary with version `1.1.0` will automatically receive updates sent for `1.1.0`.
-- If you bump `version` in `app.json` (e.g. to `1.2.0`), you **must** build a new native binary; older `1.1.0` binaries will ignore `1.2.0` updates to prevent incompatibilities.
+- EAS Update matches the user-facing `version` (current unreleased source: `2.0.0`).
+- Delivery requires a compatible native binary, matching runtime/platform, and the correct live channel-to-branch mapping. Matching a version string alone does not establish native compatibility or immediate delivery.
+- Bumping `version` under `appVersion` creates a new runtime: a native build is required. Installed `2.0.0` test binaries may share this runtime label while lacking SecureStore; do not send the new native-dependent bundle to those binaries by OTA. SecureStore cannot be added by OTA to binaries without that native module.
 
 ### 4. Golden Decision Matrix: `eas update` vs. `eas build`
 
 | Modification | Can use `eas update`? | Required Action |
 |---|---|---|
-| Bug fix in `.tsx`, `.ts`, `.js`, or CSS styling | ✅ **YES (Instant)** | Run `eas update --branch production --message "..."` |
-| Lyric, title, or category changes in `alabanzasPaginas.js` | ✅ **YES (Instant)** | Run `eas update --branch production --message "..."` |
-| Layout, color, animation, or UI logic tweaks | ✅ **YES (Instant)** | Run `eas update --branch production --message "..."` |
-| Updating static images/icons in `assets/` | ✅ **YES (Instant)** | Run `eas update --branch production --message "..."` |
+| Bug fix in `.tsx`, `.ts`, `.js`, or CSS styling | ✅ **YES (compatible runtime)** | Run `eas update --branch production --message "..."` |
+| Lyric, title, or category changes in `alabanzasPaginas.js` | ✅ **YES (compatible runtime)** | Run `eas update --branch production --message "..."` |
+| Layout, color, animation, or UI logic tweaks | ✅ **YES (compatible runtime)** | Run `eas update --branch production --message "..."` |
+| Updating static images/icons in `assets/` | ✅ **YES (compatible runtime)** | Run `eas update --branch production --message "..."` |
 | Installing an npm package with **native iOS/Android code** (e.g. `@react-native-menu/menu`) | 🛑 **NO** | Full native rebuild required (`eas build`) |
 | Applying native patches (`patches/*.patch`) | 🛑 **NO** | Full native rebuild required (`eas build`) |
 | Changing native entitlements (Associated Domains, UIBackgroundModes) | 🛑 **NO** | Full native rebuild required (`eas build`) |
@@ -99,6 +108,29 @@ In `app.json`, `"runtimeVersion": { "policy": "appVersion" }`.
 A Git commit, EAS Update, native build, store submission, and website deployment remain separate operations.
 
 ## Release status
+
+### November 15, 2026 — Version `2.0.0` Release: Optional Account & Cloud Sync (Cloudflare Worker + D1), Apple Books `ID` Header & Unified `AuthSheet`, iOS 26 Connecting Liquid Glass Circles (`GlassContainer`), Anti-Bot Hardening & Settings UI Redesign
+
+- **Version Bumped to `2.0.0` (`himnario/app.json`, `himnario/package.json`)**:
+  - Native builds completed on runtime `2.0.0` (iOS `production` Build 20 auto-submitted to TestFlight/App Store Connect; Android `preview-arm64` APK built).
+- **Latest OTA Updates Published on Runtime `2.0.0` (November 15, 2026)**:
+  - **`production` & `preview` Update Group (`23922bbe-f53b-41d2-8d34-eef7c739cf64`)**: [EAS Dashboard](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/23922bbe-f53b-41d2-8d34-eef7c739cf64) · iOS `01a1defb-5ee9-72e6-a284-c692d779a3f2` · Android `01a1defb-5ee9-7963-9199-48900315adac`.
+  - **Cloudflare Worker + D1 Cloud Sync (`workers/ebp-auth-sync/`, `context/AuthContext.tsx`)**:
+    - Deployed Worker `ebp-himnario-sync` (`https://ebp-himnario-sync.himnario.workers.dev`, Version `5e626283-1559-462e-830f-56d0e19f86fc`) backed by Cloudflare D1 `ebp-himnario-db` (`ed683396-bfd7-43ff-b69e-f82cf4621c55`).
+    - Optional, non-blocking sign-in / account creation (`PBKDF2-HMAC-SHA256` 100k iterations + per-user random salt, `SHA-256` session token hashes) that union-merges Favorites, Playlists, Recent Hymns, and Reading Preferences across devices with `1200ms` debounced auto-sync.
+    - Hardened with D1 `rate_limits` sliding-window lockout (`429` after 5 failed login attempts with `1m` → `5m` → `15m` progressive backoff, per-IP signup/reset/sync caps, `64 KB` body cap, honeypot bot trap, `120ms` timing floor, and session revocation on password reset).
+  - **Apple Books Profile Circle & iOS 26 Connecting Liquid Glass (`HomeHeaderActions.tsx`)**:
+    - Replaced the 3-item header with two large `46×46pt` circles: **Search (`🔍`)** on the left and **Profile / Unified App Menu (`ID` initials on `#9EA9DC → #7683BE` `APPLE_AVATAR_GRADIENT` when signed in, or `person.crop.circle.fill` when signed out)** on the right.
+    - On iOS 26+ (`isLiquidGlassAvailable()`), wraps both circles inside `<GlassContainer spacing={18}>` with direct `Animated.createAnimatedComponent(GlassView)` children (`isInteractive`) and Reanimated `Gesture.Pan()` spring drag (`±20pt`) so nudging/dragging either circle toward the other stretches Apple's native `UIGlassContainerEffect` Liquid Glass metaball bridge between them.
+  - **Unified `AuthSheet` UX & Bug Fixes (`components/AuthSheet.tsx`, `context/AuthContext.tsx`)**:
+    - Consolidates Account/Cloud Sync, Share App (`share`), Settings (`settings`), Offline Downloads (`downloads`), Help (`help`), and History/About (`about`) as in-sheet sub-pages inside a single modal, eliminating iOS modal-collision freezes.
+    - Added live `Keyboard` height listeners to dynamically clamp `sheetMaxHeight` below `insets.top + 12` so the grabber and **`Listo`** exit button never scroll or push behind the Dynamic Island when the keyboard opens.
+    - Added Show/Hide password eye toggle (`showPassword`), decoupled the submit spinner from background `isSyncing`, and added `sessionEpochRef` + `AbortController` (`syncAbortRef`) in `AuthContext` so signing out immediately cancels pending sync timers and aborts in-flight requests.
+  - **Settings Screen Redesign & Dark Mode Switch Fix (`app/(tabs)/settings.tsx`, `HomeMenuSheet.tsx`, `AuthSheet.tsx`, `LanguageContext.tsx`)**:
+    - Upgraded the `CUENTA Y NUBE` card in `settings.tsx` with a `44×44pt` circular avatar badge, accented title (`#6e1619` light / `#F2D7B6` dark), `"Entrar ›"` / `"Sign In ›"` CTA pill, and an explanatory cloud-backup footnote underneath.
+    - Added **Compartir aplicación / Share App** under `General` in `settings.tsx` wired to `<AppShareSheet />` (with `if (!visible) return null` guard in `AppShareSheet.tsx`).
+    - Fixed the Dark Mode `<Switch>` across `settings.tsx`, `AuthSheet.tsx`, and `HomeMenuSheet.tsx` so Light Mode stays unchanged (`#6e1619` burgundy track + white knob) while Dark Mode renders a crisp `#FFFFFF` knob on our `#373737` (`theme.surfaceVariants.container`) dark-gray track.
+    - Replaced personal name placeholder with `"Ej. Juan Pérez"` / `"e.g. John Doe"`.
 
 ### November 14, 2026 — YouTube Music Horizontal Track Swipe in `MiniPlayer`, iOS 26 Liquid Glass Lifecycle & Optical Centering, Quick Web Feedback Form Prefill, 3D Leather Web Covers & Hymn 429 Lyric Fix (Published via OTA on Runtime `1.1.0`)
 
@@ -237,3 +269,13 @@ Isaac explicitly requested new binaries, not only OTA updates. Both archives inc
    - Fixed lowercase singular `"dios"` references in Hymns 6, 204, 222, 248, 249, and the Chorus of Hymn 409.
 
 See [Google Play status](docs/guides/GOOGLE-PLAY-RELEASE-PLAN.md) and the [project overview](README.md).
+
+
+## Security & Email-Auth Rebuild (`runtimeVersion: "2.0.0-securestore-1"`, November 15, 2026)
+
+- **Why a new `runtimeVersion` (`2.0.0-securestore-1`) was required:** Adding `expo-secure-store` introduces native iOS Keychain / Android Keystore code. Setting `runtimeVersion` to `2.0.0-securestore-1` keeps the user-facing version at `2.0.0` while preventing earlier `2.0.0` binaries from downloading an incompatible OTA bundle.
+- **Android (`preview-arm64` APK):** `45c31c43-e36e-4952-a15a-238ac2c1521c` — `https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/45c31c43-e36e-4952-a15a-238ac2c1521c`
+- **iOS (`production`, Build `22`):** `a72551f5-58d3-403c-b8d6-589f048c0ad6` — `https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/a72551f5-58d3-403c-b8d6-589f048c0ad6`
+- **iOS App Store Connect Auto-Submit:** `c1d9bbc6-4df7-4301-bb98-965a42c4d974` — `https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/c1d9bbc6-4df7-4301-bb98-965a42c4d974`
+- **Post-Build-22 OTA (`production` & `preview`, runtime `2.0.0-securestore-1`):** `f2dae896-2d5b-4ad6-96c9-b49e3249ae4a` — `https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`
+- **Next Native Build Recommendation (`Build 23+`):** Rebuild Android/iOS natively whenever convenient so the binary itself is free of the now-deleted `assets/fonts/ios/` files (`ITMS-91182` clean) and natively embeds OTA `f2dae896`.

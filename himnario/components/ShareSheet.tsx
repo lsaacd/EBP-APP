@@ -73,8 +73,9 @@ export interface ShareSheetProps {
 
 export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' }: ShareSheetProps) {
   const { theme, isDarkMode } = useTheme();
-  const { t, language } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const es = language !== 'en';
+  const hymnEn = hymnLanguage === 'en';
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const travel = Math.max(420, Math.round(windowHeight * 0.82));
@@ -161,7 +162,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   if (!hymn) return null;
 
   const isChorus = String(hymn.id).startsWith('E');
-  const label = `${isChorus ? 'Estribillo' : 'Himno'} ${hymn.number}`;
+  const label = `${isChorus ? (hymnEn ? 'Chorus' : 'Estribillo') : (hymnEn ? 'Hymn' : 'Himno')} ${hymn.number}`;
   const publicUrl = `https://himnarioebp.com/hymn/${encodeURIComponent(String(hymn.id))}/`;
   const linkMessage = `${label} · ${hymn.title}\nHimnario El Buen Pastor\n\n${publicUrl}`;
   const fullLyricsText = [
@@ -169,8 +170,8 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     'Himnario El Buen Pastor',
     '',
     hymn.lyrics || '',
-    hymn.author ? `\nAutor: ${hymn.author}` : '',
-    hymn.reference ? `Referencia: ${hymn.reference}` : '',
+    hymn.author ? `\n${hymnEn ? 'Author' : 'Autor'}: ${hymn.author}` : '',
+    hymn.reference ? `${hymnEn ? 'Reference' : 'Referencia'}: ${hymn.reference}` : '',
     `\n${publicUrl}`,
   ]
     .filter((line, idx) => idx < 4 || Boolean(line))

@@ -8,12 +8,14 @@ interface RecentHymnsContextType {
   recentIds: string[];
   addRecent: (id: string) => void;
   clearRecent: () => void;
+  setAllRecents: (ids: string[]) => void;
 }
 
 const RecentHymnsContext = createContext<RecentHymnsContextType>({
   recentIds: [],
   addRecent: () => {},
   clearRecent: () => {},
+  setAllRecents: () => {},
 });
 
 export function RecentHymnsProvider({ children }: { children: React.ReactNode }) {
@@ -42,8 +44,14 @@ export function RecentHymnsProvider({ children }: { children: React.ReactNode })
     AsyncStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const setAllRecents = useCallback((ids: string[]) => {
+    const clean = Array.from(new Set(ids.map((x) => String(x)))).filter(Boolean).slice(0, MAX_RECENT);
+    setRecentIds(clean);
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(clean)).catch(() => {});
+  }, []);
+
   return (
-    <RecentHymnsContext.Provider value={{ recentIds, addRecent, clearRecent }}>
+    <RecentHymnsContext.Provider value={{ recentIds, addRecent, clearRecent, setAllRecents }}>
       {children}
     </RecentHymnsContext.Provider>
   );

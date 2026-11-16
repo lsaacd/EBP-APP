@@ -18,6 +18,7 @@ import Animated, {
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { fonts } from '../theme/theme';
 import * as Haptics from '../utils/haptics';
 import AppMenuIcon from './AppMenuIcon';
@@ -32,12 +33,23 @@ export type MenuAnchor = { x: number; y: number; width: number; height: number }
 const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html?form=audio';
 
 /** One modal with in-sheet navigation: no stacked settings/about presentation races. */
-export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }: { anchor: MenuAnchor; initialPage?: Page; onClose: () => void }) {
+export default function HomeMenuSheet({
+  anchor,
+  initialPage = 'menu',
+  onClose,
+  onOpenShareApp,
+}: {
+  anchor: MenuAnchor;
+  initialPage?: Page;
+  onClose: () => void;
+  onOpenShareApp?: () => void;
+}) {
   const { theme, isDarkMode, toggleTheme, fontSizeMultiplier } = useTheme();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, hymnLanguage, setLanguage, setHymnLanguage } = useLanguage();
+  const { user, isSyncing, openAuthSheet } = useAuth();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [menuContentHeight, setMenuContentHeight] = useState(210);
+  const [menuContentHeight, setMenuContentHeight] = useState(290);
   const [page, setPage] = useState<Page>(initialPage);
   const [aboutParent, setAboutParent] = useState<Page>('menu');
   const [showTextSize, setShowTextSize] = useState(false);
@@ -47,7 +59,7 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
   const menuTop = Math.max(insets.top + 8, Math.min(anchor.y + anchor.height + 8, height - insets.bottom - menuHeight - 8));
   const travel = Math.max(420, Math.round(height * 0.88));
   const tallSheetHeight = Math.round(height * 0.9);
-  const isScrollablePage = page === 'about' || page === 'help';
+  const isScrollablePage = page === 'about' || page === 'help' || page === 'settings';
 
   const progress = useSharedValue(initialPage === 'menu' ? 0 : 1);
   const dragOrigin = useSharedValue(0);
@@ -170,7 +182,39 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
   const group = (children: React.ReactNode) => <View style={[styles.group, { backgroundColor: theme.surfaceVariants.containerLow, borderColor: theme.outlineVariant + '50' }]}>{children}</View>;
   const sectionLabel = (label: string) => <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>{label}</Text>;
 
+  const handleOpenAccount = () => {
+    Haptics.selectionAsync().catch(() => {});
+    animateClose();
+    setTimeout(() => openAuthSheet(), 220);
+  };
+
+  const handleOpenShare = () => {
+    Haptics.selectionAsync().catch(() => {});
+    animateClose();
+    if (onOpenShareApp) {
+      setTimeout(() => onOpenShareApp(), 220);
+    }
+  };
+
+  const accountRowTitle = user
+    ? user.displayName || user.email.split('@')[0]
+    : t.authSignIn;
+  const accountRowSub = user
+    ? `${user.email} · ${isSyncing ? t.authSyncingStatus : t.authSyncedStatus}`
+    : t.authMenuSignInSub;
+
   const settings = <>
+    {sectionLabel(t.authSectionTitle)}
+    {group(<>
+      {row(
+        accountRowTitle,
+        user ? 'person.crop.circle.fill.badge.checkmark' : 'person.crop.circle',
+        user ? 'verified-user' : 'account-circle',
+        handleOpenAccount,
+        accountRowSub
+      )}
+    </>)}
+
     {sectionLabel(t.homeMenuDisplay)}
     {group(<>
       <Pressable accessibilityRole="switch" accessibilityState={{ checked: isDarkMode }} accessibilityLabel={t.homeMenuDark}
@@ -178,19 +222,36 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
         <AppMenuIcon ios="circle.lefthalf.filled" android="contrast" color={theme.primary} />
         <View style={styles.rowText}><Text style={[styles.rowTitle, { color: theme.onSurface }]}>{isDarkMode ? t.homeMenuDark : t.homeMenuLight}</Text></View>
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Switch value={isDarkMode} trackColor={{ false: theme.outlineVariant, true: theme.primary }} thumbColor={Platform.OS === 'android' ? theme.onPrimary : undefined} />
+          <Switch
+            value={isDarkMode}
+            trackColor={{
+              false: Platform.OS === 'ios' ? (isDarkMode ? '#39393D' : '#E9E9EA') : isDarkMode ? 'rgba(255,255,255,0.20)' : theme.outlineVariant + '66',
+              true: Platform.OS === 'ios' ? '#34C759' : isDarkMode ? theme.surfaceVariants.container : theme.primary,
+            }}
+            thumbColor={Platform.OS === 'ios' ? undefined : isDarkMode ? '#FFFFFF' : theme.surfaceVariants.containerHighest}
+            ios_backgroundColor={isDarkMode ? '#39393D' : '#E9E9EA'}
+          />
         </View>
       </Pressable>
       {divider}
       {row(t.fontSize, 'textformat.size', 'format-size', () => setShowTextSize(true), `${Math.round(22 * fontSizeMultiplier)} px`)}
     </>)}
 
-    {sectionLabel(t.language)}
+    {sectionLabel(t.homeMenuAppLanguage)}
     {group(<View style={styles.languageRow}>
       {(['es', 'en'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: language === value }}
         onPress={() => setLanguage(value)}
         style={[styles.languageOption, { backgroundColor: language === value ? theme.primary : theme.surfaceVariants.container, borderColor: language === value ? theme.primary : theme.outlineVariant }]}>
         <Text style={[styles.languageText, { color: language === value ? theme.onPrimary : theme.onSurface }]}>{value === 'es' ? t.spanish : t.english}</Text>
+      </Pressable>)}
+    </View>)}
+
+    {sectionLabel(t.homeMenuHymnLanguage)}
+    {group(<View style={styles.languageRow}>
+      {(['es', 'en'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: hymnLanguage === value }}
+        onPress={() => setHymnLanguage(value)}
+        style={[styles.languageOption, { backgroundColor: hymnLanguage === value ? theme.primary : theme.surfaceVariants.container, borderColor: hymnLanguage === value ? theme.primary : theme.outlineVariant }]}>
+        <Text style={[styles.languageText, { color: hymnLanguage === value ? theme.onPrimary : theme.onSurface }]}>{value === 'es' ? t.spanish : t.english}</Text>
       </Pressable>)}
     </View>)}
     <Text style={[styles.note, { color: theme.onSurfaceVariant }]}>{t.homeMenuLanguageHint}</Text>
@@ -283,9 +344,20 @@ export default function HomeMenuSheet({ anchor, initialPage = 'menu', onClose }:
                 onContentSizeChange={(_width, contentHeight) => setMenuContentHeight(contentHeight + 12)}
               >
                 <Text style={[styles.menuCaption, { color: theme.onSurfaceVariant }]}>Himnario El Buen Pastor</Text>
+                {row(
+                  accountRowTitle,
+                  user ? 'person.crop.circle.fill' : 'person.crop.circle',
+                  'account-circle',
+                  handleOpenAccount,
+                  accountRowSub,
+                  true
+                )}
+                {divider}
                 {row(t.homeMenuHistory, 'clock', 'history', () => go('about'), t.homeMenuHistorySub, true)}
                 {divider}
                 {row(t.homeMenuHelp, 'questionmark.circle', 'help-outline', () => go('help'), t.homeMenuHelpSub, true)}
+                {divider}
+                {row(t.authShareAppRow, 'square.and.arrow.up', 'share', handleOpenShare, t.authShareAppSub, true)}
                 {divider}
                 {row(t.homeMenuSettings, 'gearshape', 'settings', () => go('settings'), t.homeMenuSettingsSub, true)}
               </ScrollView>

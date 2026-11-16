@@ -34,9 +34,11 @@ import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { PlaylistsProvider } from '../context/PlaylistsContext';
 import { RecentHymnsProvider } from '../context/RecentHymnsContext';
+import { AuthProvider } from '../context/AuthContext';
 import { NowPlayingProvider, useNowPlaying } from '../context/NowPlayingContext';
 import { HymnFilterProvider } from '../context/HymnFilterContext';
 import { LanguageProvider } from '../context/LanguageContext';
+import { AuthSheet } from '../components/AuthSheet';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
@@ -221,38 +223,26 @@ function ThemedStack() {
           onViewLyrics={(id) => router.push(`/hymn/${id}`)}
         />
       )}
+
+      {/* ── Global Auth & Unified Account/Menu Sheet ─────────────────────── */}
+      <AuthSheet />
     </View>
   );
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts(
-    Platform.OS === 'ios'
-      ? {
-          Newsreader_400Regular: require('../assets/fonts/ios/NewYork-Regular.ttf'),
-          Newsreader_400Regular_Italic: require('../assets/fonts/ios/NewYork-RegularItalic.ttf'),
-          Newsreader_500Medium: require('../assets/fonts/ios/NewYork-Medium.ttf'),
-          Newsreader_600SemiBold: require('../assets/fonts/ios/NewYork-Semibold.ttf'),
-          Newsreader_700Bold: require('../assets/fonts/ios/NewYork-Bold.ttf'),
-          Newsreader_700Bold_Italic: require('../assets/fonts/ios/NewYork-BoldItalic.ttf'),
-          PublicSans_400Regular: require('../assets/fonts/ios/SFProText-Regular.otf'),
-          PublicSans_500Medium: require('../assets/fonts/ios/SFProText-Medium.otf'),
-          PublicSans_600SemiBold: require('../assets/fonts/ios/SFProText-Semibold.otf'),
-          PublicSans_700Bold: require('../assets/fonts/ios/SFProText-Bold.otf'),
-        }
-      : {
-          Newsreader_400Regular,
-          Newsreader_400Regular_Italic,
-          Newsreader_500Medium,
-          Newsreader_600SemiBold,
-          Newsreader_700Bold,
-          Newsreader_700Bold_Italic,
-          PublicSans_400Regular,
-          PublicSans_500Medium,
-          PublicSans_600SemiBold,
-          PublicSans_700Bold,
-        }
-  );
+  const [fontsLoaded, fontError] = useFonts({
+    Newsreader_400Regular,
+    Newsreader_400Regular_Italic,
+    Newsreader_500Medium,
+    Newsreader_600SemiBold,
+    Newsreader_700Bold,
+    Newsreader_700Bold_Italic,
+    PublicSans_400Regular,
+    PublicSans_500Medium,
+    PublicSans_600SemiBold,
+    PublicSans_700Bold,
+  });
 
   useEffect(() => {
     if (fontError) {
@@ -291,11 +281,13 @@ export default function RootLayout() {
             <FavoritesProvider>
               <PlaylistsProvider>
                 <RecentHymnsProvider>
-                  <NowPlayingProvider>
-                    <HymnFilterProvider>
-                      <ThemedStack />
-                    </HymnFilterProvider>
-                  </NowPlayingProvider>
+                  <AuthProvider>
+                    <NowPlayingProvider>
+                      <HymnFilterProvider>
+                        <ThemedStack />
+                      </HymnFilterProvider>
+                    </NowPlayingProvider>
+                  </AuthProvider>
                 </RecentHymnsProvider>
               </PlaylistsProvider>
             </FavoritesProvider>

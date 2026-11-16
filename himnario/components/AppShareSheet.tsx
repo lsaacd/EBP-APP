@@ -568,6 +568,8 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
     </View>
   );
 
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}

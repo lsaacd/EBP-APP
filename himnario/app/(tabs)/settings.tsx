@@ -28,6 +28,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth, computeUserInitials } from '../../context/AuthContext';
+import { APPLE_AVATAR_GRADIENT } from '../../components/HomeHeaderActions';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -35,6 +37,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import OfflineAudioCard from '../../components/OfflineAudioCard';
+import AppShareSheet from '../../components/AppShareSheet';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
 const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
@@ -42,13 +45,15 @@ const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode, toggleTheme, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, hymnLanguage, setLanguage, setHymnLanguage } = useLanguage();
+  const { user, isSyncing, openAuthSheet } = useAuth();
   const insets = useSafeAreaInsets();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId, showFullPlayer } = useNowPlaying();
   const hasMiniPlayer = !!currentHymnId && !showFullPlayer;
-  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [langPickerTarget, setLangPickerTarget] = useState<'app' | 'hymn' | null>(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [showShareApp, setShowShareApp] = useState(false);
   const scrollViewRef = useRef<any>(null);
   const isSlidingFont = useRef(false);
 
@@ -87,6 +92,127 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
+      {/* ─── Section: Cuenta y Nube ────────────────── */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+          {t.authSectionTitle}
+        </Text>
+        <TouchableOpacity
+          activeOpacity={0.78}
+          onPress={openAuthSheet}
+          style={[
+            styles.card,
+            styles.accountHeroCard,
+            {
+              backgroundColor: theme.surfaceVariants.containerLow,
+              borderColor: isDarkMode
+                ? 'rgba(255, 255, 255, 0.12)'
+                : theme.outlineVariant + '70',
+            },
+          ]}
+        >
+          <View style={styles.cardRow}>
+            <View style={styles.cardInfo}>
+              {user ? (
+                <View
+                  style={[
+                    styles.accountAvatarGradient,
+                    {
+                      backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
+                      borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.accountAvatarInitials,
+                      { color: isDarkMode ? '#1A1A1A' : '#FFFFFF' },
+                    ]}
+                  >
+                    {user.initials || computeUserInitials(user.displayName, user.email)}
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.accountAvatarBadge,
+                    {
+                      backgroundColor: isDarkMode
+                        ? theme.surfaceVariants.container
+                        : theme.primary + '14',
+                      borderColor: isDarkMode
+                        ? 'rgba(255, 255, 255, 0.14)'
+                        : theme.primary + '28',
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="person-outline"
+                    size={24}
+                    color={isDarkMode ? '#FDF9F2' : theme.primary}
+                  />
+                </View>
+              )}
+              <View style={styles.cardTextContainer}>
+                <Text
+                  style={[
+                    styles.cardTitle,
+                    styles.accountCardTitle,
+                    {
+                      color: user
+                        ? theme.onSurface
+                        : isDarkMode
+                        ? '#F2D7B6'
+                        : theme.primary,
+                    },
+                  ]}
+                >
+                  {user ? user.displayName || user.email.split('@')[0] : t.authSignIn}
+                </Text>
+                <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
+                  {user
+                    ? `${user.email} · ${isSyncing ? t.authSyncingStatus : t.authSyncedStatus}`
+                    : t.authMenuSignInSub}
+                </Text>
+              </View>
+            </View>
+            {user ? (
+              <MaterialIcons name="chevron-right" size={22} color={theme.outline} />
+            ) : (
+              <View
+                style={[
+                  styles.accountCtaPill,
+                  {
+                    backgroundColor: isDarkMode
+                      ? theme.surfaceVariants.container
+                      : theme.primary,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.accountCtaPillText,
+                    { color: isDarkMode ? '#FFFFFF' : theme.onPrimary },
+                  ]}
+                >
+                  {t.authSettingsSignInCta}
+                </Text>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={16}
+                  color={isDarkMode ? '#FFFFFF' : theme.onPrimary}
+                />
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        {!user && (
+          <Text style={[styles.accountFootnote, { color: theme.onSurfaceVariant }]}>
+            {t.authSettingsCardHint}
+          </Text>
+        )}
+      </View>
+
       {/* ─── Section: Apariencia ────────────────────── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
@@ -111,15 +237,19 @@ export default function SettingsScreen() {
               value={isDarkMode}
               onValueChange={toggleTheme}
               trackColor={{
-                false: theme.outlineVariant + '66',
-                true: theme.primary,
+                false: Platform.OS === 'ios' ? (isDarkMode ? '#39393D' : '#E9E9EA') : isDarkMode ? 'rgba(255, 255, 255, 0.20)' : theme.outlineVariant + '66',
+                true: Platform.OS === 'ios' ? '#34C759' : isDarkMode ? theme.surfaceVariants.container : theme.primary,
               }}
               thumbColor={
-                isDarkMode
-                  ? theme.inverseSurface
-                  : theme.surfaceVariants.containerHighest
+                Platform.OS === 'ios'
+                  ? undefined
+                  : isDarkMode
+                    ? '#FFFFFF'
+                    : theme.surfaceVariants.containerHighest
               }
-              ios_backgroundColor={theme.outlineVariant + '66'}
+              ios_backgroundColor={
+                isDarkMode ? '#39393D' : '#E9E9EA'
+              }
             />
           </View>
         </View>
@@ -212,24 +342,53 @@ export default function SettingsScreen() {
           {t.general}
         </Text>
 
-        {/* Language */}
+        {/* App Language */}
         <TouchableOpacity
           style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}
-          onPress={() => setShowLangPicker(true)}
+          onPress={() => setLangPickerTarget('app')}
         >
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               <MaterialIcons name="language" size={24} color={theme.primary} />
               <View style={styles.cardTextContainer}>
-                <Text style={[styles.cardTitle, { color: theme.onSurface }]}>{t.language}</Text>
+                <Text style={[styles.cardTitle, { color: theme.onSurface }]}>{t.appLanguage}</Text>
                 <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
-                  {t.languageSub}
+                  {t.appLanguageSub}
                 </Text>
               </View>
             </View>
             <View style={styles.cardAction}>
               <Text style={[styles.cardActionText, { color: theme.primary }]}>
                 {language === 'es' ? t.spanish : t.english}
+              </Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={22}
+                color={theme.onSurfaceVariant}
+                style={{ opacity: 0.4 }}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Hymn Lyrics Language */}
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}
+          onPress={() => setLangPickerTarget('hymn')}
+        >
+          <View style={styles.cardRow}>
+            <View style={styles.cardInfo}>
+              <MaterialIcons name="translate" size={24} color={theme.primary} />
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, { color: theme.onSurface }]}>{t.hymnLanguage}</Text>
+                <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
+                  {t.hymnLanguageSub}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.cardAction}>
+              <Text style={[styles.cardActionText, { color: theme.primary }]}>
+                {hymnLanguage === 'es' ? t.spanish : t.english}
               </Text>
               <MaterialIcons
                 name="chevron-right"
@@ -292,6 +451,32 @@ export default function SettingsScreen() {
             />
           </View>
         </TouchableOpacity>
+
+        {/* Share App / Compartir aplicación */}
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}
+          onPress={() => setShowShareApp(true)}
+        >
+          <View style={styles.cardRow}>
+            <View style={styles.cardInfo}>
+              <MaterialIcons name="share" size={24} color={theme.primary} />
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
+                  {t.authShareAppRow}
+                </Text>
+                <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
+                  {t.authShareAppSub}
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={theme.onSurfaceVariant}
+              style={{ opacity: 0.5 }}
+            />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* ─── Section: Rate this App (iOS only until Android is live on Play Store) ─ */}
@@ -347,7 +532,7 @@ export default function SettingsScreen() {
           {t.signatureQuote}
         </Text>
         <Text style={[styles.signatureMeta, { color: theme.onSurfaceVariant }]}>
-          v {Constants.expoConfig?.version ?? '1.1.0'} — Solo A Dios La Gloria
+          v {Constants.expoConfig?.version ?? '2.0.0'} — Solo A Dios La Gloria
         </Text>
       </View>
 
@@ -391,25 +576,26 @@ export default function SettingsScreen() {
       </Modal>
 
       <Modal
-        visible={showLangPicker}
+        visible={langPickerTarget !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowLangPicker(false)}
+        onRequestClose={() => setLangPickerTarget(null)}
       >
         <View style={styles.modalOverlay}>
           {/* Backdrop click interceptor */}
           <TouchableOpacity
             style={StyleSheet.absoluteFillObject}
             activeOpacity={1}
-            onPress={() => setShowLangPicker(false)}
+            onPress={() => setLangPickerTarget(null)}
           />
           <View style={[styles.langSheet, { backgroundColor: theme.surfaceVariants.container }]}>
             <Text style={[styles.langSheetTitle, { color: theme.onSurface }]}>
-              {t.language}
+              {langPickerTarget === 'hymn' ? t.hymnLanguage : t.appLanguage}
             </Text>
             {(['es', 'en'] as const).map((lang) => {
               const label = lang === 'es' ? t.spanish : t.english;
-              const isSelected = language === lang;
+              const currentSelection = langPickerTarget === 'hymn' ? hymnLanguage : language;
+              const isSelected = currentSelection === lang;
               return (
                 <TouchableOpacity
                   key={lang}
@@ -420,7 +606,14 @@ export default function SettingsScreen() {
                       backgroundColor: isSelected ? theme.primary + '12' : 'transparent'
                     },
                   ]}
-                  onPress={() => { setLanguage(lang); setShowLangPicker(false); }}
+                  onPress={() => {
+                    if (langPickerTarget === 'hymn') {
+                      setHymnLanguage(lang);
+                    } else {
+                      setLanguage(lang);
+                    }
+                    setLangPickerTarget(null);
+                  }}
                 >
                   <Text style={[
                     styles.langOptionText,
@@ -437,6 +630,8 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      <AppShareSheet visible={showShareApp} onClose={() => setShowShareApp(false)} />
     </>
   );
 
@@ -609,6 +804,57 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     gap: 0,
+  },
+  accountHeroCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  accountAvatarGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountAvatarInitials: {
+    fontFamily: 'PublicSans_700Bold',
+    fontSize: 16,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    includeFontPadding: false,
+  },
+  accountAvatarBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountCardTitle: {
+    fontFamily: 'PublicSans_600SemiBold',
+  },
+  accountCtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderRadius: 999,
+    gap: 2,
+  },
+  accountCtaPillText: {
+    fontFamily: 'PublicSans_600SemiBold',
+    fontSize: 13,
+  },
+  accountFootnote: {
+    fontFamily: 'PublicSans_400Regular',
+    fontSize: 12.5,
+    lineHeight: 18,
+    opacity: 0.72,
+    paddingHorizontal: 4,
+    marginTop: -4,
   },
   cardRow: {
     flexDirection: 'row',

@@ -45,6 +45,22 @@
         "buildType": "apk"
       },
       "channel": "preview"
+    },
+    "security-test-ios": {
+      "extends": "production",
+      "channel": "security-test-v2",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_AUTH_SYNC_API_URL": "https://ebp-himnario-sync-security.himnario.workers.dev"
+      }
+    },
+    "security-test-android": {
+      "extends": "preview-arm64",
+      "channel": "security-test-v2",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_AUTH_SYNC_API_URL": "https://ebp-himnario-sync-security.himnario.workers.dev"
+      }
     }
   },
   "submit": {

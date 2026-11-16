@@ -69,7 +69,7 @@ export default function ProjectorModal({
   stanzas,
   initialDarkMode,
 }: ProjectorModalProps) {
-  const { t } = useLanguage();
+  const { t, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
 
   const [index, setIndex] = useState(0);
@@ -284,9 +284,15 @@ export default function ProjectorModal({
   const chipActiveFg = projectorDark ? '#050505' : '#FFFFFF';
 
   const isEstribillo = String(hymn.id).startsWith('E');
-  const hymnPrefix = isEstribillo ? 'Estribillo' : 'Himno';
+  const hymnPrefix = isEstribillo
+    ? hymnLanguage === 'en'
+      ? 'Chorus'
+      : 'Estribillo'
+    : hymnLanguage === 'en'
+      ? 'Hymn'
+      : 'Himno';
   const stanzaBadge = currentStanza?.isCoro
-    ? currentStanza.coroLabel || t.projectorChorus
+    ? currentStanza.coroLabel || (hymnLanguage === 'en' ? 'CHORUS' : t.projectorChorus)
     : t.projectorStanza.replace('{n}', String(currentStanza?.verseNum ?? index + 1));
 
   const handleStageTap = (evt: any) => {

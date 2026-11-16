@@ -8,8 +8,10 @@
 import React, { createContext, useContext, useState, useEffect, useSyncExternalStore } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from '../utils/haptics';
-import { nativePlayer } from '../audio/native-player';
+import { nativePlayer, setTrackTitleResolver } from '../audio/native-player';
 import { refreshOfflineAudio } from '../audio/offline-audio';
+import { useLanguage } from './LanguageContext';
+import { ALABANZAS_ENGLISH } from '../data/alabanzasEnglish';
 
 const LAST_PLAYED_STORAGE_KEY = '@ebp_last_played_hymn_id';
 
@@ -61,9 +63,16 @@ export function useNowPlaying() {
 }
 
 export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
+  const { hymnLanguage } = useLanguage();
   const snapshot = useSyncExternalStore(nativePlayer.subscribe, nativePlayer.getSnapshot);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [lastPlayedHymnId, setLastPlayedHymnId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTrackTitleResolver((id, fallbackTitle) =>
+      hymnLanguage === 'en' ? ALABANZAS_ENGLISH[id]?.title || fallbackTitle : fallbackTitle,
+    );
+  }, [hymnLanguage]);
 
   useEffect(() => {
     void refreshOfflineAudio();
