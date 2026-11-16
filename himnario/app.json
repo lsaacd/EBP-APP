@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "icon": "./assets/images/AppIcon.icon",
       "infoPlist": {
         "UIBackgroundModes": [

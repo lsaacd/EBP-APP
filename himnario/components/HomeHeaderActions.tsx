@@ -255,7 +255,7 @@ export default function HomeHeaderActions({
     return (
       <GlassContainerComp
         key={`glass-container-${glassKey}-${glassEpoch}-${scheme}`}
-        spacing={6}
+        spacing={5}
         style={styles.actionsRow}
       >
         <AnimatedGlassViewComp
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     flexShrink: 0,
   },
   largeCircle: {

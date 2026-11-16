@@ -2260,7 +2260,7 @@ export const hymnsData = [
   {
     id: '123',
     number: 123,
-    title: 'Hacla La Roca Más, Alta',
+    title: 'Hacia La Roca Más, Alta',
     categories: 'Fortaleza',
     author: '',
     reference: '',
