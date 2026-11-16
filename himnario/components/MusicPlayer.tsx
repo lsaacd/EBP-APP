@@ -103,41 +103,43 @@ const ProgressSection = React.memo(function ProgressSection({
   return (
     <View style={progressStyles.section}>
       <GestureDetector gesture={Gesture.Native().disallowInterruption(true)}>
-      <Slider
-        style={progressStyles.slider}
-        minimumValue={0}
-        maximumValue={durationMs > 0 ? durationMs : 1}
-        value={sliderValue}
-        onSlidingStart={() => {
-          ++seekGeneration.current;
-          if (settleTimer.current) clearTimeout(settleTimer.current);
-          pendingSeek.current = null;
-          isSeekingRef.current = true;
-          setSeekVal(currentMs);
+        <View collapsable={false} style={{ width: '100%' }}>
+          <Slider
+            style={progressStyles.slider}
+            minimumValue={0}
+            maximumValue={durationMs > 0 ? durationMs : 1}
+            value={sliderValue}
+            onSlidingStart={() => {
+              ++seekGeneration.current;
+              if (settleTimer.current) clearTimeout(settleTimer.current);
+              pendingSeek.current = null;
+              isSeekingRef.current = true;
+              setSeekVal(currentMs);
 
-        }}
-        onValueChange={(v) => {
-          setSeekVal(Math.floor(v));
-        }}
-        onSlidingComplete={(v: number) => {
-          const target = Math.floor(v);
-          const generation = ++seekGeneration.current;
-          isSeekingRef.current = false;
-          pendingSeek.current = target;
-          setSeekVal(target);
-          setSliderValue(target);
-          if (settleTimer.current) clearTimeout(settleTimer.current);
-          // Keep stale progress polls from pulling the thumb back after release.
-          settleTimer.current = setTimeout(() => { pendingSeek.current = null; }, 2000);
-          void TrackPlayer.seekTo(target / 1000).catch(() => {
-            if (generation === seekGeneration.current) { pendingSeek.current = null; setSliderValue(currentMs); }
-          });
-        }}
-        minimumTrackTintColor={audioAvailable ? '#c0392b' : 'rgba(255,255,255,0.2)'}
-        maximumTrackTintColor="rgba(255,255,255,0.15)"
-        thumbTintColor={audioAvailable ? '#ffffff' : 'transparent'}
-        disabled={!audioAvailable}
-      />
+            }}
+            onValueChange={(v) => {
+              setSeekVal(Math.floor(v));
+            }}
+            onSlidingComplete={(v: number) => {
+              const target = Math.floor(v);
+              const generation = ++seekGeneration.current;
+              isSeekingRef.current = false;
+              pendingSeek.current = target;
+              setSeekVal(target);
+              setSliderValue(target);
+              if (settleTimer.current) clearTimeout(settleTimer.current);
+              // Keep stale progress polls from pulling the thumb back after release.
+              settleTimer.current = setTimeout(() => { pendingSeek.current = null; }, 2000);
+              void TrackPlayer.seekTo(target / 1000).catch(() => {
+                if (generation === seekGeneration.current) { pendingSeek.current = null; setSliderValue(currentMs); }
+              });
+            }}
+            minimumTrackTintColor={audioAvailable ? '#c0392b' : 'rgba(255,255,255,0.2)'}
+            maximumTrackTintColor="rgba(255,255,255,0.15)"
+            thumbTintColor={audioAvailable ? '#ffffff' : 'transparent'}
+            disabled={!audioAvailable}
+          />
+        </View>
       </GestureDetector>
       <View style={progressStyles.timeRow}>
         <Text style={progressStyles.timeText}>{formatTime(displayValue)}</Text>
