@@ -51,7 +51,7 @@ import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import { parseServiceTimes } from "../utils/churchSchedule";
-import { churchDisplayName } from "../utils/churchName";
+import { churchDisplayName, servantDisplayName } from "../utils/churchName";
 import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
@@ -107,7 +107,9 @@ const DEFAULT_REGION: Region = {
 };
 
 
-const LIST_HEADER_HEIGHT = 96;
+const LIST_HEADER_HEIGHT = 52;
+// Height of the two rows of glass controls below the status bar.
+const TOP_CONTROLS_HEIGHT = 112;
 
 function haversineMiles(
   lat1: number,
@@ -724,6 +726,28 @@ export default function ChurchesScreen() {
     [t, es, openAuthSheet, updateProfile, user],
   );
 
+  const openQrScanner = useCallback(async () => {
+    if (Platform.OS === "web") return;
+    Haptics.selectionAsync();
+    try {
+      const perm = await Camera.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          t.churchCameraPermission,
+          t.churchEnableCameraPermissionInSettingsTo2,
+        );
+        return;
+      }
+      qrScanLockedRef.current = false;
+      setQrScannerOpen(true);
+    } catch {
+      Alert.alert(
+        t.churchCameraUnavailable,
+        t.churchCouldNotOpenTheQrScanner,
+      );
+    }
+  }, [t]);
+
   const resetFormFields = useCallback(() => {
     setEditingChurch(null);
     setFormName("");
@@ -1060,10 +1084,11 @@ export default function ChurchesScreen() {
 
 
   const bottomClearance = Math.max(insets.bottom, 18) + (currentHymnId ? 82 : 8);
-  const sheetFull = Math.max(360, windowHeight - insets.top - 62);
-  const sheetCollapsed = Math.min(sheetFull - 160, LIST_HEADER_HEIGHT + bottomClearance);
+  const sheetFull = Math.max(360, windowHeight - insets.top - TOP_CONTROLS_HEIGHT);
+  // At rest the sheet sits fully below the screen (negative so its grabber hides too).
+  const sheetCollapsed = -40;
   const sheetHalf = Math.max(
-    sheetCollapsed + 80,
+    240,
     Math.min(
       sheetFull,
       selectedChurch && detailBodyHeight > 0
@@ -1087,6 +1112,28 @@ export default function ChurchesScreen() {
     setDetailBodyHeight(0);
     setSnapIndex(toIndex ?? listSnapBeforeDetailRef.current);
   }, []);
+
+  // Raises the list (search focus or the "Lista" pill).
+  const openListSheet = useCallback(() => {
+    if (selectedChurch) {
+      pendingLinkChurchIdRef.current = null;
+      setSelectedChurch(null);
+      setDetailBodyHeight(0);
+    }
+    setSnapIndex(2);
+  }, [selectedChurch]);
+
+  const sheetMode: "map" | "list" = !selectedChurch && snapIndex > 0 ? "list" : "map";
+
+  const handleModeChange = (mode: "map" | "list") => {
+    if (mode === "list") {
+      openListSheet();
+      return;
+    }
+    Keyboard.dismiss();
+    if (selectedChurch) closeDetail(0);
+    else setSnapIndex(0);
+  };
 
   const handleSheetIndexChange = useCallback(
     (next: number) => {
@@ -1252,10 +1299,10 @@ export default function ChurchesScreen() {
             }
           }}
           mapPadding={{
-            top: insets.top + 56,
+            top: insets.top + TOP_CONTROLS_HEIGHT,
             right: 0,
             left: 0,
-            bottom: Math.min(snapHeights[snapIndex], snapHeights[1]),
+            bottom: Math.max(0, Math.min(snapHeights[snapIndex], snapHeights[1])),
           }}
           userInterfaceStyle={isDarkMode ? "dark" : "light"}
           showsUserLocation={Boolean(userCoords)}
@@ -1265,7 +1312,7 @@ export default function ChurchesScreen() {
             Keyboard.dismiss();
             if (pinPickerOpen) return;
             if (selectedChurch) closeDetail();
-            else if (snapIndex === 2) setSnapIndex(1);
+            else if (snapIndex > 0) setSnapIndex(0);
           }}
         >
           {mapPins.map((pin) => {
@@ -1437,12 +1484,12 @@ export default function ChurchesScreen() {
         </>
       )}
 
-      {/* ── Floating top chrome: back + center-on-me ───────────────────────── */}
+      {/* ── Floating Liquid Glass controls: search, scan, add, Map/List, Near me ── */}
       <View
         pointerEvents="box-none"
         style={[styles.topChrome, { paddingTop: insets.top + 8 }]}
       >
-        <View style={[styles.searchRow, { justifyContent: "space-between" }]}>
+        <View style={styles.searchRow}>
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
@@ -1467,6 +1514,174 @@ export default function ChurchesScreen() {
               />
             </Pressable>
           </GlassSurface>
+
+          <GlassSurface
+            glassEffectStyle="regular"
+            intensity={64}
+            style={styles.searchPill}
+          >
+            <AppMenuIcon
+              ios="magnifyingglass"
+              android="search"
+              color={mutedText}
+              size={17}
+              weight="medium"
+            />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              onFocus={openListSheet}
+              placeholder={
+                t.churchNameCityOrZip
+              }
+              placeholderTextColor={mutedText}
+              returnKeyType="search"
+              style={[styles.searchInput, { color: theme.onSurface }]}
+            />
+            {!!search && (
+              <Pressable
+                hitSlop={8}
+                onPress={() => setSearch("")}
+                accessibilityLabel={t.churchClear}
+              >
+                <AppMenuIcon
+                  ios="xmark.circle.fill"
+                  android="cancel"
+                  color={mutedText}
+                  size={17}
+                />
+              </Pressable>
+            )}
+          </GlassSurface>
+
+          {Platform.OS !== "web" && (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={64}
+              style={styles.circleBtn}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  t.churchScanQrCode
+                }
+                onPress={() => void openQrScanner()}
+                style={styles.circleBtnHit}
+              >
+                <AppMenuIcon
+                  ios="qrcode.viewfinder"
+                  android="qr-code-scanner"
+                  color={theme.onSurface}
+                  size={19}
+                  weight="semibold"
+                />
+              </Pressable>
+            </GlassSurface>
+          )}
+
+          <GlassSurface
+            isInteractive
+            glassEffectStyle="regular"
+            intensity={64}
+            style={styles.circleBtn}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                t.churchSubmitAChurch
+              }
+              onPress={openSubmitModal}
+              style={styles.circleBtnHit}
+            >
+              <AppMenuIcon
+                ios="plus"
+                android="add"
+                color={theme.onSurface}
+                size={19}
+                weight="semibold"
+              />
+            </Pressable>
+          </GlassSurface>
+        </View>
+
+        {/* Secondary Pill Bar: Map/List Switcher + Near Me GPS Button */}
+        <View style={styles.pillControlsRow}>
+          {Platform.OS !== "web" && (
+            <GlassSurface
+              glassEffectStyle="regular"
+              intensity={62}
+              style={styles.modeSegmented}
+            >
+              {(["map", "list"] as const).map((m) => {
+                const active = sheetMode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      handleModeChange(m);
+                    }}
+                    style={[
+                      styles.modeBtn,
+                      active && { backgroundColor: theme.primary },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios={m === "map" ? "map.fill" : "list.bullet"}
+                      android={m === "map" ? "map" : "format-list-bulleted"}
+                      color={active ? theme.onPrimary : theme.onSurface}
+                      size={14}
+                      weight="semibold"
+                    />
+                    <Text
+                      style={[
+                        styles.modeBtnText,
+                        { color: active ? theme.onPrimary : theme.onSurface },
+                      ]}
+                    >
+                      {m === "map"
+                        ? t.profileMap
+                        : t.churchList}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </GlassSurface>
+          )}
+
+          {Platform.OS !== "web" && (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={62}
+              style={styles.nearMePill}
+            >
+              <Pressable
+                onPress={() => void requestNearMe(true)}
+                disabled={locating}
+                style={styles.nearMeHit}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <AppMenuIcon
+                    ios="location.fill"
+                    android="my-location"
+                    color={userCoords ? theme.primary : theme.onSurface}
+                    size={14}
+                    weight="semibold"
+                  />
+                )}
+                <Text
+                  style={[styles.modeBtnText, { color: theme.onSurface }]}
+                  numberOfLines={1}
+                >
+                  {t.churchNearMe}
+                </Text>
+              </Pressable>
+            </GlassSurface>
+          )}
         </View>
 
         {/* Admin Pending User Submissions Banner */}
@@ -1541,46 +1756,6 @@ export default function ChurchesScreen() {
               />
             ) : undefined
           }
-          accessory={
-            Platform.OS !== "web" && !selectedChurch ? (
-              <GlassSurface
-                isInteractive
-                glassEffectStyle="regular"
-                intensity={64}
-                style={styles.nearMeGlassPill}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.churchCenterOnMyLocation}
-                  onPress={() => void requestNearMe(true)}
-                  disabled={locating}
-                  style={styles.nearMeGlassHit}
-                >
-                  {locating ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <AppMenuIcon
-                      ios={userCoords ? "location.fill" : "location"}
-                      android="my-location"
-                      color={theme.onSurface}
-                      size={15}
-                      weight="semibold"
-                    />
-                  )}
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      color: theme.onSurface,
-                      ...fonts.sansSemiBold,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t.churchNearMe}
-                  </Text>
-                </Pressable>
-              </GlassSurface>
-            ) : undefined
-          }
           header={
             selectedChurch ? (
               <View
@@ -1653,7 +1828,7 @@ export default function ChurchesScreen() {
                           fontSize: 12.5,
                         }}
                       >
-                        {selectedChurch.pastorName}
+                        {servantDisplayName(selectedChurch.pastorName)}
                       </Text>
                     )}
                   </View>
@@ -1694,56 +1869,51 @@ export default function ChurchesScreen() {
               </View>
               </View>
             ) : (
-              <View style={[styles.sheetHeader, { height: LIST_HEADER_HEIGHT }]}>
-                <View
+              <View
+                style={[
+                  styles.sheetHeader,
+                  {
+                    height: LIST_HEADER_HEIGHT,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingTop: 10,
+                    paddingBottom: 6,
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    color: theme.onSurface,
+                    ...fonts.sansSemiBold,
+                    fontSize: 15,
+                  }}
+                >
+                  {sheetSummary}
+                </Text>
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => handleModeChange("map")}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
                   style={[
-                    styles.sheetSearch,
+                    styles.miniCloseBtn,
                     {
                       backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : "rgba(0,0,0,0.055)",
+                        ? "rgba(255,255,255,0.10)"
+                        : "rgba(0,0,0,0.06)",
                     },
                   ]}
                 >
                   <AppMenuIcon
-                    ios="magnifyingglass"
-                    android="search"
-                    color={mutedText}
-                    size={17}
-                    weight="medium"
+                    ios="xmark"
+                    android="close"
+                    color={theme.onSurface}
+                    size={13}
+                    weight="bold"
                   />
-                  <TextInput
-                    value={search}
-                    onChangeText={setSearch}
-                    onFocus={() => setSnapIndex(2)}
-                    placeholder={t.churchNameCityOrZip}
-                    placeholderTextColor={mutedText}
-                    returnKeyType="search"
-                    autoCorrect={false}
-                    style={[styles.searchInput, { color: theme.onSurface }]}
-                  />
-                  {!!search && (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() => setSearch("")}
-                      accessibilityRole="button"
-                      accessibilityLabel={t.churchClear}
-                    >
-                      <AppMenuIcon
-                        ios="xmark.circle.fill"
-                        android="cancel"
-                        color={mutedText}
-                        size={17}
-                      />
-                    </Pressable>
-                  )}
-                </View>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.sheetSummary, { color: mutedText }]}
-                >
-                  {sheetSummary}
-                </Text>
+                </Pressable>
               </View>
             )
           }

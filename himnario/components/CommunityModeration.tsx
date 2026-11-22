@@ -1,3 +1,4 @@
+import { servantDisplayName } from "../utils/churchName";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -501,7 +502,7 @@ export default function CommunityModeration({
                   </Text>
                   {!!c.pastorName && (
                     <Text style={{ color: theme.onSurfaceVariant, fontSize: 13 }}>
-                      {l("Pastor:", "Pastor:")} {c.pastorName}
+                      {servantDisplayName(c.pastorName)}
                     </Text>
                   )}
                   {!!c.serviceTimes && (

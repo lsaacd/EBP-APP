@@ -20,7 +20,7 @@ const parseServiceTimes = (text) => {
   return rows && rows.map(({ day, dayIndex, time, note }) => ({ day, dayIndex, time, note }));
 };
 const { sheetSnapTarget } = load('himnario/utils/gestureMotion.ts');
-const { churchDisplayName } = load('himnario/utils/churchName.ts');
+const { churchDisplayName, servantDisplayName } = load('himnario/utils/churchName.ts');
 
 test('the seeded Riverbank schedule becomes one row per service', () => {
   const rows = parseServiceTimes(
@@ -104,4 +104,15 @@ test('the schedule editor writes text the church card reads back unchanged', () 
   );
   assert.equal(formatClock(0), '12:00 AM');
   assert.equal(formatClock(12 * 60 + 5), '12:05 PM');
+});
+
+test('congregation leaders are shown with the SDD title, replacing older titles', () => {
+  assert.equal(servantDisplayName('Hno Azael Tapia'), 'SDD Hno Azael Tapia');
+  assert.equal(servantDisplayName('Co-Pastor Azael Tapia'), 'SDD Azael Tapia');
+  assert.equal(servantDisplayName('Pastor Juan Pérez'), 'SDD Juan Pérez');
+  assert.equal(servantDisplayName('SDD Hna. María López'), 'SDD Hna. María López');
+  assert.equal(servantDisplayName('Siervo de Dios Hno Pedro'), 'SDD Hno Pedro');
+  assert.equal(servantDisplayName('Pastora Ana'), 'SDD Ana');
+  assert.equal(servantDisplayName('  '), '');
+  assert.equal(servantDisplayName(null), '');
 });
