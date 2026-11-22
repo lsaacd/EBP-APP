@@ -68,3 +68,24 @@ export function miniPlayerSwipeDirection(
   }
   return 0;
 }
+
+/**
+ * Picks which resting height a bottom sheet settles at when released.
+ * `snaps` are heights in ascending order; `velocityY` is positive when the
+ * finger moves down (the sheet shrinks). A flick moves one detent in its
+ * direction from wherever the sheet currently is; otherwise the nearest wins.
+ */
+export function sheetSnapTarget(height: number, velocityY: number, snaps: number[]) {
+  'worklet';
+  let nearest = 0;
+  for (let i = 1; i < snaps.length; i++) {
+    if (Math.abs(snaps[i] - height) < Math.abs(snaps[nearest] - height)) nearest = i;
+  }
+  if (Math.abs(velocityY) < 600) return nearest;
+  if (velocityY < 0) {
+    for (let i = 0; i < snaps.length; i++) if (snaps[i] > height + 1) return i;
+    return snaps.length - 1;
+  }
+  for (let i = snaps.length - 1; i >= 0; i--) if (snaps[i] < height - 1) return i;
+  return 0;
+}

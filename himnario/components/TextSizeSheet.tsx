@@ -10,6 +10,7 @@
  * - Android: Material 3 bottom sheet card
  * - Closes on outside tap or Android back button
  */
+import SheetGrabber from './SheetGrabber';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -82,7 +83,7 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
   const content = (
     <View style={styles.inner}>
       {/* Grabber */}
-      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
+      <View style={[styles.grabber, isIOS && { backgroundColor: theme.outlineVariant }]} />
 
       {/* Top Row: Label, Direct Number Input, Reset */}
       <View style={styles.headerRow}>
@@ -259,6 +260,7 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
               },
             ]}
           >
+            <SheetGrabber />
             {content}
           </View>
         )}

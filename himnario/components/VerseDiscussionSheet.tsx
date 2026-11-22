@@ -1,3 +1,4 @@
+import SheetGrabber from "./SheetGrabber";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -1018,6 +1019,9 @@ export default function VerseDiscussionSheet({
             onPress={closeAnimated}
           />
         </Animated.View>
+        <Animated.View style={sheetAnimStyle}>
+          <SheetGrabber inline />
+        </Animated.View>
         <AnimatedKeyboardView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={[
@@ -1032,12 +1036,7 @@ export default function VerseDiscussionSheet({
           <GestureDetector gesture={handlePan}>
             <View>
               <View style={styles.header}>
-                <View
-                  style={[
-                    styles.handle,
-                    { backgroundColor: theme.outlineVariant },
-                  ]}
-                />
+                <View style={styles.handle} />
                 <View style={styles.rowHead}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.title, { color }]}>

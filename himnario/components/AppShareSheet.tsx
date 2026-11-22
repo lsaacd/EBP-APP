@@ -11,6 +11,7 @@
  *    - Compartir imagen promocional (Shares the actual PNG banner via expo-sharing)
  *    - Copiar enlace (Copies https://himnarioebp.com/app/ to clipboard)
  */
+import SheetGrabber from './SheetGrabber';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -542,7 +543,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const sheetContent = (
     <View style={styles.inner}>
       {/* Grabber */}
-      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
+      <View style={styles.grabber} />
 
       {/* Header */}
       <View style={styles.headerRow}>
@@ -586,6 +587,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
 
         <GestureDetector gesture={pan}>
           <Animated.View style={[{ width: '100%' }, sheetAnimatedStyle]}>
+            <SheetGrabber />
             {isIOS ? (
               <GlassSurface
                 intensity={65}

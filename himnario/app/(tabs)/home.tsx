@@ -12,6 +12,7 @@
  *
  * @returns {React.JSX.Element} The rendered Home screen.
  */
+import SheetGrabber from '../../components/SheetGrabber';
 import React, { useState, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   View,
@@ -386,7 +387,8 @@ export default function HomeScreen() {
     >
       <View style={styles.docOverlay}>
         <View style={[styles.docSheet, { backgroundColor: theme.background }]}>
-          <View style={[styles.docHandle, { backgroundColor: theme.outlineVariant }]} />
+          <SheetGrabber />
+          <View style={styles.docHandle} />
           <ScrollView
             showsVerticalScrollIndicator={true}
             indicatorStyle={isDarkMode ? 'white' : 'black'}

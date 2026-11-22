@@ -1,3 +1,4 @@
+import SheetGrabber from "./SheetGrabber";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import React, {
   useCallback,
@@ -1450,6 +1451,9 @@ export default function VerseCard() {
               accessibilityLabel={t.close}
             />
           </Animated.View>
+          <Animated.View style={pickerSheetAnimStyle}>
+            <SheetGrabber inline />
+          </Animated.View>
           <Animated.View
             style={[
               styles.modalSheet,
@@ -1462,12 +1466,7 @@ export default function VerseCard() {
           >
             <GestureDetector gesture={pickerPan}>
               <View style={styles.modalHeader}>
-                <View
-                  style={[
-                    styles.modalHandle,
-                    { backgroundColor: theme.outlineVariant },
-                  ]}
-                />
+                <View style={styles.modalHandle} />
               <View style={styles.modalTitleRow}>
                 {pickerPage !== "hub" ? (
                   <GlassSurface

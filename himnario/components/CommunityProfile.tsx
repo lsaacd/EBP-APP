@@ -829,7 +829,7 @@ export default function CommunityProfile({
   const churchLocationText =
     user.churchName ||
     user.location ||
-    (t.profileOptional);
+    (onOpenChurchesMap ? t.churchPickOnMap : t.profileOptional);
 
   const isAdmin =
     user.role === "admin" &&
@@ -955,7 +955,11 @@ export default function CommunityProfile({
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => onOpenSubPage?.("church-location")}
+            onPress={() => {
+              Haptics.selectionAsync();
+              if (onOpenChurchesMap) onOpenChurchesMap();
+              else onOpenSubPage?.("church-location");
+            }}
             style={({ pressed }) => [
               styles.navRow,
               pressed && {
@@ -1019,65 +1023,6 @@ export default function CommunityProfile({
             />
           </Pressable>
 
-          {onOpenChurchesMap && (
-            <>
-              <View
-                style={[
-                  styles.divider,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(255,255,255,0.09)"
-                      : theme.outlineVariant,
-                  },
-                ]}
-              />
-
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  onOpenChurchesMap();
-                }}
-                style={({ pressed }) => [
-                  styles.navRow,
-                  pressed && {
-                    backgroundColor: isDarkMode
-                      ? "rgba(255,255,255,0.06)"
-                      : theme.primary + "0D",
-                  },
-                ]}
-              >
-                <AppMenuIcon
-                  ios="map"
-                  android="map"
-                  color={iconTint}
-                  size={20}
-                  containerSize={24}
-                  weight="medium"
-                />
-                <Text
-                  numberOfLines={1}
-                  style={[styles.label, { color: theme.onSurface }]}
-                >
-                  {t.profileChurches}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={[styles.valueText, { color: mutedText }]}
-                >
-                  {t.profileMap}
-                </Text>
-                <AppMenuIcon
-                  ios="chevron.right"
-                  android="chevron-right"
-                  color={mutedText}
-                  size={13}
-                  weight="semibold"
-                />
-              </Pressable>
-            </>
-          )}
 
           <View
             style={[

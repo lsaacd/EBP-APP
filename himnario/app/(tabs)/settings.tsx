@@ -9,6 +9,7 @@
  *
  * @returns {React.JSX.Element} The rendered Settings screen.
  */
+import SheetGrabber from '../../components/SheetGrabber';
 import Constants from 'expo-constants';
 import AboutHymnalContent from '../../components/AboutHymnalContent';
 import React, { useState, useRef } from 'react';
@@ -559,7 +560,8 @@ export default function SettingsScreen() {
             onPress={() => setShowAbout(false)}
           />
           <View style={[styles.aboutSheet, { backgroundColor: theme.background }]}>
-            <View style={[styles.aboutHandle, { backgroundColor: theme.outlineVariant }]} />
+            <SheetGrabber />
+            <View style={styles.aboutHandle} />
             <ScrollView 
               showsVerticalScrollIndicator={true} 
               indicatorStyle={isDarkMode ? 'white' : 'black'}

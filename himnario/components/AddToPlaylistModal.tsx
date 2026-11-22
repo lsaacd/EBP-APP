@@ -1,3 +1,4 @@
+import SheetGrabber from './SheetGrabber';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -74,6 +75,7 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
         </TouchableWithoutFeedback>
 
         <View style={[styles.modalContainer, { backgroundColor: theme.surfaceVariants.containerLow }]}>
+          <SheetGrabber />
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.onSurface }]}>
               {isCreating ? t.createPlaylist : t.addToPlaylist}

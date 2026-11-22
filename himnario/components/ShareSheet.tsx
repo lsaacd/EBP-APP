@@ -11,6 +11,7 @@
  * iOS: Glass sheet with grabber. Android: Material 3 bottom sheet with ripple feedback.
  * The PDF editor renders inside this same modal (no nested modals).
  */
+import SheetGrabber from './SheetGrabber';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Image,
@@ -255,7 +256,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const menuBody = (
     <View style={styles.inner}>
       {/* Grabber */}
-      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
+      <View style={styles.grabber} />
 
       {/* Header */}
       <View style={styles.headerRow}>
@@ -360,7 +361,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
 
   const sheetBody = isPdf ? (
     <View style={styles.pdfInner}>
-      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant, marginBottom: 10 }]} />
+      <View style={[styles.grabber, { marginBottom: 10 }]} />
       <PdfEditor hymn={hymn} onBack={() => setMode('menu')} onClose={onClose} />
     </View>
   ) : (
@@ -386,6 +387,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
 
         <GestureDetector gesture={pan}>
           <Animated.View style={[{ width: '100%' }, sheetAnimatedStyle]}>
+            <SheetGrabber />
             {isIOS ? (
               <GlassSurface
                 intensity={65}

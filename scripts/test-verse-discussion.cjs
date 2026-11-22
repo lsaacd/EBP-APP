@@ -251,6 +251,7 @@ function fixture(saved = new Map()) {
     "../utils/gestureMotion": { shouldCollapsePlayer: () => false },
     "./GlassSurface": { default: "GlassSurface" },
     "./AppMenuIcon": { default: "AppMenuIcon" },
+    "./SheetGrabber": { default: "SheetGrabber" },
     "../utils/haptics": {
       impactAsync: () => {},
       selectionAsync: () => {},

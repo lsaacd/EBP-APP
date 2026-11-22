@@ -1,3 +1,4 @@
+import SheetGrabber from './SheetGrabber';
 import CommunityProfile from './CommunityProfile';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -20,7 +21,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { Asset } from 'expo-asset';
@@ -207,6 +208,8 @@ export function AuthSheet({
     overshootClamping: true,
   };
 
+  const onChurchesScreen = usePathname() === '/churches';
+
   const finishClose = useCallback(() => {
     const nextAction = pendingPostCloseRef.current;
     pendingPostCloseRef.current = null;
@@ -214,13 +217,18 @@ export function AuthSheet({
     if (nextAction === 'settings') {
       router.navigate('/(tabs)/settings');
     } else if (nextAction === 'churches') {
-      router.push((user?.churchId ? `/churches?id=${encodeURIComponent(user.churchId)}` : '/churches') as any);
+      // Already on the map (e.g. this sheet was opened from it): closing the
+      // sheet is enough. Pushing again would stack a second map screen.
+      if (!onChurchesScreen) {
+        router.push((user?.churchId ? `/churches?id=${encodeURIComponent(user.churchId)}` : '/churches') as any);
+      }
     } else if (nextAction === 'scan-qr') {
-      router.push('/churches?scan=1' as any);
+      if (onChurchesScreen) router.replace('/churches?scan=1' as any);
+      else router.push('/churches?scan=1' as any);
     } else if (nextAction === 'share-app' && onOpenShareApp) {
       onOpenShareApp();
     }
-  }, [onClose, onOpenShareApp, router, user?.churchId]);
+  }, [onChurchesScreen, onClose, onOpenShareApp, router, user?.churchId]);
 
   const animateClose = useCallback(() => {
     Keyboard.dismiss();
@@ -1737,6 +1745,7 @@ export function AuthSheet({
           </Animated.View>
 
           <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
+            <SheetGrabber />
             <View
               style={[
                 styles.sheet,
@@ -1753,7 +1762,7 @@ export function AuthSheet({
                 <View style={styles.dragZone}>
                   <View style={styles.handleWrap}>
                     <View
-                      style={[styles.handle, { backgroundColor: theme.outline }]}
+                      style={styles.handle}
                     />
                   </View>
                   {headerBar}

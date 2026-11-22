@@ -1,3 +1,4 @@
+import SheetGrabber from "../components/SheetGrabber";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,7 +12,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -26,8 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   cancelAnimation,
   Easing,
-  FadeInDown,
-  FadeOutDown,
+  FadeIn,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -49,6 +48,8 @@ import { shouldCollapsePlayer } from "../utils/gestureMotion";
 import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
+import DetentSheet from "../components/DetentSheet";
+import { parseServiceTimes } from "../utils/churchSchedule";
 import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
@@ -57,7 +58,6 @@ import {
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
 import { presentAppleLookAround } from "../modules/apple-look-around";
 
-const CHURCH_EMBLEM = require("../assets/images/appicon-ebp-white.png");
 const CHURCH_PIN_IMG = require("../assets/images/church-pin.png");
 const CHURCH_PIN_SELECTED_IMG = require("../assets/images/church-pin-selected.png");
 
@@ -104,7 +104,8 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 34,
 };
 
-const NEAR_ME_RADIUS_MILES = 50;
+
+const LIST_HEADER_HEIGHT = 96;
 
 function haversineMiles(
   lat1: number,
@@ -156,15 +157,17 @@ export default function ChurchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"map" | "list">(
-    Platform.OS === "web" ? "list" : "map",
-  );
   const [selectedChurch, setSelectedChurch] = useState<VerifiedChurch | null>(
     null,
   );
+  // ── Bottom sheet (Apple Maps style): collapsed → half → full ─────────────
+  const [snapIndex, setSnapIndex] = useState(Platform.OS === "web" ? 2 : 0);
+  const [detailBodyHeight, setDetailBodyHeight] = useState(0);
+  const [detailHeaderHeight, setDetailHeaderHeight] = useState(0);
+  const listSnapBeforeDetailRef = useRef(0);
+  const pendingLinkChurchIdRef = useRef<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [fullscreenPhotoIndex, setFullscreenPhotoIndex] = useState<number | null>(null);
-  const [qrShareChurch, setQrShareChurch] = useState<VerifiedChurch | null>(null);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [lookingAroundId, setLookingAroundId] = useState<string | null>(null);
   const qrScanLockedRef = useRef(false);
@@ -481,14 +484,6 @@ export default function ChurchesScreen() {
     [enrichedChurches, mapRegion, selectedChurch?.id],
   );
 
-  const nearMeChurches = useMemo(
-    () =>
-      enrichedChurches.filter(
-        (c) =>
-          c.distanceMiles !== null && c.distanceMiles <= NEAR_ME_RADIUS_MILES,
-      ),
-    [enrichedChurches],
-  );
 
   const closestChurch = useMemo(
     () =>
@@ -498,10 +493,15 @@ export default function ChurchesScreen() {
 
   const focusChurchOnMap = useCallback((church: VerifiedChurch) => {
     Haptics.selectionAsync();
+    Keyboard.dismiss();
+    // Remember where the list was resting so closing the card returns there.
+    if (!selectedChurch) {
+      listSnapBeforeDetailRef.current = snapIndex === 2 ? 1 : snapIndex;
+    }
+    setSnapIndex(1);
     setSelectedChurch(church);
     setCarouselIndex(0);
     if (Platform.OS !== "web") {
-      setViewMode("map");
       setTimeout(() => {
         mapRef.current?.animateToRegion(
           {
@@ -514,7 +514,7 @@ export default function ChurchesScreen() {
         );
       }, 60);
     }
-  }, []);
+  }, [selectedChurch, snapIndex]);
 
   useEffect(() => {
     if (params.scan === "1" && handledDeepLinkRef.current !== "scan:1") {
@@ -545,28 +545,6 @@ export default function ChurchesScreen() {
       focusChurchOnMap(found);
     }
   }, [churches, focusChurchOnMap, params.id]);
-
-  const openQrScanner = useCallback(async () => {
-    if (Platform.OS === "web") return;
-    Haptics.selectionAsync();
-    try {
-      const perm = await Camera.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert(
-          t.churchCameraPermission,
-          t.churchEnableCameraPermissionInSettingsTo2,
-        );
-        return;
-      }
-      qrScanLockedRef.current = false;
-      setQrScannerOpen(true);
-    } catch {
-      Alert.alert(
-        t.churchCameraUnavailable,
-        t.churchCouldNotOpenTheQrScanner,
-      );
-    }
-  }, [t]);
 
   const handleQrScanned = useCallback(
     (result: { data?: string }) => {
@@ -680,6 +658,7 @@ export default function ChurchesScreen() {
     async (church: VerifiedChurch) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (!user) {
+        pendingLinkChurchIdRef.current = church.id;
         openAuthSheet();
         return;
       }
@@ -877,7 +856,6 @@ export default function ChurchesScreen() {
             : { lat: mapRegion.latitude, lng: mapRegion.longitude };
     setPinPickerCenter(startCenter);
     setSubmitOpen(false);
-    setViewMode("map");
     setPinPickerOpen(true);
     setTimeout(() => {
       mapRef.current?.animateToRegion(
@@ -1034,6 +1012,97 @@ export default function ChurchesScreen() {
     }
   };
 
+
+  const bottomClearance = Math.max(insets.bottom, 18) + (currentHymnId ? 82 : 8);
+  const sheetFull = Math.max(360, windowHeight - insets.top - 62);
+  const sheetCollapsed = Math.min(sheetFull - 160, LIST_HEADER_HEIGHT + bottomClearance);
+  const sheetHalf = Math.max(
+    sheetCollapsed + 80,
+    Math.min(
+      sheetFull,
+      selectedChurch && detailBodyHeight > 0
+        ? detailHeaderHeight + detailBodyHeight + bottomClearance
+        : Math.round(windowHeight * 0.46),
+    ),
+  );
+  const snapHeights = [sheetCollapsed, sheetHalf, sheetFull];
+  const sheetBodyPad = bottomClearance + (sheetFull - snapHeights[snapIndex]);
+
+  const selectedPosition = useMemo(() => {
+    if (!selectedChurch) return null;
+    const idx = enrichedChurches.findIndex((c) => c.id === selectedChurch.id);
+    return idx >= 0 ? idx : null;
+  }, [enrichedChurches, selectedChurch]);
+
+  const closeDetail = useCallback((toIndex?: number) => {
+    Haptics.selectionAsync();
+    pendingLinkChurchIdRef.current = null;
+    setSelectedChurch(null);
+    setDetailBodyHeight(0);
+    setSnapIndex(toIndex ?? listSnapBeforeDetailRef.current);
+  }, []);
+
+  const handleSheetIndexChange = useCallback(
+    (next: number) => {
+      // Swiping a church card all the way down dismisses it back to the list.
+      if (selectedChurch && next === 0) closeDetail(0);
+      else {
+        if (next < 2) Keyboard.dismiss();
+        setSnapIndex(next);
+      }
+    },
+    [closeDetail, selectedChurch],
+  );
+
+  const stepChurch = useCallback(
+    (direction: 1 | -1) => {
+      if (selectedPosition === null) return;
+      const next = enrichedChurches[selectedPosition + direction];
+      if (next) focusChurchOnMap(next);
+    },
+    [enrichedChurches, focusChurchOnMap, selectedPosition],
+  );
+
+  // Horizontal swipe on a church card moves to the next / previous church.
+  const makeChurchSwipe = () =>
+    Gesture.Pan()
+      .enabled(Boolean(selectedChurch) && enrichedChurches.length > 1)
+      .activeOffsetX([-22, 22])
+      .failOffsetY([-14, 14])
+      .maxPointers(1)
+      .onEnd((event, success) => {
+        if (!success) return;
+        if (Math.abs(event.translationX) > 56 || Math.abs(event.velocityX) > 600) {
+          runOnJS(stepChurch)(event.translationX < 0 ? 1 : -1);
+        }
+      });
+  const headerSwipe = makeChurchSwipe();
+  const bodySwipe = makeChurchSwipe();
+
+  // A signed-out user who tapped "Set as My Church" finishes the link as soon
+  // as they sign in, instead of having to find the church again.
+  useEffect(() => {
+    const pendingId = pendingLinkChurchIdRef.current;
+    if (!user || !pendingId) return;
+    pendingLinkChurchIdRef.current = null;
+    const church = churches.find((c) => c.id === pendingId);
+    if (church && user.churchId !== church.id) void handleSetMyChurch(church);
+  }, [churches, handleSetMyChurch, user]);
+
+  const sheetSummary = loading
+    ? t.churchLoadingChurches
+    : enrichedChurches.length === 0
+      ? search.trim()
+        ? t.churchNoMatchingChurchesFound
+        : t.churchElBuenPastorDirectory
+      : closestChurch && closestChurch.distanceMiles !== null && !search.trim()
+        ? es
+          ? `Más cercana: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles, es)}`
+          : `Closest: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles, es)}`
+        : es
+          ? `${enrichedChurches.length} ${enrichedChurches.length === 1 ? "iglesia verificada" : "iglesias verificadas"}`
+          : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
+
   const bgSurface = isDarkMode ? "#0D0D0F" : "#F6F3EC";
   const cardBg = isDarkMode ? "#1C1C1E" : "#FFFFFF";
   const cardBorder = isDarkMode
@@ -1042,7 +1111,6 @@ export default function ChurchesScreen() {
   const mutedText = isDarkMode
     ? "rgba(235,235,245,0.60)"
     : theme.onSurfaceVariant;
-  const bottomClearance = Math.max(insets.bottom, 18) + (currentHymnId ? 82 : 8);
 
   const selectedDistance =
     selectedChurch && userCoords
@@ -1057,7 +1125,7 @@ export default function ChurchesScreen() {
   return (
     <View style={[styles.root, { backgroundColor: bgSurface }]}>
       {/* ── Native Apple Maps Layer (Map Mode) ─────────────────────────────── */}
-      {viewMode === "map" && Platform.OS !== "web" ? (
+      {Platform.OS !== "web" ? (
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
@@ -1094,13 +1162,21 @@ export default function ChurchesScreen() {
               });
             }
           }}
+          mapPadding={{
+            top: insets.top + 56,
+            right: 0,
+            left: 0,
+            bottom: Math.min(snapHeights[snapIndex], snapHeights[1]),
+          }}
           userInterfaceStyle={isDarkMode ? "dark" : "light"}
           showsUserLocation={Boolean(userCoords)}
           showsMyLocationButton={false}
           showsCompass={false}
           onPress={() => {
             Keyboard.dismiss();
-            if (!pinPickerOpen && selectedChurch) setSelectedChurch(null);
+            if (pinPickerOpen) return;
+            if (selectedChurch) closeDetail();
+            else if (snapIndex === 2) setSnapIndex(1);
           }}
         >
           {mapPins.map((pin) => {
@@ -1158,7 +1234,7 @@ export default function ChurchesScreen() {
       ) : null}
 
       {/* ── Interactive Drop-a-Pin Crosshair Overlay ───────────────────────── */}
-      {pinPickerOpen && viewMode === "map" && Platform.OS !== "web" && (
+      {pinPickerOpen && Platform.OS !== "web" && (
         <>
           <View
             pointerEvents="none"
@@ -1272,23 +1348,12 @@ export default function ChurchesScreen() {
         </>
       )}
 
-      {/* ── Floating Apple Maps / iOS Liquid Glass Top Chrome ─────────────── */}
+      {/* ── Floating top chrome: back + center-on-me ───────────────────────── */}
       <View
         pointerEvents="box-none"
-        style={[
-          styles.topChrome,
-          {
-            paddingTop: insets.top + 8,
-            backgroundColor:
-              viewMode === "list"
-                ? isDarkMode
-                  ? "rgba(13,13,15,0.92)"
-                  : "rgba(246,243,236,0.94)"
-                : "transparent",
-          },
-        ]}
+        style={[styles.topChrome, { paddingTop: insets.top + 8 }]}
       >
-        <View style={styles.searchRow}>
+        <View style={[styles.searchRow, { justifyContent: "space-between" }]}>
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
@@ -1314,45 +1379,7 @@ export default function ChurchesScreen() {
             </Pressable>
           </GlassSurface>
 
-          <GlassSurface
-            glassEffectStyle="regular"
-            intensity={64}
-            style={styles.searchPill}
-          >
-            <AppMenuIcon
-              ios="magnifyingglass"
-              android="search"
-              color={mutedText}
-              size={17}
-              weight="medium"
-            />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder={
-                t.churchNameCityOrZip
-              }
-              placeholderTextColor={mutedText}
-              returnKeyType="search"
-              style={[styles.searchInput, { color: theme.onSurface }]}
-            />
-            {!!search && (
-              <Pressable
-                hitSlop={8}
-                onPress={() => setSearch("")}
-                accessibilityLabel={t.churchClear}
-              >
-                <AppMenuIcon
-                  ios="xmark.circle.fill"
-                  android="cancel"
-                  color={mutedText}
-                  size={17}
-                />
-              </Pressable>
-            )}
-          </GlassSurface>
-
-          {Platform.OS !== "web" && (
+          {Platform.OS !== "web" && !pinPickerOpen && (
             <GlassSurface
               isInteractive
               glassEffectStyle="regular"
@@ -1361,171 +1388,26 @@ export default function ChurchesScreen() {
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={
-                  t.churchScanQrCode
-                }
-                onPress={() => void openQrScanner()}
-                style={styles.circleBtnHit}
-              >
-                <AppMenuIcon
-                  ios="qrcode.viewfinder"
-                  android="qr-code-scanner"
-                  color={theme.onSurface}
-                  size={19}
-                  weight="semibold"
-                />
-              </Pressable>
-            </GlassSurface>
-          )}
-
-          <GlassSurface
-            isInteractive
-            glassEffectStyle="regular"
-            intensity={64}
-            style={styles.circleBtn}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                t.churchSubmitAChurch
-              }
-              onPress={openSubmitModal}
-              style={styles.circleBtnHit}
-            >
-              <AppMenuIcon
-                ios="plus"
-                android="add"
-                color={theme.onSurface}
-                size={19}
-                weight="semibold"
-              />
-            </Pressable>
-          </GlassSurface>
-        </View>
-
-        {/* Secondary Pill Bar: Map/List Switcher + Near Me GPS Button */}
-        <View style={styles.pillControlsRow}>
-          {Platform.OS !== "web" && (
-            <GlassSurface
-              glassEffectStyle="regular"
-              intensity={62}
-              style={styles.modeSegmented}
-            >
-              {(["map", "list"] as const).map((m) => {
-                const active = viewMode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setViewMode(m);
-                    }}
-                    style={[
-                      styles.modeBtn,
-                      active && { backgroundColor: theme.primary },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios={m === "map" ? "map.fill" : "list.bullet"}
-                      android={m === "map" ? "map" : "format-list-bulleted"}
-                      color={active ? theme.onPrimary : theme.onSurface}
-                      size={14}
-                      weight="semibold"
-                    />
-                    <Text
-                      style={[
-                        styles.modeBtnText,
-                        { color: active ? theme.onPrimary : theme.onSurface },
-                      ]}
-                    >
-                      {m === "map"
-                        ? t.profileMap
-                        : t.churchList}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </GlassSurface>
-          )}
-
-          {Platform.OS !== "web" && (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={62}
-              style={styles.nearMePill}
-            >
-              <Pressable
+                accessibilityLabel={t.churchCenterOnMyLocation}
                 onPress={() => void requestNearMe(true)}
                 disabled={locating}
-                style={styles.nearMeHit}
+                style={styles.circleBtnHit}
               >
                 {locating ? (
                   <ActivityIndicator size="small" color={theme.primary} />
                 ) : (
                   <AppMenuIcon
-                    ios="location.fill"
+                    ios={userCoords ? "location.fill" : "location"}
                     android="my-location"
-                    color={userCoords ? theme.primary : theme.onSurface}
-                    size={14}
+                    color={theme.onSurface}
+                    size={18}
                     weight="semibold"
                   />
                 )}
-                <Text
-                  style={[styles.modeBtnText, { color: theme.onSurface }]}
-                  numberOfLines={1}
-                >
-                  {t.churchNearMe}
-                </Text>
               </Pressable>
             </GlassSurface>
           )}
         </View>
-
-        {/* Localize-Style Country / Region Filter Pills */}
-        {availableCountries.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingRight: 10 }}
-          >
-            {[null, ...availableCountries].map((cName) => {
-              const active = countryFilter === cName;
-              const label =
-                cName === null ? (t.churchAll) : cName;
-              return (
-                <Pressable
-                  key={label}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setCountryFilter(cName);
-                  }}
-                  style={[
-                    styles.countryChip,
-                    {
-                      backgroundColor: active
-                        ? theme.primary
-                        : isDarkMode
-                          ? "rgba(28,28,30,0.88)"
-                          : "rgba(255,255,255,0.92)",
-                      borderColor: active ? theme.primary : cardBorder,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: active ? theme.onPrimary : theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
-                      fontSize: 12.5,
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
 
         {/* Admin Pending User Submissions Banner */}
         {isAdmin && pendingChurches.length > 0 && (
@@ -1575,44 +1457,655 @@ export default function ChurchesScreen() {
         )}
       </View>
 
-      {/* ── LIST / DIRECTORY MODE (Hallow + YouVersion iOS Style) ─────────── */}
-      {viewMode === "list" && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            styles.listContent,
-            {
-              paddingTop: insets.top + 114,
-              paddingBottom: bottomClearance + 24,
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void loadChurches(true)}
-              tintColor={theme.primary}
-            />
+      {/* ── Bottom sheet: search + list, or the selected church ────────────── */}
+      {!pinPickerOpen && (
+        <DetentSheet
+          snapHeights={snapHeights}
+          index={snapIndex}
+          onIndexChange={handleSheetIndexChange}
+          headerGesture={headerSwipe}
+          style={{ backgroundColor: bgSurface, borderColor: cardBorder }}
+          header={
+            selectedChurch ? (
+              <View
+                style={styles.sheetHeader}
+                onLayout={(e) => setDetailHeaderHeight(e.nativeEvent.layout.height)}
+              >
+              <View style={styles.selectedHeader}>
+                <Image
+                  source={CHURCH_PIN_SELECTED_IMG}
+                  style={styles.selectedAvatar}
+                  resizeMode="contain"
+                />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={2}
+                      style={[
+                        styles.selectedTitle,
+                        { color: theme.onSurface, flexShrink: 1 },
+                      ]}
+                    >
+                      {selectedChurch.name}
+                    </Text>
+                    <AppMenuIcon
+                      ios="checkmark.seal.fill"
+                      android="verified"
+                      color={theme.primary}
+                      size={17}
+                    />
+                  </View>
+                  <Text
+                    numberOfLines={2}
+                    style={[styles.rowSub, { color: mutedText }]}
+                  >
+                    {selectedChurch.address}, {selectedChurch.city}
+                    {selectedChurch.state ? `, ${selectedChurch.state}` : ""}{" "}
+                    {selectedChurch.postalCode || ""}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      marginTop: 2,
+                    }}
+                  >
+                    {selectedDistance !== null && (
+                      <Text
+                        style={{
+                          color: theme.primary,
+                          fontFamily: fonts.sansSemiBold,
+                          fontSize: 12.5,
+                        }}
+                      >
+                        {formatDistance(selectedDistance, es)}
+                      </Text>
+                    )}
+                    {!!selectedChurch.pastorName && (
+                      <Text
+                        style={{
+                          color: mutedText,
+                          fontFamily: fonts.sansMedium,
+                          fontSize: 12.5,
+                        }}
+                      >
+                        {selectedChurch.pastorName}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                {selectedPosition !== null && enrichedChurches.length > 1 && (
+                  <Text
+                    style={{
+                      color: mutedText,
+                      fontFamily: fonts.sansSemiBold,
+                      fontSize: 12.5,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
+                    {`${selectedPosition + 1} / ${enrichedChurches.length}`}
+                  </Text>
+                )}
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => closeDetail()}
+                  accessibilityLabel={t.close}
+                  style={[
+                    styles.miniCloseBtn,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "rgba(255,255,255,0.10)"
+                        : "rgba(0,0,0,0.06)",
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="xmark"
+                    android="close"
+                    color={theme.onSurface}
+                    size={13}
+                    weight="bold"
+                  />
+                </Pressable>
+              </View>
+              </View>
+            ) : (
+              <View style={[styles.sheetHeader, { height: LIST_HEADER_HEIGHT }]}>
+                <View
+                  style={[
+                    styles.sheetSearch,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "rgba(255,255,255,0.09)"
+                        : "rgba(0,0,0,0.055)",
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="magnifyingglass"
+                    android="search"
+                    color={mutedText}
+                    size={17}
+                    weight="medium"
+                  />
+                  <TextInput
+                    value={search}
+                    onChangeText={setSearch}
+                    onFocus={() => setSnapIndex(2)}
+                    placeholder={t.churchNameCityOrZip}
+                    placeholderTextColor={mutedText}
+                    returnKeyType="search"
+                    autoCorrect={false}
+                    style={[styles.searchInput, { color: theme.onSurface }]}
+                  />
+                  {!!search && (
+                    <Pressable
+                      hitSlop={8}
+                      onPress={() => setSearch("")}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.churchClear}
+                    >
+                      <AppMenuIcon
+                        ios="xmark.circle.fill"
+                        android="cancel"
+                        color={mutedText}
+                        size={17}
+                      />
+                    </Pressable>
+                  )}
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.sheetSummary, { color: mutedText }]}
+                >
+                  {sheetSummary}
+                </Text>
+              </View>
+            )
           }
         >
-          {/* Header Hero */}
-          <View style={styles.listHeaderBlock}>
-            <Text style={[styles.screenTitle, { color: theme.onSurface }]}>
-              {t.churchVerifiedChurches}
-            </Text>
-            <Text style={[styles.screenSub, { color: mutedText }]}>
-              {t.churchOfficialDirectoryOfVerifiedIddvEl}
-            </Text>
-          </View>
+          {selectedChurch ? (
+            <ScrollView
+              key={selectedChurch.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: sheetBodyPad }}
+            >
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                onLayout={(e) => setDetailBodyHeight(e.nativeEvent.layout.height)}
+                style={styles.sheetDetailBody}
+              >
+              {(() => {
+                const validPhotos = getChurchPhotos(selectedChurch).filter(
+                  (u) => !failedPhotoIds[u],
+                );
+                if (validPhotos.length === 0) return null;
+                const cardInnerWidth = Math.max(240, windowWidth - 36);
+                return (
+                  <View style={{ position: "relative" }}>
+                    <ScrollView
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      onMomentumScrollEnd={(e) => {
+                        const idx = Math.round(
+                          e.nativeEvent.contentOffset.x / cardInnerWidth,
+                        );
+                        setCarouselIndex(
+                          Math.max(0, Math.min(validPhotos.length - 1, idx)),
+                        );
+                      }}
+                      style={{
+                        width: cardInnerWidth,
+                        height: 148,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {validPhotos.map((uri, i) => (
+                        <Pressable
+                          key={uri}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setFullscreenPhotoIndex(i);
+                          }}
+                          style={{ width: cardInnerWidth, height: 148 }}
+                        >
+                          <Image
+                            source={{ uri }}
+                            onError={() =>
+                              setFailedPhotoIds((prev) => ({
+                                ...prev,
+                                [uri]: true,
+                              }))
+                            }
+                            style={{ width: cardInnerWidth, height: 148 }}
+                            resizeMode="cover"
+                          />
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                    {validPhotos.length > 1 && (
+                      <View
+                        pointerEvents="none"
+                        style={{
+                          position: "absolute",
+                          bottom: 8,
+                          left: 0,
+                          right: 0,
+                          flexDirection: "row",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        {validPhotos.map((u, idx) => (
+                          <View
+                            key={u}
+                            style={{
+                              width: idx === carouselIndex ? 16 : 6,
+                              height: 6,
+                              borderRadius: 3,
+                              backgroundColor:
+                                idx === carouselIndex
+                                  ? "#FFFFFF"
+                                  : "rgba(255,255,255,0.5)",
+                            }}
+                          />
+                        ))}
+                      </View>
+                    )}
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 999,
+                        backgroundColor: "rgba(0,0,0,0.52)",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontFamily: fonts.sansSemiBold,
+                          fontSize: 11,
+                        }}
+                      >
+                        {`${Math.min(carouselIndex + 1, validPhotos.length)} / ${validPhotos.length}`}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
 
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color={theme.primary}
-              style={{ marginVertical: 32 }}
-            />
-          ) : null}
+                <GestureDetector gesture={bodySwipe}>
+                  <View collapsable={false} style={{ gap: 12 }}>
+                    {!!selectedChurch.serviceTimes &&
+                      (() => {
+                        const rows = parseServiceTimes(selectedChurch.serviceTimes);
+                        const today = new Date().getDay();
+                        const scheduleBg = isDarkMode
+                          ? "rgba(255,255,255,0.06)"
+                          : theme.surfaceVariants.containerLow;
+                        if (!rows) {
+                          return (
+                            <View style={[styles.scheduleCard, { backgroundColor: scheduleBg }]}>
+                              <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
+                                {t.churchServiceTimes}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: theme.onSurface,
+                                  fontFamily: fonts.sansRegular,
+                                  fontSize: 14,
+                                  lineHeight: 20,
+                                  paddingBottom: 10,
+                                }}
+                              >
+                                {selectedChurch.serviceTimes}
+                              </Text>
+                            </View>
+                          );
+                        }
+                        return (
+                          <View style={[styles.scheduleCard, { backgroundColor: scheduleBg }]}>
+                            <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
+                              {t.churchServiceTimes}
+                            </Text>
+                            {rows.map((row, i) => {
+                              const isToday = row.dayIndex === today;
+                              const rowColor = isToday ? theme.primary : theme.onSurface;
+                              return (
+                                <View
+                                  key={`${row.day}-${i}`}
+                                  style={[
+                                    styles.scheduleRow,
+                                    i > 0 && {
+                                      borderTopWidth: StyleSheet.hairlineWidth,
+                                      borderTopColor: cardBorder,
+                                    },
+                                  ]}
+                                >
+                                  <View style={{ flex: 1, gap: 1 }}>
+                                    <Text
+                                      style={{
+                                        color: rowColor,
+                                        fontFamily: isToday ? fonts.sansSemiBold : fonts.sansMedium,
+                                        fontSize: 15,
+                                      }}
+                                    >
+                                      {row.day}
+                                      {isToday ? ` · ${t.churchToday}` : ""}
+                                    </Text>
+                                    {!!row.note && (
+                                      <Text
+                                        style={{
+                                          color: mutedText,
+                                          fontFamily: fonts.sansRegular,
+                                          fontSize: 12.5,
+                                        }}
+                                      >
+                                        {row.note}
+                                      </Text>
+                                    )}
+                                  </View>
+                                  <Text
+                                    style={{
+                                      color: rowColor,
+                                      fontFamily: isToday ? fonts.sansSemiBold : fonts.sansMedium,
+                                      fontSize: 15,
+                                      fontVariant: ["tabular-nums"],
+                                    }}
+                                  >
+                                    {row.time}
+                                  </Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        );
+                      })()}
+
+              <View style={styles.selectedActionsRow}>
+                <Pressable
+                  onPress={() => openDirections(selectedChurch)}
+                  style={({ pressed }) => [
+                    styles.actionBtnPrimary,
+                    {
+                      backgroundColor: theme.primary,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="arrow.triangle.turn.up.right.diamond.fill"
+                    android="directions"
+                    color={theme.onPrimary}
+                    size={17}
+                  />
+                  <Text
+                    style={{
+                      color: theme.onPrimary,
+                      fontFamily: fonts.sansSemiBold,
+                      fontSize: 14,
+                    }}
+                  >
+                    {t.churchDirections}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  disabled={lookingAroundId === selectedChurch.id}
+                  onPress={() => void openStreetPreview(selectedChurch)}
+                  style={({ pressed }) => [
+                    styles.actionBtnSecondary,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "rgba(255,255,255,0.09)"
+                        : theme.surfaceVariants.containerHighest,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  {lookingAroundId === selectedChurch.id ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <>
+                      <AppMenuIcon
+                        ios="binoculars.fill"
+                        android="streetview"
+                        color={theme.onSurface}
+                        size={15}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: theme.onSurface,
+                          fontFamily: fonts.sansSemiBold,
+                          fontSize: 13.5,
+                        }}
+                      >
+                        {isIOS
+                          ? t.churchLookAround
+                          : t.churchStreetView}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+
+                    <View style={styles.selectedActionsRow}>
+                {(() => {
+                  const isMyLinkedChurch =
+                    user?.churchId === selectedChurch.id ||
+                    (!user?.churchId && user?.churchName === selectedChurch.name);
+                  return (
+                    <Pressable
+                      disabled={settingMyChurchId === selectedChurch.id}
+                      onPress={() => void handleSetMyChurch(selectedChurch)}
+                      style={({ pressed }) => [
+                        styles.actionBtnSecondary,
+                        {
+                          flex: 1,
+                          backgroundColor: isMyLinkedChurch
+                            ? isDarkMode
+                              ? "rgba(52,199,89,0.18)"
+                              : "rgba(52,199,89,0.14)"
+                            : isDarkMode
+                              ? "rgba(255,255,255,0.09)"
+                              : theme.surfaceVariants.containerHighest,
+                          borderWidth: isMyLinkedChurch ? 1 : 0,
+                          borderColor: isMyLinkedChurch ? "#34C759" : "transparent",
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      {settingMyChurchId === selectedChurch.id ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <>
+                          <AppMenuIcon
+                            ios={
+                              isMyLinkedChurch
+                                ? "checkmark.seal.fill"
+                                : "building.columns"
+                            }
+                            android={
+                              isMyLinkedChurch ? "verified" : "account-balance"
+                            }
+                            color={isMyLinkedChurch ? "#34C759" : theme.onSurface}
+                            size={16}
+                          />
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
+                              fontFamily: fonts.sansSemiBold,
+                              fontSize: 13.5,
+                            }}
+                          >
+                            {isMyLinkedChurch
+                              ? t.churchYourChurch
+                              : t.churchSetAsMyChurch}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  );
+                })()}
+                    </View>
+
+              {isAdmin && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "flex-end",
+                    gap: 10,
+                    paddingTop: 4,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: cardBorder,
+                  }}
+                >
+                  <Pressable
+                    onPress={() => openEditChurchModal(selectedChurch)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                    }}
+                  >
+                    <AppMenuIcon
+                      ios="pencil"
+                      android="edit"
+                      color={theme.primary}
+                      size={14}
+                    />
+                    <Text
+                      style={{
+                        color: theme.primary,
+                        fontFamily: fonts.sansSemiBold,
+                        fontSize: 13,
+                      }}
+                    >
+                      {selectedChurch.status === "pending"
+                        ? t.churchReviewApprove
+                        : t.churchEditChurch}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleDeleteChurch(selectedChurch)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                    }}
+                  >
+                    <AppMenuIcon
+                      ios="trash"
+                      android="delete-outline"
+                      color="#D64545"
+                      size={14}
+                    />
+                    <Text
+                      style={{
+                        color: "#D64545",
+                        fontFamily: fonts.sansSemiBold,
+                        fontSize: 13,
+                      }}
+                    >
+                      {t.delete}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+                  </View>
+                </GestureDetector>
+              </Animated.View>
+            </ScrollView>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={[
+                styles.sheetListContent,
+                { paddingBottom: sheetBodyPad + 16 },
+              ]}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => void loadChurches(true)}
+                  tintColor={theme.primary}
+                />
+              }
+            >
+              {/* Country filter */}
+        {availableCountries.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingRight: 10 }}
+          >
+            {[null, ...availableCountries].map((cName) => {
+              const active = countryFilter === cName;
+              const label =
+                cName === null ? (t.churchAll) : cName;
+              return (
+                <Pressable
+                  key={label}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setCountryFilter(cName);
+                  }}
+                  style={[
+                    styles.countryChip,
+                    {
+                      backgroundColor: active
+                        ? theme.primary
+                        : isDarkMode
+                          ? "rgba(28,28,30,0.88)"
+                          : "rgba(255,255,255,0.92)",
+                      borderColor: active ? theme.primary : cardBorder,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: active ? theme.onPrimary : theme.onSurface,
+                      fontFamily: fonts.sansSemiBold,
+                      fontSize: 12.5,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+              {loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color={theme.primary}
+                  style={{ marginVertical: 24 }}
+                />
+              ) : null}
 
           {!!error && (
             <View
@@ -1624,136 +2117,6 @@ export default function ChurchesScreen() {
               <Text style={{ color: theme.primary, fontFamily: fonts.sansMedium }}>
                 {error}
               </Text>
-            </View>
-          )}
-
-          {/* Churches Near Me Section (YouVersion Style Horizontal Carousel OR Friendly Fallback) */}
-          {!loading && userCoords && !search.trim() && (
-            <View style={{ gap: 10 }}>
-              <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
-                {t.churchChurchesNearMe}
-              </Text>
-              {nearMeChurches.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingRight: 16 }}
-                >
-                  {nearMeChurches.map((church) => (
-                    <Pressable
-                      key={church.id}
-                      onPress={() => focusChurchOnMap(church)}
-                      style={({ pressed }) => [
-                        styles.nearCard,
-                        {
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          opacity: pressed ? 0.88 : 1,
-                        },
-                      ]}
-                    >
-                      <Image
-                        source={CHURCH_EMBLEM}
-                        style={styles.nearAvatar}
-                        resizeMode="cover"
-                      />
-                      <Text
-                        numberOfLines={2}
-                        style={[styles.nearName, { color: theme.onSurface }]}
-                      >
-                        {church.name}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.nearCity, { color: mutedText }]}
-                      >
-                        {church.city}
-                        {church.state ? `, ${church.state}` : ""}
-                      </Text>
-                      {church.distanceMiles !== null && (
-                        <View
-                          style={[
-                            styles.distPill,
-                            { backgroundColor: theme.primary + "18" },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.distPillText,
-                              { color: theme.primary },
-                            ]}
-                          >
-                            {formatDistance(church.distanceMiles, es)}
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <View
-                  style={[
-                    styles.infoCard,
-                    { backgroundColor: cardBg, borderColor: cardBorder, gap: 10 },
-                  ]}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <AppMenuIcon
-                      ios="location.slash"
-                      android="location-off"
-                      color={theme.primary}
-                      size={20}
-                    />
-                    <Text
-                      style={{
-                        flex: 1,
-                        color: theme.onSurface,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 15,
-                      }}
-                    >
-                      {t.churchNoVerifiedElBuenPastorChurch}
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      color: mutedText,
-                      fontFamily: fonts.sansRegular,
-                      fontSize: 13.5,
-                      lineHeight: 19,
-                    }}
-                  >
-                    {closestChurch && closestChurch.distanceMiles !== null
-                      ? es
-                        ? `La congregación verificada más cercana es ${closestChurch.name} (${formatDistance(closestChurch.distanceMiles, es)}). ¿Conoces una iglesia más cerca?`
-                        : `The closest verified congregation is ${closestChurch.name} (${formatDistance(closestChurch.distanceMiles, es)} away). Know a congregation closer to you?`
-                      : t.churchOurOfficialVerifiedDirectoryIsGrowing}
-                  </Text>
-                  <Pressable
-                    onPress={openSubmitModal}
-                    style={[
-                      styles.primaryPillBtn,
-                      { backgroundColor: theme.primary },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios="plus.circle.fill"
-                      android="add-circle"
-                      color={theme.onPrimary}
-                      size={17}
-                    />
-                    <Text
-                      style={{
-                        color: theme.onPrimary,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 14,
-                      }}
-                    >
-                      {t.churchSubmitAChurch2}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
             </View>
           )}
 
@@ -1775,18 +2138,6 @@ export default function ChurchesScreen() {
               </Text>
             </View>
           )}
-
-          {/* Full Directory List (Hallow-style clean rows) */}
-          <View style={{ gap: 8 }}>
-            <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
-              {search.trim()
-                ? es
-                  ? `RESULTADOS (${enrichedChurches.length})`
-                  : `RESULTS (${enrichedChurches.length})`
-                : es
-                  ? `DIRECTORIO VERIFICADO (${enrichedChurches.length})`
-                  : `VERIFIED DIRECTORY (${enrichedChurches.length})`}
-            </Text>
 
             {!loading && enrichedChurches.length === 0 ? (
               <View
@@ -1949,9 +2300,8 @@ export default function ChurchesScreen() {
                 ))}
               </View>
             )}
-          </View>
 
-          {/* Bottom Submit CTA when churches exist */}
+              {/* "Don't see your church?" */}
           {enrichedChurches.length > 0 && (
             <Pressable
               onPress={openSubmitModal}
@@ -2017,616 +2367,11 @@ export default function ChurchesScreen() {
               />
             </Pressable>
           )}
-        </ScrollView>
+            </ScrollView>
+          )}
+        </DetentSheet>
       )}
 
-      {/* ── FLOATING BOTTOM CARD (Apple Maps Sheet Style) ─────────── */}
-      {!pinPickerOpen && (viewMode === "map" || Boolean(selectedChurch)) && (
-        <View
-          pointerEvents="box-none"
-          style={[
-            styles.mapBottomWrap,
-            { paddingBottom: bottomClearance },
-          ]}
-        >
-          {viewMode === "map" && Platform.OS !== "web" && (
-            <View
-              pointerEvents="box-none"
-              style={{ alignItems: "flex-end", marginBottom: 10 }}
-            >
-              <Pressable
-                onPress={() => void requestNearMe(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t.churchCenterOnMyLocation}
-                style={({ pressed }) => [
-                  styles.floatingGpsBtn,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: pressed ? 0.86 : 1,
-                  },
-                ]}
-              >
-                {locating ? (
-                  <ActivityIndicator size="small" color={theme.onPrimary} />
-                ) : (
-                  <AppMenuIcon
-                    ios="location.fill"
-                    android="my-location"
-                    color={theme.onPrimary}
-                    size={19}
-                  />
-                )}
-              </Pressable>
-            </View>
-          )}
-
-          {selectedChurch ? (
-            <Animated.View
-              entering={FadeInDown.duration(220)}
-              exiting={FadeOutDown.duration(180)}
-              style={[
-                styles.selectedCard,
-                { backgroundColor: cardBg, borderColor: cardBorder },
-              ]}
-            >
-              {(() => {
-                const validPhotos = getChurchPhotos(selectedChurch).filter(
-                  (u) => !failedPhotoIds[u],
-                );
-                if (validPhotos.length === 0) return null;
-                const cardInnerWidth = Math.max(240, windowWidth - 60);
-                return (
-                  <View style={{ position: "relative" }}>
-                    <ScrollView
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      onMomentumScrollEnd={(e) => {
-                        const idx = Math.round(
-                          e.nativeEvent.contentOffset.x / cardInnerWidth,
-                        );
-                        setCarouselIndex(
-                          Math.max(0, Math.min(validPhotos.length - 1, idx)),
-                        );
-                      }}
-                      style={{
-                        width: cardInnerWidth,
-                        height: 148,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {validPhotos.map((uri, i) => (
-                        <Pressable
-                          key={uri}
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setFullscreenPhotoIndex(i);
-                          }}
-                          style={{ width: cardInnerWidth, height: 148 }}
-                        >
-                          <Image
-                            source={{ uri }}
-                            onError={() =>
-                              setFailedPhotoIds((prev) => ({
-                                ...prev,
-                                [uri]: true,
-                              }))
-                            }
-                            style={{ width: cardInnerWidth, height: 148 }}
-                            resizeMode="cover"
-                          />
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                    {validPhotos.length > 1 && (
-                      <View
-                        pointerEvents="none"
-                        style={{
-                          position: "absolute",
-                          bottom: 8,
-                          left: 0,
-                          right: 0,
-                          flexDirection: "row",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        {validPhotos.map((u, idx) => (
-                          <View
-                            key={u}
-                            style={{
-                              width: idx === carouselIndex ? 16 : 6,
-                              height: 6,
-                              borderRadius: 3,
-                              backgroundColor:
-                                idx === carouselIndex
-                                  ? "#FFFFFF"
-                                  : "rgba(255,255,255,0.5)",
-                            }}
-                          />
-                        ))}
-                      </View>
-                    )}
-                    <View
-                      pointerEvents="none"
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                        borderRadius: 999,
-                        backgroundColor: "rgba(0,0,0,0.52)",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#FFFFFF",
-                          fontFamily: fonts.sansSemiBold,
-                          fontSize: 11,
-                        }}
-                      >
-                        {`${Math.min(carouselIndex + 1, validPhotos.length)} / ${validPhotos.length}`}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })()}
-
-              <View style={styles.selectedHeader}>
-                <Image
-                  source={CHURCH_PIN_SELECTED_IMG}
-                  style={styles.selectedAvatar}
-                  resizeMode="contain"
-                />
-                <View style={{ flex: 1, gap: 2 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <Text
-                      numberOfLines={2}
-                      style={[
-                        styles.selectedTitle,
-                        { color: theme.onSurface, flexShrink: 1 },
-                      ]}
-                    >
-                      {selectedChurch.name}
-                    </Text>
-                    <AppMenuIcon
-                      ios="checkmark.seal.fill"
-                      android="verified"
-                      color={theme.primary}
-                      size={17}
-                    />
-                  </View>
-                  <Text
-                    numberOfLines={2}
-                    style={[styles.rowSub, { color: mutedText }]}
-                  >
-                    {selectedChurch.address}, {selectedChurch.city}
-                    {selectedChurch.state ? `, ${selectedChurch.state}` : ""}{" "}
-                    {selectedChurch.postalCode || ""}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      marginTop: 2,
-                    }}
-                  >
-                    {selectedDistance !== null && (
-                      <Text
-                        style={{
-                          color: theme.primary,
-                          fontFamily: fonts.sansSemiBold,
-                          fontSize: 12.5,
-                        }}
-                      >
-                        {formatDistance(selectedDistance, es)}
-                      </Text>
-                    )}
-                    {!!selectedChurch.pastorName && (
-                      <Text
-                        style={{
-                          color: mutedText,
-                          fontFamily: fonts.sansMedium,
-                          fontSize: 12.5,
-                        }}
-                      >
-                        {selectedChurch.pastorName}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => setSelectedChurch(null)}
-                  accessibilityLabel={t.close}
-                  style={[
-                    styles.miniCloseBtn,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.10)"
-                        : "rgba(0,0,0,0.06)",
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="xmark"
-                    android="close"
-                    color={theme.onSurface}
-                    size={13}
-                    weight="bold"
-                  />
-                </Pressable>
-              </View>
-
-              {!!selectedChurch.serviceTimes && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 9,
-                    borderRadius: 12,
-                    backgroundColor: isDarkMode
-                      ? "rgba(255,255,255,0.06)"
-                      : theme.surfaceVariants.containerLow,
-                  }}
-                >
-                  <AppMenuIcon
-                    ios="clock.fill"
-                    android="schedule"
-                    color={theme.primary}
-                    size={15}
-                  />
-                  <Text
-                    style={{
-                      flex: 1,
-                      color: theme.onSurface,
-                      fontFamily: fonts.sansRegular,
-                      fontSize: 13,
-                    }}
-                  >
-                    {selectedChurch.serviceTimes}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.selectedActionsRow}>
-                <Pressable
-                  onPress={() => openDirections(selectedChurch)}
-                  style={({ pressed }) => [
-                    styles.actionBtnPrimary,
-                    {
-                      backgroundColor: theme.primary,
-                      opacity: pressed ? 0.88 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="arrow.triangle.turn.up.right.diamond.fill"
-                    android="directions"
-                    color={theme.onPrimary}
-                    size={17}
-                  />
-                  <Text
-                    style={{
-                      color: theme.onPrimary,
-                      fontFamily: fonts.sansSemiBold,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t.churchDirections}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  disabled={lookingAroundId === selectedChurch.id}
-                  onPress={() => void openStreetPreview(selectedChurch)}
-                  style={({ pressed }) => [
-                    styles.actionBtnSecondary,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : theme.surfaceVariants.containerHighest,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  {lookingAroundId === selectedChurch.id ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <>
-                      <AppMenuIcon
-                        ios="binoculars.fill"
-                        android="streetview"
-                        color={theme.onSurface}
-                        size={15}
-                      />
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          color: theme.onSurface,
-                          fontFamily: fonts.sansSemiBold,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {isIOS
-                          ? t.churchLookAround
-                          : t.churchStreetView}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              </View>
-
-              <View style={styles.selectedActionsRow}>
-                {(() => {
-                  const isMyLinkedChurch =
-                    user?.churchId === selectedChurch.id ||
-                    (!user?.churchId && user?.churchName === selectedChurch.name);
-                  return (
-                    <Pressable
-                      disabled={settingMyChurchId === selectedChurch.id}
-                      onPress={() => void handleSetMyChurch(selectedChurch)}
-                      style={({ pressed }) => [
-                        styles.actionBtnSecondary,
-                        {
-                          flex: 1.35,
-                          backgroundColor: isMyLinkedChurch
-                            ? isDarkMode
-                              ? "rgba(52,199,89,0.18)"
-                              : "rgba(52,199,89,0.14)"
-                            : isDarkMode
-                              ? "rgba(255,255,255,0.09)"
-                              : theme.surfaceVariants.containerHighest,
-                          borderWidth: isMyLinkedChurch ? 1 : 0,
-                          borderColor: isMyLinkedChurch ? "#34C759" : "transparent",
-                          opacity: pressed ? 0.85 : 1,
-                        },
-                      ]}
-                    >
-                      {settingMyChurchId === selectedChurch.id ? (
-                        <ActivityIndicator size="small" color={theme.primary} />
-                      ) : (
-                        <>
-                          <AppMenuIcon
-                            ios={
-                              isMyLinkedChurch
-                                ? "checkmark.seal.fill"
-                                : "building.columns"
-                            }
-                            android={
-                              isMyLinkedChurch ? "verified" : "account-balance"
-                            }
-                            color={isMyLinkedChurch ? "#34C759" : theme.onSurface}
-                            size={16}
-                          />
-                          <Text
-                            numberOfLines={1}
-                            style={{
-                              color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
-                              fontFamily: fonts.sansSemiBold,
-                              fontSize: 13.5,
-                            }}
-                          >
-                            {isMyLinkedChurch
-                              ? t.churchYourChurch
-                              : t.churchSetAsMyChurch}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  );
-                })()}
-
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setQrShareChurch(selectedChurch);
-                  }}
-                  style={({ pressed }) => [
-                    styles.actionBtnSecondary,
-                    {
-                      flex: 0.85,
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : theme.surfaceVariants.containerHighest,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="qrcode"
-                    android="qr-code-2"
-                    color={theme.onSurface}
-                    size={16}
-                  />
-                  <Text
-                    style={{
-                      color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
-                      fontSize: 13.5,
-                    }}
-                  >
-                    {t.churchQrCode}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {isAdmin && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "flex-end",
-                    gap: 10,
-                    paddingTop: 4,
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: cardBorder,
-                  }}
-                >
-                  <Pressable
-                    onPress={() => openEditChurchModal(selectedChurch)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                    }}
-                  >
-                    <AppMenuIcon
-                      ios="pencil"
-                      android="edit"
-                      color={theme.primary}
-                      size={14}
-                    />
-                    <Text
-                      style={{
-                        color: theme.primary,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {selectedChurch.status === "pending"
-                        ? t.churchReviewApprove
-                        : t.churchEditChurch}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => handleDeleteChurch(selectedChurch)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                    }}
-                  >
-                    <AppMenuIcon
-                      ios="trash"
-                      android="delete-outline"
-                      color="#D64545"
-                      size={14}
-                    />
-                    <Text
-                      style={{
-                        color: "#D64545",
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {t.delete}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-            </Animated.View>
-          ) : (
-            <GlassSurface
-              glassEffectStyle="regular"
-              intensity={72}
-              style={styles.mapPeekCard}
-            >
-              <View style={styles.mapPeekInner}>
-                <View style={{ flex: 1, gap: 3 }}>
-                  <Text
-                    style={{
-                      color: theme.onSurface,
-                      fontFamily: fonts.bold,
-                      fontSize: 17,
-                    }}
-                  >
-                    {loading
-                      ? t.churchLoadingChurches
-                      : userCoords && nearMeChurches.length > 0
-                        ? es
-                          ? `${nearMeChurches.length} iglesia${nearMeChurches.length === 1 ? "" : "s"} cerca de ti`
-                          : `${nearMeChurches.length} church${nearMeChurches.length === 1 ? "" : "es"} near you`
-                        : enrichedChurches.length > 0
-                          ? es
-                            ? `${enrichedChurches.length} iglesias verificadas`
-                            : `${enrichedChurches.length} verified churches`
-                          : t.churchElBuenPastorDirectory}
-                  </Text>
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      color: mutedText,
-                      fontFamily: fonts.sansRegular,
-                      fontSize: 13,
-                      lineHeight: 18,
-                    }}
-                  >
-                    {userCoords && nearMeChurches.length === 0
-                      ? closestChurch && closestChurch.distanceMiles !== null
-                        ? es
-                          ? `Sin iglesias a <80 km · Más cercana: ${closestChurch.city} (${formatDistance(closestChurch.distanceMiles, es)})`
-                          : `None within 50 mi · Closest: ${closestChurch.city} (${formatDistance(closestChurch.distanceMiles, es)})`
-                        : t.churchNoChurchFoundNearbyKnowOne
-                      : enrichedChurches.length > 0
-                        ? t.churchTapAMapPinOrOpen
-                        : t.churchSubmitYourIddvElBuenPastor}
-                  </Text>
-                </View>
-
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  {enrichedChurches.length > 0 ? (
-                    <Pressable
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        setViewMode("list");
-                      }}
-                      style={[
-                        styles.peekPillBtn,
-                        { backgroundColor: theme.primary },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: theme.onPrimary,
-                          fontFamily: fonts.sansSemiBold,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {t.churchViewList}
-                      </Text>
-                    </Pressable>
-                  ) : (
-                    <Pressable
-                      onPress={openSubmitModal}
-                      style={[
-                        styles.peekPillBtn,
-                        { backgroundColor: theme.primary },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: theme.onPrimary,
-                          fontFamily: fonts.sansSemiBold,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {t.churchSubmit}
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-              </View>
-            </GlassSurface>
-          )}
-        </View>
-      )}
 
       {/* ── Submit / Add Verified Church Sheet (120fps Swipe-Down) ─────────── */}
       <Modal
@@ -2657,6 +2402,9 @@ export default function ChurchesScreen() {
               />
             </Animated.View>
 
+            <Animated.View style={submitSheetStyle}>
+              <SheetGrabber inline />
+            </Animated.View>
             <Animated.View
               style={[
                 styles.submitSheet,
@@ -2670,12 +2418,7 @@ export default function ChurchesScreen() {
             >
               <GestureDetector gesture={submitPan}>
                 <View style={styles.submitHeader}>
-                  <View
-                    style={[
-                      styles.grabber,
-                      { backgroundColor: theme.outlineVariant },
-                    ]}
-                  />
+                  <View style={styles.grabber} />
                   <View style={styles.submitTitleRow}>
                     <View style={{ width: 40 }} />
                     <Text
@@ -3358,150 +3101,6 @@ export default function ChurchesScreen() {
         </View>
       </Modal>
 
-      {/* ── Verified Church QR Code Share Modal ───────────────────────────── */}
-      <Modal
-        visible={Boolean(qrShareChurch)}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setQrShareChurch(null)}
-      >
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.56)",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          }}
-          onPress={() => setQrShareChurch(null)}
-        >
-          {qrShareChurch && (() => {
-            const churchDeepUrl = `https://himnarioebp.com/churches?id=${encodeURIComponent(qrShareChurch.id)}`;
-            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=14&color=1A1412&bgcolor=FAF5EE&data=${encodeURIComponent(churchDeepUrl)}`;
-            return (
-              <Pressable
-                onPress={(e) => e.stopPropagation()}
-                style={{
-                  width: "100%",
-                  maxWidth: 340,
-                  borderRadius: 24,
-                  backgroundColor: cardBg,
-                  borderWidth: 1,
-                  borderColor: cardBorder,
-                  padding: 20,
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <Text
-                  numberOfLines={2}
-                  style={{
-                    color: theme.onSurface,
-                    fontFamily: fonts.bold,
-                    fontSize: 19,
-                    textAlign: "center",
-                  }}
-                >
-                  {qrShareChurch.name}
-                </Text>
-                <Text
-                  numberOfLines={2}
-                  style={{
-                    color: mutedText,
-                    fontFamily: fonts.sansRegular,
-                    fontSize: 13,
-                    textAlign: "center",
-                  }}
-                >
-                  {`${qrShareChurch.address}, ${qrShareChurch.city}${qrShareChurch.state ? `, ${qrShareChurch.state}` : ""}`}
-                </Text>
-
-                <View
-                  style={{
-                    padding: 12,
-                    borderRadius: 18,
-                    backgroundColor: "#FAF5EE",
-                    borderWidth: 1,
-                    borderColor: "rgba(0,0,0,0.08)",
-                  }}
-                >
-                  <Image
-                    source={{ uri: qrImageUrl }}
-                    style={{ width: 210, height: 210 }}
-                    resizeMode="contain"
-                  />
-                </View>
-
-                <Text
-                  style={{
-                    color: mutedText,
-                    fontFamily: fonts.sansRegular,
-                    fontSize: 12,
-                    textAlign: "center",
-                  }}
-                >
-                  {t.churchScanThisQrCodeInHimnario}
-                </Text>
-
-                <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
-                  <Pressable
-                    onPress={() => setQrShareChurch(null)}
-                    style={[
-                      styles.actionBtnSecondary,
-                      {
-                        backgroundColor: isDarkMode
-                          ? "rgba(255,255,255,0.09)"
-                          : theme.surfaceVariants.containerHighest,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: theme.onSurface,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 14,
-                      }}
-                    >
-                      {t.close}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      void Share.share({
-                        message: `${qrShareChurch.name}\n${qrShareChurch.address}, ${qrShareChurch.city}${qrShareChurch.state ? `, ${qrShareChurch.state}` : ""}\n${churchDeepUrl}`,
-                        url: churchDeepUrl,
-                      }).catch(() => {});
-                    }}
-                    style={[
-                      styles.actionBtnPrimary,
-                      { backgroundColor: theme.primary },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios="square.and.arrow.up"
-                      android="share"
-                      color={theme.onPrimary}
-                      size={15}
-                    />
-                    <Text
-                      style={{
-                        color: theme.onPrimary,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 14,
-                      }}
-                    >
-                      {t.shareModalTitle}
-                    </Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            );
-          })()}
-        </Pressable>
-      </Modal>
-
       {/* ── In-App Camera QR Code Scanner Modal ───────────────────────────── */}
       {Platform.OS !== "web" && (
         <Modal
@@ -3610,6 +3209,47 @@ export default function ChurchesScreen() {
 }
 
 const styles = StyleSheet.create({
+  sheetHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 8,
+  },
+  sheetSearch: {
+    height: 44,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  sheetSummary: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    paddingHorizontal: 2,
+  },
+  sheetListContent: {
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    gap: 14,
+  },
+  sheetDetailBody: {
+    paddingHorizontal: 18,
+    paddingTop: 2,
+    paddingBottom: 6,
+    gap: 12,
+  },
+  scheduleCard: {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+  },
   root: { flex: 1 },
   topChrome: {
     position: "absolute",
