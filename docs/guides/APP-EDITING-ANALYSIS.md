@@ -1,5 +1,30 @@
 # App editing
 
+## November 22, 2026 (evening) — Handoff for Claude, Codex & Antigravity (iOS Build 31, OTA `d351bb27`)
+
+This entry is the current state. The entry below it describes the morning of the same day (Build 30) and is kept for its rules and commands.
+
+### What changed (all live in OTA `d351bb27` and iOS Build 31)
+1. **Cleanup (`3c314f5`):** deleted unreferenced components (`HomeMenuSheet`, `BottomNavBar`, `HymnListItem`, `IosStreamingNotice`, `audio/android-player.ts`) and Expo template leftovers; removed `shaka-player` and `@gorhom/bottom-sheet`; added `.github/workflows/ci.yml`.
+2. **String table (`6c46ea0`):** 337 inline `es ? '…' : '…'` pairs moved into `context/LanguageContext.tsx`. Keys were generated from the English text with a per-screen prefix (`churchCameraPermission`); a few are clumsy and can be renamed. A few dozen strings with interpolated values are still inline.
+3. **Churches screen (`c53253f`, `20b1a01`, `b47d491`):** `app/churches.tsx` is a full-screen map with two rows of Liquid Glass controls and one bottom sheet (`components/DetentSheet.tsx`) that is hidden at rest. It rises when the search field is focused, "Lista" is chosen or a pin is tapped. The church card shows service times as one row per day (`utils/churchSchedule.ts`), with today highlighted. The QR share modal was removed; QR scanning stays.
+4. **Church wording (`3b12817`, `b47d491`):** names are shown without "IDDV El Buen Pastor" and leaders as `SDD <name>` (`utils/churchName.ts`). "Vincular mi iglesia" became "Esta es mi iglesia", and the green "Tu iglesia" button now offers to remove the link.
+5. **Church form (`8e003aa`, `082e5e8`):** name and location first; the pin fills in the address; pastor, service times, contact and photos sit behind "Más detalles (opcional)"; service times use `components/ChurchScheduleEditor.tsx`; the coordinates box is admin-only; the keyboard dismisses on drag.
+6. **Account sheet (`c53253f`, `082e5e8`):** one "Mi iglesia" row. Opening the map or scanner from the sheet while already on the map no longer stacks a second map, and cancelling a scan opened from Account goes back.
+7. **Sheets (`c53253f`):** `components/SheetGrabber.tsx` floats above every bottom sheet.
+8. **Typography (`8e003aa`):** native system fonts through `theme/fonts.ts`; 364 `fontFamily` references now spread a token.
+9. **Look Around (`8e003aa`, native):** presented directly and requested by map item. Only in Build 31.
+
+### Not verified
+- No simulator or device run by the agent. The owner checked on a phone and reported the keyboard and scanner bugs, which were then fixed; the fixes themselves were not re-confirmed.
+- Whether Look Around now opens scrollable and facing the building on Build 31.
+- Android: nothing here has run on Android (it is on an older runtime).
+
+### Deferred
+- **Expo SDK 54 → 58 for Xcode 27** (Apple ITMS-90725, deadline April 2027): see [SDK-58-UPGRADE-PLAN.md](SDK-58-UPGRADE-PLAN.md).
+
+---
+
 ## November 22, 2026 — Comprehensive Handoff for Claude & Codex (`2.0.0`, `runtimeVersion: "2.0.0-media-3"`, iOS Build 30 Live on TestFlight)
 
 All November 20–22 changes have been verified, deployed to Cloudflare (D1 + Worker + R2 + Pages), and compiled into **iOS Production Build #30** (`b6501dac-6ab5-4a5f-86e1-1740ce1036d3`, auto-submitted via `8a54ce14-8c49-4b9f-a352-20a9306cc064`).

@@ -1,5 +1,19 @@
 # Himnario El Buen Pastor
 
+## November 22, 2026 (evening) — Current Production State (`2.0.0`, `runtimeVersion: "2.0.0-media-3"`, iOS Build 31)
+
+This block is the current state; the Build 30 block below describes the morning of the same day.
+
+- **iOS Build #31** ([`2105a538`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/2105a538-0d18-4d29-83f6-a922c35ac656)) is on TestFlight, and OTA `d351bb27-fd01-46bb-b304-393d7258d8a6` is live for Builds 30 and 31.
+- **Churches screen redesigned:** map with Liquid Glass controls, one bottom sheet that rises on search / Lista / pin tap, per-day service times, city-only church names, `SDD` leader title, unlink, and a location-first submission form with a schedule picker.
+- **Native system fonts** on both platforms (`himnario/theme/fonts.ts`); 337 inline strings moved into the string table; about 2,000 lines of dead code removed; CI added (`.github/workflows/ci.yml`).
+- **Look Around** opens Apple's screen directly (Build 31 only).
+- **Deferred:** Expo SDK 54 → 58 for Apple's Xcode 27 requirement (April 2027). See [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md).
+- **Validation:** type check clean; all 11 Node test suites (151 tests) pass.
+- **Agent handoff (Claude, Codex, Antigravity):** read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md) before editing, and pull first.
+
+---
+
 ## November 22, 2026 — Current Production State (`2.0.0`, `runtimeVersion: "2.0.0-media-3"`, iOS Build 30)
 
 All November 22 features, backend migrations (`0003`–`0008`), Cloudflare Worker & Pages updates, and a **full EAS iOS production native rebuild (Build #30)** are live / uploaded to App Store Connect / TestFlight:

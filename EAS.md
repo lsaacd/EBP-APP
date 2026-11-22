@@ -1,5 +1,26 @@
 # Native builds and updates
 
+## November 22, 2026 (evening) — iOS Production Build #31 and three OTAs (`runtimeVersion: "2.0.0-media-3"`)
+
+Current release record. The Build #30 entry below describes the morning of the same day.
+
+- **Source version and runtime:** `version: "2.0.0"`, `"runtimeVersion": "2.0.0-media-3"` (unchanged, so Builds #30 and #31 receive the same OTAs).
+- **iOS `production`, Build #31 (`2.0.0 (31)`) — finished and auto-submitted to App Store Connect / TestFlight:**
+  - **EAS Build:** [`2105a538-0d18-4d29-83f6-a922c35ac656`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/2105a538-0d18-4d29-83f6-a922c35ac656)
+  - **Auto-submission:** [`e1843910-ba89-4066-9549-1a6bb45b077b`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/e1843910-ba89-4066-9549-1a6bb45b077b) (do **not** run a manual `eas submit`).
+  - **Native change:** `himnario/modules/apple-look-around/ios/AppleLookAroundModule.swift` now presents `MKLookAroundViewController` directly and requests the scene by map item. No new native modules; JavaScript interface unchanged.
+  - **Apple warning ITMS-90725:** built with the iOS 26.0 SDK (EAS image `macos-sequoia-15.6-xcode-26.0`, the `sdk-54` default). From April 2027 uploads need Xcode 27. This requires the Expo SDK upgrade in [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md); do **not** set an Xcode 27 `image` on SDK 54.
+- **iOS OTAs on branch `production`, runtime `2.0.0-media-3` (newest first):**
+  - [`d351bb27-fd01-46bb-b304-393d7258d8a6`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/d351bb27-fd01-46bb-b304-393d7258d8a6) — current. Church form keyboard dismissal, QR scan from Account returns on cancel, top Liquid Glass controls, `SDD` title, native system fonts, location-first church form with schedule picker.
+  - `78f9b043-d4a3-4337-b59f-6a299003ac05` — Liquid Glass sheet, "Cerca de mí" pill, unlink church, city-only church names, "Mirar alrededor".
+  - `4cb9ae0d-49bc-4385-85ce-f11e02914322` — churches map + bottom sheet redesign, merged "Mi iglesia" row, floating sheet grabber, stacked-map fix; also carried the cleanup and string-table commits.
+  - Roll back the newest with `eas update:rollback --branch production`.
+- **Android:** unchanged. Last APK (`45c31c43`) is on runtime `2.0.0-securestore-1` and received none of this.
+- **Backend:** Worker and Pages unchanged. One D1 data edit: `church-riverbank-ca.pastor_name` set to `Hno Azael Tapia`.
+- **Validation at publish time:** type check clean, 11 Node suites / 151 tests pass, `expo lint` 0 errors / 50 warnings, iOS and Android bundle exports succeed. None of the UI was run on a simulator; only the owner's device has seen it.
+
+---
+
 ## November 22, 2026 — Full Native Rebuild: iOS Production Build #30 (`runtimeVersion: "2.0.0-media-3"`)
 
 User requested a full EAS native rebuild to ship native **Apple Maps Look Around (`MKLookAroundViewController`)**, **QR Code Scanner (`expo-camera`)**, **Camera & Photo Library church photo uploads (`expo-image-picker`, `expo-image-manipulator`)**, plus all Riverbank church, photo gallery, profile linking, YouTube Music-style comments sheet, audio deadlock, and 24 stability fixes.
