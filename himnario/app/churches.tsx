@@ -50,6 +50,7 @@ import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
 import { parseServiceTimes } from "../utils/churchSchedule";
+import { churchDisplayName } from "../utils/churchName";
 import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
@@ -670,8 +671,8 @@ export default function ChurchesScreen() {
         Alert.alert(
           t.churchRemoveMyChurchTitle,
           es
-            ? `“${church.name}” dejará de aparecer como tu iglesia en tu perfil.`
-            : `“${church.name}” will no longer show as your church on your profile.`,
+            ? `“${churchDisplayName(church.name, church.city)}” dejará de aparecer como tu iglesia en tu perfil.`
+            : `“${churchDisplayName(church.name, church.city)}” will no longer show as your church on your profile.`,
           [
             { text: t.cancel, style: "cancel" },
             {
@@ -706,8 +707,8 @@ export default function ChurchesScreen() {
         Alert.alert(
           t.churchChurchSynced,
           es
-            ? `“${church.name}” ahora aparece como tu iglesia en tu perfil.`
-            : `“${church.name}” now shows as your church on your profile.`,
+            ? `“${churchDisplayName(church.name, church.city)}” ahora aparece como tu iglesia en tu perfil.`
+            : `“${churchDisplayName(church.name, church.city)}” now shows as your church on your profile.`,
         );
       } catch (e) {
         Alert.alert(t.churchError, communityError(e, es));
@@ -1448,8 +1449,8 @@ export default function ChurchesScreen() {
                   }}
                 >
                   {es
-                    ? `Pendiente: ${pending.name} (${pending.city})`
-                    : `Pending: ${pending.name} (${pending.city})`}
+                    ? `Pendiente: ${churchDisplayName(pending.name, pending.city)}`
+                    : `Pending: ${churchDisplayName(pending.name, pending.city)}`}
                 </Text>
               </Pressable>
             ))}
@@ -1548,7 +1549,7 @@ export default function ChurchesScreen() {
                         { color: theme.onSurface, flexShrink: 1 },
                       ]}
                     >
-                      {selectedChurch.name}
+                      {churchDisplayName(selectedChurch.name, selectedChurch.city)}
                     </Text>
                     <AppMenuIcon
                       ios="checkmark.seal.fill"
@@ -2315,7 +2316,7 @@ export default function ChurchesScreen() {
                               { color: theme.onSurface, flexShrink: 1 },
                             ]}
                           >
-                            {church.name}
+                            {churchDisplayName(church.name, church.city)}
                           </Text>
                           <AppMenuIcon
                             ios="checkmark.seal.fill"

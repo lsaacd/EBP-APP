@@ -1,3 +1,4 @@
+import { churchDisplayName } from '../utils/churchName';
 import SheetGrabber from './SheetGrabber';
 import CommunityProfile from './CommunityProfile';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -735,7 +736,7 @@ export function AuthSheet({
       (user.choir &&
         (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
       (t.accountNotSet);
-    const churchLabel = user.churchName || (t.accountNotSet);
+    const churchLabel = (user.churchName ? churchDisplayName(user.churchName) : '') || (t.accountNotSet);
     const locationLabel = user.location || (t.accountNotSet);
     const visibilityLabel = user.showChurchLocation
       ? t.accountVisible

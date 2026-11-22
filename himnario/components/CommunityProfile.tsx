@@ -1,3 +1,4 @@
+import { churchDisplayName } from "../utils/churchName";
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, TextInput, Switch } from "react-native";
 import * as Haptics from "../utils/haptics";
@@ -474,7 +475,7 @@ export default function CommunityProfile({
                     }}
                   >
                     {user.churchId && user.churchName
-                      ? user.churchName
+                      ? churchDisplayName(user.churchName)
                       : t.profilePickMyChurchOnTheMap}
                   </Text>
                   {!!user.churchId && (
@@ -827,7 +828,7 @@ export default function CommunityProfile({
       (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
     (t.profileNone2);
   const churchLocationText =
-    user.churchName ||
+    (user.churchName ? churchDisplayName(user.churchName) : "") ||
     user.location ||
     (onOpenChurchesMap ? t.churchPickOnMap : t.profileOptional);
 
