@@ -1,5 +1,5 @@
 /**
- * MiniPlayer — Floating compact player bar above the BottomNavBar.
+ * MiniPlayer — Floating compact player bar above the tab bar.
  *
  * Visible whenever a hymn is loaded (playing or paused).
  * - Tap or swipe up on the bar to open the full-screen MusicPlayer.

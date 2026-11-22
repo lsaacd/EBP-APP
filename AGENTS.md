@@ -7,5 +7,6 @@ Quick links:
 - **Project Overview:** [README.md](README.md)
 - **System Architecture & File Map:** [ARCHITECTURE.md](ARCHITECTURE.md)
 - **EAS Builds, Runtimes & OTA Rules:** [EAS.md](EAS.md)
-- **Detailed UI/App Editing History:** [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md)
+- **Current App Editing Handoff:** [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md)
+- **Older Editing History:** [docs/guides/APP-EDITING-HISTORY.md](docs/guides/APP-EDITING-HISTORY.md)
 - **Cloudflare Deployment Guide:** [docs/guides/CLOUDFLARE-DEPLOYMENT.md](docs/guides/CLOUDFLARE-DEPLOYMENT.md)

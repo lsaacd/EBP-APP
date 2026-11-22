@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, app-web-parity]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The hymn recordings (~1.3 GB of .m4a) are tracked in git but are not
+      # needed to type-check or test, so skip downloading them.
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/docs/audio/
+            !/himnario/assets/audio/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: himnario/package-lock.json
+
+      - name: Install app dependencies
+        working-directory: himnario
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript
+        run: npx --prefix himnario tsc -p himnario/tsconfig.json --noEmit
+
+      - name: Regression tests
+        run: |
+          for f in scripts/test-*.cjs; do
+            echo "::group::$f"
+            node --test "$f"
+            echo "::endgroup::"
+          done
+          node scripts/test-web-search.js
