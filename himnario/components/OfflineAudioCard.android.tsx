@@ -192,7 +192,7 @@ export default function OfflineAudioCard() {
 const styles = StyleSheet.create({
   section: { marginBottom: 32, gap: 16 },
   sectionLabel: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 11,
     letterSpacing: 2,
     opacity: 0.6,
@@ -226,12 +226,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   countText: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 26,
     lineHeight: 30,
   },
   totalText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 14,
     opacity: 0.7,
   },
@@ -242,11 +242,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   sizeChipText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 11,
   },
   cardTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15.5,
   },
   track: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cardDesc: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   buttonText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 14,
   },
   textButton: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   textButtonLabel: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
 });

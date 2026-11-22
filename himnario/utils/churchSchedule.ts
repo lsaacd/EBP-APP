@@ -16,6 +16,9 @@ export type ScheduleRow = {
   /** Compact time label, e.g. "7:00 – 9:00 PM". */
   time: string;
   note: string | null;
+  /** Start and end as minutes after midnight (end is null for a single time). */
+  start: number;
+  end: number | null;
 };
 
 const DAY_INDEX: Record<string, number> = {
@@ -29,7 +32,7 @@ const DAY_INDEX: Record<string, number> = {
 };
 
 const fold = (value: string) =>
-  value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 const TIME = String.raw`(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?\s*[Mm]\.?`;
 const SEGMENT = new RegExp(
@@ -37,6 +40,8 @@ const SEGMENT = new RegExp(
 );
 
 const clock = (hour: string, minute: string | undefined) => `${Number(hour)}:${minute ?? '00'}`;
+const toMinutes = (hour: string, minute: string | undefined, letter: string) =>
+  ((Number(hour) % 12) + (letter.toLowerCase() === 'p' ? 12 : 0)) * 60 + Number(minute ?? '0');
 const meridiem = (letter: string) => (letter.toLowerCase() === 'a' ? 'AM' : 'PM');
 
 export function parseServiceTimes(text: string | null | undefined): ScheduleRow[] | null {
@@ -67,7 +72,49 @@ export function parseServiceTimes(text: string | null | undefined): ScheduleRow[
       dayIndex,
       time,
       note: note ? note.trim() : null,
+      start: toMinutes(h1, m1, p1),
+      end: h2 && p2 ? toMinutes(h2, m2, p2) : null,
     });
   }
   return rows;
+}
+
+// ── Building the text back from a structured editor ────────────────────────
+
+export type ScheduleEntry = {
+  dayIndex: number;
+  start: number;
+  end: number | null;
+  note: string;
+};
+
+/** Stored day names are Spanish: the directory's congregations are Spanish-speaking. */
+const DAY_NAMES_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+export function formatClock(minutes: number): string {
+  const total = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  const hour24 = Math.floor(total / 60);
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(total % 60).padStart(2, '0')} ${hour24 < 12 ? 'AM' : 'PM'}`;
+}
+
+/** Monday-first, then by start time — the order a weekly schedule is read in. */
+export function sortScheduleEntries<T extends { dayIndex: number; start: number }>(entries: T[]): T[] {
+  return [...entries].sort(
+    (a, b) => ((a.dayIndex + 6) % 7) - ((b.dayIndex + 6) % 7) || a.start - b.start,
+  );
+}
+
+/** Produces text that `parseServiceTimes` reads back into the same entries. */
+export function serializeSchedule(entries: ScheduleEntry[]): string {
+  return sortScheduleEntries(entries)
+    .map((entry) => {
+      const note = entry.note.replace(/[()·•;|\n]/g, ' ').replace(/\s+/g, ' ').trim();
+      const range =
+        entry.end === null
+          ? formatClock(entry.start)
+          : `${formatClock(entry.start)}–${formatClock(entry.end)}`;
+      return `${DAY_NAMES_ES[entry.dayIndex]} ${range}${note ? ` (${note})` : ''}`;
+    })
+    .join(' · ');
 }

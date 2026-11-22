@@ -12,7 +12,13 @@ const load = (file) => {
   new Function('module', 'exports', compiled)(loaded, loaded.exports);
   return loaded.exports;
 };
-const { parseServiceTimes } = load('himnario/utils/churchSchedule.ts');
+const schedule = load('himnario/utils/churchSchedule.ts');
+const { serializeSchedule, formatClock } = schedule;
+// Display fields only; start/end minutes are covered by the round-trip test.
+const parseServiceTimes = (text) => {
+  const rows = schedule.parseServiceTimes(text);
+  return rows && rows.map(({ day, dayIndex, time, note }) => ({ day, dayIndex, time, note }));
+};
 const { sheetSnapTarget } = load('himnario/utils/gestureMotion.ts');
 const { churchDisplayName } = load('himnario/utils/churchName.ts');
 
@@ -72,4 +78,30 @@ test('church names drop the shared denomination and keep what tells them apart',
   assert.equal(churchDisplayName('IDDV El Buen Pastor'), 'IDDV El Buen Pastor');
   assert.equal(churchDisplayName('Templo Central', 'Tijuana'), 'Templo Central');
   assert.equal(churchDisplayName(null, 'Tijuana'), 'Tijuana');
+});
+
+test('the schedule editor writes text the church card reads back unchanged', () => {
+  const entries = [
+    { dayIndex: 0, start: 14 * 60, end: 17 * 60, note: '' },
+    { dayIndex: 5, start: 19 * 60, end: 21 * 60, note: 'Estudio bíblico (jóvenes) · ' },
+    { dayIndex: 2, start: 19 * 60, end: 21 * 60, note: '' },
+    { dayIndex: 2, start: 10 * 60 + 30, end: null, note: '' },
+  ];
+  const text = serializeSchedule(entries);
+  assert.equal(
+    text,
+    'Martes 10:30 AM · Martes 7:00 PM–9:00 PM · Viernes 7:00 PM–9:00 PM (Estudio bíblico jóvenes) · Domingo 2:00 PM–5:00 PM',
+  );
+  const back = schedule.parseServiceTimes(text);
+  assert.deepEqual(
+    back.map(({ dayIndex, start, end, note }) => ({ dayIndex, start, end, note: note ?? '' })),
+    [
+      { dayIndex: 2, start: 630, end: null, note: '' },
+      { dayIndex: 2, start: 1140, end: 1260, note: '' },
+      { dayIndex: 5, start: 1140, end: 1260, note: 'Estudio bíblico jóvenes' },
+      { dayIndex: 0, start: 840, end: 1020, note: '' },
+    ],
+  );
+  assert.equal(formatClock(0), '12:00 AM');
+  assert.equal(formatClock(12 * 60 + 5), '12:05 PM');
 });

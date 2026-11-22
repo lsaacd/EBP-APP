@@ -3,20 +3,8 @@
 // All hex codes sourced directly from the Stitch HTML templates
 // ============================================================
 
-// Font family names as loaded by expo-google-fonts
-export const fonts = {
-  // Newsreader (Serif) — for headlines and hymn titles
-  regular: 'Newsreader_400Regular',
-  regularItalic: 'Newsreader_400Regular_Italic',
-  semiBold: 'Newsreader_600SemiBold',
-  bold: 'Newsreader_700Bold',
-  boldItalic: 'Newsreader_700Bold_Italic',
-  // Public Sans (Sans-Serif) — for body text and UI
-  sansRegular: 'PublicSans_400Regular',
-  sansMedium: 'PublicSans_500Medium',
-  sansSemiBold: 'PublicSans_600SemiBold',
-  sansBold: 'PublicSans_700Bold',
-};
+// Typography tokens live in ./fonts (native system fonts per platform).
+export { fonts } from './fonts';
 
 // -------------------------------------------------------------------
 // LIGHT THEME — "Parchment Palette"

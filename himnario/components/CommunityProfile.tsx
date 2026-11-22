@@ -167,7 +167,7 @@ export default function CommunityProfile({
         <Text
           style={{
             color: mutedText,
-            fontFamily: fonts.sansRegular,
+            ...fonts.sansRegular,
             fontSize: 13.5,
             lineHeight: 19,
             paddingHorizontal: 4,
@@ -255,9 +255,7 @@ export default function CommunityProfile({
                   <Text
                     style={{
                       color: theme.onSurface,
-                      fontFamily: checked
-                        ? fonts.sansSemiBold
-                        : fonts.sansMedium,
+                      ...(checked ? fonts.sansSemiBold : fonts.sansMedium),
                       fontSize: 16.5,
                       flex: 1,
                     }}
@@ -306,7 +304,7 @@ export default function CommunityProfile({
             <Text
               style={{
                 color: mutedText,
-                fontFamily: fonts.sansRegular,
+                ...fonts.sansRegular,
                 fontSize: 15,
               }}
             >
@@ -345,7 +343,7 @@ export default function CommunityProfile({
                   <Text
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansMedium,
+                      ...fonts.sansMedium,
                       fontSize: 16.5,
                       flex: 1,
                     }}
@@ -355,7 +353,7 @@ export default function CommunityProfile({
                   <Text
                     style={{
                       color: theme.primary,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14.5,
                     }}
                   >
@@ -469,7 +467,7 @@ export default function CommunityProfile({
                     numberOfLines={1}
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 15.5,
                       flexShrink: 1,
                     }}
@@ -491,7 +489,7 @@ export default function CommunityProfile({
                   numberOfLines={2}
                   style={{
                     color: mutedText,
-                    fontFamily: fonts.sansRegular,
+                    ...fonts.sansRegular,
                     fontSize: 12.5,
                     lineHeight: 17,
                   }}
@@ -623,9 +621,7 @@ export default function CommunityProfile({
                         <Text
                           style={{
                             color: c ? theme.onSurface : mutedText,
-                            fontFamily: active
-                              ? fonts.sansSemiBold
-                              : fonts.sansRegular,
+                            ...(active ? fonts.sansSemiBold : fonts.sansRegular),
                             fontSize: 15.5,
                           }}
                         >
@@ -678,7 +674,7 @@ export default function CommunityProfile({
                 style={{
                   flex: 1,
                   color: theme.onSurface,
-                  fontFamily: fonts.sansRegular,
+                  ...fonts.sansRegular,
                   fontSize: 16,
                   paddingVertical: 0,
                 }}
@@ -712,7 +708,7 @@ export default function CommunityProfile({
                 style={{
                   flex: 1,
                   color: theme.onSurface,
-                  fontFamily: fonts.sansRegular,
+                  ...fonts.sansRegular,
                   fontSize: 16,
                   paddingVertical: 0,
                 }}
@@ -743,7 +739,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={{
                 color: theme.onSurface,
-                fontFamily: fonts.sansRegular,
+                ...fonts.sansRegular,
                 fontSize: 16.5,
                 flex: 1,
               }}
@@ -771,7 +767,7 @@ export default function CommunityProfile({
           <Text
             style={{
               color: mutedText,
-              fontFamily: fonts.sansRegular,
+              ...fonts.sansRegular,
               fontSize: 12.5,
               lineHeight: 17,
               paddingHorizontal: 14,
@@ -806,7 +802,7 @@ export default function CommunityProfile({
           <Text
             style={{
               color: theme.onPrimary,
-              fontFamily: fonts.sansSemiBold,
+              ...fonts.sansSemiBold,
               fontSize: 16,
             }}
           >
@@ -997,7 +993,7 @@ export default function CommunityProfile({
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={{
-                  fontFamily: fonts.sansRegular,
+                  ...fonts.sansRegular,
                   fontSize: 15,
                   color: mutedText,
                   flexShrink: 1,
@@ -1122,7 +1118,7 @@ export default function CommunityProfile({
 
 const styles = StyleSheet.create({
   sectionHeader: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 12,
     letterSpacing: 0.9,
     paddingHorizontal: 14,
@@ -1136,12 +1132,12 @@ const styles = StyleSheet.create({
     gap: 13,
   },
   label: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 16.5,
     flexShrink: 0,
   },
   valueText: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 15,
     flex: 1,
     textAlign: "right",
@@ -1160,7 +1156,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   groupTitle: {
-    fontFamily: fonts.sansBold,
+    ...fonts.sansBold,
     fontSize: 11,
     letterSpacing: 1.4,
   },

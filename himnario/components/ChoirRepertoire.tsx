@@ -53,7 +53,7 @@ export default function ChoirRepertoire() {
           <Text
             style={{
               color: theme.onSurfaceVariant,
-              fontFamily: fonts.sansSemiBold,
+              ...fonts.sansSemiBold,
             }}
           >
             {CHOIRS[item.choir]?.[language === "es" ? 0 : 1]}
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },
-  title: { fontFamily: fonts.bold, fontSize: 23 },
+  title: { ...fonts.bold, fontSize: 23 },
   ids: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   hymn: {
     paddingHorizontal: 15,

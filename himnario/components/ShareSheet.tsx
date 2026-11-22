@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 21,
   },
   closeBtn: {
@@ -510,16 +510,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   previewBadge: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10,
     letterSpacing: 1.4,
   },
   previewTitle: {
-    fontFamily: fonts.boldItalic,
+    ...fonts.boldItalic,
     fontSize: 17,
   },
   previewDomain: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     opacity: 0.65,
   },
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   statusText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   optionsList: {
@@ -562,11 +562,11 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   optionTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   optionSub: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     opacity: 0.75,
   },

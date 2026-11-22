@@ -1,3 +1,4 @@
+import { fonts } from '../theme/theme';
 import { churchDisplayName } from '../utils/churchName';
 import SheetGrabber from './SheetGrabber';
 import CommunityProfile from './CommunityProfile';
@@ -639,7 +640,7 @@ export function AuthSheet({
           style={{
             flex: 1,
             textAlign: 'right',
-            fontFamily: 'PublicSans_400Regular',
+            ...fonts.sansRegular,
             fontSize: 15,
             color: mutedText,
           }}
@@ -771,7 +772,7 @@ export function AuthSheet({
           style={{
             flex: 1,
             textAlign: 'right',
-            fontFamily: 'PublicSans_400Regular',
+            ...fonts.sansRegular,
             fontSize: 15,
             color: mutedText,
           }}
@@ -804,7 +805,7 @@ export function AuthSheet({
           >
             <Text
               style={{
-                fontFamily: 'PublicSans_700Bold',
+                ...fonts.sansBold,
                 fontSize: 23,
                 color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
                 letterSpacing: 0.4,
@@ -815,7 +816,7 @@ export function AuthSheet({
           </View>
           <Text
             style={{
-              fontFamily: 'Newsreader_700Bold',
+              ...fonts.bold,
               fontSize: 21,
               color: theme.onSurface,
               textAlign: 'center',
@@ -826,7 +827,7 @@ export function AuthSheet({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text
               style={{
-                fontFamily: 'PublicSans_400Regular',
+                ...fonts.sansRegular,
                 fontSize: 13.5,
                 color: mutedText,
               }}
@@ -902,7 +903,7 @@ export function AuthSheet({
         <View style={{ gap: 6 }}>
           <Text
             style={{
-              fontFamily: 'PublicSans_600SemiBold',
+              ...fonts.sansSemiBold,
               fontSize: 12,
               letterSpacing: 0.9,
               color: mutedText,
@@ -949,7 +950,7 @@ export function AuthSheet({
               style={{
                 flex: 1,
                 textAlign: 'right',
-                fontFamily: 'PublicSans_400Regular',
+                ...fonts.sansRegular,
                 fontSize: 14.5,
                 color: mutedText,
               }}
@@ -1044,7 +1045,7 @@ export function AuthSheet({
           >
             <Text
               style={{
-                fontFamily: 'PublicSans_700Bold',
+                ...fonts.sansBold,
                 fontSize: 18,
                 color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
                 letterSpacing: 0.4,
@@ -1057,7 +1058,7 @@ export function AuthSheet({
             <Text
               numberOfLines={1}
               style={{
-                fontFamily: 'PublicSans_500Medium',
+                ...fonts.sansMedium,
                 fontSize: 17,
                 color: theme.onSurface,
               }}
@@ -1067,7 +1068,7 @@ export function AuthSheet({
             <Text
               numberOfLines={1}
               style={{
-                fontFamily: 'PublicSans_400Regular',
+                ...fonts.sansRegular,
                 fontSize: 13.5,
                 color: mutedText,
               }}
@@ -1102,7 +1103,7 @@ export function AuthSheet({
             ]}
           >
             <AppMenuIcon ios="envelope.badge" android="mark-email-unread" color={theme.primary} size={22} />
-            <Text style={{ flex: 1, color: theme.onSurface, fontFamily: 'PublicSans_500Medium', fontSize: 14.5 }}>
+            <Text style={{ flex: 1, color: theme.onSurface, ...fonts.sansMedium, fontSize: 14.5 }}>
               {t.authEmailUnverified}
             </Text>
             <AppMenuIcon ios="chevron.right" android="chevron-right" color={mutedText} size={14} />
@@ -1174,7 +1175,7 @@ export function AuthSheet({
               style={{
                 flex: 1,
                 textAlign: 'right',
-                fontFamily: 'PublicSans_400Regular',
+                ...fonts.sansRegular,
                 fontSize: 15,
                 color: mutedText,
               }}
@@ -1871,17 +1872,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontFamily: 'Newsreader_700Bold',
+    ...fonts.bold,
     fontSize: 19,
   },
   doneText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 15,
   },
   scrollContent: {
@@ -1891,7 +1892,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   leadSubtitle: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
@@ -1912,7 +1913,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentButtonText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 14,
   },
   group: {
@@ -1926,7 +1927,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inputLabel: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12,
     letterSpacing: 0.3,
   },
@@ -1935,7 +1936,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
   },
   passwordInputWrap: {
@@ -1950,7 +1951,7 @@ const styles = StyleSheet.create({
   passwordTextInput: {
     flex: 1,
     minHeight: 46,
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
   },
   passwordEyeBtn: {
@@ -1976,7 +1977,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   inlineSaveText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 13,
   },
   primaryButton: {
@@ -1988,7 +1989,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 15,
   },
   secondaryLinksRow: {
@@ -2000,25 +2001,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   textLinkLabel: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   errorBanner: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
     textAlign: 'center',
     paddingHorizontal: 16,
     paddingTop: 4,
   },
   infoBanner: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
     textAlign: 'center',
     paddingHorizontal: 16,
     paddingTop: 4,
   },
   optionalCaption: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     lineHeight: 17,
     textAlign: 'center',
@@ -2043,19 +2044,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   largeAvatarInitials: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 27,
     letterSpacing: 0.6,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
   profileHeroName: {
-    fontFamily: 'Newsreader_600SemiBold',
+    ...fonts.semiBold,
     fontSize: 22,
     textAlign: 'center',
   },
   profileHeroEmail: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -2070,7 +2071,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   syncPillText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12,
   },
   actionRow: {
@@ -2086,11 +2087,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   actionRowTitle: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16.5,
   },
   actionRowSub: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 13,
   },
   divider: {
@@ -2098,7 +2099,7 @@ const styles = StyleSheet.create({
     marginLeft: 56,
   },
   subSectionLabel: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 12,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -2132,12 +2133,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   fontPreviewTitle: {
-    fontFamily: 'Newsreader_700Bold_Italic',
+    ...fonts.boldItalic,
     fontSize: 18,
     textAlign: 'center',
   },
   fontPreviewText: {
-    fontFamily: 'Newsreader_400Regular',
+    ...fonts.regular,
     textAlign: 'center',
   },
   fontSliderRow: {
@@ -2162,7 +2163,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   fontResetText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12,
   },
   languageRow: {
@@ -2179,7 +2180,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   languageText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   tipRow: {
@@ -2198,11 +2199,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   tipNumberText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 13,
   },
   tipBody: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 13.5,
     lineHeight: 19,
   },
@@ -2213,7 +2214,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   feedbackTitle: {
-    fontFamily: 'Newsreader_600SemiBold',
+    ...fonts.semiBold,
     fontSize: 18,
   },
   feedbackPrimaryBtn: {
@@ -2269,12 +2270,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   shareBannerDomain: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10,
     letterSpacing: 1.2,
   },
   shareBannerTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
     marginTop: 1,
   },
@@ -2298,12 +2299,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   shareQrTitle: {
-    fontFamily: 'Newsreader_700Bold',
+    ...fonts.bold,
     fontSize: 17,
     marginTop: 4,
   },
   shareQrSubtitle: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12.5,
     textAlign: 'center',
     lineHeight: 18,
@@ -2319,7 +2320,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   shareStatusText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   shareOptionRow: {

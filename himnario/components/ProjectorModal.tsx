@@ -741,11 +741,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   exitBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13.5,
   },
   counterText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
     letterSpacing: 1,
   },
@@ -762,12 +762,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   hymnHeading: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
     textAlign: 'center',
   },
   hymnHeadingNumber: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 16,
     letterSpacing: 0.8,
   },
@@ -778,31 +778,31 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   stanzaBadgeText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 11,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
   lyricsText: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     textAlign: 'center',
     width: '100%',
   },
   lyricsTextChorus: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
   },
   brandingRow: {
     alignItems: 'center',
     paddingVertical: 6,
   },
   brandingText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 11,
     letterSpacing: 0.6,
     opacity: 0.7,
   },
   brandingDomain: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
   },
   tapHintWrap: {
     position: 'absolute',
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   tapHintText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 12.5,
     color: '#FFFFFF',
     textAlign: 'center',
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   revealBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12.5,
   },
   toolbarWrap: {
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stanzaChipText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 14,
   },
   actionsRow: {
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fontPxLabel: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 11.5,
     minWidth: 30,
     textAlign: 'center',
@@ -899,7 +899,7 @@ const styles = StyleSheet.create({
     marginLeft: 1,
   },
   autoBtnText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 11,
   },
   utilityRow: {

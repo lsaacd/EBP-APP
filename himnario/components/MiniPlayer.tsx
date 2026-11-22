@@ -6,6 +6,7 @@
  * - Swipe left or right on the track area (YouTube Music style) to scrub to the next/previous hymn.
  * - Prev / Play-Pause / Next controls anchored on the right.
  */
+import { fonts } from '../theme/theme';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
@@ -466,13 +467,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   subtitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 9,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontFamily: 'Newsreader_700Bold_Italic',
+    ...fonts.boldItalic,
     fontSize: 15,
     marginTop: 1,
   },

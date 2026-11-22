@@ -1559,7 +1559,7 @@ export default function VerseCard() {
                     style={{
                       color: theme.onSurfaceVariant,
                       fontSize: 12,
-                      fontFamily: fonts.sansRegular,
+                      ...fonts.sansRegular,
                     }}
                   >
                     {t.verseCardPickWhiteOrBlackText}
@@ -1588,7 +1588,7 @@ export default function VerseCard() {
                           textColorMode === "auto"
                             ? theme.onPrimary
                             : theme.onSurface,
-                        fontFamily: fonts.sansSemiBold,
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -1692,7 +1692,7 @@ export default function VerseCard() {
                     style={{
                       color: theme.onSurfaceVariant,
                       fontSize: 13,
-                      fontFamily: fonts.sansRegular,
+                      ...fonts.sansRegular,
                     }}
                     numberOfLines={1}
                   >
@@ -1773,7 +1773,7 @@ export default function VerseCard() {
                         style={{
                           color: theme.onSurfaceVariant,
                           fontSize: 13,
-                          fontFamily: fonts.sansRegular,
+                          ...fonts.sansRegular,
                         }}
                         numberOfLines={1}
                       >
@@ -1812,7 +1812,7 @@ export default function VerseCard() {
                   <Text
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 13,
                     }}
                   >
@@ -1864,7 +1864,7 @@ export default function VerseCard() {
                         <Text
                           style={{
                             color: theme.onPrimary,
-                            fontFamily: fonts.sansSemiBold,
+                            ...fonts.sansSemiBold,
                             fontSize: 13,
                           }}
                         >
@@ -1888,7 +1888,7 @@ export default function VerseCard() {
                       <Text
                         style={{
                           color: theme.onSurface,
-                          fontFamily: fonts.sansSemiBold,
+                          ...fonts.sansSemiBold,
                           fontSize: 13,
                         }}
                       >
@@ -2086,7 +2086,7 @@ export default function VerseCard() {
                         <Text
                           style={{
                             color: theme.onPrimary,
-                            fontFamily: fonts.sansSemiBold,
+                            ...fonts.sansSemiBold,
                             fontSize: 13,
                           }}
                         >
@@ -2110,7 +2110,7 @@ export default function VerseCard() {
                       <Text
                         style={{
                           color: theme.onSurface,
-                          fontFamily: fonts.sansSemiBold,
+                          ...fonts.sansSemiBold,
                           fontSize: 13,
                         }}
                       >
@@ -2475,13 +2475,13 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   sectionTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 23,
     lineHeight: 28,
     letterSpacing: -0.3,
   },
   sectionSub: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 15,
     lineHeight: 20,
   },
@@ -2498,17 +2498,17 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1, justifyContent: "space-between", padding: 20, gap: 14 },
   eyebrow: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 13,
     letterSpacing: 0.5,
   },
   cardRef: {
-    fontFamily: "PublicSans_800ExtraBold",
+    ...fonts.sansExtraBold,
     fontSize: 17,
     letterSpacing: -0.3,
   },
   quote: {
-    fontFamily: "SourceSerif4_600SemiBold",
+    ...fonts.semiBold,
     fontSize: 18,
     lineHeight: 22,
   },
@@ -2533,12 +2533,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fullRef: {
-    fontFamily: "PublicSans_800ExtraBold",
+    ...fonts.sansExtraBold,
     fontSize: 18,
     letterSpacing: -0.3,
   },
   fullQuote: {
-    fontFamily: "SourceSerif4_500Medium",
+    ...fonts.medium,
     fontSize: 27,
     lineHeight: 32,
     marginTop: 6,
@@ -2569,7 +2569,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  count: { fontFamily: fonts.sansSemiBold, fontSize: 12 },
+  count: { ...fonts.sansSemiBold, fontSize: 12 },
 
   // Style & Background Picker Modal
   modalBackdrop: {
@@ -2604,7 +2604,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   modalTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 22,
     flex: 1,
   },
@@ -2620,7 +2620,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionHeading: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 12,
     letterSpacing: 1.4,
     marginTop: 4,
@@ -2641,7 +2641,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   segmentBtnText: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   downloadCard: {
@@ -2654,7 +2654,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   downloadTitle: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   smallActionBtn: {
@@ -2685,7 +2685,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   presetName: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   iconActionHit: {

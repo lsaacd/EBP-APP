@@ -183,11 +183,11 @@ export default function CommunityModeration({
             <Text style={[styles.heading, { color: theme.primary }]}>
               {l("Moderation", "Panel de Moderación")}
             </Text>
-            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontFamily: fonts.sansRegular }}>
+            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, ...fonts.sansRegular }}>
               {l("Admin", "Administrador")}
             </Text>
           </View>
-          <Text style={{ color: theme.primary, fontSize: 18, fontFamily: fonts.sansSemiBold }}>
+          <Text style={{ color: theme.primary, fontSize: 18, ...fonts.sansSemiBold }}>
             {expanded ? "−" : "+"}
           </Text>
         </Pressable>
@@ -226,7 +226,7 @@ export default function CommunityModeration({
                   <Text
                     style={{
                       color: active ? theme.onPrimary : theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 12,
                     }}
                   >
@@ -258,7 +258,7 @@ export default function CommunityModeration({
               <Text
                 style={{
                   color: theme.onSurface,
-                  fontFamily: fonts.sansSemiBold,
+                  ...fonts.sansSemiBold,
                 }}
               >
                 {r.name || l("Deleted account", "Cuenta eliminada")} ·{" "}
@@ -483,7 +483,7 @@ export default function CommunityModeration({
                   <Text
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 15,
                     }}
                   >
@@ -514,7 +514,7 @@ export default function CommunityModeration({
                       selectable
                       style={{
                         color: theme.primary,
-                        fontFamily: fonts.sansMedium,
+                        ...fonts.sansMedium,
                         fontSize: 13,
                       }}
                     >
@@ -742,7 +742,7 @@ export default function CommunityModeration({
 }
 const styles = StyleSheet.create({
   root: { gap: 10 },
-  heading: { fontFamily: fonts.sansSemiBold, fontSize: 17 },
+  heading: { ...fonts.sansSemiBold, fontSize: 17 },
   button: {
     minHeight: 44,
     paddingVertical: 12,

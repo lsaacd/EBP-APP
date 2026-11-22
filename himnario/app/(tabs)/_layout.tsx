@@ -1,4 +1,5 @@
 /** Main tabs: continuous adjacent-scene paging with platform-specific bar artwork. */
+import { fonts } from '../../theme/theme';
 import React from 'react';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import {
@@ -98,7 +99,7 @@ function PlatformBottomBar({ state, descriptors, navigation }: any) {
                     navStyles.tabLabel,
                     {
                       color: itemColor,
-                      fontFamily: 'PublicSans_700Bold',
+                      ...fonts.sansBold,
                     },
                   ]}
                   numberOfLines={1}

@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  headerTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 24, textAlign: 'center' },
+  headerTitle: { flex: 1, ...fonts.bold, fontSize: 24, textAlign: 'center' },
   iconBtn: {
     width: 32,
     height: 32,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   subtitle: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { gap: 10, paddingBottom: 12 },
   label: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12,
     letterSpacing: 0.4,
     marginBottom: 4,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  segmentTxt: { fontFamily: 'PublicSans_600SemiBold', fontSize: 13 },
+  segmentTxt: { ...fonts.sansSemiBold, fontSize: 13 },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
     minHeight: 42,
   },
   stepBtn: { width: 44, height: 42, alignItems: 'center', justifyContent: 'center' },
-  stepTxt: { fontFamily: 'PublicSans_700Bold', fontSize: 22, lineHeight: 26 },
-  stepValue: { fontFamily: 'PublicSans_700Bold', fontSize: 16, minWidth: 44, textAlign: 'center' },
+  stepTxt: { ...fonts.sansBold, fontSize: 22, lineHeight: 26 },
+  stepValue: { ...fonts.sansBold, fontSize: 16, minWidth: 44, textAlign: 'center' },
   fitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 40,
   },
-  fitTxt: { fontFamily: 'PublicSans_600SemiBold', fontSize: 13 },
+  fitTxt: { ...fonts.sansSemiBold, fontSize: 13 },
   titleToggle: {
     flex: 1,
     flexDirection: 'row',
@@ -457,9 +457,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
   },
-  toggleTxt: { fontFamily: 'PublicSans_600SemiBold', fontSize: 13 },
-  status: { fontFamily: 'PublicSans_400Regular', fontSize: 12.5 },
-  error: { fontFamily: 'PublicSans_600SemiBold', fontSize: 12.5 },
+  toggleTxt: { ...fonts.sansSemiBold, fontSize: 13 },
+  status: { ...fonts.sansRegular, fontSize: 12.5 },
+  error: { ...fonts.sansSemiBold, fontSize: 12.5 },
   previewWell: {
     borderRadius: 16,
     paddingVertical: 14,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  primaryTxt: { fontFamily: 'PublicSans_700Bold', fontSize: 14.5 },
+  primaryTxt: { ...fonts.sansBold, fontSize: 14.5 },
   secondaryBtn: {
     flex: 1,
     minHeight: 48,
@@ -494,6 +494,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  secondaryTxt: { fontFamily: 'PublicSans_700Bold', fontSize: 14.5 },
+  secondaryTxt: { ...fonts.sansBold, fontSize: 14.5 },
 });
 

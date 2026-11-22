@@ -273,7 +273,7 @@ export default function SettingsScreen() {
                 onPress={() => setFontSizeMultiplier(1.0)}
                 style={{ flexShrink: 0, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.primary + '16' }}
               >
-                <Text style={{ fontFamily: 'PublicSans_600SemiBold', fontSize: 12, color: theme.primary }}>
+                <Text style={{ ...fonts.sansSemiBold, fontSize: 12, color: theme.primary }}>
                   {t.textSizeReset}
                 </Text>
               </TouchableOpacity>
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 31,
     lineHeight: 40,
     letterSpacing: 0.3,
@@ -744,13 +744,13 @@ const styles = StyleSheet.create({
 
   pageHeader: { marginBottom: 40 },
   pageTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 34,
     marginBottom: 8,
     lineHeight: 40,
   },
   pageSubhead: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
   },
 
@@ -769,14 +769,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   rateTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 19,
     marginBottom: 6,
     textAlign: 'center',
     letterSpacing: 0.2,
   },
   rateDesc: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 14,
     textAlign: 'center',
     opacity: 0.55,
@@ -793,12 +793,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   rateBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 14,
     letterSpacing: 0.3,
   },
   sectionLabel: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 11,
     letterSpacing: 2,
     opacity: 0.6,
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   accountAvatarInitials: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 16,
     color: '#FFFFFF',
     letterSpacing: 0.5,
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   accountCardTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
   },
   accountCtaPill: {
     flexDirection: 'row',
@@ -849,11 +849,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   accountCtaPillText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   accountFootnote: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12.5,
     lineHeight: 18,
     opacity: 0.72,
@@ -876,12 +876,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 17,
     marginBottom: 2,
   },
   cardDesc: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 13,
   },
   cardAction: {
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardActionText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 14,
   },
 
@@ -903,12 +903,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   previewTitle: {
-    fontFamily: fonts.boldItalic,
+    ...fonts.boldItalic,
     fontSize: 25,
     marginBottom: 6,
   },
   previewText: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     textAlign: 'center',
   },
 
@@ -937,13 +937,13 @@ const styles = StyleSheet.create({
     opacity: 0.10,
   },
   signatureQuote: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 20,
     opacity: 0.6,
     textAlign: 'center',
   },
   signatureMeta: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     marginTop: 16,
     opacity: 0.4,
@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aboutCloseTxt: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
 
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   langSheetTitle: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 17,
     marginBottom: 8,
   },
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   langOptionText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 16,
   },
   iconOptionsRow: {

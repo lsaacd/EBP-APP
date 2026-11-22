@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   headerTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 34,
     lineHeight: 40,
     includeFontPadding: false,
@@ -609,18 +609,18 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   heroHeadline: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
     lineHeight: 25,
     letterSpacing: -0.2,
   },
   heroSub: {
-    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    ...(IS_IOS ? fonts.sansRegular : fonts.regular),
     fontSize: 13.5,
     lineHeight: 18,
   },
   heroMeta: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 12.5,
     lineHeight: 16,
     marginTop: 3,
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 23,
     lineHeight: 28,
     letterSpacing: -0.3,
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   sectionSub: {
-    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    ...(IS_IOS ? fonts.sansRegular : fonts.regular),
     fontSize: 15,
     lineHeight: 20,
   },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   mottoQuoteText: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 18,
     lineHeight: 26,
     marginBottom: 12,
@@ -687,11 +687,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mottoLabelText: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 13.5,
   },
   doctrineSeeMore: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 13.5,
   },
 
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   recentsLabel: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 14,
     paddingTop: 4,
   },
@@ -723,24 +723,24 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   recentNum: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 22,
     width: 48,
     textAlign: 'center',
   },
   recentTitle: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 17,
     lineHeight: 22,
     marginBottom: 2,
   },
   recentCat: {
-    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    ...(IS_IOS ? fonts.sansRegular : fonts.regular),
     fontSize: 13.5,
     lineHeight: 18,
   },
   recentEmpty: {
-    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regularItalic,
+    ...(IS_IOS ? fonts.sansRegular : fonts.regularItalic),
     fontSize: 15,
     lineHeight: 21,
     paddingVertical: 6,
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   docModalTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 24,
     textAlign: 'center',
     marginBottom: 16,
@@ -783,18 +783,18 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   docSectionTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
     marginBottom: 10,
   },
   docBody: {
-    fontFamily: IS_IOS ? fonts.sansRegular : fonts.regular,
+    ...(IS_IOS ? fonts.sansRegular : fonts.regular),
     fontSize: 15.5,
     lineHeight: 24,
     opacity: 0.9,
   },
   docVerse: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   docCloseTxt: {
-    fontFamily: IS_IOS ? fonts.sansSemiBold : fonts.semiBold,
+    ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
     fontSize: 15.5,
   },
 });

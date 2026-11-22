@@ -849,7 +849,7 @@ export default function VerseDiscussionSheet({
                 { backgroundColor: theme.surfaceVariants.containerHighest },
               ]}
             >
-              <Text style={{ color, fontFamily: fonts.sansSemiBold }}>
+              <Text style={{ color, ...fonts.sansSemiBold }}>
                 {c.authorInitials}
               </Text>
             </View>
@@ -938,7 +938,7 @@ export default function VerseDiscussionSheet({
           ]}
         >
           <Text
-            style={{ color: theme.primary, fontFamily: fonts.sansSemiBold }}
+            style={{ color: theme.primary, ...fonts.sansSemiBold }}
           >
             {label("Reply", "Responder")}
           </Text>
@@ -1048,7 +1048,7 @@ export default function VerseDiscussionSheet({
                       numberOfLines={1}
                       style={{
                         color: theme.onSurfaceVariant,
-                        fontFamily: "PublicSans_400Regular",
+                        ...fonts.sansRegular,
                         fontSize: 13,
                       }}
                     >
@@ -1143,9 +1143,7 @@ export default function VerseDiscussionSheet({
                                 ? "#141416"
                                 : theme.onPrimary
                               : color,
-                            fontFamily: active
-                              ? fonts.sansSemiBold
-                              : fonts.sansMedium,
+                            ...(active ? fonts.sansSemiBold : fonts.sansMedium),
                             fontSize: 13.5,
                           }}
                         >
@@ -1173,7 +1171,7 @@ export default function VerseDiscussionSheet({
                 <Text
                   style={{
                     color: theme.onSurfaceVariant,
-                    fontFamily: fonts.sansRegular,
+                    ...fonts.sansRegular,
                     fontSize: 12.5,
                     lineHeight: 18,
                   }}
@@ -1183,7 +1181,7 @@ export default function VerseDiscussionSheet({
                     onPress={openCommunityGuidelines}
                     style={{
                       color: isDarkMode ? "#7AB8FF" : theme.primary,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                     }}
                   >
                     {t.discussionLearnMore}
@@ -1228,7 +1226,7 @@ export default function VerseDiscussionSheet({
                   <Text
                     style={{
                       color,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 16.5,
                       textAlign: "center",
                     }}
@@ -1243,7 +1241,7 @@ export default function VerseDiscussionSheet({
                   <Text
                     style={{
                       color: theme.onSurfaceVariant,
-                      fontFamily: fonts.sansRegular,
+                      ...fonts.sansRegular,
                       fontSize: 14,
                       textAlign: "center",
                     }}
@@ -1359,7 +1357,7 @@ export default function VerseDiscussionSheet({
                     <Text
                       style={{
                         color: theme.primary,
-                        fontFamily: "PublicSans_600SemiBold",
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -1440,7 +1438,7 @@ export default function VerseDiscussionSheet({
                       color,
                       maxHeight: 96,
                       paddingVertical: 6,
-                      fontFamily: "PublicSans_400Regular",
+                      ...fonts.sansRegular,
                       fontSize: 15,
                     }}
                     accessibilityLabel={label("Comment", "Comentario")}
@@ -1473,7 +1471,7 @@ export default function VerseDiscussionSheet({
                     <Text
                       style={{
                         color: theme.onPrimary,
-                        fontFamily: "PublicSans_600SemiBold",
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -1488,7 +1486,7 @@ export default function VerseDiscussionSheet({
                     style={{
                       color: over ? theme.primary : theme.onSurfaceVariant,
                       fontSize: 11,
-                      fontFamily: "PublicSans_400Regular",
+                      ...fonts.sansRegular,
                       textAlign: "right",
                     }}
                   >
@@ -1550,7 +1548,7 @@ export default function VerseDiscussionSheet({
                 <Text
                   style={{
                     color: theme.onSurfaceVariant,
-                    fontFamily: fonts.sansSemiBold,
+                    ...fonts.sansSemiBold,
                     fontSize: 12,
                     letterSpacing: 0.8,
                     textTransform: "uppercase",
@@ -1605,7 +1603,7 @@ export default function VerseDiscussionSheet({
                   <Text
                     style={{
                       color: theme.onPrimary,
-                      fontFamily: fonts.sansBold,
+                      ...fonts.sansBold,
                       fontSize: 20,
                     }}
                   >
@@ -1623,7 +1621,7 @@ export default function VerseDiscussionSheet({
                     <Text
                       style={{
                         color: theme.onSurface,
-                        fontFamily: fonts.bold,
+                        ...fonts.bold,
                         fontSize: 20,
                         flexShrink: 1,
                       }}
@@ -1643,7 +1641,7 @@ export default function VerseDiscussionSheet({
                   <Text
                     style={{
                       color: theme.onSurfaceVariant,
-                      fontFamily: fonts.sansMedium,
+                      ...fonts.sansMedium,
                       fontSize: 14,
                     }}
                   >
@@ -1698,7 +1696,7 @@ export default function VerseDiscussionSheet({
                         <Text
                           style={{
                             color: theme.onSurfaceVariant,
-                            fontFamily: fonts.sansRegular,
+                            ...fonts.sansRegular,
                             fontSize: 11.5,
                           }}
                         >
@@ -1707,7 +1705,7 @@ export default function VerseDiscussionSheet({
                         <Text
                           style={{
                             color: theme.onSurface,
-                            fontFamily: fonts.sansMedium,
+                            ...fonts.sansMedium,
                             fontSize: 15,
                           }}
                         >
@@ -1735,7 +1733,7 @@ export default function VerseDiscussionSheet({
                         <Text
                           style={{
                             color: theme.onSurfaceVariant,
-                            fontFamily: fonts.sansRegular,
+                            ...fonts.sansRegular,
                             fontSize: 11.5,
                           }}
                         >
@@ -1744,7 +1742,7 @@ export default function VerseDiscussionSheet({
                         <Text
                           style={{
                             color: theme.onSurface,
-                            fontFamily: fonts.sansMedium,
+                            ...fonts.sansMedium,
                             fontSize: 15,
                           }}
                         >
@@ -1795,7 +1793,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   rowHead: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { fontFamily: fonts.bold, fontSize: 22 },
+  title: { ...fonts.bold, fontSize: 22 },
   icon: {
     width: 40,
     height: 40,
@@ -1804,7 +1802,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quote: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 21,
     lineHeight: 30,
     marginBottom: 18,
@@ -1821,10 +1819,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  name: { fontFamily: fonts.sansSemiBold, fontSize: 15 },
+  name: { ...fonts.sansSemiBold, fontSize: 15 },
   meta: { fontSize: 12, lineHeight: 17 },
   body: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 16,
     lineHeight: 24,
     marginTop: 10,

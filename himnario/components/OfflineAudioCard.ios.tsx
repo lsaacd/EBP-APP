@@ -235,7 +235,7 @@ export default function OfflineAudioCard({ glass = false }: OfflineAudioCardProp
 const styles = StyleSheet.create({
   section: { marginBottom: 32, gap: 14 },
   sectionLabel: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 11,
     letterSpacing: 2,
     opacity: 0.6,
@@ -272,12 +272,12 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   countNumber: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 28,
     lineHeight: 32,
   },
   countTotal: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 15,
     opacity: 0.65,
   },
@@ -288,15 +288,15 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   sizePillText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 11,
   },
   cardTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   cardDesc: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12.5,
     lineHeight: 17.5,
   },
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   primaryBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 14.5,
   },
   footerRow: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   deleteBtnText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 13,
   },
 });

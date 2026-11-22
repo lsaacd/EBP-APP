@@ -76,6 +76,14 @@ Adding or modifying native modules (or adding native alternate home-screen icons
 - Preserve canonical `https://himnarioebp.com/hymn/ID/` URLs, existing `/himno/` aliases and reader fragment links.
 - iOS association identifier: `VV6BQ35L5N.com.elbuenpastor`. Configuration alone does not prove device link handling.
 
+## Typography (November 22, 2026)
+
+Text uses each platform's native typefaces through the tokens in `himnario/theme/fonts.ts` (re-exported as `fonts` from `theme/theme`): New York (`ui-serif`) and San Francisco on iOS, the system serif and Roboto on Android, and the Google fonts on web. A token is a style fragment (family + weight), so spread it: `{ ...fonts.bold, fontSize: 20 }`. Never bundle Apple font files (App Store `ITMS-91182`). The Google fonts are still loaded in `app/_layout.tsx` because the verse share image (`react-native-svg`) names them directly. This supersedes the Newsreader / Public Sans description below.
+
+## Churches screen (November 22, 2026)
+
+`app/churches.tsx` is a map with one bottom sheet (`components/DetentSheet.tsx`, Liquid Glass on iOS) holding search, the list and the selected church; there is no map/list toggle. Service times are stored as text and shown per day via `utils/churchSchedule.ts`; the form writes that text with `components/ChurchScheduleEditor.tsx`. Church names are displayed without the shared "IDDV El Buen Pastor" prefix (`utils/churchName.ts`). Look Around presents `MKLookAroundViewController` directly; that Swift change needs a native build newer than Build 30.
+
 ## Product conventions
 
 Both iOS and Android load open-source `Newsreader` (serif) + `Public Sans` (sans-serif) via `@expo-google-fonts/*` in `app/_layout.tsx` (`assets/fonts/ios/` Apple-proprietary `.otf`/`.ttf` copies were removed to clear App Store Connect `ITMS-91182`). Apple Books-inspired full-bleed top-to-bottom section gradients on `Inicio` (`['#1C1C1E', '#0B0B0C', '#000000']` in dark mode; `['#FFFFFF', '#F7F7FA', '#EAEAEF']` in light mode). Favorites use bookmarks. Keep detail routes outside the tab group.

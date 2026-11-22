@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   title: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 16,
   },
   headerActions: {
@@ -325,14 +325,14 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   pxInput: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 14,
     minWidth: 26,
     textAlign: 'right',
     padding: 0,
   },
   pxUnit: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 12,
     opacity: 0.7,
   },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   resetText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 12.5,
   },
   previewBox: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewText: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     textAlign: 'center',
   },
   controlsRow: {

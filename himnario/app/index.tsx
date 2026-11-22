@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   headline: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 36,
     textAlign: 'center',
     marginBottom: 12,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     lineHeight: 44,
   },
   subhead: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 20,
     textAlign: 'center',
     letterSpacing: 0.5,
@@ -216,12 +216,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   footerText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10,
     letterSpacing: 3,
   },
   tapHint: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 11,
     letterSpacing: 2,
     marginTop: 12,

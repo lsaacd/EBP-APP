@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
   },
   closeBtn: {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   createPlaylistText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 16,
   },
   divider: {
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   playlistName: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
     marginLeft: 16,
     flex: 1,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     marginBottom: 24,
   },
   createActions: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   actionBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   doneBtnContainer: {

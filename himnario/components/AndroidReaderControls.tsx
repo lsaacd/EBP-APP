@@ -1,3 +1,4 @@
+import { fonts } from '../theme/theme';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -37,7 +38,7 @@ export default function AndroidReaderControls({ onText, onTheme, onAudio, hasAud
   );
 }
 const styles = StyleSheet.create({
-  label: { fontFamily: 'PublicSans_600SemiBold', fontSize: 11, textTransform: 'uppercase', flexShrink: 1 },
+  label: { ...fonts.sansSemiBold, fontSize: 11, textTransform: 'uppercase', flexShrink: 1 },
   position: { position: 'absolute', left: 12, right: 12, zIndex: 50 },
   pill: { height: ANDROID_BOTTOM_BAR_HEIGHT, flexDirection: 'row', padding: 6, borderRadius: 38, borderWidth: 1, elevation: 8 },
   button: { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 28, paddingHorizontal: 6 },

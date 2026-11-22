@@ -252,7 +252,7 @@ export default function FavoritesScreen() {
                     <MaterialIcons name="queue-music" size={24} color={theme.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.listTitle, { color: theme.onSurface, fontFamily: 'PublicSans_600SemiBold', fontSize: 17 }]}>
+                    <Text style={[styles.listTitle, { color: theme.onSurface, ...fonts.sansSemiBold, fontSize: 17 }]}>
                       {playlist.name}
                     </Text>
                     <Text style={[styles.listTags, { color: theme.outline, textTransform: 'none' }]}>
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 31,
     lineHeight: 40,
     letterSpacing: 0.3,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 34,
     marginBottom: 8,
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   emptyText: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   goBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
 
@@ -477,18 +477,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listNum: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 22,
     width: 56,
     textAlign: 'center',
   },
   listTitle: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 19,
     marginBottom: 2,
   },
   listTags: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   quoteText: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 18,
     textAlign: 'center',
     maxWidth: 280,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   quoteAuthor: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,

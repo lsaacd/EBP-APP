@@ -295,7 +295,7 @@ export default function HymnDetail() {
           <MaterialIcons name="close" size={26} color={theme.outline} />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: theme.onSurface, fontFamily: fonts.regular, fontSize: 18 }}>
+          <Text style={{ color: theme.onSurface, ...fonts.regular, fontSize: 18 }}>
             {t.hymnNotFound}
           </Text>
         </View>
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
   hymnNavBtnLeft: { left: 4 },
   hymnNavBtnRight: { right: 4 },
   hymnNavBtnText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 13,
     letterSpacing: 0.3,
   },
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
     letterSpacing: 0.3,
     textAlign: 'center',
@@ -814,12 +814,12 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   hymnNumber: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     fontSize: 22,
     marginBottom: 8,
   },
   hymnTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 38,
     textAlign: 'center',
     lineHeight: 46,
@@ -832,7 +832,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   metaText: {
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 12,
     letterSpacing: 2,
     opacity: 0.6,
@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
   },
   // Side label shared base — verse number or 'Coro'
   stanzaLabel: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 14,
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -859,13 +859,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   stanzaText: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     textAlign: 'center',
     width: '100%',
   },
   // Coro stanzas get a subtle italic treatment to visually differentiate them
   stanzaTextCoro: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     opacity: 0.88,
   },
 
@@ -876,12 +876,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 14,
     opacity: 0.4,
   },
   creditText: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 12,
     opacity: 0.35,
     letterSpacing: 0.3,
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
   },
   footerReportText: {
     flexShrink: 1,
-    fontFamily: 'PublicSans_500Medium',
+    ...fonts.sansMedium,
     fontSize: 12.5,
     letterSpacing: 0.2,
     textAlign: 'center',
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   controlLabel: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 11,
     letterSpacing: 0.5,
   },

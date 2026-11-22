@@ -123,9 +123,9 @@ export default function PlaylistDetailScreen() {
   if (!playlist) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: theme.onSurface, fontFamily: fonts.regular, fontSize: 18 }}>{t.playlistNotFound}</Text>
+        <Text style={{ color: theme.onSurface, ...fonts.regular, fontSize: 18 }}>{t.playlistNotFound}</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: theme.primary, fontFamily: fonts.bold }}>{t.goBack}</Text>
+          <Text style={{ color: theme.primary, ...fonts.bold }}>{t.goBack}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 20,
     textAlign: 'center',
   },
@@ -336,13 +336,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 34,
     marginBottom: 8,
     textAlign: 'center',
   },
   pageSubhead: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
     textAlign: 'center',
     opacity: 0.8,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(200, 50, 50, 0.1)',
   },
   deleteBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 14,
     marginLeft: 6,
   },
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   emptyText: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   goBtnText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   listItem: {
@@ -394,18 +394,18 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   listNum: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 22,
     width: 56,
     textAlign: 'center',
   },
   listTitle: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 19,
     marginBottom: 2,
   },
   listTags: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: 'uppercase',

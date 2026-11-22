@@ -101,7 +101,7 @@ function HighlightedText({
             key={idx}
             style={{
               backgroundColor: highlightColor,
-              fontFamily: fonts.boldItalic,
+              ...fonts.boldItalic,
             }}
           >
             {seg.text}
@@ -1219,7 +1219,7 @@ export default function HymnListScreen() {
           <MaterialIcons name={iconName} size={18} color={theme.primary} />
           <Text
             style={{
-              fontFamily: 'PublicSans_700Bold',
+              ...fonts.sansBold,
               fontSize: 13,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
@@ -1268,7 +1268,7 @@ export default function HymnListScreen() {
             >
               <Text
                 style={{
-                  fontFamily: fonts.bold,
+                  ...fonts.bold,
                   fontSize: 20,
                   width: 48,
                   color: theme.primary,
@@ -1284,7 +1284,7 @@ export default function HymnListScreen() {
                   highlightColor={highlightBg}
                   numberOfLines={1}
                   style={{
-                    fontFamily: fonts.regularItalic,
+                    ...fonts.regularItalic,
                     fontSize: 17,
                     color: theme.onSurface,
                     lineHeight: 22,
@@ -1297,7 +1297,7 @@ export default function HymnListScreen() {
                     highlightColor={highlightBg}
                     numberOfLines={2}
                     style={{
-                      fontFamily: 'PublicSans_400Regular',
+                      ...fonts.sansRegular,
                       fontSize: 12,
                       color: theme.onSurfaceVariant,
                       lineHeight: 17,
@@ -1307,7 +1307,7 @@ export default function HymnListScreen() {
                 ) : hymn.categories ? (
                   <Text
                     style={{
-                      fontFamily: 'PublicSans_400Regular',
+                      ...fonts.sansRegular,
                       fontSize: 11,
                       color: theme.onSurfaceVariant + 'AA',
                       letterSpacing: 0.8,
@@ -1578,7 +1578,7 @@ export default function HymnListScreen() {
                     >
                       <Text
                         style={{
-                          fontFamily: 'PublicSans_500Medium',
+                          ...fonts.sansMedium,
                           fontSize: 12,
                           letterSpacing: 0.5,
                           color: theme.primary,
@@ -1660,7 +1660,7 @@ export default function HymnListScreen() {
                       style={{
                         color: theme.onSurface,
                         fontSize: 17,
-                        fontFamily: 'PublicSans_600SemiBold',
+                        ...fonts.sansSemiBold,
                         marginBottom: 6,
                       }}
                     >
@@ -1670,7 +1670,7 @@ export default function HymnListScreen() {
                       style={{
                         color: theme.onSurfaceVariant + '99',
                         fontSize: 14,
-                        fontFamily: 'PublicSans_400Regular',
+                        ...fonts.sansRegular,
                         textAlign: 'center',
                         paddingHorizontal: 40,
                       }}
@@ -1806,18 +1806,18 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   listNum: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 24,
     width: 56,
   },
   listTitle: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 20,
     marginBottom: 4,
     lineHeight: 26,
   },
   listTags: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
@@ -1841,7 +1841,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   quoteText: {
-    fontFamily: fonts.regularItalic,
+    ...fonts.regularItalic,
     fontSize: 18,
     textAlign: 'center',
     maxWidth: 280,
@@ -1849,7 +1849,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   quoteAuthor: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -1899,7 +1899,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sliderPositionPillText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10,
     letterSpacing: 0.3,
     textAlign: 'center',
@@ -1946,7 +1946,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   indiceMainHeader: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 22,
     textAlign: 'center',
     marginTop: 16,
@@ -1959,7 +1959,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   indiceLetterText: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 16,
     letterSpacing: 2,
   },
@@ -1969,7 +1969,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   indiceItemTitle: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     fontSize: 18,
     maxWidth: '72%',
   },
@@ -1979,12 +1979,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   indiceDots: {
-    fontFamily: fonts.regular,
+    ...fonts.regular,
     fontSize: 16,
     letterSpacing: 2,
   },
   indiceItemNumber: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 18,
   },
   alphabetSidebarWrapper: {
@@ -2016,7 +2016,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   alphabetText: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10.5,
     lineHeight: 13,
     includeFontPadding: false,
@@ -2031,13 +2031,13 @@ const styles = StyleSheet.create({
     marginTop: -80,
   },
   emptyTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 24,
     marginBottom: 12,
     textAlign: 'center',
   },
   emptySub: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
@@ -2078,7 +2078,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   draggingBubbleText: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 36,
     textAlign: 'center',
     textAlignVertical: 'center',

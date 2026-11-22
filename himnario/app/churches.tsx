@@ -49,6 +49,7 @@ import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
+import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import { parseServiceTimes } from "../utils/churchSchedule";
 import { churchDisplayName } from "../utils/churchName";
 import {
@@ -216,6 +217,10 @@ export default function ChurchesScreen() {
   const [formContact, setFormContact] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [showAddressFields, setShowAddressFields] = useState(false);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  // Legacy schedules the picker cannot represent stay editable as plain text.
+  const [scheduleAsText, setScheduleAsText] = useState(false);
   const parsedFormCoords = useMemo(
     () => parseCoordsOrMapsInput(formCoordsInput),
     [formCoordsInput],
@@ -734,6 +739,9 @@ export default function ChurchesScreen() {
     setFormSchedule("");
     setFormContact("");
     setFormError("");
+    setShowAddressFields(false);
+    setShowMoreDetails(false);
+    setScheduleAsText(false);
   }, [t]);
 
   const openSubmitModal = useCallback(() => {
@@ -769,6 +777,9 @@ export default function ChurchesScreen() {
     setFormSchedule(church.serviceTimes || "");
     setFormContact(church.contactInfo || "");
     setFormError("");
+    setShowAddressFields(true);
+    setShowMoreDetails(true);
+    setScheduleAsText(!canEditSchedule(church.serviceTimes || ""));
     setSubmitOpen(true);
   }, [t]);
 
@@ -847,8 +858,11 @@ export default function ChurchesScreen() {
   );
 
   const autofillAddressFromCoords = useCallback(
-    async (lat: number, lng: number) => {
+    async (lat: number, lng: number, overwrite = false) => {
       if (Platform.OS === "web") return;
+      // A freshly dropped pin replaces the previous address; typed coordinates
+      // only fill in what is still empty.
+      const keep = (prev: string, next: string) => (overwrite ? next : prev.trim() || next);
       try {
         const rev = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
         if (rev.length > 0) {
@@ -857,13 +871,13 @@ export default function ChurchesScreen() {
             .filter(Boolean)
             .join(" ")
             .trim();
-          if (streetLine) setFormAddress((prev) => prev.trim() || streetLine);
+          if (streetLine) setFormAddress((prev) => keep(prev, streetLine));
           if (r.city || r.subregion) {
-            setFormCity((prev) => prev.trim() || String(r.city || r.subregion || ""));
+            setFormCity((prev) => keep(prev, String(r.city || r.subregion || "")));
           }
-          if (r.region) setFormState((prev) => prev.trim() || String(r.region || ""));
-          if (r.postalCode) setFormPostal((prev) => prev.trim() || String(r.postalCode || ""));
-          if (r.country) setFormCountry((prev) => prev.trim() || String(r.country || ""));
+          if (r.region) setFormState((prev) => keep(prev, String(r.region || "")));
+          if (r.postalCode) setFormPostal((prev) => keep(prev, String(r.postalCode || "")));
+          if (r.country) setFormCountry((prev) => keep(prev, String(r.country || "")));
         }
       } catch {
         // Optional helper only
@@ -906,7 +920,7 @@ export default function ChurchesScreen() {
     setFormCoordsInput(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
     setPinPickerOpen(false);
     setSubmitOpen(true);
-    void autofillAddressFromCoords(lat, lng);
+    void autofillAddressFromCoords(lat, lng, true);
   }, [autofillAddressFromCoords, pinPickerCenter]);
 
   const handleSubmitChurch = async () => {
@@ -916,6 +930,8 @@ export default function ChurchesScreen() {
     const city = formCity.trim();
     const country = formCountry.trim();
     if (!name || !address || !city || !country) {
+      // Show the address fields so whatever is missing can be filled in.
+      setShowAddressFields(true);
       setFormError(
         t.churchPleaseFillInChurchNameAddress,
       );
@@ -1152,6 +1168,49 @@ export default function ChurchesScreen() {
         )
       : null;
 
+  const addressVisible =
+    showAddressFields ||
+    Boolean(parsedFormCoords) ||
+    Boolean(editingChurch) ||
+    Platform.OS === "web";
+
+  const renderFormField = (f: {
+    label: string;
+    val: string;
+    set: (value: string) => void;
+    placeholder: string;
+    max: number;
+  }) => (
+    <View key={f.label} style={{ gap: 5 }}>
+      <Text
+        style={{
+          color: mutedText,
+          ...fonts.sansSemiBold,
+          fontSize: 12.5,
+          marginLeft: 2,
+        }}
+      >
+        {f.label}
+      </Text>
+      <TextInput
+        value={f.val}
+        onChangeText={f.set}
+        placeholder={f.placeholder}
+        placeholderTextColor={mutedText}
+        maxLength={f.max}
+        editable={!submitting}
+        style={[
+          styles.formInput,
+          {
+            backgroundColor: cardBg,
+            borderColor: cardBorder,
+            color: theme.onSurface,
+          },
+        ]}
+      />
+    </View>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: bgSurface }]}>
       {/* ── Native Apple Maps Layer (Map Mode) ─────────────────────────────── */}
@@ -1308,7 +1367,7 @@ export default function ChurchesScreen() {
               <Text
                 style={{
                   color: theme.onSurface,
-                  fontFamily: fonts.bold,
+                  ...fonts.bold,
                   fontSize: 16.5,
                 }}
               >
@@ -1317,7 +1376,7 @@ export default function ChurchesScreen() {
               <Text
                 style={{
                   color: mutedText,
-                  fontFamily: fonts.sansMedium,
+                  ...fonts.sansMedium,
                   fontSize: 13,
                 }}
               >
@@ -1342,7 +1401,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14,
                     }}
                   >
@@ -1365,7 +1424,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: theme.onPrimary,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14.5,
                     }}
                   >
@@ -1444,7 +1503,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: theme.onSurface,
-                    fontFamily: fonts.sansSemiBold,
+                    ...fonts.sansSemiBold,
                     fontSize: 12.5,
                   }}
                 >
@@ -1512,7 +1571,7 @@ export default function ChurchesScreen() {
                     numberOfLines={1}
                     style={{
                       color: theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14,
                     }}
                   >
@@ -1579,7 +1638,7 @@ export default function ChurchesScreen() {
                       <Text
                         style={{
                           color: theme.primary,
-                          fontFamily: fonts.sansSemiBold,
+                          ...fonts.sansSemiBold,
                           fontSize: 12.5,
                         }}
                       >
@@ -1590,7 +1649,7 @@ export default function ChurchesScreen() {
                       <Text
                         style={{
                           color: mutedText,
-                          fontFamily: fonts.sansMedium,
+                          ...fonts.sansMedium,
                           fontSize: 12.5,
                         }}
                       >
@@ -1603,7 +1662,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: mutedText,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 12.5,
                       fontVariant: ["tabular-nums"],
                     }}
@@ -1795,7 +1854,7 @@ export default function ChurchesScreen() {
                       <Text
                         style={{
                           color: "#FFFFFF",
-                          fontFamily: fonts.sansSemiBold,
+                          ...fonts.sansSemiBold,
                           fontSize: 11,
                         }}
                       >
@@ -1824,7 +1883,7 @@ export default function ChurchesScreen() {
                               <Text
                                 style={{
                                   color: theme.onSurface,
-                                  fontFamily: fonts.sansRegular,
+                                  ...fonts.sansRegular,
                                   fontSize: 14,
                                   lineHeight: 20,
                                   paddingBottom: 10,
@@ -1858,7 +1917,7 @@ export default function ChurchesScreen() {
                                     <Text
                                       style={{
                                         color: rowColor,
-                                        fontFamily: isToday ? fonts.sansSemiBold : fonts.sansMedium,
+                                        ...(isToday ? fonts.sansSemiBold : fonts.sansMedium),
                                         fontSize: 15,
                                       }}
                                     >
@@ -1869,7 +1928,7 @@ export default function ChurchesScreen() {
                                       <Text
                                         style={{
                                           color: mutedText,
-                                          fontFamily: fonts.sansRegular,
+                                          ...fonts.sansRegular,
                                           fontSize: 12.5,
                                         }}
                                       >
@@ -1880,7 +1939,7 @@ export default function ChurchesScreen() {
                                   <Text
                                     style={{
                                       color: rowColor,
-                                      fontFamily: isToday ? fonts.sansSemiBold : fonts.sansMedium,
+                                      ...(isToday ? fonts.sansSemiBold : fonts.sansMedium),
                                       fontSize: 15,
                                       fontVariant: ["tabular-nums"],
                                     }}
@@ -1914,7 +1973,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: theme.onPrimary,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14,
                     }}
                   >
@@ -1949,7 +2008,7 @@ export default function ChurchesScreen() {
                         numberOfLines={1}
                         style={{
                           color: theme.onSurface,
-                          fontFamily: fonts.sansSemiBold,
+                          ...fonts.sansSemiBold,
                           fontSize: 13.5,
                         }}
                       >
@@ -2008,7 +2067,7 @@ export default function ChurchesScreen() {
                             numberOfLines={1}
                             style={{
                               color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
-                              fontFamily: fonts.sansSemiBold,
+                              ...fonts.sansSemiBold,
                               fontSize: 13.5,
                             }}
                           >
@@ -2053,7 +2112,7 @@ export default function ChurchesScreen() {
                     <Text
                       style={{
                         color: theme.primary,
-                        fontFamily: fonts.sansSemiBold,
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -2081,7 +2140,7 @@ export default function ChurchesScreen() {
                     <Text
                       style={{
                         color: "#D64545",
-                        fontFamily: fonts.sansSemiBold,
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -2144,7 +2203,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: active ? theme.onPrimary : theme.onSurface,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 12.5,
                     }}
                   >
@@ -2171,7 +2230,7 @@ export default function ChurchesScreen() {
                 { backgroundColor: cardBg, borderColor: cardBorder },
               ]}
             >
-              <Text style={{ color: theme.primary, fontFamily: fonts.sansMedium }}>
+              <Text style={{ color: theme.primary, ...fonts.sansMedium }}>
                 {error}
               </Text>
             </View>
@@ -2187,7 +2246,7 @@ export default function ChurchesScreen() {
               <Text
                 style={{
                   color: mutedText,
-                  fontFamily: fonts.sansRegular,
+                  ...fonts.sansRegular,
                   fontSize: 13.5,
                 }}
               >
@@ -2206,7 +2265,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: theme.onSurface,
-                    fontFamily: fonts.sansSemiBold,
+                    ...fonts.sansSemiBold,
                     fontSize: 16,
                   }}
                 >
@@ -2217,7 +2276,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: mutedText,
-                    fontFamily: fonts.sansRegular,
+                    ...fonts.sansRegular,
                     fontSize: 14,
                     lineHeight: 20,
                   }}
@@ -2240,7 +2299,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: theme.onPrimary,
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 14,
                     }}
                   >
@@ -2337,7 +2396,7 @@ export default function ChurchesScreen() {
                           <Text
                             style={{
                               color: theme.primary,
-                              fontFamily: fonts.sansSemiBold,
+                              ...fonts.sansSemiBold,
                               fontSize: 12,
                             }}
                           >
@@ -2395,7 +2454,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: theme.onSurface,
-                    fontFamily: fonts.sansSemiBold,
+                    ...fonts.sansSemiBold,
                     fontSize: 15,
                   }}
                 >
@@ -2406,7 +2465,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: mutedText,
-                    fontFamily: fonts.sansRegular,
+                    ...fonts.sansRegular,
                     fontSize: 13,
                   }}
                 >
@@ -2525,7 +2584,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: mutedText,
-                    fontFamily: fonts.sansRegular,
+                    ...fonts.sansRegular,
                     fontSize: 13.5,
                     lineHeight: 19,
                   }}
@@ -2535,67 +2594,108 @@ export default function ChurchesScreen() {
                     : t.churchSubmitAnIddvElBuenPastor}
                 </Text>
 
-                {/* Location Helper Card: Coordinates / Maps Link + Drop-a-Pin */}
+                {/* 1 · Name */}
+                {renderFormField({
+                  label: t.churchChurchName,
+                  val: formName,
+                  set: setFormName,
+                  placeholder: t.churchEGIddvElBuenPastor,
+                  max: 100,
+                })}
+
+                {/* 2 · Location: pick it on the map and the address fills itself in */}
                 <View
                   style={{
-                    padding: 12,
-                    borderRadius: 14,
+                    padding: 14,
+                    borderRadius: 16,
                     backgroundColor: cardBg,
                     borderWidth: 1,
                     borderColor: parsedFormCoords ? theme.primary : cardBorder,
-                    gap: 8,
+                    gap: 10,
                   }}
                 >
-                  <View
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
+                      color: theme.onSurface,
+                      ...fonts.sansSemiBold,
+                      fontSize: 14,
                     }}
                   >
-                    <Text
-                      style={{
-                        color: theme.onSurface,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 13,
-                        flex: 1,
-                      }}
+                    {t.churchLocationRequired}
+                  </Text>
+
+                  {Platform.OS !== "web" && (
+                    <Pressable
+                      onPress={handleStartPinPicker}
+                      disabled={submitting}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.locationCta,
+                        {
+                          backgroundColor: parsedFormCoords
+                            ? theme.primary + "18"
+                            : theme.primary,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
                     >
-                      {t.churchExactLocationCoordinatesOrMapsLink}
-                    </Text>
-                    {Platform.OS !== "web" && (
-                      <Pressable
-                        onPress={handleStartPinPicker}
+                      <AppMenuIcon
+                        ios="mappin.and.ellipse"
+                        android="add-location-alt"
+                        color={parsedFormCoords ? theme.primary : theme.onPrimary}
+                        size={17}
+                      />
+                      <Text
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 5,
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          borderRadius: 999,
-                          backgroundColor: theme.primary + "18",
+                          color: parsedFormCoords ? theme.primary : theme.onPrimary,
+                          ...fonts.sansSemiBold,
+                          fontSize: 15,
                         }}
                       >
-                        <AppMenuIcon
-                          ios="mappin.and.ellipse"
-                          android="add-location-alt"
-                          color={theme.primary}
-                          size={14}
-                        />
-                        <Text
-                          style={{
-                            color: theme.primary,
-                            fontFamily: fonts.sansSemiBold,
-                            fontSize: 12,
-                          }}
-                        >
-                          {t.churchPickOnMap}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
+                        {parsedFormCoords
+                          ? t.churchChangeLocationOnMap
+                          : t.churchPickOnMap}
+                      </Text>
+                    </Pressable>
+                  )}
 
+                  {parsedFormCoords ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <AppMenuIcon
+                        ios="checkmark.circle.fill"
+                        android="check-circle"
+                        color="#34C759"
+                        size={17}
+                      />
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          flex: 1,
+                          color: theme.onSurface,
+                          ...fonts.sansMedium,
+                          fontSize: 13.5,
+                        }}
+                      >
+                        {[formAddress.trim(), formCity.trim(), formState.trim()]
+                          .filter(Boolean)
+                          .join(", ") || t.churchLocationSet}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text
+                      style={{
+                        color: mutedText,
+                        ...fonts.sansRegular,
+                        fontSize: 12.5,
+                        lineHeight: 17,
+                      }}
+                    >
+                      {t.churchLocationHint}
+                    </Text>
+                  )}
+
+                  {/* Coordinates / Maps link: administrator only */}
+                  {isAdmin && (
                   <TextInput
                     value={formCoordsInput}
                     onChangeText={(txt) => {
@@ -2621,126 +2721,154 @@ export default function ChurchesScreen() {
                       },
                     ]}
                   />
+                  )}
 
-                  {parsedFormCoords ? (
-                    <Text
-                      style={{
-                        color: theme.primary,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 12,
+                  {!addressVisible && (
+                    <Pressable
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setShowAddressFields(true);
                       }}
                     >
-                      {es
-                        ? `✓ Coordenadas exactas listas: ${parsedFormCoords.lat.toFixed(5)}, ${parsedFormCoords.lng.toFixed(5)}`
-                        : `✓ Exact coordinates ready: ${parsedFormCoords.lat.toFixed(5)}, ${parsedFormCoords.lng.toFixed(5)}`}
-                    </Text>
-                  ) : (
-                    <Text
-                      style={{
-                        color: mutedText,
-                        fontFamily: fonts.sansRegular,
-                        fontSize: 11.5,
-                      }}
-                    >
-                      {t.churchOptionalIfYouEnterTheStreet}
-                    </Text>
+                      <Text
+                        style={{
+                          color: theme.primary,
+                          ...fonts.sansSemiBold,
+                          fontSize: 13,
+                        }}
+                      >
+                        {t.churchTypeAddressInstead}
+                      </Text>
+                    </Pressable>
                   )}
                 </View>
 
-                {[
-                  {
-                    label: t.churchChurchName,
-                    val: formName,
-                    set: setFormName,
-                    placeholder: t.churchEGIddvElBuenPastor,
-                    max: 100,
-                  },
-                  {
-                    label: t.churchPastorMinisterOptional,
-                    val: formPastor,
-                    set: setFormPastor,
-                    placeholder: t.churchEGPastorJuanPerez,
-                    max: 80,
-                  },
-                  {
-                    label: t.churchStreetAddress,
-                    val: formAddress,
-                    set: setFormAddress,
-                    placeholder: "1234 Main St",
-                    max: 140,
-                  },
-                  {
-                    label: t.churchCity,
-                    val: formCity,
-                    set: setFormCity,
-                    placeholder: t.churchEGLosAngeles,
-                    max: 80,
-                  },
-                  {
-                    label: t.churchStateProvince,
-                    val: formState,
-                    set: setFormState,
-                    placeholder: t.churchEGCaliforniaTexas,
-                    max: 60,
-                  },
-                  {
-                    label: t.churchCountry,
-                    val: formCountry,
-                    set: setFormCountry,
-                    placeholder: t.churchUnitedStatesMexico,
-                    max: 60,
-                  },
-                  {
-                    label: t.churchZipPostalCodeOptional,
-                    val: formPostal,
-                    set: setFormPostal,
-                    placeholder: "95112",
-                    max: 24,
-                  },
-                  {
-                    label: t.churchServiceTimesOptional,
-                    val: formSchedule,
-                    set: setFormSchedule,
-                    placeholder: t.churchEGSundays1000Am,
-                    max: 240,
-                  },
-                  {
-                    label: t.churchVerificationPhoneOrEmailPrivate,
-                    val: formContact,
-                    set: setFormContact,
-                    placeholder: t.churchVisibleOnlyToAdministrator,
-                    max: 160,
-                  },
-                ].map((f) => (
-                  <View key={f.label} style={{ gap: 5 }}>
-                    <Text
-                      style={{
-                        color: mutedText,
-                        fontFamily: fonts.sansSemiBold,
-                        fontSize: 12.5,
-                        marginLeft: 2,
-                      }}
-                    >
-                      {f.label}
-                    </Text>
-                    <TextInput
-                      value={f.val}
-                      onChangeText={f.set}
-                      placeholder={f.placeholder}
-                      placeholderTextColor={mutedText}
-                      maxLength={f.max}
-                      editable={!submitting}
-                      style={[
-                        styles.formInput,
-                        {
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          color: theme.onSurface,
-                        },
-                      ]}
-                    />
-                  </View>
-                ))}
+                {/* 3 · Address (auto-filled from the pin, still editable) */}
+                {addressVisible && (
+                  <>
+                    {[
+                      {
+                        label: t.churchStreetAddress,
+                        val: formAddress,
+                        set: setFormAddress,
+                        placeholder: "1234 Main St",
+                        max: 140,
+                      },
+                      {
+                        label: t.churchCity,
+                        val: formCity,
+                        set: setFormCity,
+                        placeholder: t.churchEGLosAngeles,
+                        max: 80,
+                      },
+                      {
+                        label: t.churchStateProvince,
+                        val: formState,
+                        set: setFormState,
+                        placeholder: t.churchEGCaliforniaTexas,
+                        max: 60,
+                      },
+                      {
+                        label: t.churchCountry,
+                        val: formCountry,
+                        set: setFormCountry,
+                        placeholder: t.churchUnitedStatesMexico,
+                        max: 60,
+                      },
+                      {
+                        label: t.churchZipPostalCodeOptional,
+                        val: formPostal,
+                        set: setFormPostal,
+                        placeholder: "95112",
+                        max: 24,
+                      },
+                    ].map(renderFormField)}
+                  </>
+                )}
+
+                {/* 4 · Everything optional lives behind one row */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showMoreDetails }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setShowMoreDetails((v) => !v);
+                  }}
+                  style={({ pressed }) => [
+                    styles.moreDetailsRow,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: cardBorder,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: theme.onSurface,
+                      ...fonts.sansSemiBold,
+                      fontSize: 15,
+                    }}
+                  >
+                    {t.churchMoreDetailsOptional}
+                  </Text>
+                  <AppMenuIcon
+                    ios={showMoreDetails ? "chevron.up" : "chevron.down"}
+                    android={showMoreDetails ? "expand-less" : "expand-more"}
+                    color={mutedText}
+                    size={14}
+                    weight="semibold"
+                  />
+                </Pressable>
+
+                {showMoreDetails && (
+                  <>
+                    {renderFormField({
+                      label: t.churchPastorMinisterOptional,
+                      val: formPastor,
+                      set: setFormPastor,
+                      placeholder: t.churchEGPastorJuanPerez,
+                      max: 80,
+                    })}
+
+                    {scheduleAsText ? (
+                      renderFormField({
+                        label: t.churchServiceTimesOptional,
+                        val: formSchedule,
+                        set: setFormSchedule,
+                        placeholder: t.churchEGSundays1000Am,
+                        max: 240,
+                      })
+                    ) : (
+                      <View style={{ gap: 6 }}>
+                        <Text
+                          style={{
+                            color: mutedText,
+                            ...fonts.sansSemiBold,
+                            fontSize: 12.5,
+                            marginLeft: 2,
+                          }}
+                        >
+                          {t.churchServiceTimesOptional}
+                        </Text>
+                        <ChurchScheduleEditor
+                          value={formSchedule}
+                          onChange={setFormSchedule}
+                          disabled={submitting}
+                        />
+                      </View>
+                    )}
+
+                    {renderFormField({
+                      label: t.churchVerificationPhoneOrEmailPrivate,
+                      val: formContact,
+                      set: setFormContact,
+                      placeholder: t.churchVisibleOnlyToAdministrator,
+                      max: 160,
+                    })}
 
                 {/* Multi-Photo Camera, Gallery & Cloud URL Manager (Max 5 user / 10 admin) */}
                 <View
@@ -2763,7 +2891,7 @@ export default function ChurchesScreen() {
                     <Text
                       style={{
                         color: theme.onSurface,
-                        fontFamily: fonts.sansSemiBold,
+                        ...fonts.sansSemiBold,
                         fontSize: 13,
                       }}
                     >
@@ -2811,7 +2939,7 @@ export default function ChurchesScreen() {
                         <Text
                           style={{
                             color: theme.primary,
-                            fontFamily: fonts.sansSemiBold,
+                            ...fonts.sansSemiBold,
                             fontSize: 13,
                           }}
                         >
@@ -2854,7 +2982,7 @@ export default function ChurchesScreen() {
                         <Text
                           style={{
                             color: theme.onSurface,
-                            fontFamily: fonts.sansSemiBold,
+                            ...fonts.sansSemiBold,
                             fontSize: 13,
                           }}
                         >
@@ -2917,7 +3045,7 @@ export default function ChurchesScreen() {
                             <Text
                               style={{
                                 color: "#FFFFFF",
-                                fontFamily: fonts.sansSemiBold,
+                                ...fonts.sansSemiBold,
                                 fontSize: 10,
                               }}
                             >
@@ -3017,7 +3145,7 @@ export default function ChurchesScreen() {
                           <Text
                             style={{
                               color: theme.onPrimary,
-                              fontFamily: fonts.sansSemiBold,
+                              ...fonts.sansSemiBold,
                               fontSize: 13,
                             }}
                           >
@@ -3028,13 +3156,16 @@ export default function ChurchesScreen() {
                     </View>
                   )}
                 </View>
+                  </>
+                )}
+
 
                 {!!formError && (
                   <Text
                     accessibilityRole="alert"
                     style={{
                       color: theme.primary,
-                      fontFamily: fonts.sansMedium,
+                      ...fonts.sansMedium,
                       fontSize: 13.5,
                     }}
                   >
@@ -3059,7 +3190,7 @@ export default function ChurchesScreen() {
                     <Text
                       style={{
                         color: theme.onPrimary,
-                        fontFamily: fonts.sansBold,
+                        ...fonts.sansBold,
                         fontSize: 16,
                       }}
                     >
@@ -3145,7 +3276,7 @@ export default function ChurchesScreen() {
                   <Text
                     style={{
                       color: "#FFFFFF",
-                      fontFamily: fonts.sansSemiBold,
+                      ...fonts.sansSemiBold,
                       fontSize: 15,
                     }}
                   >
@@ -3190,7 +3321,7 @@ export default function ChurchesScreen() {
               <Text
                 style={{
                   color: "#FFFFFF",
-                  fontFamily: fonts.bold,
+                  ...fonts.bold,
                   fontSize: 20,
                 }}
               >
@@ -3208,7 +3339,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: "#FFFFFF",
-                    fontFamily: fonts.sansSemiBold,
+                    ...fonts.sansSemiBold,
                     fontSize: 14.5,
                   }}
                 >
@@ -3249,7 +3380,7 @@ export default function ChurchesScreen() {
                 <Text
                   style={{
                     color: "#FFFFFF",
-                    fontFamily: fonts.sansMedium,
+                    ...fonts.sansMedium,
                     fontSize: 13.5,
                     textAlign: "center",
                   }}
@@ -3266,6 +3397,23 @@ export default function ChurchesScreen() {
 }
 
 const styles = StyleSheet.create({
+  locationCta: {
+    height: 48,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  moreDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
   nearMeGlassPill: {
     height: 40,
     borderRadius: 20,
@@ -3293,7 +3441,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   sheetSummary: {
-    fontFamily: fonts.sansMedium,
+    ...fonts.sansMedium,
     fontSize: 13,
     paddingHorizontal: 2,
   },
@@ -3360,7 +3508,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 15.5,
     paddingVertical: 0,
   },
@@ -3386,7 +3534,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   modeBtnText: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   nearMePill: {
@@ -3422,7 +3570,7 @@ const styles = StyleSheet.create({
   },
   clusterBubbleText: {
     color: "#FFFFFF",
-    fontFamily: fonts.sansBold,
+    ...fonts.sansBold,
     fontSize: 13.5,
   },
   floatingGpsBtn: {
@@ -3468,17 +3616,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   screenTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 28,
     letterSpacing: -0.4,
   },
   screenSub: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 14.5,
     lineHeight: 20,
   },
   sectionEyebrow: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 12,
     letterSpacing: 0.8,
     paddingHorizontal: 4,
@@ -3497,12 +3645,12 @@ const styles = StyleSheet.create({
     borderRadius: 32,
   },
   nearName: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 14,
     textAlign: "center",
   },
   nearCity: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 12.5,
     textAlign: "center",
   },
@@ -3513,7 +3661,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   distPillText: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 11.5,
   },
   infoCard: {
@@ -3552,11 +3700,11 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   rowTitle: {
-    fontFamily: fonts.sansSemiBold,
+    ...fonts.sansSemiBold,
     fontSize: 16,
   },
   rowSub: {
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -3605,7 +3753,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   selectedTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 18.5,
   },
   miniCloseBtn: {
@@ -3662,7 +3810,7 @@ const styles = StyleSheet.create({
   submitTitle: {
     flex: 1,
     textAlign: "center",
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 19,
   },
   formInput: {
@@ -3670,7 +3818,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 13,
     paddingVertical: 11,
-    fontFamily: fonts.sansRegular,
+    ...fonts.sansRegular,
     fontSize: 15.5,
   },
   submitPrimaryBtn: {

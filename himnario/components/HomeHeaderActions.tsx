@@ -1,3 +1,4 @@
+import { fonts } from '../theme/theme';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NavigationContext } from '@react-navigation/native';
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   classicAvatarInitials: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 16,
     letterSpacing: 0.5,
     includeFontPadding: false,

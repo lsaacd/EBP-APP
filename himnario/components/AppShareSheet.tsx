@@ -230,10 +230,7 @@ export function AppShareContent({
               styles.segmentText,
               {
                 color: tab === 'banner' ? theme.onSurface : theme.onSurfaceVariant,
-                fontFamily:
-                  tab === 'banner'
-                    ? 'PublicSans_700Bold'
-                    : 'PublicSans_500Medium',
+                ...(tab === 'banner' ? fonts.sansBold : fonts.sansMedium),
               },
             ]}
             numberOfLines={1}
@@ -269,8 +266,7 @@ export function AppShareContent({
               styles.segmentText,
               {
                 color: tab === 'qr' ? theme.onSurface : theme.onSurfaceVariant,
-                fontFamily:
-                  tab === 'qr' ? 'PublicSans_700Bold' : 'PublicSans_500Medium',
+                ...(tab === 'qr' ? fonts.sansBold : fonts.sansMedium),
               },
             ]}
             numberOfLines={1}
@@ -659,7 +655,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 21,
   },
   closeBtn: {
@@ -712,12 +708,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bannerFooterDomain: {
-    fontFamily: 'PublicSans_700Bold',
+    ...fonts.sansBold,
     fontSize: 10,
     letterSpacing: 1.2,
   },
   bannerFooterTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
     marginTop: 1,
   },
@@ -744,12 +740,12 @@ const styles = StyleSheet.create({
     height: 156,
   },
   qrTitle: {
-    fontFamily: fonts.bold,
+    ...fonts.bold,
     fontSize: 17,
     marginTop: 4,
   },
   qrSubtitle: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12.5,
     textAlign: 'center',
     lineHeight: 18,
@@ -765,7 +761,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   statusText: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 13,
   },
   optionsList: {
@@ -794,11 +790,11 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   optionTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
+    ...fonts.sansSemiBold,
     fontSize: 15,
   },
   optionSub: {
-    fontFamily: 'PublicSans_400Regular',
+    ...fonts.sansRegular,
     fontSize: 12,
     opacity: 0.75,
   },
