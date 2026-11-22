@@ -173,6 +173,9 @@ export default function ChurchesScreen() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [fullscreenPhotoIndex, setFullscreenPhotoIndex] = useState<number | null>(null);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  // True when this screen was opened only to scan (Account → "Scan QR Code"):
+  // cancelling the scanner then returns to where the user came from.
+  const scannerOnlyVisitRef = useRef(false);
   const [lookingAroundId, setLookingAroundId] = useState<string | null>(null);
   const qrScanLockedRef = useRef(false);
   const handledDeepLinkRef = useRef<string | null>(null);
@@ -532,16 +535,26 @@ export default function ChurchesScreen() {
         const perm = await Camera.requestCameraPermissionsAsync();
         if (perm.granted) {
           qrScanLockedRef.current = false;
+          scannerOnlyVisitRef.current = true;
           setQrScannerOpen(true);
         } else {
           Alert.alert(
             t.churchCameraPermission,
             t.churchEnableCameraPermissionInSettingsTo,
+            [{ text: "OK", onPress: () => router.back() }],
           );
         }
       })();
     }
-  }, [t, es, params.scan]);
+  }, [t, es, params.scan, router]);
+
+  const dismissQrScanner = useCallback(() => {
+    setQrScannerOpen(false);
+    if (scannerOnlyVisitRef.current) {
+      scannerOnlyVisitRef.current = false;
+      router.back();
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!params.id || churches.length === 0) return;
@@ -562,6 +575,8 @@ export default function ChurchesScreen() {
       qrScanLockedRef.current = true;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setQrScannerOpen(false);
+      const scannerOnlyVisit = scannerOnlyVisitRef.current;
+      scannerOnlyVisitRef.current = false;
 
       // 1. Check for church QR link
       const churchMatch =
@@ -584,7 +599,9 @@ export default function ChurchesScreen() {
         raw.match(/^hymn:([a-zA-Z0-9%_-]+)$/i);
       if (hymnMatch) {
         const hymnId = decodeURIComponent(hymnMatch[1]);
-        router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+        // Opened just to scan: the hymn takes the map's place in the stack.
+        if (scannerOnlyVisit) router.replace(`/hymn/${encodeURIComponent(hymnId)}` as any);
+        else router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
         return;
       }
 
@@ -1245,6 +1262,7 @@ export default function ChurchesScreen() {
         placeholder={f.placeholder}
         placeholderTextColor={mutedText}
         maxLength={f.max}
+        returnKeyType="done"
         editable={!submitting}
         style={[
           styles.formInput,
@@ -2749,6 +2767,7 @@ export default function ChurchesScreen() {
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={isIOS ? "interactive" : "on-drag"}
                 contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24, gap: 12 }}
               >
                 <Text
@@ -3466,7 +3485,7 @@ export default function ChurchesScreen() {
           transparent={false}
           animationType="slide"
           statusBarTranslucent
-          onRequestClose={() => setQrScannerOpen(false)}
+          onRequestClose={dismissQrScanner}
         >
           <View style={{ flex: 1, backgroundColor: "#000000" }}>
             {qrScannerOpen && (
@@ -3498,7 +3517,7 @@ export default function ChurchesScreen() {
                 {t.accountScanQrCode}
               </Text>
               <Pressable
-                onPress={() => setQrScannerOpen(false)}
+                onPress={dismissQrScanner}
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 8,
