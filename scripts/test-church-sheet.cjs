@@ -14,6 +14,7 @@ const load = (file) => {
 };
 const { parseServiceTimes } = load('himnario/utils/churchSchedule.ts');
 const { sheetSnapTarget } = load('himnario/utils/gestureMotion.ts');
+const { churchDisplayName } = load('himnario/utils/churchName.ts');
 
 test('the seeded Riverbank schedule becomes one row per service', () => {
   const rows = parseServiceTimes(
@@ -61,4 +62,14 @@ test('a flick moves one detent in its direction and stops at the ends', () => {
   assert.equal(sheetSnapTarget(380, 900, snaps), 0);
   assert.equal(sheetSnapTarget(720, -900, snaps), 2);
   assert.equal(sheetSnapTarget(180, 900, snaps), 0);
+});
+
+test('church names drop the shared denomination and keep what tells them apart', () => {
+  assert.equal(churchDisplayName('IDDV El Buen Pastor — Riverbank', 'Riverbank'), 'Riverbank');
+  assert.equal(churchDisplayName('El Buen Pastor - San José'), 'San José');
+  assert.equal(churchDisplayName('Iglesia El Buen Pastor: Modesto Norte'), 'Modesto Norte');
+  assert.equal(churchDisplayName('iddv el buen pastor', 'Fresno'), 'Fresno');
+  assert.equal(churchDisplayName('IDDV El Buen Pastor'), 'IDDV El Buen Pastor');
+  assert.equal(churchDisplayName('Templo Central', 'Tijuana'), 'Templo Central');
+  assert.equal(churchDisplayName(null, 'Tijuana'), 'Tijuana');
 });

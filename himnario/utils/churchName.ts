@@ -11,7 +11,7 @@ const DENOMINATION_PREFIX =
 
 export function churchDisplayName(name: string | null | undefined, city?: string | null): string {
   const original = (name ?? '').trim();
-  const stripped = original.replace(/^\s*IDDV\s*[—–\-:·,|/]*\s*/i, (m) => m).replace(DENOMINATION_PREFIX, '').trim();
+  const stripped = original.replace(DENOMINATION_PREFIX, '').trim();
   if (stripped) return stripped;
   return (city ?? '').trim() || original;
 }
