@@ -40,11 +40,15 @@ import HomeHeaderActions from '../../components/HomeHeaderActions';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
+import {
+  hymnCoversStore,
+  initHymnCovers,
+  resolveActiveHymnCover,
+} from '../../data/hymnCovers';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const IS_IOS = Platform.OS === 'ios';
 const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
-const HYMNAL_BOOK_COVER = require('../../assets/images/hymnal-leather-cover.jpg');
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -54,6 +58,9 @@ export default function HomeScreen() {
   const { t, language, hymnLanguage } = useLanguage();
   const { currentHymnId } = useNowPlaying();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
+  const coverState = useSyncExternalStore(hymnCoversStore.subscribe, hymnCoversStore.getSnapshot);
+  const [coverFailedId, setCoverFailedId] = useState<string | null>(null);
+  const activeCover = resolveActiveHymnCover(coverState, coverFailedId);
   const insets = useSafeAreaInsets();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 140 : 80);
@@ -66,7 +73,12 @@ export default function HomeScreen() {
   const [headerGlassEpoch, setHeaderGlassEpoch] = useState(0);
 
   useEffect(() => {
+    setCoverFailedId(null);
+  }, [coverState.selectedId]);
+
+  useEffect(() => {
     void refreshOfflineAudio();
+    void initHymnCovers();
   }, []);
 
   useEffect(() => {
@@ -162,11 +174,20 @@ export default function HomeScreen() {
               });
             }}
           >
-            <View style={styles.bookCoverShadow}>
+            <View
+              style={[
+                styles.bookCoverShadow,
+                activeCover.preset.is3D && { backgroundColor: 'transparent', borderRadius: 0 },
+              ]}
+            >
               <Image
-                source={HYMNAL_BOOK_COVER}
-                style={styles.bookCoverImage}
-                resizeMode="cover"
+                source={activeCover.source}
+                onError={() => setCoverFailedId(activeCover.preset.id)}
+                style={[
+                  styles.bookCoverImage,
+                  activeCover.preset.is3D && { borderWidth: 0, borderRadius: 4 },
+                ]}
+                resizeMode={activeCover.preset.is3D ? 'contain' : 'cover'}
               />
             </View>
 
@@ -463,6 +484,8 @@ export default function HomeScreen() {
     >
       <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
         <Animated.ScrollView
+          // Verse-card modals remain React descendants: do not consume their first keyboard tap.
+          keyboardShouldPersistTaps="always"
           ref={scrollViewRef}
           // The measured toolbar includes the top safe area; do not apply it twice.
           contentInsetAdjustmentBehavior="never"

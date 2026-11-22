@@ -32,10 +32,18 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
 
+  React.useEffect(() => {
+    if (!visible) {
+      setIsCreating(false);
+      setNewPlaylistName('');
+    }
+  }, [visible]);
+
   const handleCreate = () => {
-    if (newPlaylistName.trim()) {
+    const clean = newPlaylistName.trim().slice(0, 100);
+    if (clean) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      createPlaylist(newPlaylistName);
+      createPlaylist(clean);
       setNewPlaylistName('');
       setIsCreating(false);
     }
@@ -54,11 +62,13 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView 
         style={styles.overlay} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <TouchableWithoutFeedback onPress={() => {
-          if (isCreating) setIsCreating(false);
-          else onClose();
+          if (isCreating) {
+            setIsCreating(false);
+            setNewPlaylistName('');
+          } else onClose();
         }}>
           <View style={styles.backdrop} />
         </TouchableWithoutFeedback>
@@ -85,6 +95,7 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
                 placeholderTextColor={theme.outline}
                 value={newPlaylistName}
                 onChangeText={setNewPlaylistName}
+                maxLength={100}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handleCreate}
@@ -93,7 +104,10 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
               <View style={styles.createActions}>
                 <TouchableOpacity 
                   style={styles.actionBtn} 
-                  onPress={() => setIsCreating(false)}
+                  onPress={() => {
+                    setIsCreating(false);
+                    setNewPlaylistName('');
+                  }}
                 >
                   <Text style={[styles.actionBtnText, { color: theme.onSurfaceVariant }]}>{t.cancel}</Text>
                 </TouchableOpacity>

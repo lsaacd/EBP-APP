@@ -46,7 +46,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode, toggleTheme, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
   const { t, language, hymnLanguage, setLanguage, setHymnLanguage } = useLanguage();
-  const { user, isSyncing, openAuthSheet } = useAuth();
+  const { user, isSyncing, syncBlocked, openAuthSheet } = useAuth();
   const insets = useSafeAreaInsets();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId, showFullPlayer } = useNowPlaying();
@@ -56,6 +56,8 @@ export default function SettingsScreen() {
   const [showShareApp, setShowShareApp] = useState(false);
   const scrollViewRef = useRef<any>(null);
   const isSlidingFont = useRef(false);
+  const slidingResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (slidingResetTimerRef.current) clearTimeout(slidingResetTimerRef.current); }, []);
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -171,7 +173,7 @@ export default function SettingsScreen() {
                 </Text>
                 <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
                   {user
-                    ? `${user.email} · ${isSyncing ? t.authSyncingStatus : t.authSyncedStatus}`
+                    ? `${user.email} · ${isSyncing ? t.authSyncingStatus : syncBlocked ? t.authSyncPausedStatus : t.authSyncedStatus}`
                     : t.authMenuSignInSub}
                 </Text>
               </View>
@@ -238,7 +240,7 @@ export default function SettingsScreen() {
               onValueChange={toggleTheme}
               trackColor={{
                 false: Platform.OS === 'ios' ? (isDarkMode ? '#39393D' : '#E9E9EA') : isDarkMode ? 'rgba(255, 255, 255, 0.20)' : theme.outlineVariant + '66',
-                true: Platform.OS === 'ios' ? '#34C759' : isDarkMode ? theme.surfaceVariants.container : theme.primary,
+                true: Platform.OS === 'ios' ? (isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary) : isDarkMode ? theme.surfaceVariants.container : theme.primary,
               }}
               thumbColor={
                 Platform.OS === 'ios'
@@ -286,7 +288,7 @@ export default function SettingsScreen() {
             }
           ]}>
             <Text style={[styles.previewTitle, { color: theme.primary }]}>
-              ¡Cuán Grande es Él!
+              {hymnLanguage === 'en' ? 'How Great Thou Art!' : '¡Cuán Grande es Él!'}
             </Text>
             <Text style={[
               styles.previewText,
@@ -296,7 +298,7 @@ export default function SettingsScreen() {
                 lineHeight: Math.round(Math.min(42, Math.round(22 * fontSizeMultiplier)) * 1.5),
               }
             ]}>
-              Señor, mi Dios, al contemplar los cielos...
+              {hymnLanguage === 'en' ? 'O Lord my God, when I in awesome wonder...' : 'Señor, mi Dios, al contemplar los cielos...'}
             </Text>
           </View>
 
@@ -310,8 +312,8 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <Slider
-              onSlidingStart={() => { isSlidingFont.current = true; }}
-              onSlidingComplete={() => { setTimeout(() => { isSlidingFont.current = false; }, 100); }}
+              onSlidingStart={() => { if (slidingResetTimerRef.current) { clearTimeout(slidingResetTimerRef.current); slidingResetTimerRef.current = null; } isSlidingFont.current = true; }}
+              onSlidingComplete={() => { if (slidingResetTimerRef.current) clearTimeout(slidingResetTimerRef.current); slidingResetTimerRef.current = setTimeout(() => { slidingResetTimerRef.current = null; isSlidingFont.current = false; }, 100); }}
               style={{ flex: 1, height: 40 }}
               minimumValue={12 / 22}
               maximumValue={64 / 22}
@@ -512,7 +514,7 @@ export default function SettingsScreen() {
                 style={[styles.rateBtn, { borderColor: theme.primary }]}
                 activeOpacity={0.7}
                 onPress={() => {
-                  Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review');
+                  Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review').catch(() => {});
                 }}
               >
                 <Text style={[styles.rateBtnText, { color: theme.primary }]}>

@@ -120,8 +120,8 @@ test('login omits localData, accepts existing short passwords, and applies autho
 test('registration requires 12 characters and alone may send initial localData',async()=>{
   const f=fixture();await flush();await assert.rejects(f.auth.register('A','a@b.com','12345678901'),/password_too_short/);assert.equal(f.requests.length,0);await login(f,{mode:'register',password:'123456789012'});const body=JSON.parse(f.requests[0].options.body);assert.deepEqual(body.localData.favorites,['offline']);f.unmount();
 });
-test('identity-only recovery is unavailable without making any network request',async()=>{
-  const f=fixture();await flush();await assert.rejects(f.auth.resetPassword('a@b.com','password','A'),/recovery_unavailable/);assert.equal(f.requests.length,0);f.unmount();
+test('legacy resetPassword delegates to email recovery without sending password or name',async()=>{
+  const f=fixture();await flush();const pending=f.auth.resetPassword('a@b.com','password','A').catch(e=>e);await flush();assert.equal(f.requests.length,1);const body=JSON.parse(f.requests[0].options.body);assert.equal('password' in body,false);assert.equal('name' in body,false);f.requests[0].resolve(reply(503,{error:'recovery_unavailable'}));assert.equal((await pending).message,'recovery_unavailable');f.unmount();
 });
 test('late sync 401 cannot clear a newer login',async()=>{
   const f=await restored();const pending=f.auth.syncNow().catch(e=>e);await flush();const put=f.requests.at(-1);await f.auth.signOut();await login(f,{id:'u2',revision:3000});put.resolve(reply(401,{}));assert.equal((await pending).message,'auth_cancelled');await flush();assert.equal(f.auth.user.id,'u2');assert.equal(f.stored().user.id,'u2');f.unmount();
@@ -139,4 +139,16 @@ test('backup failure aborts before cloud replacement or credential write',async(
 });
 test('edits during backup I/O abort replacement and retain the newer local data',async()=>{
   const f=fixture();await flush();const gate=deferred();f.setBackupGate(gate);const pending=f.auth.signIn('a@b.com','old').catch(e=>e);await flush();f.requests[0].resolve(reply(200,{token:'new',user:user(),data:cloud()}));await flush();f.editFavorites(['edited-during-backup']);await flush();gate.resolve();assert.equal((await pending).message,'local_backup_failed');await flush();assert.deepEqual(f.local.favorites,['edited-during-backup']);assert.equal(f.auth.token,null);assert.equal(f.writes.length,0);f.unmount();
+});
+test('resolveSyncConflict("local") fetches latest cloud revision, pushes local data, and resumes sync',async()=>{
+  const f=await restored(2000);assert.equal(f.auth.syncBlocked,true);const pending=f.auth.resolveSyncConflict('local');await flush();const get=f.requests.at(-1);assert.equal(get.options.method,undefined);get.resolve(reply(200,{user:user(),data:cloud(2000,['cloud-only'])}));await flush();const put=f.requests.at(-1);assert.equal(put.options.method,'PUT');const body=JSON.parse(put.options.body);assert.equal(body.expectedRevision,2000);assert.deepEqual(body.favorites,['offline']);put.resolve(reply(200,{updatedAt:3000}));await pending;await flush();assert.equal(f.auth.syncBlocked,false);assert.deepEqual(f.local.favorites,['offline']);assert.equal(f.stored().revision,3000);assert.equal(f.stored().syncBlocked,false);assert.equal(f.auth.lastSyncedAt,new Date(3000).toISOString());f.unmount();
+});
+test('resolveSyncConflict("cloud") backs up local data, applies cloud data, and resumes sync',async()=>{
+  const f=await restored(2000);assert.equal(f.auth.syncBlocked,true);const pending=f.auth.resolveSyncConflict('cloud');await flush();const get=f.requests.at(-1);get.resolve(reply(200,{user:user(),data:cloud(2000,['cloud-only'])}));await pending;await flush();assert.equal(f.auth.syncBlocked,false);assert.deepEqual(f.local.favorites,['cloud-only']);assert.equal(f.stored().revision,2000);assert.equal(f.stored().syncBlocked,false);assert.equal(f.auth.lastSyncedAt,new Date(2000).toISOString());const backup=f.backups.get('@himnario_auth_local_backup_v1:account:u1');assert.deepEqual(backup.data.favorites,['offline']);const count=f.requests.length;f.runTimers();await flush();assert.equal(f.requests.length,count);f.unmount();
+});
+test('resolveSyncConflict("cloud") aborts and stays blocked if local backup fails',async()=>{
+  const f=await restored(2000);f.setBackupFailure(true);const pending=f.auth.resolveSyncConflict('cloud').catch(e=>e);await flush();f.requests.at(-1).resolve(reply(200,{user:user(),data:cloud(2000,['cloud-only'])}));assert.equal((await pending).message,'local_backup_failed');await flush();assert.equal(f.auth.syncBlocked,true);assert.deepEqual(f.local.favorites,['offline']);f.unmount();
+});
+test('startup restore with matching revision and identical snapshot does not trigger redundant PUT /sync',async()=>{
+  const f=fixture(session());await flush();f.requests[0].resolve(reply(200,{user:user(),data:cloud(1000,['offline'])}));await flush();assert.equal(f.auth.syncBlocked,false);f.runTimers();await flush();assert.equal(f.requests.length,1);f.unmount();
 });

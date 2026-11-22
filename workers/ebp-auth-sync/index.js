@@ -1,3 +1,4 @@
+import { handleCommunity, deleteCommunityAccount } from './community.js';
 import { RequestError, parseJsonBody, validateSync, checkRateLimit, secureResponse } from './security.js';
 import { handleEmailAuth, emailLanguage, sendRegistrationVerification } from './email-auth.js';
 /**
@@ -123,6 +124,15 @@ function serializeUser(user) {
     id: user.id, email: user.email, name: user.name,
     initials: computeInitials(user.name, user.email),
     emailVerified: user.email_verified_at != null,
+    ministry: user.ministry ?? null, choir: user.choir ?? null,
+    churchId: user.church_id ?? null,
+    churchName: user.church_name ?? null,
+    location: user.location ?? null,
+    showChurchLocation: user.show_church_location === 1,
+    role: user.role === 'admin' && user.email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
+    badgeVerified: user.ministry === 'obispo' && user.badge_verified === 1,
+    ugcTermsAccepted: user.ugc_terms_accepted_at != null,
+    suspended: user.suspended_at != null,
   };
 }
 
@@ -143,7 +153,7 @@ async function authenticateRequest(request, env) {
   const tokenHash = await sha256Hex(match[1]);
   const now = Date.now();
   const row = await env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.created_at, u.email_verified_at, s.token_hash
+    `SELECT u.id, u.email, u.name, u.created_at, u.email_verified_at, u.role, u.suspended_at, u.ministry, u.choir, u.church_name, u.location, u.show_church_location, u.badge_verified, u.ugc_terms_accepted_at, s.token_hash
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ?1 AND s.expires_at > ?2`,
@@ -179,6 +189,11 @@ const handler = {
       if (path === '/health' && request.method === 'GET') {
         return jsonResponse({ ok: true, service: 'ebp-himnario-sync' });
       }
+
+      const communityResponse = await handleCommunity(request, env, ctx, {
+        path, authenticate: authenticateRequest, serializeUser, json: jsonResponse,
+      });
+      if (communityResponse) return communityResponse;
 
       const emailResponse = await handleEmailAuth(request, env, ctx, {
         path, authenticate: authenticateRequest, serializeUser, hashPassword, json: jsonResponse,
@@ -286,17 +301,11 @@ const handler = {
         ]);
 
         const token = await createSession(env, userId);
-        const emailDelivered = await sendRegistrationVerification(env, { id: userId, email }, language, clientIp);
+        const emailDelivered = await sendRegistrationVerification(env, { id: userId, email, name }, language, clientIp);
         return jsonResponse({
           token,
           emailDeliveryPending: !emailDelivered,
-          user: {
-            id: userId,
-            email,
-            name,
-            initials: computeInitials(name, email),
-            emailVerified: false,
-          },
+          user: serializeUser({ id: userId, email, name }),
           data: { ...merged, updatedAt: now },
         });
       }
@@ -348,7 +357,7 @@ const handler = {
         }
 
         const user = await env.DB.prepare(
-          `SELECT id, email, name, password_hash, password_salt, email_verified_at FROM users WHERE email = ?1`,
+          `SELECT * FROM users WHERE email = ?1`,
         )
           .bind(email)
           .first();
@@ -374,6 +383,8 @@ const handler = {
 
 
 
+        if (user.suspended_at != null) throw new RequestError(403, 'account_suspended');
+
         const cloudRow = await env.DB.prepare(
           `SELECT favorites_json, playlists_json, recents_json, preferences_json, updated_at
            FROM user_data WHERE user_id = ?1`,
@@ -392,13 +403,7 @@ const handler = {
         const token = await createSession(env, user.id);
         return jsonResponse({
           token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            initials: computeInitials(user.name, user.email),
-            emailVerified: user.email_verified_at != null,
-          },
+          user: serializeUser(user),
           data: { ...merged, updatedAt: now },
         });
       }
@@ -407,38 +412,10 @@ const handler = {
         return jsonResponse({ error: 'recovery_unavailable', message: 'Secure account recovery is temporarily unavailable.' }, 503);
       }
 
-      if (path === '/auth/profile' && request.method === 'PUT') {
-        const authUser = await authenticateRequest(request, env);
-        if (!authUser) return jsonResponse({ error: 'unauthorized' }, 401);
-
-        const { tooLarge, body } = await parseJsonBody(request);
-        if (tooLarge) {
-          return jsonResponse({ error: 'payload_too_large' }, 413);
-        }
-        if (typeof body.name !== 'string') throw new RequestError(400, 'invalid_name');
-        const name = body.name.trim();
-        if (!name || name.length < 2 || name.length > 100) {
-          return jsonResponse({ error: 'invalid_name' }, 400);
-        }
-
-        await env.DB.prepare(`UPDATE users SET name = ?1 WHERE id = ?2`)
-          .bind(name, authUser.id)
-          .run();
-
-        return jsonResponse({
-          user: {
-            id: authUser.id,
-            email: authUser.email,
-            name,
-            initials: computeInitials(name, authUser.email),
-            emailVerified: authUser.email_verified_at != null,
-          },
-        });
-      }
-
       if (path === '/sync' && request.method === 'GET') {
         const authUser = await authenticateRequest(request, env);
         if (!authUser) return jsonResponse({ error: 'unauthorized' }, 401);
+        if (authUser.suspended_at != null && path !== '/auth/account') throw new RequestError(403, 'account_suspended');
 
         const row = await env.DB.prepare(
           `SELECT favorites_json, playlists_json, recents_json, preferences_json, updated_at
@@ -448,13 +425,7 @@ const handler = {
           .first();
 
         return jsonResponse({
-          user: {
-            id: authUser.id,
-            email: authUser.email,
-            name: authUser.name,
-            initials: computeInitials(authUser.name, authUser.email),
-            emailVerified: authUser.email_verified_at != null,
-          },
+          user: serializeUser(authUser),
           data: {
             favorites: safeParseJson(row?.favorites_json, []),
             playlists: safeParseJson(row?.playlists_json, []),
@@ -468,6 +439,7 @@ const handler = {
       if (path === '/sync' && request.method === 'PUT') {
         const authUser = await authenticateRequest(request, env);
         if (!authUser) return jsonResponse({ error: 'unauthorized' }, 401);
+        if (authUser.suspended_at != null && path !== '/auth/account') throw new RequestError(403, 'account_suspended');
 
         const syncRateCheck = await checkRateLimit(env, `sync-put:${authUser.id}`, {
           windowMs: 60 * 1000,
@@ -525,13 +497,9 @@ const handler = {
       if (path === '/auth/account' && request.method === 'DELETE') {
         const authUser = await authenticateRequest(request, env);
         if (!authUser) return jsonResponse({ error: 'unauthorized' }, 401);
+        if (authUser.suspended_at != null && path !== '/auth/account') throw new RequestError(403, 'account_suspended');
 
-        await env.DB.batch([
-          env.DB.prepare(`DELETE FROM user_data WHERE user_id = ?1`).bind(authUser.id),
-          env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?1`).bind(authUser.id),
-          env.DB.prepare(`DELETE FROM email_tokens WHERE user_id = ?1`).bind(authUser.id),
-          env.DB.prepare(`DELETE FROM users WHERE id = ?1`).bind(authUser.id),
-        ]);
+        await deleteCommunityAccount(env, authUser.id);
 
         return jsonResponse({ ok: true });
       }

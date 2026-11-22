@@ -1,3 +1,4 @@
+import CommunityProfile from './CommunityProfile';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal,
@@ -19,6 +20,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { Asset } from 'expo-asset';
@@ -33,6 +35,8 @@ import Animated, {
   withSpring,
   runOnJS,
   cancelAnimation,
+  FadeInRight,
+  FadeInLeft,
 } from 'react-native-reanimated';
 import {
   Gesture,
@@ -49,7 +53,8 @@ import AppMenuIcon from './AppMenuIcon';
 import OfflineAudioCard from './OfflineAudioCard';
 import AboutHymnalContent from './AboutHymnalContent';
 import { APPLE_AVATAR_GRADIENT } from './HomeHeaderActions';
-import { SMART_APP_URL } from './AppShareSheet';
+import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
+import { MINISTRIES, CHOIRS } from '../data/communityRules';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
@@ -59,7 +64,7 @@ const WHATSAPP_ICON = require('../assets/images/whatsapp-brand.png');
 const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html?form=audio';
 
 type AuthMode = 'login' | 'register' | 'recovery';
-type SheetPage = 'account' | 'share' | 'settings' | 'downloads' | 'help' | 'about';
+type SheetPage = 'account' | 'profile-details' | 'ministry' | 'choir' | 'church-location' | 'blocks' | 'moderation' | 'share-app' | 'help';
 
 interface AuthSheetProps {
   visible?: boolean;
@@ -70,6 +75,7 @@ interface AuthSheetProps {
 export function AuthSheet({
   visible: propVisible,
   onClose: propOnClose,
+  onOpenShareApp,
 }: AuthSheetProps) {
   const {
     theme,
@@ -94,13 +100,16 @@ export function AuthSheet({
     isLoading,
     updateProfileName,
     syncNow,
+    resolveSyncConflict,
     signOut,
     deleteAccount,
   } = useAuth();
   const { favoriteIds } = useFavorites();
   const { playlists } = usePlaylists();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | null>(null);
 
   const visible = propVisible !== undefined ? propVisible : authSheetVisible;
   const onClose = propOnClose || closeAuthSheet;
@@ -151,6 +160,7 @@ export function AuthSheet({
       setSubmitting(false);
       setShowPassword(false);
       setKeyboardHeight(0);
+      pendingPostCloseRef.current = null;
     }
   }, [visible]);
 
@@ -160,9 +170,16 @@ export function AuthSheet({
     setErrorMessage(null);
     setInfoMessage(null);
     setShowPassword(false);
+    if (!user) {
+      setPage((prev) =>
+        ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'moderation'].includes(prev)
+          ? 'account'
+          : prev
+      );
+    }
     const actionRef = accountActionRef;
     return () => { ++actionRef.current; };
-  }, [mode, user?.id]);
+  }, [mode, user]);
 
   useEffect(() => {
     if (!visible) return;
@@ -191,8 +208,19 @@ export function AuthSheet({
   };
 
   const finishClose = useCallback(() => {
+    const nextAction = pendingPostCloseRef.current;
+    pendingPostCloseRef.current = null;
     onClose();
-  }, [onClose]);
+    if (nextAction === 'settings') {
+      router.navigate('/(tabs)/settings');
+    } else if (nextAction === 'churches') {
+      router.push((user?.churchId ? `/churches?id=${encodeURIComponent(user.churchId)}` : '/churches') as any);
+    } else if (nextAction === 'scan-qr') {
+      router.push('/churches?scan=1' as any);
+    } else if (nextAction === 'share-app' && onOpenShareApp) {
+      onOpenShareApp();
+    }
+  }, [onClose, onOpenShareApp, router, user?.churchId]);
 
   const animateClose = useCallback(() => {
     Keyboard.dismiss();
@@ -202,13 +230,15 @@ export function AuthSheet({
     });
   }, [finishClose, progress]);
 
+  const clearPendingPostClose = useCallback(() => {
+    pendingPostCloseRef.current = null;
+  }, []);
+
   const goSubPage = useCallback((next: SheetPage) => {
     Haptics.selectionAsync();
     setLinkError(false);
-    setShareStatusMessage(null);
-    if (next === 'about') {
-      setAboutParent((prev) => (prev === 'settings' ? 'settings' : 'account'));
-    }
+    setErrorMessage(null);
+    setInfoMessage(null);
     setPage(next);
   }, []);
 
@@ -218,14 +248,10 @@ export function AuthSheet({
       return;
     }
     Haptics.selectionAsync();
-    if (page === 'downloads') {
-      setPage('settings');
-    } else if (page === 'about') {
-      setPage(aboutParent);
-    } else {
-      setPage('account');
-    }
-  }, [aboutParent, animateClose, page]);
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setPage('account');
+  }, [animateClose, page]);
 
   useEffect(() => {
     if (visible) {
@@ -245,6 +271,7 @@ export function AuthSheet({
     .onStart(() => {
       cancelAnimation(progress);
       dragOrigin.value = progress.value;
+      runOnJS(clearPendingPostClose)();
     })
     .onUpdate((event) => {
       progress.value = Math.max(
@@ -252,12 +279,14 @@ export function AuthSheet({
         Math.min(1, dragOrigin.value + event.translationY / travel)
       );
     })
-    .onEnd((event) => {
-      const collapse = shouldCollapsePlayer(
-        progress.value * travel,
-        event.velocityY,
-        travel * 0.45
-      );
+    .onEnd((event, success) => {
+      const collapse =
+        success &&
+        shouldCollapsePlayer(
+          progress.value * travel,
+          event.velocityY,
+          travel * 0.45
+        );
       progress.value = withSpring(
         collapse ? 1 : 0,
         { ...spring, velocity: event.velocityY / travel },
@@ -265,11 +294,6 @@ export function AuthSheet({
           if (finished && collapse) runOnJS(finishClose)();
         }
       );
-    })
-    .onFinalize((_event, success) => {
-      if (!success) {
-        progress.value = withSpring(0, spring);
-      }
     });
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -297,7 +321,15 @@ export function AuthSheet({
     else if (message === 'recovery_unavailable') setErrorMessage(t.authRecoveryUnavailable);
     else if (message === 'verification_unavailable') setErrorMessage(t.authVerificationUnavailable);
     else if (message === 'password_too_short') setErrorMessage(t.authErrorRegisterPasswordLength);
-    else if (message.startsWith('rate_limited:')) {
+    else if (message === 'invalid_credentials') setErrorMessage(t.authErrorInvalidCredentials);
+    else if (message === 'email_exists') setErrorMessage(t.authErrorEmailExists);
+    else if (message === 'invalid_name') setErrorMessage(t.authErrorInvalidName);
+    else if (message === 'invalid_email') setErrorMessage(t.authErrorEmailRequired);
+    else if (message === 'weak_password') setErrorMessage(t.authErrorWeakPassword);
+    else if (message === 'account_suspended') setErrorMessage(t.authErrorAccountSuspended);
+    else if (message === 'auth_failed' || message === 'invalid_sync_data' || message === 'email_request_failed' || message === 'account_refresh_failed') {
+      setErrorMessage(t.authErrorGeneric);
+    } else if (message.startsWith('rate_limited:')) {
       setErrorMessage(t.authRateLimitedError.replace('{secs}', message.split(':')[1] || '60'));
     } else setErrorMessage(message === 'sync_unavailable' ? t.authErrorNetwork : message || t.authErrorNetwork);
   };
@@ -351,6 +383,11 @@ export function AuthSheet({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
+    if (mode === 'register' && name.trim().length < 2) {
+      setErrorMessage(t.authErrorInvalidName);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
     if (!password || (mode === 'register' && password.length < 12)) {
       setErrorMessage(mode === 'register' ? t.authErrorRegisterPasswordLength : t.authErrorPasswordRequired);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -392,6 +429,36 @@ export function AuthSheet({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleResolveSyncConflict = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    const runResolution = async (strategy: 'local' | 'cloud') => {
+      setErrorMessage(null);
+      setInfoMessage(null);
+      try {
+        await resolveSyncConflict(strategy);
+        setInfoMessage(t.authSyncResumed);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (err: any) {
+        displayAuthError(err);
+      }
+    };
+    Alert.alert(t.authSyncConflictTitle, t.authSyncConflictPrompt, [
+      {
+        text: t.authSyncKeepLocal,
+        onPress: () => {
+          void runResolution('local');
+        },
+      },
+      {
+        text: t.authSyncUseCloud,
+        onPress: () => {
+          void runResolution('cloud');
+        },
+      },
+      { text: t.authCancel, style: 'cancel' },
+    ]);
   };
 
   const handleConfirmDeleteAccount = () => {
@@ -506,11 +573,14 @@ export function AuthSheet({
       : mode === 'register'
       ? t.authCreateAccount
       : t.authSignIn,
-    share: es ? 'Compartir Aplicación' : 'Share App',
-    settings: t.homeMenuSettings,
-    downloads: t.homeMenuDownloads,
-    help: t.homeMenuHelp,
-    about: t.homeMenuHistory,
+    'profile-details': es ? 'Cuenta y perfil' : 'Account Details',
+    ministry: es ? 'Ministerio' : 'Ministry',
+    choir: es ? 'Coro' : 'Choir',
+    'church-location': es ? 'Mi iglesia' : 'My Church',
+    blocks: es ? 'Bloqueados' : 'Blocked',
+    moderation: es ? 'Moderación' : 'Moderation',
+    'share-app': es ? 'Compartir app' : 'Share App',
+    help: es ? 'Ayuda' : 'Help',
   };
 
   const initials = user
@@ -521,12 +591,18 @@ export function AuthSheet({
     .replace('{favs}', String(favoriteIds.length))
     .replace('{lists}', String(playlists.length));
 
+  const cardBg = isDarkMode ? '#222225' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '50';
+  const iconTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const mutedText = isDarkMode ? 'rgba(235,235,245,0.58)' : theme.onSurfaceVariant;
+  const dividerColor = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant;
+
   const renderMenuRow = (
     label: string,
     iosIcon: React.ComponentProps<typeof AppMenuIcon>['ios'],
     androidIcon: React.ComponentProps<typeof AppMenuIcon>['android'],
     onPress: () => void,
-    subtitle?: string
+    rightValue?: string
   ) => (
     <Pressable
       accessibilityRole="button"
@@ -535,192 +611,255 @@ export function AuthSheet({
       android_ripple={{ color: theme.primary + '15' }}
       style={({ pressed }) => [
         styles.actionRow,
-        pressed && { backgroundColor: theme.primary + '0D' },
+        pressed && { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D' },
       ]}
     >
-      <AppMenuIcon ios={iosIcon} android={androidIcon} color={theme.primary} />
-      <View style={styles.actionRowTextWrap}>
-        <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
-          {label}
+      <AppMenuIcon
+        ios={iosIcon}
+        android={androidIcon}
+        color={iconTint}
+        size={21}
+        containerSize={24}
+        weight="medium"
+      />
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.actionRowTitle,
+          { color: theme.onSurface, flex: rightValue ? undefined : 1, flexShrink: 0 },
+        ]}
+      >
+        {label}
+      </Text>
+      {!!rightValue && (
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{
+            flex: 1,
+            textAlign: 'right',
+            fontFamily: 'PublicSans_400Regular',
+            fontSize: 15,
+            color: mutedText,
+          }}
+        >
+          {rightValue}
         </Text>
-        {!!subtitle && (
-          <Text style={[styles.actionRowSub, { color: theme.onSurfaceVariant }]}>
-            {subtitle}
-          </Text>
-        )}
-      </View>
+      )}
       <AppMenuIcon
         ios="chevron.right"
         android="chevron-right"
-        color={theme.outline}
-        size={14}
+        color={mutedText}
+        size={13}
+        weight="semibold"
       />
     </Pressable>
   );
 
-  // Unified App Menu section (replaces the old ⋯ button)
+  // Unified App Menu section — crisp single-line iOS Settings rows
   const renderUnifiedAppMenuSection = () => (
     <View
       style={[
         styles.group,
         {
-          backgroundColor: theme.surfaceVariants.containerLow,
-          borderColor: theme.outlineVariant + '50',
+          backgroundColor: cardBg,
+          borderColor: cardBorder,
         },
       ]}
     >
-      {renderMenuRow(
-        t.authShareAppRow,
-        'square.and.arrow.up',
-        'share',
-        () => goSubPage('share'),
-        t.authShareAppSub
+      {!user && (
+        <>
+          {renderMenuRow(
+            es ? 'Iglesias' : 'Churches',
+            'map',
+            'map',
+            () => {
+              pendingPostCloseRef.current = 'churches';
+              animateClose();
+            },
+            es ? 'Mapa' : 'Map'
+          )}
+          <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
+        </>
       )}
-      <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
       {renderMenuRow(
-        t.homeMenuSettings,
+        es ? 'Escanear código QR' : 'Scan QR Code',
+        'qrcode.viewfinder',
+        'qr-code-scanner',
+        () => {
+          pendingPostCloseRef.current = 'scan-qr';
+          animateClose();
+        }
+      )}
+      <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
+      {renderMenuRow(
+        t.homeMenuSettings || (es ? 'Ajustes' : 'Settings'),
         'gearshape',
         'settings',
-        () => goSubPage('settings'),
-        t.homeMenuSettingsSub
+        () => {
+          pendingPostCloseRef.current = 'settings';
+          animateClose();
+        }
       )}
-      <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
+      <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
       {renderMenuRow(
-        t.homeMenuHelp,
+        es ? 'Compartir app' : 'Share App',
+        'square.and.arrow.up',
+        'share',
+        () => {
+          if (onOpenShareApp) {
+            pendingPostCloseRef.current = 'share-app';
+            animateClose();
+          } else {
+            goSubPage('share-app');
+          }
+        }
+      )}
+      <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
+      {renderMenuRow(
+        es ? 'Ayuda' : 'Help',
         'questionmark.circle',
         'help-outline',
-        () => goSubPage('help'),
-        t.homeMenuHelpSub
-      )}
-      <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
-      {renderMenuRow(
-        t.homeMenuHistory,
-        'clock',
-        'history',
-        () => {
-          setAboutParent('account');
-          goSubPage('about');
-        },
-        t.homeMenuHistorySub
+        () => goSubPage('help')
       )}
     </View>
   );
 
-  const renderSignedInAccountSection = () => {
+  const renderProfileDetailsSubPage = () => {
     if (!user) return null;
+    const ministryLabel =
+      (user.ministry &&
+        (MINISTRIES as Record<string, [string, string]>)[user.ministry]?.[es ? 0 : 1]) ||
+      (es ? 'Sin asignar' : 'Not set');
+    const choirLabel =
+      (user.choir &&
+        (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
+      (es ? 'Sin asignar' : 'Not set');
+    const churchLabel = user.churchName || (es ? 'Sin asignar' : 'Not set');
+    const locationLabel = user.location || (es ? 'Sin asignar' : 'Not set');
+    const visibilityLabel = user.showChurchLocation
+      ? es
+        ? 'Visible'
+        : 'Visible'
+      : es
+        ? 'Oculto'
+        : 'Hidden';
+
+    const detailRow = (
+      label: string,
+      value: string,
+      onPress: () => void,
+    ) => (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.actionRow,
+          pressed && {
+            backgroundColor: isDarkMode
+              ? 'rgba(255,255,255,0.06)'
+              : theme.primary + '0D',
+          },
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[styles.actionRowTitle, { color: theme.onSurface, flexShrink: 0 }]}
+        >
+          {label}
+        </Text>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{
+            flex: 1,
+            textAlign: 'right',
+            fontFamily: 'PublicSans_400Regular',
+            fontSize: 15,
+            color: mutedText,
+          }}
+        >
+          {value}
+        </Text>
+        <AppMenuIcon
+          ios="chevron.right"
+          android="chevron-right"
+          color={mutedText}
+          size={13}
+          weight="semibold"
+        />
+      </Pressable>
+    );
+
     return (
       <>
-        {/* Classic Himnario Profile Header Card */}
-        <View
-          style={[
-            styles.profileHeroCard,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
-            },
-          ]}
-        >
+        {/* Clean iOS Apple ID-Style Compact Hero */}
+        <View style={{ alignItems: 'center', paddingVertical: 6, gap: 6 }}>
           <View
-            style={[
-              styles.largeAvatarCircle,
-              {
-                backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
-                borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38',
-              },
-            ]}
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
             <Text
-              style={[
-                styles.largeAvatarInitials,
-                { color: isDarkMode ? '#1A1A1A' : '#FFFFFF' },
-              ]}
+              style={{
+                fontFamily: 'PublicSans_700Bold',
+                fontSize: 23,
+                color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
+                letterSpacing: 0.4,
+              }}
             >
               {initials}
             </Text>
           </View>
-
-          <Text style={[styles.profileHeroName, { color: theme.onSurface }]}>
+          <Text
+            style={{
+              fontFamily: 'Newsreader_700Bold',
+              fontSize: 21,
+              color: theme.onSurface,
+              textAlign: 'center',
+            }}
+          >
             {user.displayName || user.email.split('@')[0]}
           </Text>
-          <Text style={[styles.profileHeroEmail, { color: theme.onSurfaceVariant }]}>
-            {user.email}
-          </Text>
-
-          <View
-            style={[
-              styles.syncPill,
-              {
-                backgroundColor: theme.primary + '16',
-                borderColor: theme.primary + '38',
-              },
-            ]}
-          >
-            <AppMenuIcon
-              ios={isSyncing ? 'arrow.triangle.2.circlepath' : syncBlocked ? 'pause.circle' : 'checkmark.icloud.fill'}
-              android={isSyncing ? 'sync' : syncBlocked ? 'sync-problem' : 'cloud-done'}
-              color={theme.primary}
-              size={16}
-            />
-            <Text style={[styles.syncPillText, { color: theme.primary }]}>
-              {isSyncing ? t.authSyncingStatus : syncBlocked ? t.authSyncPausedStatus : t.authSyncedStatus} · {statsLabel}
-            </Text>
-          </View>
-        </View>
-
-        <View style={[
-          styles.group,
-          { backgroundColor: theme.surfaceVariants.containerLow, borderColor: theme.outlineVariant },
-        ]}>
-          <View style={styles.inputContainer}>
-            <Text accessibilityLiveRegion="polite" style={[styles.inputLabel, { color: theme.onSurface }]}>
-              {user.emailVerified ? t.authEmailVerified : t.authEmailUnverified}
-            </Text>
-            {!user.emailVerified && <Text style={[styles.actionRowSub, { color: theme.onSurfaceVariant }]}>
-              {t.authVerificationHelp}
-            </Text>}
-          </View>
-          {!user.emailVerified && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.authSendVerification}
-              disabled={!!emailAction || submitting || isLoading}
-              onPress={() => handleEmailAction('verification')}
-              style={({ pressed }) => [styles.actionRow, { opacity: emailAction || submitting || isLoading ? 0.65 : pressed ? 0.85 : 1 }]}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text
+              style={{
+                fontFamily: 'PublicSans_400Regular',
+                fontSize: 13.5,
+                color: mutedText,
+              }}
             >
-              <AppMenuIcon ios="envelope" android="mail-outline" color={theme.primary} />
-              <View style={styles.actionRowTextWrap}>
-                <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>{t.authSendVerification}</Text>
-              </View>
-              {emailAction === 'verification' && <ActivityIndicator size="small" color={theme.primary} />}
-            </Pressable>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.authRefreshVerification}
-            disabled={!!emailAction || submitting || isLoading}
-            onPress={() => handleEmailAction('refresh')}
-            style={({ pressed }) => [styles.actionRow, { opacity: emailAction || submitting || isLoading ? 0.65 : pressed ? 0.85 : 1 }]}
-          >
-            <AppMenuIcon ios="arrow.clockwise" android="refresh" color={theme.primary} />
-            <View style={styles.actionRowTextWrap}>
-              <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>{t.authRefreshVerification}</Text>
-            </View>
-            {emailAction === 'refresh' && <ActivityIndicator size="small" color={theme.primary} />}
-          </Pressable>
+              {user.email}
+            </Text>
+            {user.emailVerified && (
+              <AppMenuIcon
+                ios="checkmark.seal.fill"
+                android="verified"
+                color="#34C759"
+                size={15}
+              />
+            )}
+          </View>
         </View>
 
-        {/* Display Name Edit + Sync Now Card */}
+        {/* Name Edit Card */}
         <View
           style={[
             styles.group,
             {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+              paddingVertical: 6,
             },
           ]}
         >
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>
+            <Text style={[styles.inputLabel, { color: mutedText }]}>
               {t.authNameLabel}
             </Text>
             <View style={styles.inlineEditRow}>
@@ -728,7 +867,7 @@ export function AuthSheet({
                 value={profileNameDraft}
                 onChangeText={setProfileNameDraft}
                 placeholder={t.authNamePlaceholder}
-                placeholderTextColor={theme.onSurfaceVariant + '70'}
+                placeholderTextColor={mutedText}
                 autoCapitalize="words"
                 textContentType="name"
                 autoComplete="name"
@@ -737,8 +876,8 @@ export function AuthSheet({
                   styles.inlineTextInput,
                   {
                     color: theme.onSurface,
-                    backgroundColor: theme.surfaceVariants.containerLowest,
-                    borderColor: theme.outlineVariant + '60',
+                    backgroundColor: isDarkMode ? '#141416' : theme.surfaceVariants.containerLowest,
+                    borderColor: cardBorder,
                   },
                 ]}
               />
@@ -760,9 +899,239 @@ export function AuthSheet({
               )}
             </View>
           </View>
+        </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
+        {/* Simple iOS Profile Summary Card (Ministry, Choir, Church, Location) */}
+        <View style={{ gap: 6 }}>
+          <Text
+            style={{
+              fontFamily: 'PublicSans_600SemiBold',
+              fontSize: 12,
+              letterSpacing: 0.9,
+              color: mutedText,
+              paddingHorizontal: 14,
+            }}
+          >
+            {es ? 'INFORMACIÓN DE PERFIL' : 'PROFILE DETAILS'}
+          </Text>
+          <View
+            style={[
+              styles.group,
+              { backgroundColor: cardBg, borderColor: cardBorder },
+            ]}
+          >
+            {detailRow(es ? 'Ministerio' : 'Ministry', ministryLabel, () => goSubPage('ministry'))}
+            <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+            {detailRow(es ? 'Coro' : 'Choir', choirLabel, () => goSubPage('choir'))}
+            <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+            {detailRow(es ? 'Iglesia' : 'Church', churchLabel, () => goSubPage('church-location'))}
+            <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+            {detailRow(es ? 'Ubicación' : 'Location', locationLabel, () => goSubPage('church-location'))}
+            <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+            {detailRow(es ? 'Perfil público' : 'Public profile', visibilityLabel, () => goSubPage('church-location'))}
+          </View>
+        </View>
 
+        {/* Compact Cloud & Verification Card */}
+        <View
+          style={[
+            styles.group,
+            { backgroundColor: cardBg, borderColor: cardBorder },
+          ]}
+        >
+          <View style={styles.actionRow}>
+            <Text
+              numberOfLines={1}
+              style={[styles.actionRowTitle, { color: theme.onSurface, flexShrink: 0 }]}
+            >
+              {es ? 'Estado' : 'Status'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{
+                flex: 1,
+                textAlign: 'right',
+                fontFamily: 'PublicSans_400Regular',
+                fontSize: 14.5,
+                color: mutedText,
+              }}
+            >
+              {user.emailVerified
+                ? `${es ? 'Verificado' : 'Verified'} · ${statsLabel}`
+                : es
+                  ? 'Sin verificar'
+                  : 'Unverified'}
+            </Text>
+          </View>
+          {!user.emailVerified && (
+            <>
+              <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.authSendVerification}
+                disabled={!!emailAction || submitting || isLoading}
+                onPress={() => handleEmailAction('verification')}
+                style={({ pressed }) => [styles.actionRow, { opacity: emailAction || submitting || isLoading ? 0.65 : pressed ? 0.85 : 1 }]}
+              >
+                <AppMenuIcon ios="envelope" android="mail-outline" color={iconTint} size={21} containerSize={24} />
+                <Text style={[styles.actionRowTitle, { color: theme.onSurface, flex: 1 }]}>
+                  {t.authSendVerification}
+                </Text>
+                {emailAction === 'verification' && <ActivityIndicator size="small" color={theme.primary} />}
+              </Pressable>
+              <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.authRefreshVerification}
+                disabled={!!emailAction || submitting || isLoading}
+                onPress={() => handleEmailAction('refresh')}
+                style={({ pressed }) => [styles.actionRow, { opacity: emailAction || submitting || isLoading ? 0.65 : pressed ? 0.85 : 1 }]}
+              >
+                <AppMenuIcon ios="arrow.clockwise" android="refresh" color={iconTint} size={21} containerSize={24} />
+                <Text style={[styles.actionRowTitle, { color: theme.onSurface, flex: 1 }]}>
+                  {t.authRefreshVerification}
+                </Text>
+                {emailAction === 'refresh' && <ActivityIndicator size="small" color={theme.primary} />}
+              </Pressable>
+            </>
+          )}
+        </View>
+
+        {!!infoMessage && (
+          <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
+            {infoMessage}
+          </Text>
+        )}
+        {!!errorMessage && (
+          <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
+            {errorMessage}
+          </Text>
+        )}
+      </>
+    );
+  };
+
+  const renderSignedInAccountSection = () => {
+    if (!user) return null;
+    return (
+      <>
+        {/* Apple Books Compact Contained Account Pill */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${user.displayName || user.email}, ${es ? 'Cuenta y perfil' : 'Account Details'}`}
+          onPress={() => goSubPage('profile-details')}
+          style={({ pressed }) => [
+            styles.group,
+            {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+              opacity: pressed ? 0.85 : 1,
+            },
+          ]}
+        >
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'PublicSans_700Bold',
+                fontSize: 18,
+                color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
+                letterSpacing: 0.4,
+              }}
+            >
+              {initials}
+            </Text>
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: 'PublicSans_500Medium',
+                fontSize: 17,
+                color: theme.onSurface,
+              }}
+            >
+              {user.displayName || user.email.split('@')[0]}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: 'PublicSans_400Regular',
+                fontSize: 13.5,
+                color: mutedText,
+              }}
+            >
+              {user.email}
+            </Text>
+          </View>
+          <AppMenuIcon
+            ios="chevron.right"
+            android="chevron-right"
+            color={mutedText}
+            size={14}
+            weight="semibold"
+          />
+        </Pressable>
+
+        {!user.emailVerified && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => goSubPage('profile-details')}
+            style={[
+              styles.group,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                paddingHorizontal: 18,
+                paddingVertical: 13,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              },
+            ]}
+          >
+            <AppMenuIcon ios="envelope.badge" android="mark-email-unread" color={theme.primary} size={22} />
+            <Text style={{ flex: 1, color: theme.onSurface, fontFamily: 'PublicSans_500Medium', fontSize: 14.5 }}>
+              {t.authEmailUnverified}
+            </Text>
+            <AppMenuIcon ios="chevron.right" android="chevron-right" color={mutedText} size={14} />
+          </Pressable>
+        )}
+
+        <CommunityProfile
+          onOpenSubPage={goSubPage}
+          onOpenChurchesMap={() => {
+            pendingPostCloseRef.current = 'churches';
+            animateClose();
+          }}
+        />
+
+        {/* Standalone Sync Now Pill */}
+        <View
+          style={[
+            styles.group,
+            {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+            },
+          ]}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.authSyncNow}
@@ -770,37 +1139,72 @@ export function AuthSheet({
               Haptics.selectionAsync();
               setErrorMessage(null);
               setInfoMessage(null);
+              if (syncBlocked) {
+                handleResolveSyncConflict();
+                return;
+              }
               try {
                 await syncNow();
               } catch (err: any) {
                 displayAuthError(err);
+                if (err?.message === 'sync_conflict') {
+                  handleResolveSyncConflict();
+                }
               }
             }}
             disabled={isSyncing}
             android_ripple={{ color: theme.primary + '15' }}
             style={({ pressed }) => [
               styles.actionRow,
-              pressed && { backgroundColor: theme.primary + '0D' },
+              pressed && { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D' },
             ]}
           >
             <AppMenuIcon
               ios="arrow.clockwise.icloud"
               android="sync"
-              color={theme.primary}
+              color={iconTint}
+              size={21}
+              containerSize={24}
+              weight="medium"
             />
-            <View style={styles.actionRowTextWrap}>
-              <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
-                {t.authSyncNow}
-              </Text>
-            </View>
+            <Text
+              numberOfLines={1}
+              style={[styles.actionRowTitle, { color: theme.onSurface, flexShrink: 0 }]}
+            >
+              {es ? 'Sincronizar' : 'Sync'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{
+                flex: 1,
+                textAlign: 'right',
+                fontFamily: 'PublicSans_400Regular',
+                fontSize: 15,
+                color: mutedText,
+              }}
+            >
+              {isSyncing
+                ? es
+                  ? 'Sincronizando…'
+                  : 'Syncing…'
+                : syncBlocked
+                  ? es
+                    ? 'En pausa'
+                    : 'Paused'
+                  : es
+                    ? 'Sincronizado'
+                    : 'Synced'}
+            </Text>
             {isSyncing ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : (
               <AppMenuIcon
                 ios="chevron.right"
                 android="chevron-right"
-                color={theme.outline}
-                size={14}
+                color={mutedText}
+                size={13}
+                weight="semibold"
               />
             )}
           </Pressable>
@@ -817,7 +1221,7 @@ export function AuthSheet({
           </Text>
         )}
 
-        {/* Unified App Menu Section (Share App, Settings, Help, History) */}
+        {/* Unified App Menu Section (Help) */}
         {renderUnifiedAppMenuSection()}
 
         {/* Sign Out & Delete Account */}
@@ -825,8 +1229,8 @@ export function AuthSheet({
           style={[
             styles.group,
             {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
             },
           ]}
         >
@@ -844,13 +1248,16 @@ export function AuthSheet({
             android_ripple={{ color: theme.primary + '15' }}
             style={({ pressed }) => [
               styles.actionRow,
-              pressed && { backgroundColor: theme.primary + '0D' },
+              pressed && { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D' },
             ]}
           >
             <AppMenuIcon
               ios="rectangle.portrait.and.arrow.right"
               android="logout"
-              color={theme.primary}
+              color={iconTint}
+              size={24}
+              containerSize={26}
+              weight="medium"
             />
             <View style={styles.actionRowTextWrap}>
               <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
@@ -859,7 +1266,7 @@ export function AuthSheet({
             </View>
           </Pressable>
 
-          <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
           <Pressable
             accessibilityRole="button"
@@ -871,7 +1278,7 @@ export function AuthSheet({
               pressed && { backgroundColor: '#D6454512' },
             ]}
           >
-            <AppMenuIcon ios="trash" android="delete-outline" color="#D64545" />
+            <AppMenuIcon ios="trash" android="delete-outline" color="#D64545" size={24} containerSize={26} weight="medium" />
             <View style={styles.actionRowTextWrap}>
               <Text style={[styles.actionRowTitle, { color: '#D64545' }]}>
                 {t.authDeleteAccount}
@@ -1122,597 +1529,6 @@ export function AuthSheet({
     </>
   );
 
-  // ── Sub-Page: Compartir Aplicación (In-Sheet, Zero Modal Collision) ──────
-  const renderShareSubPage = () => {
-    const cardWidth = Math.max(240, windowWidth - 40);
-    const bannerHeight = Math.round((cardWidth * 630) / 1200);
-    const shareOptions = [
-      {
-        key: 'messages',
-        title: es ? 'Mensajes y más…' : 'Messages & more…',
-        subtitle: es
-          ? 'Compartir enlace por iMessage, SMS o redes sociales'
-          : 'Share link via iMessage, SMS, or social apps',
-        onPress: handleShareMessages,
-        iconBg: isIOS ? 'transparent' : 'rgba(52, 199, 89, 0.16)',
-        iconColor: '#34C759',
-        icon: 'sms' as const,
-        customImage: isIOS ? IMESSAGE_ICON : undefined,
-        customImageSize: 38,
-      },
-      {
-        key: 'whatsapp',
-        title: 'WhatsApp',
-        subtitle: es
-          ? 'Enviar invitación con vista previa a un chat o grupo'
-          : 'Send invite with preview banner to a chat or group',
-        onPress: handleShareWhatsApp,
-        iconBg: 'transparent',
-        iconColor: '#25D366',
-        customImage: WHATSAPP_ICON,
-        customImageSize: 38,
-      },
-      {
-        key: 'share-image',
-        title:
-          shareTab === 'qr'
-            ? es
-              ? 'Compartir imagen del código QR'
-              : 'Share QR code image'
-            : es
-            ? 'Compartir tarjeta promocional'
-            : 'Share promotional banner',
-        subtitle: es
-          ? 'Ideal para estados de WhatsApp, historias o grupos'
-          : 'Great for WhatsApp Status, Stories, or church groups',
-        onPress: handleSharePromoImage,
-        iconBg: theme.primary + '18',
-        iconColor: theme.primary,
-        icon: 'image' as const,
-        loading: sharingImage,
-      },
-      {
-        key: 'copy-link',
-        title: es ? 'Copiar enlace de descarga' : 'Copy download link',
-        subtitle: 'himnarioebp.com/app',
-        onPress: handleCopyShareLink,
-        iconBg: theme.primary + '18',
-        iconColor: theme.primary,
-        icon: 'link' as const,
-      },
-    ];
-
-    return (
-      <View style={{ gap: 13 }}>
-        {/* Segmented Switcher: Tarjeta | Código QR */}
-        <View
-          style={[
-            styles.shareSegmentContainer,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(36,37,31,0.07)',
-            },
-          ]}
-        >
-          <Pressable
-            style={[
-              styles.shareSegmentBtn,
-              shareTab === 'banner' && [
-                styles.shareSegmentBtnActive,
-                { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF' },
-              ],
-            ]}
-            onPress={() => {
-              if (shareTab !== 'banner') {
-                Haptics.selectionAsync();
-                setShareTab('banner');
-              }
-            }}
-          >
-            <MaterialIcons
-              name="featured-play-list"
-              size={15}
-              color={shareTab === 'banner' ? theme.primary : theme.onSurfaceVariant}
-            />
-            <Text
-              style={{
-                fontSize: 13,
-                color: shareTab === 'banner' ? theme.onSurface : theme.onSurfaceVariant,
-                fontFamily:
-                  shareTab === 'banner' ? 'PublicSans_700Bold' : 'PublicSans_500Medium',
-              }}
-              numberOfLines={1}
-            >
-              {es ? 'Tarjeta' : 'Banner'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.shareSegmentBtn,
-              shareTab === 'qr' && [
-                styles.shareSegmentBtnActive,
-                { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF' },
-              ],
-            ]}
-            onPress={() => {
-              if (shareTab !== 'qr') {
-                Haptics.selectionAsync();
-                setShareTab('qr');
-              }
-            }}
-          >
-            <MaterialIcons
-              name="qr-code-2"
-              size={16}
-              color={shareTab === 'qr' ? theme.primary : theme.onSurfaceVariant}
-            />
-            <Text
-              style={{
-                fontSize: 13,
-                color: shareTab === 'qr' ? theme.onSurface : theme.onSurfaceVariant,
-                fontFamily:
-                  shareTab === 'qr' ? 'PublicSans_700Bold' : 'PublicSans_500Medium',
-              }}
-              numberOfLines={1}
-            >
-              {es ? 'Código QR' : 'In-Person QR'}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Banner or QR Card */}
-        {shareTab === 'banner' ? (
-          <Pressable
-            onPress={handleShareMessages}
-            style={[
-              styles.shareBannerCard,
-              {
-                width: cardWidth,
-                backgroundColor: '#FCF9F2',
-                borderColor: isDarkMode
-                  ? 'rgba(255,255,255,0.14)'
-                  : 'rgba(110,22,25,0.14)',
-              },
-            ]}
-          >
-            <Image
-              source={APP_SHARE_BANNER}
-              style={{ width: cardWidth, height: bannerHeight, alignSelf: 'center' }}
-              resizeMode="contain"
-            />
-            <View
-              style={[
-                styles.shareBannerFooter,
-                {
-                  backgroundColor: isDarkMode ? '#1C1C1E' : 'rgba(255,255,255,0.92)',
-                  borderTopColor: isDarkMode
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'rgba(36,37,31,0.08)',
-                },
-              ]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[styles.shareBannerDomain, { color: theme.primary }]}
-                  numberOfLines={1}
-                >
-                  HIMNARIOEBP.COM/APP
-                </Text>
-                <Text
-                  style={[styles.shareBannerTitle, { color: theme.onSurface }]}
-                  numberOfLines={1}
-                >
-                  {es
-                    ? 'Disponible gratis para iPhone y Android'
-                    : 'Available free for iPhone & Android'}
-                </Text>
-              </View>
-              <MaterialIcons
-                name="open-in-new"
-                size={18}
-                color={theme.onSurfaceVariant}
-                style={{ opacity: 0.6 }}
-              />
-            </View>
-          </Pressable>
-        ) : (
-          <View
-            style={[
-              styles.shareQrCard,
-              {
-                width: cardWidth,
-                backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.05)'
-                  : 'rgba(110,22,25,0.04)',
-                borderColor: theme.outlineVariant + '26',
-              },
-            ]}
-          >
-            <View style={styles.shareQrImageWrap}>
-              <Image
-                source={APP_SMART_QR}
-                style={{ width: 156, height: 156 }}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={[styles.shareQrTitle, { color: theme.onSurface }]}>
-              {es ? 'Escanea para descargar' : 'Scan to download'}
-            </Text>
-            <Text style={[styles.shareQrSubtitle, { color: theme.onSurfaceVariant }]}>
-              {es
-                ? 'Pídele a un hermano que apunte con la cámara de su teléfono para instalar la app en iPhone o Android.'
-                : 'Ask someone nearby to point their phone camera here to install on iPhone or Android.'}
-            </Text>
-          </View>
-        )}
-
-        {!!shareStatusMessage && (
-          <View
-            style={[
-              styles.shareStatusBanner,
-              {
-                backgroundColor: theme.primary + '18',
-                borderColor: theme.primary + '38',
-              },
-            ]}
-          >
-            <MaterialIcons name="check-circle" size={16} color={theme.primary} />
-            <Text style={[styles.shareStatusText, { color: theme.primary }]}>
-              {shareStatusMessage}
-            </Text>
-          </View>
-        )}
-
-        <View style={{ gap: 8 }}>
-          {shareOptions.map((opt) => (
-            <Pressable
-              key={opt.key}
-              android_ripple={{ color: theme.primary + '18' }}
-              style={({ pressed }) => [
-                styles.shareOptionRow,
-                {
-                  backgroundColor:
-                    pressed && isIOS
-                      ? theme.surfaceVariants.containerHighest
-                      : theme.surfaceVariants.containerLowest,
-                  borderColor: theme.outlineVariant + '22',
-                },
-              ]}
-              onPress={opt.onPress}
-            >
-              <View style={[styles.shareOptionIconWrap, { backgroundColor: opt.iconBg }]}>
-                {opt.loading ? (
-                  <ActivityIndicator size="small" color={opt.iconColor} />
-                ) : opt.customImage ? (
-                  <Image
-                    source={opt.customImage}
-                    style={{
-                      width: opt.customImageSize,
-                      height: opt.customImageSize,
-                    }}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <MaterialIcons name={opt.icon!} size={22} color={opt.iconColor} />
-                )}
-              </View>
-              <View style={{ flex: 1, gap: 1 }}>
-                <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
-                  {opt.title}
-                </Text>
-                <Text
-                  style={[styles.actionRowSub, { color: theme.onSurfaceVariant }]}
-                  numberOfLines={1}
-                >
-                  {opt.subtitle}
-                </Text>
-              </View>
-              <MaterialIcons
-                name="chevron-right"
-                size={20}
-                color={theme.onSurfaceVariant}
-                style={{ opacity: 0.45 }}
-              />
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // ── Sub-Page: Ajustes (Display, Font Size, Languages, Offline Downloads) ──
-  const renderSettingsSubPage = () => {
-    const pxSize = Math.round(22 * fontSizeMultiplier);
-    return (
-      <>
-        <Text style={[styles.subSectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t.homeMenuDisplay}
-        </Text>
-        <View
-          style={[
-            styles.group,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: isDarkMode }}
-            accessibilityLabel={t.homeMenuDark}
-            onPress={toggleTheme}
-            style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-          >
-            <AppMenuIcon
-              ios="circle.lefthalf.filled"
-              android="contrast"
-              color={theme.primary}
-            />
-            <View style={styles.actionRowTextWrap}>
-              <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
-                {isDarkMode ? t.homeMenuDark : t.homeMenuLight}
-              </Text>
-            </View>
-            <View
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-            >
-              <Switch
-                value={isDarkMode}
-                trackColor={{
-                  false: isIOS ? (isDarkMode ? '#39393D' : '#E9E9EA') : isDarkMode ? 'rgba(255,255,255,0.20)' : theme.outlineVariant + '66',
-                  true: isIOS ? '#34C759' : isDarkMode ? theme.surfaceVariants.container : theme.primary,
-                }}
-                thumbColor={isIOS ? undefined : isDarkMode ? '#FFFFFF' : theme.surfaceVariants.containerHighest}
-                ios_backgroundColor={isDarkMode ? '#39393D' : '#E9E9EA'}
-              />
-            </View>
-          </Pressable>
-
-          <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
-
-          {/* Full Inline Font Size Control (Live Preview + Slider + 1px Steppers) */}
-          <View style={styles.fontControlBlock}>
-            <View style={styles.fontHeaderRow}>
-              <View style={styles.fontTitleLeft}>
-                <AppMenuIcon
-                  ios="textformat.size"
-                  android="format-size"
-                  color={theme.primary}
-                />
-                <Text style={[styles.actionRowTitle, { color: theme.onSurface }]}>
-                  {t.fontSize} · {pxSize} px
-                </Text>
-              </View>
-              {pxSize !== 22 && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setFontSizeMultiplier(1.0);
-                  }}
-                  style={[
-                    styles.fontResetBtn,
-                    { backgroundColor: theme.primary + '18' },
-                  ]}
-                >
-                  <Text style={[styles.fontResetText, { color: theme.primary }]}>
-                    {t.textSizeReset}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-
-            <View
-              style={[
-                styles.fontPreviewCanvas,
-                {
-                  backgroundColor: theme.surfaceVariants.containerLowest,
-                  borderColor: theme.outlineVariant + '26',
-                },
-              ]}
-            >
-              <Text style={[styles.fontPreviewTitle, { color: theme.primary }]}>
-                ¡Cuán Grande es Él!
-              </Text>
-              <Text
-                style={[
-                  styles.fontPreviewText,
-                  {
-                    color: theme.onSurface,
-                    fontSize: Math.min(42, pxSize),
-                    lineHeight: Math.round(Math.min(42, pxSize) * 1.48),
-                  },
-                ]}
-              >
-                Señor, mi Dios, al contemplar los cielos...
-              </Text>
-            </View>
-
-            <View style={styles.fontSliderRow}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Decrease text size"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setFontSizeMultiplier((pxSize - 1) / 22);
-                }}
-                style={[
-                  styles.fontCircleStepBtn,
-                  { backgroundColor: theme.surfaceVariants.container },
-                ]}
-              >
-                <MaterialIcons name="remove" size={20} color={theme.onSurface} />
-              </Pressable>
-
-              <Slider
-                style={styles.fontSlider}
-                minimumValue={12 / 22}
-                maximumValue={64 / 22}
-                step={1 / 22}
-                value={fontSizeMultiplier}
-                onValueChange={setFontSizeMultiplier}
-                minimumTrackTintColor={theme.primary}
-                maximumTrackTintColor={theme.surfaceVariants.container}
-                thumbTintColor={isIOS ? '#FFFFFF' : theme.primary}
-              />
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Increase text size"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setFontSizeMultiplier((pxSize + 1) / 22);
-                }}
-                style={[
-                  styles.fontCircleStepBtn,
-                  { backgroundColor: theme.surfaceVariants.container },
-                ]}
-              >
-                <MaterialIcons name="add" size={20} color={theme.onSurface} />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        <Text style={[styles.subSectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t.homeMenuAppLanguage}
-        </Text>
-        <View
-          style={[
-            styles.group,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
-            },
-          ]}
-        >
-          <View style={styles.languageRow}>
-            {(['es', 'en'] as const).map((val) => {
-              const selected = language === val;
-              return (
-                <Pressable
-                  key={val}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setLanguage(val);
-                  }}
-                  style={[
-                    styles.languageOption,
-                    {
-                      backgroundColor: selected
-                        ? theme.primary
-                        : theme.surfaceVariants.container,
-                      borderColor: selected ? theme.primary : theme.outlineVariant,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.languageText,
-                      { color: selected ? theme.onPrimary : theme.onSurface },
-                    ]}
-                  >
-                    {val === 'es' ? t.spanish : t.english}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <Text style={[styles.subSectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t.homeMenuHymnLanguage}
-        </Text>
-        <View
-          style={[
-            styles.group,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
-            },
-          ]}
-        >
-          <View style={styles.languageRow}>
-            {(['es', 'en'] as const).map((val) => {
-              const selected = hymnLanguage === val;
-              return (
-                <Pressable
-                  key={val}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setHymnLanguage(val);
-                  }}
-                  style={[
-                    styles.languageOption,
-                    {
-                      backgroundColor: selected
-                        ? theme.primary
-                        : theme.surfaceVariants.container,
-                      borderColor: selected ? theme.primary : theme.outlineVariant,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.languageText,
-                      { color: selected ? theme.onPrimary : theme.onSurface },
-                    ]}
-                  >
-                    {val === 'es' ? t.spanish : t.english}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant }]}>
-          {t.homeMenuLanguageHint}
-        </Text>
-
-        <Text style={[styles.subSectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t.homeMenuDetails}
-        </Text>
-        <View
-          style={[
-            styles.group,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '50',
-            },
-          ]}
-        >
-          {renderMenuRow(
-            t.homeMenuDownloads,
-            'arrow.down.circle',
-            'download',
-            () => goSubPage('downloads'),
-            t.homeMenuDownloadsSub
-          )}
-          <View style={[styles.divider, { backgroundColor: theme.outlineVariant }]} />
-          {renderMenuRow(
-            t.homeMenuHistory,
-            'clock',
-            'history',
-            () => {
-              setAboutParent('settings');
-              goSubPage('about');
-            },
-            t.homeMenuHistorySub
-          )}
-        </View>
-      </>
-    );
-  };
-
   // ── Sub-Page: Consejos y Ayuda ───────────────────────────────────────────
   const renderHelpSubPage = () => (
     <>
@@ -1806,16 +1622,27 @@ export function AuthSheet({
 
   const renderPageContent = () => {
     switch (page) {
-      case 'share':
-        return renderShareSubPage();
-      case 'settings':
-        return renderSettingsSubPage();
-      case 'downloads':
-        return <OfflineAudioCard />;
+      case 'profile-details':
+        return renderProfileDetailsSubPage();
+      case 'ministry':
+      case 'choir':
+      case 'church-location':
+      case 'blocks':
+      case 'moderation':
+        return (
+          <CommunityProfile
+            subPage={page}
+            onBack={handleBackOrClose}
+            onOpenChurchesMap={() => {
+              pendingPostCloseRef.current = 'churches';
+              animateClose();
+            }}
+          />
+        );
+      case 'share-app':
+        return <AppShareContent embedded />;
       case 'help':
         return renderHelpSubPage();
-      case 'about':
-        return <AboutHymnalContent />;
       case 'account':
       default:
         return user
@@ -1828,8 +1655,69 @@ export function AuthSheet({
   const availableHeight =
     keyboardHeight > 0
       ? windowHeight - keyboardHeight - topSafeLimit
-      : windowHeight * 0.9;
-  const sheetMaxHeight = Math.max(260, Math.min(availableHeight, 720));
+      : windowHeight * 0.92;
+  const sheetMaxHeight = Math.max(300, Math.min(availableHeight, 840));
+  const sheetBg = isDarkMode ? '#141416' : '#F6F3EC';
+  const glassIconColor = isDarkMode ? '#FFFFFF' : theme.onSurface;
+
+  const headerBar = (
+    <View style={[styles.header, isIOS && { paddingTop: 14, paddingBottom: 10, paddingHorizontal: 18 }]}>
+      {page !== 'account' ? (
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={56}
+          style={styles.glassCircleBtn}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.homeMenuBack}
+            onPress={handleBackOrClose}
+            style={styles.glassCircleHit}
+          >
+            <AppMenuIcon
+              ios="chevron.left"
+              android="arrow-back"
+              color={glassIconColor}
+              size={18}
+              weight="semibold"
+            />
+          </Pressable>
+        </GlassSurface>
+      ) : (
+        <View style={styles.glassCircleSpacer} />
+      )}
+
+      <Text
+        numberOfLines={1}
+        style={[styles.headerTitle, { color: theme.onSurface }]}
+      >
+        {pageTitles[page]}
+      </Text>
+
+      <GlassSurface
+        isInteractive
+        glassEffectStyle="regular"
+        intensity={56}
+        style={styles.glassCircleBtn}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.close}
+          onPress={animateClose}
+          style={styles.glassCircleHit}
+        >
+          <AppMenuIcon
+            ios="xmark"
+            android="close"
+            color={glassIconColor}
+            size={17}
+            weight="semibold"
+          />
+        </Pressable>
+      </GlassSurface>
+    </View>
+  );
 
   return (
     <Modal
@@ -1869,75 +1757,26 @@ export function AuthSheet({
           </Animated.View>
 
           <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
-            <GlassSurface
-              stableBackdrop
-              intensity={88}
-              tonalColor={theme.surfaceVariants.containerHigh}
+            <View
               style={[
                 styles.sheet,
                 {
+                  backgroundColor: sheetBg,
                   maxHeight: sheetMaxHeight,
+                  marginBottom: !isIOS && keyboardHeight > 0 ? keyboardHeight : 0,
                   paddingBottom: keyboardHeight > 0 ? 8 : Math.max(insets.bottom, 18),
+                  overflow: 'hidden',
                 },
               ]}
             >
               <GestureDetector gesture={pan}>
-                <View
-                  style={[
-                    styles.dragZone,
-                    {
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: isDarkMode
-                        ? 'rgba(255,255,255,0.10)'
-                        : theme.outlineVariant + '55',
-                    },
-                  ]}
-                >
+                <View style={styles.dragZone}>
                   <View style={styles.handleWrap}>
                     <View
                       style={[styles.handle, { backgroundColor: theme.outline }]}
                     />
                   </View>
-                  <View style={styles.header}>
-                    {page !== 'account' ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t.homeMenuBack}
-                        onPress={handleBackOrClose}
-                        style={styles.headerLeftButton}
-                      >
-                        <AppMenuIcon
-                          ios="chevron.left"
-                          android="arrow-back"
-                          color={theme.primary}
-                          size={18}
-                        />
-                        <Text style={[styles.backText, { color: theme.primary }]}>
-                          {t.homeMenuBack}
-                        </Text>
-                      </Pressable>
-                    ) : (
-                      <View style={styles.headerSpacer} />
-                    )}
-
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.headerTitle, { color: theme.onSurface }]}
-                    >
-                      {pageTitles[page]}
-                    </Text>
-
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={t.done}
-                      onPress={animateClose}
-                      style={styles.headerRightButton}
-                    >
-                      <Text style={[styles.doneText, { color: theme.primary }]}>
-                        {t.done}
-                      </Text>
-                    </Pressable>
-                  </View>
+                  {headerBar}
                 </View>
               </GestureDetector>
 
@@ -1948,9 +1787,15 @@ export function AuthSheet({
                 keyboardDismissMode={isIOS ? 'interactive' : 'on-drag'}
                 contentContainerStyle={styles.scrollContent}
               >
-                {renderPageContent()}
+                <Animated.View
+                  key={page}
+                  entering={page === 'account' ? FadeInLeft.duration(170) : FadeInRight.duration(190)}
+                  style={{ gap: 14 }}
+                >
+                  {renderPageContent()}
+                </Animated.View>
               </ScrollView>
-            </GlassSurface>
+            </View>
           </Animated.View>
         </KeyboardAvoidingView>
       </GestureHandlerRootView>
@@ -1992,17 +1837,35 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   header: {
-    minHeight: 46,
-    paddingHorizontal: 14,
+    minHeight: 52,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  glassCircleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassCircleHit: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassCircleSpacer: {
+    width: 40,
+    height: 40,
+  },
   headerSpacer: {
-    minWidth: 74,
+    minWidth: 40,
   },
   headerLeftButton: {
-    minWidth: 74,
+    minWidth: 40,
     minHeight: 40,
     paddingHorizontal: 4,
     flexDirection: 'row',
@@ -2010,7 +1873,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerRightButton: {
-    minWidth: 74,
+    minWidth: 40,
     minHeight: 40,
     paddingHorizontal: 6,
     flexDirection: 'row',
@@ -2024,7 +1887,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontFamily: 'Newsreader_600SemiBold',
+    fontFamily: 'Newsreader_700Bold',
     fontSize: 19,
   },
   doneText: {
@@ -2033,7 +1896,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 6,
+    paddingTop: 8,
     paddingBottom: 24,
     gap: 14,
   },
@@ -2063,7 +1926,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   group: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
@@ -2221,29 +2084,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   actionRow: {
-    minHeight: 52,
+    minHeight: 49,
     paddingHorizontal: 16,
     paddingVertical: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 13,
   },
   actionRowTextWrap: {
     flex: 1,
     gap: 2,
   },
   actionRowTitle: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 15,
+    fontFamily: 'PublicSans_400Regular',
+    fontSize: 16.5,
   },
   actionRowSub: {
     fontFamily: 'PublicSans_400Regular',
-    fontSize: 12,
+    fontSize: 13,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 46,
-    opacity: 0.6,
+    marginLeft: 56,
   },
   subSectionLabel: {
     fontFamily: 'PublicSans_700Bold',

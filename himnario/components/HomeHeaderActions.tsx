@@ -208,24 +208,14 @@ export default function HomeHeaderActions({
       style={circleButtonStyle}
     >
       {userInitials ? (
-        <View
+        <Text
           style={[
-            styles.classicAvatarCircle,
-            {
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.12)' : theme.primary + '16',
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.18)' : theme.primary + '32',
-            },
+            styles.classicAvatarInitials,
+            { color: isDarkMode ? '#FDF9F2' : theme.primary },
           ]}
         >
-          <Text
-            style={[
-              styles.classicAvatarInitials,
-              { color: isDarkMode ? '#FDF9F2' : theme.primary },
-            ]}
-          >
-            {userInitials}
-          </Text>
-        </View>
+          {userInitials}
+        </Text>
       ) : (
         <AppMenuIcon
           ios="person.crop.circle"
@@ -346,8 +336,9 @@ const styles = StyleSheet.create({
   },
   classicAvatarInitials: {
     fontFamily: 'PublicSans_700Bold',
-    fontSize: 15,
-    letterSpacing: 0.4,
+    fontSize: 16,
+    letterSpacing: 0.5,
     includeFontPadding: false,
+    textAlign: 'center',
   },
 });

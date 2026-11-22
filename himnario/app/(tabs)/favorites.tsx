@@ -34,6 +34,7 @@ import { useNowPlaying } from '../../context/NowPlayingContext';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 
 const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
+const SYSTEM_FONT = Platform.OS === 'ios' ? undefined : 'sans-serif';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -91,40 +92,43 @@ export default function FavoritesScreen() {
   // ── Shared scroll content ─────────────────────────────────────────────────
   const scrollContent = (
     <>
-      {/* Sub Tabs */}
+      {/* Sub Tabs (matching Himnos / Estribillos / Índice underlined tab style with native SF Pro / Roboto) */}
       <View style={styles.subTabBar}>
-        <TouchableOpacity
-          style={[
-            styles.subTabItem,
-            activeTab === 'favorites' && [styles.subTabActive, { borderColor: theme.primary }],
-          ]}
-          onPress={() => setActiveTab('favorites')}
-        >
-          <Text
-            style={[styles.subTabText, { color: activeTab === 'favorites' ? theme.primary : theme.onSurfaceVariant }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            {t.myFavorites}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.subTabItem,
-            activeTab === 'playlists' && [styles.subTabActive, { borderColor: theme.primary }],
-          ]}
-          onPress={() => setActiveTab('playlists')}
-        >
-          <Text
-            style={[styles.subTabText, { color: activeTab === 'playlists' ? theme.primary : theme.onSurfaceVariant }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            {t.playlistsTitle}
-          </Text>
-        </TouchableOpacity>
+        {(
+          [
+            { key: 'favorites', label: t.myFavorites },
+            { key: 'playlists', label: t.playlistsTitle },
+          ] as const
+        ).map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.subTabItem}
+              onPress={() => {
+                if (activeTab === tab.key) return;
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveTab(tab.key);
+              }}
+            >
+              <Text
+                style={[
+                  styles.subTabText,
+                  active && styles.subTabActiveText,
+                  { color: active ? theme.primary : theme.onSurfaceVariant },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
+                {tab.label}
+              </Text>
+              {active && (
+                <View style={[styles.activeIndicator, { backgroundColor: theme.primary }]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Title */}
@@ -379,8 +383,8 @@ const styles = StyleSheet.create({
   subTabBar: {
     flexDirection: 'row',
     marginBottom: 24,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(150,150,150,0.15)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#0000001A',
   },
   subTabItem: {
     flex: 1,
@@ -388,16 +392,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 2,
-    borderColor: 'transparent',
-  },
-  subTabActive: {
-    borderColor: '#6e1619',
+    position: 'relative',
   },
   subTabText: {
-    fontFamily: 'PublicSans_600SemiBold',
-    fontSize: 14,
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '500',
+    fontSize: 15.5,
+    letterSpacing: -0.2,
     textAlign: 'center',
+  },
+  subTabActiveText: {
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '700',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: -1,
+    left: 16,
+    right: 16,
+    height: 3,
+    borderRadius: 3,
   },
   pageHeader: {
     marginBottom: 48,
@@ -417,8 +431,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pageSubhead: {
-    fontFamily: 'PublicSans_400Regular',
-    fontSize: 16,
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '400',
+    fontSize: 15.5,
+    letterSpacing: -0.15,
     textAlign: 'center',
     opacity: 0.8,
   },

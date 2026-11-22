@@ -143,16 +143,15 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
   const handleSwipeOpen = useCallback(() => {
     if (transitionPreview || !currentHymnId) return;
     suppressTapUntilRef.current = Date.now() + 350;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     openPlayer(String(currentHymnId));
   }, [transitionPreview, currentHymnId, openPlayer]);
 
   const handleCommitTrackSwipe = useCallback((direction: 1 | -1) => {
     suppressTapUntilRef.current = Date.now() + 350;
     if (direction === 1) {
-      skipNext();
+      skipNext({ silent: true });
     } else {
-      skipPrev();
+      skipPrev({ silent: true });
     }
     // Safety fallback if the queue could not advance
     if (commitFallbackTimerRef.current) clearTimeout(commitFallbackTimerRef.current);

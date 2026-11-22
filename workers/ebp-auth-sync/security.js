@@ -91,8 +91,8 @@ export function secureResponse(request, response) {
   headers.delete('Access-Control-Allow-Origin');
   const origin = request.headers.get('Origin');
   if (['https://himnarioebp.com', 'https://www.himnarioebp.com', 'https://security-auth.ebp-himnario.pages.dev'].includes(origin)) headers.set('Access-Control-Allow-Origin', origin);
-  headers.set('Vary', 'Origin');
-  headers.set('Cache-Control', 'no-store');
+  headers.set('Vary', 'Origin, Authorization');
+  if (request.headers.has('Authorization') || request.method !== 'GET' || !/^\/verses\/[a-z0-9-]+\/summary$/.test(new URL(request.url).pathname) || response.status !== 200) headers.set('Cache-Control', 'no-store');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'no-referrer');
   return new Response(response.body, { status: response.status, headers });

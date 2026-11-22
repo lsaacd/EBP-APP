@@ -17,11 +17,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Platform,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { MenuView } from '@react-native-menu/menu';
 import { useTheme } from '../../theme/ThemeContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { getLocalizedHymn } from '../../data/alabanzasEnglish';
@@ -37,6 +39,8 @@ import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import TextSizeSheet from '../../components/TextSizeSheet';
 import ProjectorModal from '../../components/ProjectorModal';
 import ShareSheet from '../../components/ShareSheet';
+import VerseDiscussionSheet from '../../components/VerseDiscussionSheet';
+import AppMenuIcon from '../../components/AppMenuIcon';
 import WebIcon from '../../components/WebIcon';
 import AndroidReaderControls from '../../components/AndroidReaderControls';
 import GlassSurface from '../../components/GlassSurface';
@@ -44,6 +48,7 @@ import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import { sendFeedbackEmail } from '../../utils/feedback';
+import { useHymnCommunity } from '../../utils/hymnCommunity';
 import PageFlipTransition, { type FlipDirection } from '../../components/PageFlipTransition';
 
 // Module-level constants — defined outside the component so they are never
@@ -91,8 +96,9 @@ export default function HymnDetail() {
 
   const hymnList = useMemo(() => {
     if (activePlaylist) {
+      const combined = [...hymnsData, ...estribillosData];
       return activePlaylist.hymnIds.map((hId: string) => {
-        return allHymns.find(h => String(h.id) === hId);
+        return combined.find(h => String(h.id) === String(hId));
       }).filter(Boolean);
     }
     return allHymns;
@@ -111,7 +117,16 @@ export default function HymnDetail() {
   const [textSizeSheetVisible, setTextSizeSheetVisible] = useState(false);
   const [projectorVisible, setProjectorVisible] = useState(false);
   const [shareSheetVisible, setShareSheetVisible] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
+  const es = language === 'es';
+  const {
+    commentVerseId,
+    summary: hymnSummary,
+    isAdmin,
+    react: reactToHymn,
+    refresh: refreshHymnCommunity,
+  } = useHymnCommunity(String(id));
 
   // Hard cooldown — disables buttons for 1s after any tap
   const [navDisabled, setNavDisabled] = useState(false);
@@ -205,7 +220,6 @@ export default function HymnDetail() {
   // background colour actually changes — prevents an infinite setState loop
   // that occurs when a fresh object is passed to Stack.Screen on every render.
   const screenOptions = useMemo(() => ({
-    presentation: 'modal' as const,
     animation: 'fade' as const,
     gestureEnabled: false,
     headerShown: false,
@@ -349,13 +363,103 @@ export default function HymnDetail() {
             <TouchableOpacity style={styles.iconBtn} onPress={() => setPlaylistModalVisible(true)}>
               {Platform.OS === 'android' ? <WebIcon name="list" color={theme.primary} size={26} /> : <MaterialIcons name="playlist-add" size={28} color={theme.primary} />}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => handleBookmark(hymn)}>
-              <MaterialIcons
-                name={isFavorite(String(hymn.id)) ? 'bookmark' : 'bookmark-border'}
-                size={24}
-                color={isFavorite(String(hymn.id)) ? theme.primary : theme.primary}
-              />
-            </TouchableOpacity>
+            <MenuView
+              themeVariant={isDarkMode ? 'dark' : 'light'}
+              shouldOpenOnLongPress={false}
+              actions={[
+                {
+                  id: 'favorite',
+                  title: isFavorite(String(hymn.id))
+                    ? es
+                      ? 'Guardado'
+                      : 'Saved'
+                    : es
+                      ? 'Guardar'
+                      : 'Save',
+                  state: isFavorite(String(hymn.id)) ? 'on' : 'off',
+                  image: Platform.select({
+                    ios: isFavorite(String(hymn.id)) ? 'bookmark.fill' : 'bookmark',
+                    default: undefined,
+                  }),
+                  imageColor: isFavorite(String(hymn.id)) ? theme.primary : theme.onSurface,
+                },
+                {
+                  id: 'like',
+                  title: `${es ? 'Me gusta' : 'Like'}${
+                    hymnSummary.likesCount > 0 ? ` (${hymnSummary.likesCount})` : ''
+                  }`,
+                  state: hymnSummary.myReaction === 1 ? 'on' : 'off',
+                  image: Platform.select({
+                    ios: hymnSummary.myReaction === 1 ? 'hand.thumbsup.fill' : 'hand.thumbsup',
+                    default: undefined,
+                  }),
+                  imageColor: hymnSummary.myReaction === 1 ? theme.primary : theme.onSurface,
+                },
+                {
+                  id: 'dislike',
+                  title: `${es ? 'No me gusta' : 'Dislike'}${
+                    isAdmin &&
+                    typeof hymnSummary.dislikesCount === 'number' &&
+                    hymnSummary.dislikesCount > 0
+                      ? ` (${hymnSummary.dislikesCount})`
+                      : ''
+                  }`,
+                  state: hymnSummary.myReaction === -1 ? 'on' : 'off',
+                  image: Platform.select({
+                    ios: hymnSummary.myReaction === -1 ? 'hand.thumbsdown.fill' : 'hand.thumbsdown',
+                    default: undefined,
+                  }),
+                  imageColor: hymnSummary.myReaction === -1 ? theme.primary : theme.onSurface,
+                },
+                {
+                  id: 'comments',
+                  title: `${es ? 'Comentarios' : 'Comments'}${
+                    hymnSummary.commentsCount > 0 ? ` (${hymnSummary.commentsCount})` : ''
+                  }`,
+                  image: Platform.select({
+                    ios: 'bubble.left',
+                    default: undefined,
+                  }),
+                  imageColor: theme.onSurface,
+                },
+              ]}
+              onPressAction={({ nativeEvent }) => {
+                const action = nativeEvent.event;
+                if (action === 'favorite') {
+                  handleBookmark(hymn);
+                } else if (action === 'like') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  reactToHymn(1);
+                } else if (action === 'dislike') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  reactToHymn(-1);
+                } else if (action === 'comments') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setCommentsOpen(true);
+                }
+              }}
+            >
+              <View
+                style={styles.iconBtn}
+                accessibilityRole="button"
+                accessibilityLabel={es ? 'Comunidad y favoritos' : 'Community and favorites'}
+              >
+                <AppMenuIcon
+                  ios={
+                    isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                      ? 'cloud.fill'
+                      : 'cloud'
+                  }
+                  android={
+                    isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                      ? 'cloud'
+                      : 'cloud-queue'
+                  }
+                  size={23}
+                  color={theme.primary}
+                />
+              </View>
+            </MenuView>
             <TouchableOpacity style={styles.iconBtn} onPress={() => handleShare(hymn)}>
               {Platform.OS === 'android' ? <WebIcon name="share" color={theme.primary} size={24} /> : <MaterialIcons name="share" size={24} color={theme.primary} />}
             </TouchableOpacity>
@@ -619,6 +723,28 @@ export default function HymnDetail() {
         hymn={hymn}
       />
 
+      {/* ─── Hymn Comments Discussion Sheet ──────────────── */}
+      <VerseDiscussionSheet
+        visible={commentsOpen}
+        onClose={() => {
+          setCommentsOpen(false);
+          void refreshHymnCommunity();
+        }}
+        verse={{
+          id: commentVerseId,
+          es: { ref: `${hymn.number} · ${hymn.title}`, text: '' },
+          en: { ref: `${hymn.number} · ${hymn.title}`, text: '' },
+        }}
+        titleOverride={{
+          es: 'Comentarios del himno',
+          en: 'Hymn comments',
+        }}
+        subtitleOverride={`${String(id).startsWith('E') ? 'Coro' : 'Himno'} ${hymn.number} · ${hymn.title}`}
+        onChanged={() => {
+          void refreshHymnCommunity();
+        }}
+      />
+
     </View>
   );
 }
@@ -798,7 +924,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    width: windowWidth - 32,
+    alignSelf: 'stretch',
+    marginHorizontal: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 100,

@@ -1,3 +1,4 @@
+import {lyricsNavigation} from '../utils/playerPresentation';
 /**
  * RootLayout component — The entry point for the application's routing and global providers.
  *
@@ -23,10 +24,15 @@ import {
   Newsreader_700Bold_Italic,
 } from '@expo-google-fonts/newsreader';
 import {
+  SourceSerif4_500Medium,
+  SourceSerif4_600SemiBold,
+} from '@expo-google-fonts/source-serif-4';
+import {
   PublicSans_400Regular,
   PublicSans_500Medium,
   PublicSans_600SemiBold,
   PublicSans_700Bold,
+  PublicSans_800ExtraBold,
 } from '@expo-google-fonts/public-sans';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
@@ -53,13 +59,11 @@ import MusicPlayer from '../components/MusicPlayer';
 // The background playback service is now registered in the root index.js
 
 // Keep the native splash visible while fonts load.
-// Track success so we only call hideAsync when it's safe.
-let splashReady = false;
-if (Platform.OS !== 'web') {
-  SplashScreen.preventAutoHideAsync()
-    .then(() => { splashReady = true; })
-    .catch(() => { });
-}
+// Hold the preventAutoHideAsync promise so hideAsync always waits for it to settle.
+const splashPrevented: Promise<unknown> =
+  Platform.OS !== 'web'
+    ? SplashScreen.preventAutoHideAsync().catch(() => {})
+    : Promise.resolve();
 
 // JS-side splash — shown in Expo Go / fast-refresh while fonts are loading.
 // Mirrors the native splash exactly: logo centered on Sacred Ink cream/dark bg.
@@ -103,6 +107,7 @@ function ThemedStack() {
   const isIOS = Platform.OS === 'ios';
   const isPad = isIOS && Boolean((Platform as any).isPad);
   const isPlaylist = pathname.startsWith('/playlist/');
+  const isChurches = pathname === '/churches';
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
@@ -154,8 +159,8 @@ function ThemedStack() {
 
   let miniPlayerBottom: number;
 
-  if (isPlaylist) {
-    // Playlist page has no bottom tab bar or tool bar at all
+  if (isPlaylist || isChurches) {
+    // Playlist & Churches pages have no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn) {
     // On iPhone, iOS tab bar retains its 49pt height at the bottom.
@@ -173,7 +178,7 @@ function ThemedStack() {
     <View style={{ flex: 1 }}>
       {/* Status bar text colour tracks the APP's theme, not the system theme. */}
       <StatusBar
-        style={isDarkMode ? 'light' : 'dark'}
+        style={showFullPlayer || isDarkMode ? 'light' : 'dark'}
         translucent
         backgroundColor="transparent"
       />
@@ -197,10 +202,13 @@ function ThemedStack() {
 
         {/* ── Hymn detail — has its own sub-layout (hymn/_layout.tsx) ───── */}
         <Stack.Screen name="hymn" options={{ animation: 'fade_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
+
+        {/* ── Verified Churches Map & Directory — native iOS push ────────── */}
+        <Stack.Screen name="churches" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
-      {currentHymnId && (!showFullPlayer || !isIOS) && (
+      {currentHymnId && (
         <View
           pointerEvents={showFullPlayer ? 'none' : 'auto'}
           accessibilityElementsHidden={showFullPlayer}
@@ -208,19 +216,24 @@ function ThemedStack() {
           onLayout={event => setMiniPlayerHeight(event.nativeEvent.layout.height)}
           style={{ position: 'absolute', left: 0, right: 0, bottom: miniPlayerBottom, zIndex: 50, opacity: isIOS ? 1 : (showFullPlayer ? 0 : 1) }}
         >
-          <MiniPlayer showWhileExpanded={!isIOS} />
+          <MiniPlayer showWhileExpanded />
         </View>
       )}
 
-      {/* ── Global Music Player Modal ──────────────────────────────────── */}
-      {currentHymnId && showFullPlayer && (
+      {/* ── Persistent Music Player Overlay ──────────────────────────────────── */}
+      {currentHymnId && (
         <MusicPlayer
-          visible={true}
+          visible={showFullPlayer}
           miniPlayerBottom={miniPlayerBottom}
           miniPlayerHeight={miniPlayerHeight}
           hymnId={currentHymnId}
           onClose={() => closeFullPlayer()}
-          onViewLyrics={(id) => router.push(`/hymn/${id}`)}
+          onViewLyrics={(id) => {
+            const target = `/hymn/${id}` as const;
+            const action = lyricsNavigation(pathname,id);
+            if (action === 'replace') router.replace(target);
+            else if (action === 'push') router.push(target);
+          }}
         />
       )}
 
@@ -238,26 +251,25 @@ export default function RootLayout() {
     Newsreader_600SemiBold,
     Newsreader_700Bold,
     Newsreader_700Bold_Italic,
+    SourceSerif4_500Medium,
+    SourceSerif4_600SemiBold,
     PublicSans_400Regular,
     PublicSans_500Medium,
     PublicSans_600SemiBold,
     PublicSans_700Bold,
+    PublicSans_800ExtraBold,
   });
 
   useEffect(() => {
     if (fontError) {
       console.error('[RootLayout] Font load error:', fontError);
-      if (splashReady) {
-        SplashScreen.hideAsync().catch(() => { });
-      }
     }
-  }, [fontError]);
-
-  useEffect(() => {
-    if (fontsLoaded && splashReady) {
-      SplashScreen.hideAsync().catch(() => { });
+    if ((fontsLoaded || fontError) && Platform.OS !== 'web') {
+      void splashPrevented.finally(() => {
+        SplashScreen.hideAsync().catch(() => {});
+      });
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
   // Handle TrackPlayer's automatic notification click deep link
   useEffect(() => {

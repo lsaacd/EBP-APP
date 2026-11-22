@@ -1,5 +1,43 @@
 # Himnario El Buen Pastor
 
+## November 22, 2026 — Current Production State (`2.0.0`, `runtimeVersion: "2.0.0-media-3"`, iOS Build 30)
+
+All November 22 features, backend migrations (`0003`–`0008`), Cloudflare Worker & Pages updates, and a **full EAS iOS production native rebuild (Build #30)** are live / uploaded to App Store Connect / TestFlight:
+
+- **iOS Native Production Build #30 (`runtimeVersion: "2.0.0-media-3"`):** EAS Build [`b6501dac-6ab5-4a5f-86e1-1740ce1036d3`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/b6501dac-6ab5-4a5f-86e1-1740ce1036d3) · App Store Connect auto-submission [`8a54ce14-8c49-4b9f-a352-20a9306cc064`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/8a54ce14-8c49-4b9f-a352-20a9306cc064). Includes new native modules `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, and custom local Swift module `himnario/modules/apple-look-around` (`MKLookAroundViewController`).
+- **Cloudflare Worker & D1 (`ebp-himnario-sync`):** Deployed version `3e08460e-b5b5-4f99-97f1-eaa8bac1365b` with `env.MEDIA_BUCKET` (`ebp-himnario-audio`) R2 binding and D1 migrations `0003`–`0008` applied on `ebp-himnario-db`. First verified congregation seeded live: **IDDV El Buen Pastor — Riverbank** (`3109 Santa Fe St, Riverbank, CA 95367`, `Co-Pastor Azael Tapia`, two optimized photos on R2).
+- **Cloudflare Pages (`himnarioebp.com`):** Deployed `972eec98.ebp-himnario.pages.dev` with updated anonymous bilingual [privacy.html](docs/privacy.html) and [terms.html](docs/terms.html) (personal name removed; Camera, Photo Library, Location, R2 photo moderation, QR codes, and comment sorting/visibility disclosed).
+- **Key Features Shipped (Nov 20–22):**
+  1. **True Native In-App Apple Maps Look Around (iOS 16+) + Android Google Street View** on verified church cards (`himnario/modules/apple-look-around/`, `himnario/app/churches.tsx`).
+  2. **Custom Cross-Free Sanctuary Map Pins** (`church-pin*.png`, `church-pin-selected*.png`) + viewport pin clustering (`utils/churchMapUtils.ts`) + Riverbank church seeded live.
+  3. **Multi-Photo Camera & Gallery Uploader + Admin Photo Manager:** Max **5 photos** for user church submissions, max **10 photos** for Admin (`POST /churches/photos/upload` with magic-byte check, client-side resize/EXIF-strip, swipeable carousel + fullscreen viewer, `★ Portada` cover selection, `✕` deletion, and automatic R2 cleanup on rejection/deletion).
+  4. **In-App QR Code Scanner (`expo-camera`) & Church QR Share Modal** for hymn & church deep links.
+  5. **Unified "Mi iglesia" & "Iglesias (Mapa)" + Cloud Profile Sync (`users.church_id`):** Tapping **"Vincular mi iglesia"** syncs `churchId`, `churchName`, and `location` to cloud profile and shows **"✓ Tu iglesia"**.
+  6. **YouTube Music-Style Comments Sheet (`VerseDiscussionSheet.tsx`):** Full-sheet swipe-down from anywhere when scrolled to top, `(i)` info button, `Destacados (Top)` vs `Más recientes (Newest)` sorting (`?sort=top|newest`), and church-adapted respectful Community Guidelines banner linking to `https://himnarioebp.com/terms.html#community`.
+  7. **Audio End-of-Track Freeze Deadlock & 24 App-Wide Stability Fixes + Sync Conflict Resolution (`resolveSyncConflict`)**.
+- **Android Status:** Android still needs a fresh `preview-arm64` / `production` native rebuild on `2.0.0-media-3` to pick up `react-native-maps`, `expo-location`, `expo-camera`, `expo-image-picker`, and `expo-image-manipulator`.
+- **Validation:** `npx --prefix himnario tsc -p himnario/tsconfig.json --noEmit` (0 errors) and all 10 Node test suites (`scripts/test-*.cjs`, 143 tests) pass.
+- **Claude / Codex Handoff:** Read [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), [APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [EAS.md](EAS.md) before editing.
+
+---
+
+### Historical Notes (Pre-November 22, 2026)
+
+## Local verse chat fixes — November 20, 2026 (Now Shipped in Build 30)
+
+Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](docs/guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
+
+
+## November 20, 2026 — Current iOS release
+
+Finished Antigravity's verse PNG-sharing/My Church handoff and published verified **iOS production OTA `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`**, runtime **2.0.0-maps-2**, for compatible **iOS build 29**. Version remains **2.0.0**. Added SVG asset-readiness checks, image-only iOS sharing, and form accessibility; TypeScript and 101 tests passed. The Android preview APK remains on `2.0.0-securestore-1` and cannot receive this maps-runtime update. No rebuild or backend/website deployment was performed in this turn. See [release evidence](EAS.md) for details; older entries below are historical.
+
+
+## Local community implementation — November 17, 2026
+
+Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](docs/guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
+
+
 Mobile app in `himnario/`; companion website in `docs/`.
 
 **Latest Production & Security State — November 15, 2026 (`2.0.0`, `runtimeVersion: "2.0.0-securestore-1"`):**

@@ -131,12 +131,14 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
         Math.min(1, dragOrigin.value + event.translationY / travel)
       );
     })
-    .onEnd((event) => {
-      const collapse = shouldCollapsePlayer(
-        progress.value * travel,
-        event.velocityY,
-        travel * 0.55
-      );
+    .onEnd((event, success) => {
+      const collapse =
+        success &&
+        shouldCollapsePlayer(
+          progress.value * travel,
+          event.velocityY,
+          travel * 0.55
+        );
       progress.value = withSpring(
         collapse ? 1 : 0,
         { ...spring, velocity: event.velocityY / travel },
@@ -144,11 +146,6 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
           if (finished && collapse) runOnJS(finishClose)();
         }
       );
-    })
-    .onFinalize((_event, success) => {
-      if (!success) {
-        progress.value = withSpring(0, spring);
-      }
     });
 
   const backdropStyle = useAnimatedStyle(() => ({

@@ -115,6 +115,26 @@ test('repeat-all advances the app collection instead of looping the single nativ
   assert.equal(repeats.at(-1), true);
 });
 
+test('track end advances cleanly without deadlocking, and replaying at collection end seeks to 0', async () => {
+  const { player, driver, loads } = fixture();
+  const seeks = [];
+  driver.seek = async pos => { seeks.push(pos); };
+  await player.open('2');
+  await player.ended();
+  assert.equal(player.getSnapshot().currentHymnId, '4');
+  assert.equal(player.getSnapshot().isPlaying, true);
+  assert.equal(player.getSnapshot().isLoading, false);
+  assert.deepEqual(loads, ['2', '4']);
+  // End of collection ('4' has no next when repeatMode === 'off')
+  await player.ended();
+  assert.equal(player.getSnapshot().currentHymnId, '4');
+  assert.equal(player.getSnapshot().isPlaying, false);
+  // Tapping toggle/play after reaching end of last track must rewind to 0 and play
+  await player.toggle();
+  assert.deepEqual(seeks, [0]);
+  assert.equal(player.getSnapshot().isPlaying, true);
+});
+
 test('clear during loading runs last and leaves no active hymn', async () => {
   const { player } = fixture();
   await Promise.all([player.open('1'), player.clear()]);

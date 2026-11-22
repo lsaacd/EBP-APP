@@ -57,100 +57,25 @@ const WHATSAPP_ICON = require('../assets/images/whatsapp-brand.png');
 
 export const SMART_APP_URL = 'https://himnarioebp.com/app/';
 
-export interface AppShareSheetProps {
-  visible: boolean;
-  onClose: () => void;
+export interface AppShareContentProps {
+  embedded?: boolean;
+  onAfterWhatsApp?: () => void;
 }
 
-export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) {
+export function AppShareContent({
+  embedded = false,
+  onAfterWhatsApp,
+}: AppShareContentProps) {
   const { theme, isDarkMode } = useTheme();
   const { language } = useLanguage();
   const es = language !== 'en';
-  const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const cardWidth = Math.max(240, windowWidth - 40);
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = Math.max(240, Math.min(windowWidth - (embedded ? 36 : 40), 560));
   const bannerHeight = Math.round((cardWidth * 630) / 1200);
-  const travel = Math.max(420, Math.round(windowHeight * 0.82));
 
   const [tab, setTab] = useState<'banner' | 'qr'>('banner');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [sharingImage, setSharingImage] = useState(false);
-
-  const progress = useSharedValue(1);
-  const dragOrigin = useSharedValue(0);
-  const spring = {
-    damping: 28,
-    stiffness: 240,
-    mass: 1,
-    overshootClamping: true,
-  };
-
-  const finishClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const animateClose = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    progress.value = withSpring(1, spring, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-  }, [finishClose, progress]);
-
-  useEffect(() => {
-    if (visible) {
-      progress.value = 1;
-      progress.value = withSpring(0, spring);
-    } else {
-      setStatusMessage(null);
-      setTab('banner');
-      setSharingImage(false);
-      progress.value = 1;
-    }
-    return () => cancelAnimation(progress);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
-  const pan = Gesture.Pan()
-    .activeOffsetY(8)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(progress);
-      dragOrigin.value = progress.value;
-    })
-    .onUpdate((event) => {
-      progress.value = Math.max(
-        0,
-        Math.min(1, dragOrigin.value + event.translationY / travel)
-      );
-    })
-    .onEnd((event) => {
-      const collapse = shouldCollapsePlayer(
-        progress.value * travel,
-        event.velocityY,
-        travel * 0.55
-      );
-      progress.value = withSpring(
-        collapse ? 1 : 0,
-        { ...spring, velocity: event.velocityY / travel },
-        (finished) => {
-          if (finished && collapse) runOnJS(finishClose)();
-        }
-      );
-    })
-    .onFinalize((_event, success) => {
-      if (!success) {
-        progress.value = withSpring(0, spring);
-      }
-    });
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-  }));
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: progress.value * travel }],
-  }));
 
   const inviteTitle = es
     ? 'Himnario El Buen Pastor — App Oficial'
@@ -163,7 +88,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   const fullShareMessage = `${inviteBody}\n\n${SMART_APP_URL}`;
 
   const handleMessages = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setStatusMessage(null);
     try {
       await Share.share(
@@ -182,15 +107,15 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
   };
 
   const handleWhatsApp = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const waText = encodeURIComponent(fullShareMessage);
     Linking.openURL(`https://wa.me/?text=${waText}`).catch(() => {});
-    onClose();
+    onAfterWhatsApp?.();
   };
 
   const handleSharePromoImage = async () => {
     if (sharingImage) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setStatusMessage(null);
     setSharingImage(true);
     try {
@@ -283,28 +208,8 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
     },
   ];
 
-  const sheetContent = (
+  return (
     <View style={styles.inner}>
-      {/* Grabber */}
-      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
-
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>
-          {es ? 'Compartir Aplicación' : 'Share App'}
-        </Text>
-        <TouchableOpacity
-          onPress={animateClose}
-          style={[
-            styles.closeBtn,
-            { backgroundColor: theme.surfaceVariants.containerHighest },
-          ]}
-          accessibilityLabel={es ? 'Cerrar' : 'Close'}
-        >
-          <MaterialIcons name="close" size={18} color={theme.onSurfaceVariant} />
-        </TouchableOpacity>
-      </View>
-
       {/* Segmented Mode Switcher: Tarjeta | Código QR */}
       <View
         style={[
@@ -397,14 +302,16 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       {tab === 'banner' ? (
         <Pressable
           onPress={handleMessages}
-          style={[
+          style={({ pressed }) => [
             styles.bannerCard,
             {
               width: cardWidth,
+              alignSelf: 'center',
               backgroundColor: '#FCF9F2',
               borderColor: isDarkMode
                 ? 'rgba(255,255,255,0.14)'
                 : 'rgba(110,22,25,0.14)',
+              transform: [{ scale: pressed ? 0.985 : 1 }],
             },
           ]}
         >
@@ -459,6 +366,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
             styles.qrCard,
             {
               width: cardWidth,
+              alignSelf: 'center',
               backgroundColor: isDarkMode
                 ? 'rgba(255,255,255,0.05)'
                 : 'rgba(110,22,25,0.04)',
@@ -516,6 +424,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
                     ? theme.surfaceVariants.containerHighest
                     : theme.surfaceVariants.containerLowest,
                 borderColor: theme.outlineVariant + '22',
+                transform: [{ scale: pressed ? 0.985 : 1 }],
               },
             ]}
             onPress={opt.onPress}
@@ -565,6 +474,118 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
           </Pressable>
         ))}
       </View>
+    </View>
+  );
+}
+
+export interface AppShareSheetProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) {
+  const { theme } = useTheme();
+  const { language } = useLanguage();
+  const es = language !== 'en';
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const travel = Math.max(420, Math.round(windowHeight * 0.82));
+
+  const progress = useSharedValue(1);
+  const dragOrigin = useSharedValue(0);
+  const spring = {
+    damping: 28,
+    stiffness: 240,
+    mass: 1,
+    overshootClamping: true,
+  };
+
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    progress.value = withSpring(1, spring, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+  }, [finishClose, progress]);
+
+  useEffect(() => {
+    if (visible) {
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
+    } else {
+      progress.value = 1;
+    }
+    return () => cancelAnimation(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const pan = Gesture.Pan()
+    .activeOffsetY(8)
+    .failOffsetX([-20, 20])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(progress);
+      dragOrigin.value = progress.value;
+    })
+    .onUpdate((event) => {
+      progress.value = Math.max(
+        0,
+        Math.min(1, dragOrigin.value + event.translationY / travel)
+      );
+    })
+    .onEnd((event, success) => {
+      const collapse =
+        success &&
+        shouldCollapsePlayer(
+          progress.value * travel,
+          event.velocityY,
+          travel * 0.55
+        );
+      progress.value = withSpring(
+        collapse ? 1 : 0,
+        { ...spring, velocity: event.velocityY / travel },
+        (finished) => {
+          if (finished && collapse) runOnJS(finishClose)();
+        }
+      );
+    });
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: 1 - progress.value,
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: progress.value * travel }],
+  }));
+
+  const isIOS = Platform.OS === 'ios';
+
+  const sheetContent = (
+    <View style={styles.inner}>
+      {/* Grabber */}
+      <View style={[styles.grabber, { backgroundColor: theme.outlineVariant }]} />
+
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>
+          {es ? 'Compartir Aplicación' : 'Share App'}
+        </Text>
+        <TouchableOpacity
+          onPress={animateClose}
+          style={[
+            styles.closeBtn,
+            { backgroundColor: theme.surfaceVariants.containerHighest },
+          ]}
+          accessibilityLabel={es ? 'Cerrar' : 'Close'}
+        >
+          <MaterialIcons name="close" size={18} color={theme.onSurfaceVariant} />
+        </TouchableOpacity>
+      </View>
+
+      <AppShareContent onAfterWhatsApp={onClose} />
     </View>
   );
 

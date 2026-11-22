@@ -136,7 +136,7 @@ export async function resolvePlaybackUri(id: string): Promise<string> {
       }
       return fileFor(id);
     } else if (savedIdSet.has(id)) {
-      // OS may have evicted a cached file on iOS; update our set.
+      // OS may have evicted a cached file on iOS; update our set and fall back to remote stream.
       savedIdSet.delete(id);
       update({
         saved: Math.max(0, state.saved - 1),

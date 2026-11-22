@@ -1,5 +1,57 @@
 # Native builds and updates
 
+## November 22, 2026 — Full Native Rebuild: iOS Production Build #30 (`runtimeVersion: "2.0.0-media-3"`)
+
+User requested a full EAS native rebuild to ship native **Apple Maps Look Around (`MKLookAroundViewController`)**, **QR Code Scanner (`expo-camera`)**, **Camera & Photo Library church photo uploads (`expo-image-picker`, `expo-image-manipulator`)**, plus all Riverbank church, photo gallery, profile linking, YouTube Music-style comments sheet, audio deadlock, and 24 stability fixes.
+
+- **Current Source Version & Runtime:** `version: "2.0.0"`, explicit `"runtimeVersion": "2.0.0-media-3"` in `himnario/app.json`.
+- **iOS `production`, Build #30 (`2.0.0 (30)`) — FINISHED & AUTO-SUBMITTED TO APP STORE CONNECT / TESTFLIGHT:**
+  - **EAS Build:** [`b6501dac-6ab5-4a5f-86e1-1740ce1036d3`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/b6501dac-6ab5-4a5f-86e1-1740ce1036d3)
+  - **IPA Artifact:** `https://expo.dev/artifacts/eas/M_p7fFfbqEmaQIGbjTOL22NAFFl6tee3N0eimTJCPIg.ipa`
+  - **Auto-Submission:** [`8a54ce14-8c49-4b9f-a352-20a9306cc064`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/8a54ce14-8c49-4b9f-a352-20a9306cc064) (Uploaded — do **not** run a manual `eas submit` for Build 30).
+  - **New Native Modules Compiled into `2.0.0-media-3`:**
+    - `himnario/modules/apple-look-around` (`AppleLookAroundModule.swift` — local Expo Swift module autolinked via `himnario/package.json` `expo.autolinking.searchPaths`, wrapping iOS 16+ `MKLookAroundSceneRequest` & `MKLookAroundViewController`).
+    - `expo-camera` (in-app QR code scanner via `CameraView`).
+    - `expo-image-picker` + `expo-image-manipulator` (camera/gallery church photos resized to ≤1400px JPEG with EXIF stripped).
+    - `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` added to `himnario/app.json` `ios.infoPlist`.
+- **Previous Nov 22 iOS OTAs on `2.0.0-maps-2` (for older Build 29 testers before upgrading to Build 30):**
+  - `986859ba-293c-44f4-821c-ac55c794b1bf` (Audio end-of-track deadlock + 24 app-wide bug fixes + sync conflict resolution).
+  - `68b58182-9f32-4855-9dbd-a81a31ac2ac2` (Phase 1 Churches map + custom cross-free sanctuary pins).
+- **Android Status:** The last built Android APK (`45c31c43`) is still on runtime `2.0.0-securestore-1`. Run `eas build --platform android --profile preview-arm64` (or `production` for Play Store `.aab`) from `himnario/` when ready to cut an Android `2.0.0-media-3` binary with Maps, Location, Camera, and Photo Picker.
+- **Backend & Web Paired Deployments (Live):**
+  - **Cloudflare D1 `ebp-himnario-db`:** Migrations `0003` through `0008_church_gallery_and_link.sql` applied on remote D1 (seeded `church-riverbank-ca`).
+  - **Cloudflare Worker `ebp-himnario-sync`:** Version `3e08460e-b5b5-4f99-97f1-eaa8bac1365b` with `env.MEDIA_BUCKET` (`ebp-himnario-audio`) binding.
+  - **Cloudflare Pages `ebp-himnario`:** Deploy `972eec98.ebp-himnario.pages.dev` (`privacy.html` & `terms.html` updated and anonymized).
+
+---
+
+### Historical Releases Below
+
+## Local verse chat fixes — November 20, 2026 (Superseded by Build 30)
+
+Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](docs/guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
+
+
+## November 20, 2026 — Published iOS OTA after Antigravity handoff
+
+User authorized finishing Antigravity's interrupted verse-share/My Church work and publishing OTA. Source version remains **2.0.0**. Current explicit runtime is **2.0.0-maps-2**, with an existing finished iOS **build 29** (`7237c570-3ed2-4e37-9651-099d1154d247`, created November 20). Maps/location/native changes belong to that already-created binary; the finishing changes below add no native modules.
+
+- **Published and independently verified:** iOS production OTA group [`6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a), update `01a1fb5a-4334-71db-b734-37c1e205fa07`, created **2026-11-20 15:45:59 PST** (`23:45:59Z`). Live channel `production` is unpaused and maps to branch `production`; verified update platform `ios`, runtime `2.0.0-maps-2`, branch `production`.
+- Antigravity had already published group `e4aecd8c-256f-4a93-a05f-3ad1b471d35d` at `23:37:28Z` despite the screenshot's credit-error message. This follow-up fixes a real remaining first-share race rather than treating that screenshot as proof publication failed.
+- Verse PNG footer preserves the bundled `white-ios-logo.png` left of the stacked app name and printed download address. iOS receives a **single local PNG attachment** with no separate message/website item. Native SVG photo/logo readiness replaces fixed decode sleeps; failed preparation shows an error instead of silently opening a text share. Selection changes cancel stale export and unique cache filenames avoid stale share previews. The decode wait has a bounded timeout and repeat taps are locked while sharing.
+- Preserved Antigravity's compact grouped country/city/church form and public-visibility switch. Added VoiceOver/TalkBack labels and disabled country changes while saving. Form data and visibility behavior are preserved.
+- **Android compatibility:** latest verified Android preview APK is still build 3, runtime `2.0.0-securestore-1` (`45c31c43-e36e-4952-a15a-238ac2c1521c`). It cannot receive maps-runtime OTA. No Android OTA, native rebuild, store submission, Worker/D1/Pages deployment, Git commit or push was made in this finishing turn. An Android maps-capable rebuild remains separate work; do not mislabel the old runtime to force delivery.
+- **Validation:** TypeScript passed; scoped ESLint has zero errors (seven existing warnings); 101 tests passed across sharing readiness, community/API, player presentation/playback, gestures, storage and mobile auth. EAS exported and uploaded the iOS Hermes bundle successfully. Read-only live health, verse summary and churches endpoints returned 200. These checks do not establish physical-device appearance or TestFlight installation; test share behavior and the form on compatible build 29.
+- Relevant finishing files: `components/VerseCard.tsx`, `components/CommunityProfile.tsx`, `utils/verseSharing.ts`, `scripts/test-verse-sharing.cjs`. Keep the other uncommitted Antigravity/community changes intact.
+
+Earlier release/development entries below remain historical evidence and may describe prior runtimes or pre-deployment states.
+
+
+## Local community implementation — November 17, 2026
+
+Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](docs/guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
+
+
 ## November 15, 2026 — Full Security, Email Auth & UI Polish Live Status (`2.0.0`, `runtimeVersion: "2.0.0-securestore-1"`)
 
 All security, Email Auth, Cloudflare Pages, and `expo-secure-store` native rebuilds are live, followed by OTA Update **`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`** (`production` and `preview`, runtime `2.0.0-securestore-1`):
@@ -17,7 +69,7 @@ Run native commands from `himnario/`. Configuration lives in `app.json` and `eas
 - iOS bundle: `com.elbuenpastor`; App Store Connect ID: `6794435414`.
 - Provisioning Profile: `ZM5HK4A7JT` (has `Associated Domains` enabled for `applinks:himnarioebp.com`).
 - Android package: `com.elbuenpastor.himnario`.
-- Runtime version: explicit `"2.0.0-securestore-1"` in `himnario/app.json`; current source `version`: `2.0.0`.
+- Current runtime: explicit `"2.0.0-media-3"` in `himnario/app.json`; source version `2.0.0` (iOS Build 30). Older iOS Build 29 uses `2.0.0-maps-2`; the older Android preview binary still uses `2.0.0-securestore-1`.
 - Profiles include `development`, `ios-simulator`, `preview`, `preview-arm64`, `production`. `preview-arm64` builds an Android APK; `production` produces the store build.
 - Production submission config supplies the iOS App Store Connect ID (`6794435414`). Android automated submission is not configured there.
 
@@ -80,7 +132,9 @@ Or run the helper script:
 
 ### 3. Runtime Version Policy (`runtimeVersion`)
 
-In `app.json`, `"runtimeVersion": { "policy": "appVersion" }`.
+**Current configuration uses explicit `"runtimeVersion": "2.0.0-media-3"`, not an appVersion policy.** Preserve compatibility isolation between `2.0.0-media-3` (Camera + Image Picker + Apple Look Around), `2.0.0-maps-2` (Maps/Location), and older `2.0.0-securestore-1` binaries. The appVersion explanation below describes an older configuration, not the current source.
+
+Historical configuration: `"runtimeVersion": { "policy": "appVersion" }`.
 - EAS Update matches the user-facing `version` (current unreleased source: `2.0.0`).
 - Delivery requires a compatible native binary, matching runtime/platform, and the correct live channel-to-branch mapping. Matching a version string alone does not establish native compatibility or immediate delivery.
 - Bumping `version` under `appVersion` creates a new runtime: a native build is required. Installed `2.0.0` test binaries may share this runtime label while lacking SecureStore; do not send the new native-dependent bundle to those binaries by OTA. SecureStore cannot be added by OTA to binaries without that native module.

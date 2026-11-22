@@ -4,7 +4,7 @@
   "compatibility_date": "2026-03-01",
   "vars": {
     "EMAIL_ENABLED": "true",
-    "EMAIL_FROM": "Himnario <cuenta@auth.himnarioebp.com>",
+    "EMAIL_FROM": "Himnario El Buen Pastor <cuenta@auth.himnarioebp.com>",
     "ACCOUNT_ACTION_URL": "https://himnarioebp.com/account.html"
   },
   "send_email": [
@@ -21,6 +21,12 @@
       "database_name": "ebp-himnario-db",
       "database_id": "ed683396-bfd7-43ff-b69e-f82cf4621c55",
       "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "ebp-himnario-audio"
     }
   ]
 }

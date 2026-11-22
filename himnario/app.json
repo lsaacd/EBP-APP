@@ -15,7 +15,9 @@
         "UIBackgroundModes": [
           "audio"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
+        "NSPhotoLibraryUsageDescription": "Permite adjuntar fotos existentes del templo desde tu galería al sugerir o actualizar una iglesia en el directorio."
       },
       "bundleIdentifier": "com.elbuenpastor",
       "associatedDomains": [
@@ -80,7 +82,29 @@
       "expo-build-properties",
       "expo-asset",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permite encontrar iglesias verificadas El Buen Pastor cerca de tu ubicación.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite adjuntar fotos existentes del templo desde tu galería al sugerir o actualizar una iglesia en el directorio.",
+          "cameraPermission": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -93,7 +117,7 @@
       }
     },
     "owner": "isaacduran",
-    "runtimeVersion": "2.0.0-securestore-1",
+    "runtimeVersion": "2.0.0-media-3",
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

@@ -314,6 +314,17 @@ export const strings = {
     authVerificationUnavailable: 'La verificación de correo no está disponible por el momento. Puedes seguir usando la app y sincronizando tus datos.',
     authSyncPausedStatus: 'Sincronización en pausa',
     authSyncConflictError: 'La sincronización se pausó para proteger tus cambios en este dispositivo. Tus datos locales se conservaron.',
+    authSyncConflictTitle: 'Sincronización en pausa',
+    authSyncConflictPrompt: 'Los datos de este dispositivo difieren de los de la nube. Elige qué versión deseas conservar para reanudar la sincronización.',
+    authSyncKeepLocal: 'Conservar datos de este dispositivo',
+    authSyncUseCloud: 'Usar datos de la nube',
+    authSyncResumed: 'Sincronización reanudada',
+    authErrorInvalidCredentials: 'Correo o contraseña incorrectos.',
+    authErrorEmailExists: 'Ya existe una cuenta registrada con este correo.',
+    authErrorInvalidName: 'Ingresa un nombre válido (mínimo 2 caracteres).',
+    authErrorWeakPassword: 'La contraseña es muy común o insegura. Elige otra de al menos 12 caracteres.',
+    authErrorAccountSuspended: 'Tu cuenta ha sido suspendida.',
+    authErrorGeneric: 'No se pudo completar la solicitud. Intenta de nuevo.',
     authLoginReplaceWarning: 'Al iniciar sesión, los favoritos, las listas, el historial y los ajustes de tu cuenta reemplazarán los de este dispositivo. Se guardará una copia local de tus datos actuales.',
     authLocalBackupError: 'No se pudo guardar una copia de tus datos locales. No se inició sesión ni se reemplazaron tus datos. Intenta de nuevo.',
     authNewPasswordLabel: 'Nueva contraseña',
@@ -658,6 +669,17 @@ export const strings = {
     authVerificationUnavailable: 'Email verification is temporarily unavailable. You can keep using the app and syncing your data.',
     authSyncPausedStatus: 'Sync paused',
     authSyncConflictError: 'Sync was paused to protect your changes on this device. Your local data was kept.',
+    authSyncConflictTitle: 'Sync paused',
+    authSyncConflictPrompt: 'Your data on this device differs from the cloud. Choose which version to keep to resume syncing.',
+    authSyncKeepLocal: 'Keep this device’s data',
+    authSyncUseCloud: 'Use cloud data',
+    authSyncResumed: 'Sync resumed',
+    authErrorInvalidCredentials: 'Incorrect email or password.',
+    authErrorEmailExists: 'An account with this email already exists.',
+    authErrorInvalidName: 'Please enter a valid name (at least 2 characters).',
+    authErrorWeakPassword: 'This password is too common or weak. Choose another with at least 12 characters.',
+    authErrorAccountSuspended: 'Your account has been suspended.',
+    authErrorGeneric: 'Could not complete the request. Please try again.',
     authLoginReplaceWarning: 'Signing in replaces this device’s favorites, playlists, history, and settings with those from your account. A local copy of your current data will be saved.',
     authLocalBackupError: 'Your local data could not be backed up. Sign-in was stopped and your data was kept. Please try again.',
     authNewPasswordLabel: 'New Password',
@@ -804,24 +826,30 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('es');
   const [hymnLanguage, setHymnLanguageState] = useState<Language>('es');
+  const uiMutatedRef = React.useRef(false);
+  const hymnMutatedRef = React.useRef(false);
 
   useEffect(() => {
-    AsyncStorage.multiGet([STORAGE_KEY, HYMN_LANGUAGE_STORAGE_KEY]).then((entries) => {
-      const uiRaw = entries[0]?.[1];
-      const hymnRaw = entries[1]?.[1];
-      if (uiRaw === 'en' || uiRaw === 'es') setLanguageState(uiRaw);
-      if (hymnRaw === 'en' || hymnRaw === 'es') setHymnLanguageState(hymnRaw);
-    });
+    AsyncStorage.multiGet([STORAGE_KEY, HYMN_LANGUAGE_STORAGE_KEY])
+      .then((entries) => {
+        const uiRaw = entries[0]?.[1];
+        const hymnRaw = entries[1]?.[1];
+        if (!uiMutatedRef.current && (uiRaw === 'en' || uiRaw === 'es')) setLanguageState(uiRaw);
+        if (!hymnMutatedRef.current && (hymnRaw === 'en' || hymnRaw === 'es')) setHymnLanguageState(hymnRaw);
+      })
+      .catch(() => {});
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
+    uiMutatedRef.current = true;
     setLanguageState(lang);
-    AsyncStorage.setItem(STORAGE_KEY, lang);
+    AsyncStorage.setItem(STORAGE_KEY, lang).catch(() => {});
   }, []);
 
   const setHymnLanguage = useCallback((lang: Language) => {
+    hymnMutatedRef.current = true;
     setHymnLanguageState(lang);
-    AsyncStorage.setItem(HYMN_LANGUAGE_STORAGE_KEY, lang);
+    AsyncStorage.setItem(HYMN_LANGUAGE_STORAGE_KEY, lang).catch(() => {});
   }, []);
 
   return (

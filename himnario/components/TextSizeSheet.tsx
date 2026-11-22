@@ -28,6 +28,7 @@ import * as Haptics from '../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useNowPlaying } from '../context/NowPlayingContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
 
@@ -43,7 +44,9 @@ export interface TextSizeSheetProps {
 export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) {
   const { theme, isDarkMode, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
   const { t } = useLanguage();
+  const { currentHymnId, showFullPlayer } = useNowPlaying();
   const insets = useSafeAreaInsets();
+  const miniPlayerVisible = Boolean(currentHymnId) && !showFullPlayer;
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const [inputText, setInputText] = useState(String(currentPx));
@@ -238,7 +241,10 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
             intensity={65}
             style={[
               styles.iosPopover,
-              { marginBottom: Math.max(insets.bottom, 22) + 84 },
+              {
+                marginBottom:
+                  Math.max(insets.bottom, 22) + (miniPlayerVisible ? 138 : 74),
+              },
             ]}
           >
             {content}

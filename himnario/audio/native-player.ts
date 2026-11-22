@@ -2,11 +2,12 @@ import TrackPlayer, { AppKilledPlaybackBehavior, Capability, Event, RepeatMode, 
 import { Asset } from 'expo-asset';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
 import { hasHymnAudio } from '../data/audioRegistry';
-import { resolvePlaybackUri } from './offline-audio';
+import { resolvePlaybackUri, saveHymnAudio } from './offline-audio';
 import { createAndroidPlaybackController } from './android-playback-controller';
 
 let ready = false;
 let preparing: Promise<void> | null = null;
+let cachedArtworkPromise: Promise<string | undefined> | null = null;
 let trackTitleResolver: ((id: string, fallbackTitle: string) => string) | null = null;
 
 export function setTrackTitleResolver(
@@ -35,32 +36,50 @@ async function prepare() {
   return preparing;
 }
 
-async function assetUri(source: number) {
-  const asset = Asset.fromModule(source);
-  if (!asset.localUri) await asset.downloadAsync();
-  return asset.localUri || asset.uri;
+function getCoverArtworkUri(): Promise<string | undefined> {
+  if (!cachedArtworkPromise) {
+    cachedArtworkPromise = (async () => {
+      try {
+        const asset = Asset.fromModule(require('../assets/images/EBP_HYMN_COVER.png'));
+        if (!asset.localUri) await asset.downloadAsync();
+        return asset.localUri || asset.uri;
+      } catch (error) {
+        console.warn('[NativePlayback] Artwork unavailable:', error);
+        cachedArtworkPromise = null;
+        return undefined;
+      }
+    })();
+  }
+  return cachedArtworkPromise;
 }
 
 export const nativePlayer = createAndroidPlaybackController({
   prepare,
   async load(id) {
-    // Saved copy when available; otherwise stream (and save for next time).
-    const url = await resolvePlaybackUri(id);
+    // Resolve playback URI and cached cover artwork in parallel
+    const [url, artwork] = await Promise.all([
+      resolvePlaybackUri(id),
+      getCoverArtworkUri(),
+    ]);
     const data = id.startsWith('E') ? estribillosData : hymnsData;
     const hymn = data.find((item: { id: string | number }) => String(item.id) === id);
     const fallbackTitle = hymn?.title || `Himno ${id}`;
     const title = trackTitleResolver ? trackTitleResolver(id, fallbackTitle) : fallbackTitle;
-    let artwork: string | undefined;
-    try { artwork = await assetUri(require('../assets/images/EBP_HYMN_COVER.png')); }
-    catch (error) { console.warn('[NativePlayback] Artwork unavailable:', error); }
+    const track = { id, url, title, artist: hymn?.author || 'Himnario El Buen Pastor', artwork };
     await TrackPlayer.reset();
-    await TrackPlayer.add({ id, url, title, artist: hymn?.author || 'Himnario El Buen Pastor', artwork });
+    await TrackPlayer.add(track);
+  },
+  prefetch(id) {
+    if (typeof saveHymnAudio === 'function') {
+      void Promise.resolve(saveHymnAudio(id)).catch(() => {});
+    }
   },
   play: () => TrackPlayer.play(),
   pause: () => TrackPlayer.pause(),
   // Stop can arrive before a track was selected; never initialize a service in the background.
   async reset() { if (ready) await TrackPlayer.reset(); },
   seek: position => TrackPlayer.seekTo(position),
+  async setRate(rate) { if (ready) await TrackPlayer.setRate(rate); },
   getPlayWhenReady: () => TrackPlayer.getPlayWhenReady(),
   async setRepeatOne(enabled) { await TrackPlayer.setRepeatMode(enabled ? RepeatMode.Track : RepeatMode.Off); },
   hasAudio: hasHymnAudio,

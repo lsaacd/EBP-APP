@@ -114,11 +114,23 @@ export default function ProjectorModal({
   // On Android, unlock orientation while ProjectorModal is open and lock back to Portrait on exit.
   // On iOS, keep native window orientation untouched (Info.plist PORTRAIT_UP) and use pure 90deg view rotation
   // (useTransformLandscape) so backgrounding/foregrounding never triggers ExpoScreenOrientation's native crash.
+  const orientationUnlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialDarkModeRef = useRef(initialDarkMode);
+  initialDarkModeRef.current = initialDarkMode;
+
+  const clearOrientationUnlockTimer = useCallback(() => {
+    if (orientationUnlockTimerRef.current) {
+      clearTimeout(orientationUnlockTimerRef.current);
+      orientationUnlockTimerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     if (Platform.OS !== 'android') {
       if (!visible) setManualLandscape(false);
       return;
     }
+    clearOrientationUnlockTimer();
     if (visible) {
       ScreenOrientation.unlockAsync().catch(() => {});
     } else {
@@ -126,17 +138,18 @@ export default function ProjectorModal({
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     }
     return () => {
+      clearOrientationUnlockTimer();
       if (visible) {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
       }
     };
-  }, [visible]);
+  }, [clearOrientationUnlockTimer, visible]);
 
   useEffect(() => {
     if (visible) {
       setIndex(0);
       setBlank(false);
-      setProjectorDark(initialDarkMode ?? true);
+      setProjectorDark(initialDarkModeRef.current ?? true);
       setControlsVisible(true);
       setManualFont(null);
       setManualLandscape(false);
@@ -144,7 +157,7 @@ export default function ProjectorModal({
     return () => {
       if (tapHintTimer.current) clearTimeout(tapHintTimer.current);
     };
-  }, [visible, hymn.id, initialDarkMode]);
+  }, [visible, hymn.id]);
 
   const isNativeLandscape = windowDims.width > windowDims.height;
   const isLandscape = isNativeLandscape || manualLandscape;
@@ -153,13 +166,17 @@ export default function ProjectorModal({
 
   const handleToggleOrientation = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    clearOrientationUnlockTimer();
     if (isLandscape) {
       setManualLandscape(false);
       if (Platform.OS === 'android') {
         try {
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-          setTimeout(() => {
-            ScreenOrientation.unlockAsync().catch(() => {});
+          orientationUnlockTimerRef.current = setTimeout(() => {
+            orientationUnlockTimerRef.current = null;
+            if (visible) {
+              ScreenOrientation.unlockAsync().catch(() => {});
+            }
           }, 800);
         } catch {
           // Ignore if unsupported
@@ -175,16 +192,17 @@ export default function ProjectorModal({
         }
       }
     }
-  }, [isLandscape]);
+  }, [clearOrientationUnlockTimer, isLandscape, visible]);
 
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    clearOrientationUnlockTimer();
     setManualLandscape(false);
     if (Platform.OS === 'android') {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     }
     onClose();
-  }, [onClose]);
+  }, [clearOrientationUnlockTimer, onClose]);
 
   const triggerTapHint = useCallback(() => {
     setShowTapHint(true);
@@ -374,28 +392,29 @@ export default function ProjectorModal({
           )}
 
           {/* Main Stage (Tap Zones + Swipe Left/Right) */}
-          <Pressable
-            style={[styles.stage, !controlsVisible && { paddingTop: topPad }]}
-            onLayout={(e) => {
-              const { width, height } = e.nativeEvent.layout;
-              if (width > 0 && height > 0) {
-                setStageLayout({ width, height });
-              }
-            }}
-            onPress={handleStageTap}
-            {...panResponder.panHandlers}
-          >
-            {!blank && currentStanza ? (
-              <Animated.View
-                style={[
-                  styles.stageInner,
-                  isLandscape && { gap: 8 },
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }],
-                  },
-                ]}
-              >
+          <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+            <Pressable
+              style={[styles.stage, !controlsVisible && { paddingTop: topPad }]}
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                if (width > 0 && height > 0) {
+                  setStageLayout({ width, height });
+                }
+              }}
+              onPress={handleStageTap}
+            >
+              {!blank && currentStanza ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.stageInner,
+                    isLandscape && { gap: 8 },
+                    {
+                      opacity: fadeAnim,
+                      transform: [{ translateX: slideAnim }],
+                    },
+                  ]}
+                >
                 {/* Hymn Heading */}
                 <Text
                   style={[styles.hymnHeading, { color: muted }]}
@@ -448,6 +467,7 @@ export default function ProjectorModal({
               </Animated.View>
             ) : null}
           </Pressable>
+          </View>
 
           {/* Footer Branding */}
           <View

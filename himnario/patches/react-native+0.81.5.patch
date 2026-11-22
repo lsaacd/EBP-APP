@@ -1,0 +1,24 @@
+diff --git a/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm b/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
+index 658ec6b..a066333 100644
+--- a/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
++++ b/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
+@@ -235,7 +235,8 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions
+   UIColor *tintColor = [RCTConvert UIColor:options.tintColor() ? @(*options.tintColor()) : nil];
+ 
+   dispatch_async(dispatch_get_main_queue(), ^{
+-    if (message) {
++    BOOL urlIsAttachment = URL && (URL.isFileURL || [URL.scheme.lowercaseString isEqualToString:@"data"]);
++    if (message && !urlIsAttachment) {
+       [items addObject:message];
+     }
+     if (URL) {
+@@ -251,6 +252,9 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions
+         [items addObject:URL];
+       }
+     }
++    if (message && urlIsAttachment) {
++      [items addObject:message];
++    }
+     if (items.count == 0) {
+       RCTLogError(@"No `url` or `message` to share");
+       return;

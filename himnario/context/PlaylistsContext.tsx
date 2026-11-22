@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@himnario_playlists';
@@ -34,56 +34,71 @@ const PlaylistsContext = createContext<PlaylistsContextType>({
 
 export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const playlistsRef = useRef<Playlist[]>([]);
+  const mutatedBeforeHydrateRef = useRef(false);
 
   // Load persisted playlists on mount
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) {
-        try { setPlaylists(JSON.parse(raw)); } catch {}
-      }
-    });
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (mutatedBeforeHydrateRef.current || !raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return;
+          playlistsRef.current = parsed;
+          setPlaylists(parsed);
+        } catch {}
+      })
+      .catch(() => {});
   }, []);
 
-  const savePlaylists = (newPlaylists: Playlist[]) => {
-    setPlaylists(newPlaylists);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newPlaylists));
-  };
+  const commitPlaylists = useCallback((updater: (prev: Playlist[]) => Playlist[]) => {
+    mutatedBeforeHydrateRef.current = true;
+    const next = updater(playlistsRef.current);
+    playlistsRef.current = next;
+    setPlaylists(next);
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+  }, []);
 
   const createPlaylist = useCallback((name: string) => {
+    const cleanName = name.trim().slice(0, 100);
+    if (!cleanName) return;
     const newPlaylist: Playlist = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      name: name.trim(),
+      name: cleanName,
       hymnIds: [],
       createdAt: Date.now(),
     };
-    savePlaylists([...playlists, newPlaylist]);
-  }, [playlists]);
+    commitPlaylists(prev => [...prev, newPlaylist]);
+  }, [commitPlaylists]);
 
   const deletePlaylist = useCallback((id: string) => {
-    savePlaylists(playlists.filter(p => p.id !== id));
-  }, [playlists]);
+    commitPlaylists(prev => prev.filter(p => p.id !== id));
+  }, [commitPlaylists]);
 
   const updatePlaylistName = useCallback((id: string, name: string) => {
-    savePlaylists(playlists.map(p => p.id === id ? { ...p, name: name.trim() } : p));
-  }, [playlists]);
+    const cleanName = name.trim().slice(0, 100);
+    if (!cleanName) return;
+    commitPlaylists(prev => prev.map(p => p.id === id ? { ...p, name: cleanName } : p));
+  }, [commitPlaylists]);
 
   const addHymnToPlaylist = useCallback((playlistId: string, hymnId: string) => {
-    savePlaylists(playlists.map(p => {
+    commitPlaylists(prev => prev.map(p => {
       if (p.id === playlistId && !p.hymnIds.includes(hymnId)) {
         return { ...p, hymnIds: [...p.hymnIds, hymnId] };
       }
       return p;
     }));
-  }, [playlists]);
+  }, [commitPlaylists]);
 
   const removeHymnFromPlaylist = useCallback((playlistId: string, hymnId: string) => {
-    savePlaylists(playlists.map(p => {
+    commitPlaylists(prev => prev.map(p => {
       if (p.id === playlistId) {
         return { ...p, hymnIds: p.hymnIds.filter(id => id !== hymnId) };
       }
       return p;
     }));
-  }, [playlists]);
+  }, [commitPlaylists]);
 
   const isHymnInPlaylist = useCallback((playlistId: string, hymnId: string) => {
     const playlist = playlists.find(p => p.id === playlistId);
@@ -91,8 +106,8 @@ export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
   }, [playlists]);
 
   const setAllPlaylists = useCallback((next: Playlist[]) => {
-    savePlaylists(next);
-  }, []);
+    commitPlaylists(() => Array.isArray(next) ? next : []);
+  }, [commitPlaylists]);
 
   return (
     <PlaylistsContext.Provider value={{

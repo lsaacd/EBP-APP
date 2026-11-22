@@ -111,12 +111,14 @@ export default function HomeMenuSheet({
         Math.min(1, dragOrigin.value + event.translationY / travel)
       );
     })
-    .onEnd((event) => {
-      const collapse = shouldCollapsePlayer(
-        progress.value * travel,
-        event.velocityY,
-        travel * 0.55
-      );
+    .onEnd((event, success) => {
+      const collapse =
+        success &&
+        shouldCollapsePlayer(
+          progress.value * travel,
+          event.velocityY,
+          travel * 0.55
+        );
       progress.value = withSpring(
         collapse ? 1 : 0,
         { ...spring, velocity: event.velocityY / travel },
@@ -124,11 +126,6 @@ export default function HomeMenuSheet({
           if (finished && collapse) runOnJS(finishClose)();
         }
       );
-    })
-    .onFinalize((_event, success) => {
-      if (!success) {
-        progress.value = withSpring(0, spring);
-      }
     });
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -226,7 +223,7 @@ export default function HomeMenuSheet({
             value={isDarkMode}
             trackColor={{
               false: Platform.OS === 'ios' ? (isDarkMode ? '#39393D' : '#E9E9EA') : isDarkMode ? 'rgba(255,255,255,0.20)' : theme.outlineVariant + '66',
-              true: Platform.OS === 'ios' ? '#34C759' : isDarkMode ? theme.surfaceVariants.container : theme.primary,
+              true: Platform.OS === 'ios' ? (isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary) : isDarkMode ? theme.surfaceVariants.container : theme.primary,
             }}
             thumbColor={Platform.OS === 'ios' ? undefined : isDarkMode ? '#FFFFFF' : theme.surfaceVariants.containerHighest}
             ios_backgroundColor={isDarkMode ? '#39393D' : '#E9E9EA'}

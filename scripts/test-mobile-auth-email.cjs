@@ -84,6 +84,26 @@ async function restored(revision=1000) {
   const f=fixture(session());await flush();f.requests[0].resolve(reply(200,{user:user(),data:cloud(revision)}));await flush();return f;
 }
 
+test('community profile updates preserve protected session and send only editable fields', async () => {
+  const f=await restored(), before=JSON.stringify(f.local);
+  const pending=f.auth.updateProfile({name:'Choir Member',ministry:'corista',choir:'esmirna'});
+  const request=f.requests.at(-1);
+  assert.ok(request.url.endsWith('/auth/profile'));assert.equal(request.options.method,'PUT');
+  assert.deepEqual(JSON.parse(request.options.body),{name:'Choir Member',ministry:'corista',choir:'esmirna'});
+  request.resolve(reply(200,{user:{...user('u1','Choir Member'),ministry:'corista',choir:'esmirna',role:'member',badgeVerified:true,emailVerified:true}}));
+  await pending;await flush();assert.equal(f.auth.user.ministry,'corista');assert.equal(f.auth.user.choir,'esmirna');assert.equal(f.auth.user.badgeVerified,false);assert.equal(f.auth.token,'old-token');assert.equal(JSON.stringify(f.local),before);f.unmount();
+});
+test('terms acceptance is versioned, authenticated and persists the server decision',async()=>{
+  const f=await restored(),pending=f.auth.acceptUgcTerms(),request=f.requests.at(-1);
+  assert.ok(request.url.endsWith('/auth/ugc-terms/accept'));assert.equal(request.options.method,'POST');assert.equal(request.options.headers.Authorization,'Bearer old-token');assert.deepEqual(JSON.parse(request.options.body),{version:'2026-11-17'});
+  request.resolve(reply(200,{user:{...user(),emailVerified:true,ugcTermsAccepted:true}}));await pending;await flush();assert.equal(f.stored().user.ugcTermsAccepted,true);assert.equal(f.auth.user.ugcTermsAccepted,true);f.unmount();
+});
+test('a profile response for another account is rejected and a late response cannot restore logout',async()=>{
+  const f=await restored();let pending=f.auth.updateProfile({ministry:'obispo'}).catch(e=>e);
+  f.requests.at(-1).resolve(reply(200,{user:{...user('other'),ministry:'obispo',badgeVerified:true}}));assert.equal((await pending).message,'auth_failed');assert.equal(f.auth.user.id,'u1');
+  pending=f.auth.updateProfile({ministry:'obispo'}).catch(e=>e);const request=f.requests.at(-1);await f.auth.signOut();request.resolve(reply(200,{user:{...user(),ministry:'obispo',badgeVerified:true}}));assert.equal((await pending).message,'auth_cancelled');assert.equal(f.auth.user,null);f.unmount();
+});
+
 // Focused email-flow tests; the hook/storage/network fixture above mirrors test-mobile-auth.cjs.
 for (const language of ['es', 'en']) test('recovery sends only normalized email and language: ' + language, async () => {
   const f = fixture(); await flush();

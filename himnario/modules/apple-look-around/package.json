@@ -1,0 +1,7 @@
+{
+  "name": "apple-look-around",
+  "version": "1.0.0",
+  "description": "Native iOS 16+ MKLookAroundViewController module for Himnario El Buen Pastor",
+  "main": "index.ts",
+  "types": "index.ts"
+}

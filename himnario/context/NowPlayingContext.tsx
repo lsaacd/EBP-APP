@@ -30,10 +30,14 @@ interface NowPlayingState {
   isShuffled: boolean;
   /** Repeat mode */
   repeatMode: 'off' | 'all' | 'one';
+  /** Current playback speed multiplier (default 1) */
+  playbackRate: number;
   /** The list of hymn IDs currently in the playback queue (for playlists) */
   currentQueueIds: string[] | null;
   /** Set a custom playback queue */
   setQueue: (ids: string[] | null) => void;
+  /** Change playback speed (e.g. 0.75, 0.85, 1, 1.15, 1.25, 1.5) */
+  setPlaybackRate: (rate: number) => void;
   /** Open the full-screen player for a specific hymn */
   openPlayer: (hymnId: string, queueIds?: string[] | null) => void;
   /** Close the full-screen player (audio keeps playing) */
@@ -43,9 +47,9 @@ interface NowPlayingState {
   /** Play / Pause toggle */
   togglePlayPause: () => void;
   /** Skip to next track */
-  skipNext: () => void;
+  skipNext: (opts?: { silent?: boolean }) => void;
   /** Skip to previous track */
-  skipPrev: () => void;
+  skipPrev: (opts?: { silent?: boolean }) => void;
   /** Change the current track (used internally by the full player) */
   setCurrentHymnId: (id: string, queueIds?: string[] | null) => void;
   /** Toggle shuffle */
@@ -102,12 +106,16 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
         playbackError: snapshot.error,
         isShuffled: snapshot.isShuffled,
         repeatMode: snapshot.repeatMode,
+        playbackRate: snapshot.playbackRate ?? 1,
         currentQueueIds: snapshot.currentQueueIds,
         showFullPlayer,
         setQueue: nativePlayer.setQueue,
+        setPlaybackRate: (rate: number) => {
+          void nativePlayer.setPlaybackRate(rate);
+        },
         openPlayer: (id, ids) => {
           setShowFullPlayer(true);
-          void nativePlayer.open(String(id), ids);
+          if (String(id) !== snapshot.currentHymnId || snapshot.error || ids !== undefined) void nativePlayer.open(String(id), ids);
         },
         closeFullPlayer: () => setShowFullPlayer(false),
         clearNowPlaying: () => {
@@ -118,12 +126,16 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           void nativePlayer.toggle();
         },
-        skipNext: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        skipNext: (opts) => {
+          if (!opts?.silent) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
           void nativePlayer.next();
         },
-        skipPrev: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        skipPrev: (opts) => {
+          if (!opts?.silent) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
           void nativePlayer.previous();
         },
         setCurrentHymnId: (id, ids) => {

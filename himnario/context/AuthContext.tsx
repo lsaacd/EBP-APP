@@ -27,6 +27,16 @@ export interface AuthUser {
   id: string;
   email: string;
   emailVerified: boolean;
+  ministry: string | null;
+  choir: string | null;
+  churchId: string | null;
+  churchName: string | null;
+  location: string | null;
+  showChurchLocation: boolean;
+  role: 'member' | 'admin';
+  badgeVerified: boolean;
+  ugcTermsAccepted: boolean;
+  suspended: boolean;
   displayName: string;
   name?: string;
   initials: string;
@@ -52,6 +62,16 @@ function normalizeUser(raw: any): AuthUser {
     id: String(raw?.id || ''),
     email,
     emailVerified: raw?.emailVerified === true,
+    ministry: typeof raw?.ministry === 'string' ? raw.ministry : null,
+    choir: typeof raw?.choir === 'string' ? raw.choir : null,
+    churchId: typeof raw?.churchId === 'string' ? raw.churchId : null,
+    churchName: typeof raw?.churchName === 'string' ? raw.churchName : null,
+    location: typeof raw?.location === 'string' ? raw.location : null,
+    showChurchLocation: raw?.showChurchLocation === true,
+    role: raw?.role === 'admin' && email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
+    badgeVerified: raw?.badgeVerified === true && raw?.ministry === 'obispo',
+    ugcTermsAccepted: raw?.ugcTermsAccepted === true,
+    suspended: raw?.suspended === true,
     displayName,
     name: displayName,
     initials: raw?.initials || computeUserInitials(displayName, email),
@@ -83,7 +103,18 @@ interface AuthContextType {
   requestEmailVerification: () => Promise<void>;
   refreshUser: () => Promise<AuthUser>;
   updateProfileName: (displayName: string) => Promise<void>;
+  updateProfile: (profile: {
+    name?: string;
+    ministry?: string | null;
+    choir?: string | null;
+    churchId?: string | null;
+    churchName?: string | null;
+    location?: string | null;
+    showChurchLocation?: boolean;
+  }) => Promise<void>;
+  acceptUgcTerms: () => Promise<void>;
   syncNow: () => Promise<void>;
+  resolveSyncConflict: (strategy: 'local' | 'cloud') => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
@@ -105,7 +136,10 @@ const AuthContext = createContext<AuthContextType>({
   requestEmailVerification: async () => {},
   refreshUser: async () => { throw new Error('auth_cancelled'); },
   updateProfileName: async () => {},
+  updateProfile: async () => {},
+  acceptUgcTerms: async () => {},
   syncNow: async () => {},
+  resolveSyncConflict: async () => {},
   signOut: async () => {},
   deleteAccount: async () => {},
 });
@@ -216,14 +250,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await clearAuthSession();
   }, [invalidateRequests]);
 
-  const applyServerSync = useCallback((syncData: any): SyncPayload => {
+  const normalizeServerSync = useCallback((syncData: any): SyncPayload => {
     const prefs = syncData?.preferences || {};
     const localPrefs = snapshotRef.current.preferences;
     const favs = syncData?.favorites ?? syncData?.favoriteIds;
     const recents = syncData?.recents ?? syncData?.recentIds;
     const cleanIds = (ids: unknown) => Array.isArray(ids)
       ? Array.from(new Set(ids.map(String))).filter(Boolean) : [];
-    const next: SyncPayload = {
+    return {
       favorites: cleanIds(favs),
       playlists: Array.isArray(syncData?.playlists) ? syncData.playlists : [],
       recents: cleanIds(recents).slice(0, 10),
@@ -237,7 +271,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? prefs.fontSizeMultiplier : localPrefs.fontSizeMultiplier,
       },
     };
-    // Only explicit login/registration may replace local collections with cloud data.
+  }, []);
+
+  const applyServerSync = useCallback((syncData: any): SyncPayload => {
+    const localPrefs = snapshotRef.current.preferences;
+    const next = normalizeServerSync(syncData);
+    // Only explicit login/registration/cloud-resolution may replace local collections with cloud data.
     setAllFavorites(next.favorites);
     setAllPlaylists(next.playlists);
     setAllRecents(next.recents);
@@ -248,7 +287,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     snapshotRef.current = next;
     syncedSnapshotRef.current = JSON.stringify(next);
     return next;
-  }, [setAllFavorites, setAllPlaylists, setAllRecents, setLanguage, setHymnLanguage,
+  }, [normalizeServerSync, setAllFavorites, setAllPlaylists, setAllRecents, setLanguage, setHymnLanguage,
     toggleTheme, setFontSizeMultiplier]);
 
   useEffect(() => {
@@ -274,6 +313,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(parsed.token);
         setUser(userRef.current);
         setLastSyncedAt(syncedAt);
+        const profileVersion = profileRequestRef.current;
         const res = await fetch(`${AUTH_SYNC_API_URL}/sync`, {
           headers: { Authorization: `Bearer ${parsed.token}` }, signal: controller.signal,
         });
@@ -287,14 +327,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isCurrent(epoch, parsed.token)) return;
         // Sync may have started before a profile edit or email verification.
         const nextUser = data?.user?.id === userRef.current?.id
-          ? { ...userRef.current!, emailVerified: data.user.emailVerified === true || userRef.current!.emailVerified }
+          ? normalizeUser({ ...(profileVersion === profileRequestRef.current ? data.user : userRef.current!), emailVerified: data.user.emailVerified === true || userRef.current!.emailVerified })
           : userRef.current!;
         const userChanged = JSON.stringify(nextUser) !== JSON.stringify(userRef.current);
-        const cloudRevision = parseRevision((data?.data || data?.sync)?.updatedAt);
+        const cloudSyncObj = data?.data || data?.sync;
+        const cloudRevision = parseRevision(cloudSyncObj?.updatedAt);
         // GET is verification only. Never rebase offline edits onto a newer cloud revision.
         if (cloudRevision === null || cloudRevision !== revisionRef.current) {
           syncBlockedRef.current = true;
           setSyncBlocked(true);
+        } else if (!syncBlockedRef.current) {
+          syncedSnapshotRef.current = JSON.stringify(normalizeServerSync(cloudSyncObj));
         }
         if (syncBlockedRef.current || userChanged) {
           await saveSession(epoch, parsed.token, nextUser, lastSyncedAtRef.current);
@@ -314,14 +357,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mountedRef.current = false;
       invalidateRequests();
     };
-  }, [clearSession, invalidateRequests, isCurrent, saveSession]);
+  }, [clearSession, invalidateRequests, isCurrent, normalizeServerSync, saveSession]);
 
   const pushSyncToCloud = useCallback(async (
     activeToken: string, snapshot: SyncPayload
   ): Promise<void> => {
     const epoch = sessionEpochRef.current;
     // A second write waits for the first revision; aborting a PUT cannot undo a server commit.
-    while (syncInFlightRef.current) await syncInFlightRef.current;
+    while (syncInFlightRef.current) await syncInFlightRef.current.catch(() => {});
     assertCurrent(epoch, activeToken);
     if (sessionPendingRef.current) throw new Error('sync_unavailable');
     if (syncBlockedRef.current || revisionRef.current === null) throw new Error('sync_conflict');
@@ -459,7 +502,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSyncBlocked(syncBlockedRef.current);
       applyServerSync(syncObj);
       await saveSession(epoch, data.token, normalizeUser(data.user),
-        revision === null ? null : new Date(revision).toISOString());
+        revision === null || revision === 0 ? null : new Date(revision).toISOString());
     } catch (error) {
       assertCurrent(epoch);
       throw error;
@@ -566,7 +609,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [assertCurrent, clearSession, saveSession]);
 
-  const updateProfileName = useCallback(async (displayName: string) => {
+  const updateAccount = useCallback(async (body: object, path = '/auth/profile') => {
     const activeToken = tokenRef.current;
     if (!activeToken || !userRef.current) throw new Error('auth_cancelled');
     const epoch = sessionEpochRef.current;
@@ -574,13 +617,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const controller = new AbortController();
     requestsRef.current.add(controller);
     try {
-      const res = await fetch(`${AUTH_SYNC_API_URL}/auth/profile`, {
-        method: 'PUT',
+      const res = await fetch(`${AUTH_SYNC_API_URL}${path}`, {
+        method: path === '/auth/profile' ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json', Authorization: `Bearer ${activeToken}`,
           'X-EBP-Client': 'himnario-v2',
         },
-        body: JSON.stringify({ name: displayName.trim(), displayName: displayName.trim() }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       const data = await res.json().catch(() => ({}));
@@ -590,7 +633,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await clearSession();
         throw new Error('auth_cancelled');
       }
-      if (!res.ok || !data?.user) throw new Error(data?.error || 'auth_failed');
+      if (!res.ok || !data?.user || data.user.id !== userRef.current?.id) throw new Error(data?.error || 'auth_failed');
       await saveSession(epoch, activeToken, normalizeUser({
         ...data.user, emailVerified: data.user.emailVerified === true || userRef.current?.emailVerified,
       }), lastSyncedAtRef.current);
@@ -602,6 +645,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [assertCurrent, clearSession, saveSession]);
 
+  const updateProfile = useCallback((profile: {
+    name?: string;
+    ministry?: string | null;
+    choir?: string | null;
+    churchName?: string | null;
+    location?: string | null;
+    showChurchLocation?: boolean;
+  }) => updateAccount(profile), [updateAccount]);
+  const updateProfileName = useCallback((name: string) => updateProfile({name: name.trim()}), [updateProfile]);
+  const acceptUgcTerms = useCallback(() => updateAccount({version:'2026-11-17'}, '/auth/ugc-terms/accept'), [updateAccount]);
+
   const syncNow = useCallback(async () => {
     const activeToken = tokenRef.current;
     if (!activeToken || !userRef.current) return;
@@ -609,6 +663,122 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncTimeoutRef.current = null;
     await pushSyncToCloud(activeToken, snapshotRef.current);
   }, [pushSyncToCloud]);
+
+  const resolveSyncConflict = useCallback(async (strategy: 'local' | 'cloud') => {
+    const activeToken = tokenRef.current;
+    if (!activeToken || !userRef.current) return;
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = null;
+    const epoch = sessionEpochRef.current;
+    while (syncInFlightRef.current) await syncInFlightRef.current.catch(() => {});
+    assertCurrent(epoch, activeToken);
+    if (sessionPendingRef.current) throw new Error('sync_unavailable');
+    const profileVersion = profileRequestRef.current;
+    const controller = new AbortController();
+    requestsRef.current.add(controller);
+    setIsSyncing(true);
+    const operation = (async () => {
+      try {
+        const res = await fetch(`${AUTH_SYNC_API_URL}/sync`, {
+          headers: { Authorization: `Bearer ${activeToken}`, 'X-EBP-Client': 'himnario-v2' },
+          signal: controller.signal,
+        });
+        assertCurrent(epoch, activeToken);
+        if (res.status === 401) {
+          await clearSession();
+          throw new Error('auth_cancelled');
+        }
+        if (!res.ok) throw new Error('sync_unavailable');
+        const data = await res.json();
+        assertCurrent(epoch, activeToken);
+        const syncObj = data?.data || data?.sync;
+        const cloudRevision = parseRevision(syncObj?.updatedAt);
+        if (cloudRevision === null) throw new Error('sync_unavailable');
+
+        const baseUser = data?.user?.id === userRef.current?.id
+          ? normalizeUser({
+              ...(profileVersion === profileRequestRef.current ? data.user : userRef.current!),
+              emailVerified: data.user.emailVerified === true || userRef.current!.emailVerified,
+            })
+          : userRef.current!;
+
+        if (strategy === 'cloud') {
+          const localSnapshotBeforeReplace = JSON.stringify(snapshotRef.current);
+          const accountId = userRef.current!.id;
+          try {
+            await AsyncStorage.setItem(
+              LOCAL_BACKUP_KEY_PREFIX + `account:${encodeURIComponent(accountId)}`,
+              JSON.stringify({
+                version: 1,
+                priorAccountId: accountId,
+                savedAt: new Date().toISOString(),
+                data: JSON.parse(localSnapshotBeforeReplace),
+              })
+            );
+          } catch {
+            throw new Error('local_backup_failed');
+          }
+          assertCurrent(epoch, activeToken);
+          if (JSON.stringify(snapshotRef.current) !== localSnapshotBeforeReplace) {
+            throw new Error('local_backup_failed');
+          }
+          revisionRef.current = cloudRevision;
+          syncBlockedRef.current = false;
+          setSyncBlocked(false);
+          applyServerSync(syncObj);
+          await saveSession(
+            epoch,
+            activeToken,
+            baseUser,
+            cloudRevision === 0 ? null : new Date(cloudRevision).toISOString()
+          );
+          return;
+        }
+
+        const snapshot = snapshotRef.current;
+        const putRes = await fetch(`${AUTH_SYNC_API_URL}/sync`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeToken}`,
+            'X-EBP-Client': 'himnario-v2',
+          },
+          body: JSON.stringify({ ...snapshot, expectedRevision: cloudRevision }),
+          signal: controller.signal,
+        });
+        assertCurrent(epoch, activeToken);
+        if (putRes.status === 401) {
+          await clearSession();
+          throw new Error('auth_cancelled');
+        }
+        if (putRes.status === 409) throw new Error('sync_conflict');
+        if (!putRes.ok) throw new Error('sync_unavailable');
+        const putData = await putRes.json();
+        assertCurrent(epoch, activeToken);
+        const newRevision = parseRevision(putData?.updatedAt ?? putData?.sync?.updatedAt);
+        if (newRevision === null) throw new Error('sync_conflict');
+        revisionRef.current = newRevision;
+        syncBlockedRef.current = false;
+        setSyncBlocked(false);
+        syncedSnapshotRef.current = JSON.stringify(snapshot);
+        const nextUser = putData?.user?.id === baseUser.id
+          ? { ...baseUser, emailVerified: putData.user.emailVerified === true || baseUser.emailVerified }
+          : baseUser;
+        await saveSession(epoch, activeToken, nextUser, new Date(newRevision).toISOString());
+      } catch (error) {
+        assertCurrent(epoch, activeToken);
+        throw error;
+      } finally {
+        requestsRef.current.delete(controller);
+        if (isCurrent(epoch, activeToken)) {
+          syncInFlightRef.current = null;
+          setIsSyncing(false);
+        }
+      }
+    })();
+    syncInFlightRef.current = operation;
+    await operation;
+  }, [applyServerSync, assertCurrent, clearSession, isCurrent, saveSession]);
 
   const signOut = useCallback(async () => {
     const activeToken = tokenRef.current;
@@ -679,7 +849,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestEmailVerification,
         refreshUser,
         updateProfileName,
+        updateProfile,
+        acceptUgcTerms,
         syncNow,
+        resolveSyncConflict,
         signOut,
         deleteAccount,
       }}

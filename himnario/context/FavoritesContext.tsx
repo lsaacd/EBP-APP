@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@himnario_favorites';
@@ -19,26 +19,38 @@ const FavoritesContext = createContext<FavoritesContextType>({
 
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const favoritesRef = useRef<string[]>([]);
+  const mutatedBeforeHydrateRef = useRef(false);
 
   // Load persisted favorites on mount
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) {
-        try { setFavoriteIds(JSON.parse(raw)); } catch {}
-      }
-    });
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (mutatedBeforeHydrateRef.current || !raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return;
+          const clean = Array.from(new Set(parsed.map((x) => String(x)))).filter(Boolean);
+          favoritesRef.current = clean;
+          setFavoriteIds(clean);
+        } catch {}
+      })
+      .catch(() => {});
   }, []);
 
   const toggleFavorite = useCallback((id: string) => {
-    setFavoriteIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
+    mutatedBeforeHydrateRef.current = true;
+    const prev = favoritesRef.current;
+    const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+    favoritesRef.current = next;
+    setFavoriteIds(next);
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
   const setAllFavorites = useCallback((ids: string[]) => {
+    mutatedBeforeHydrateRef.current = true;
     const clean = Array.from(new Set(ids.map((x) => String(x)))).filter(Boolean);
+    favoritesRef.current = clean;
     setFavoriteIds(clean);
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(clean)).catch(() => {});
   }, []);

@@ -55,6 +55,7 @@ import {
 } from '../../utils/search-engine';
 
 const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+const SYSTEM_FONT = Platform.OS === 'ios' ? undefined : 'sans-serif';
 
 const himnosSearchEngineEs = createSearchEngine(hymnsData as any[]);
 const estribillosSearchEngineEs = createSearchEngine(estribillosData as any[]);
@@ -631,33 +632,89 @@ export default function HymnListScreen() {
                   const active = f === searchFilter || (isAll && activeIsAll);
                   const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={f}
                       onPress={() => handleFilterChange(f)}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: active
-                            ? theme.primary
-                            : theme.surfaceVariants.containerHighest,
-                        },
-                        isAll &&
-                          !active && {
-                            borderWidth: 1,
-                            borderColor: theme.primary + '44',
-                            backgroundColor: 'transparent',
-                          },
+                      style={({ pressed }) => [
+                        styles.amazonChipWrap,
+                        pressed && { opacity: 0.78, transform: [{ scale: 0.97 }] },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: active ? theme.onPrimary : theme.onSurface },
-                        ]}
-                      >
-                        {displayLabel}
-                      </Text>
-                    </TouchableOpacity>
+                      {active ? (
+                        <View
+                          style={[
+                            styles.chip,
+                            styles.chipActiveSolid,
+                            {
+                              backgroundColor: theme.primary,
+                              borderColor: theme.primary,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              { color: theme.onPrimary },
+                            ]}
+                          >
+                            {displayLabel}
+                          </Text>
+                        </View>
+                      ) : Platform.OS === 'ios' ? (
+                        <GlassSurface
+                          isInteractive
+                          glassEffectStyle="regular"
+                          intensity={56}
+                          tonalColor={
+                            isDarkMode
+                              ? 'rgba(255,255,255,0.09)'
+                              : theme.surfaceVariants.containerHigh
+                          }
+                          style={[
+                            styles.chip,
+                            styles.chipIosGlass,
+                            {
+                              borderColor: isAll
+                                ? theme.primary + '55'
+                                : isDarkMode
+                                  ? 'rgba(255,255,255,0.16)'
+                                  : theme.outlineVariant + '44',
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              { color: theme.onSurface },
+                            ]}
+                          >
+                            {displayLabel}
+                          </Text>
+                        </GlassSurface>
+                      ) : (
+                        <View
+                          style={[
+                            styles.chip,
+                            styles.chipAndroidNative,
+                            {
+                              backgroundColor: theme.surfaceVariants.containerHighest,
+                              borderColor: isAll
+                                ? theme.primary + '55'
+                                : theme.outlineVariant + '38',
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              { color: theme.onSurface },
+                            ]}
+                          >
+                            {displayLabel}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
                   );
                 })}
               </ScrollView>
@@ -807,71 +864,118 @@ export default function HymnListScreen() {
     const coritosLabel = language === 'es' ? 'Coritos' : 'Choruses';
     const himnosLabel = t.subTabHimnos || (language === 'es' ? 'Himnos' : 'Hymns');
 
-    return (
-      <View style={styles.flex1}>
-        {/* Toggle Switch between Himnos and Coritos so the list & right A-Z carousel apply to either */}
-        <View style={styles.indiceToggleWrap}>
-          <View
-            style={[
-              styles.indiceTogglePill,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(110,22,25,0.08)',
-              },
-            ]}
-          >
-            {(
-              [
-                { key: 'himnos', label: himnosLabel },
-                { key: 'estribillos', label: coritosLabel },
-              ] as const
-            ).map((opt) => {
-              const active = indiceSection === opt.key;
-              return (
-                <TouchableOpacity
-                  key={opt.key}
-                  style={[
-                    styles.indiceToggleOption,
-                    active && {
-                      backgroundColor: theme.primary,
-                    },
-                  ]}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    if (indiceSection === opt.key) return;
-                    Haptics.selectionAsync().catch(() => {});
-                    setIndiceSection(opt.key);
-                    setTimeout(() => {
-                      indiceListRef.current?.scrollToOffset?.({ offset: 0, animated: false });
-                    }, 20);
-                  }}
-                >
-                  <Text
+    const indiceToggleHeader = (
+      <View style={styles.indiceToggleWrap}>
+        <View style={styles.indiceTogglePill}>
+          {(
+            [
+              { key: 'himnos', label: himnosLabel },
+              { key: 'estribillos', label: coritosLabel },
+            ] as const
+          ).map((opt) => {
+            const active = indiceSection === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                style={({ pressed }) => [
+                  styles.indiceToggleBtnWrap,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                ]}
+                onPress={() => {
+                  if (indiceSection === opt.key) return;
+                  Haptics.selectionAsync().catch(() => {});
+                  setIndiceSection(opt.key);
+                  setTimeout(() => {
+                    indiceListRef.current?.scrollToOffset?.({ offset: 0, animated: false });
+                  }, 20);
+                }}
+              >
+                {active ? (
+                  <View
                     style={[
-                      styles.indiceToggleText,
+                      styles.indiceToggleOption,
+                      styles.chipActiveSolid,
                       {
-                        color: active ? theme.onPrimary : theme.onSurfaceVariant,
-                        fontFamily: active
-                          ? 'PublicSans_700Bold'
-                          : 'PublicSans_600SemiBold',
+                        backgroundColor: theme.primary,
+                        borderColor: theme.primary,
                       },
                     ]}
                   >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.indiceToggleText,
+                        { color: theme.onPrimary },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </View>
+                ) : Platform.OS === 'ios' ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={56}
+                    tonalColor={
+                      isDarkMode
+                        ? 'rgba(255,255,255,0.09)'
+                        : theme.surfaceVariants.containerHigh
+                    }
+                    style={[
+                      styles.indiceToggleOption,
+                      styles.chipIosGlass,
+                      {
+                        borderColor: isDarkMode
+                          ? 'rgba(255,255,255,0.16)'
+                          : theme.outlineVariant + '44',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.indiceToggleText,
+                        { color: theme.onSurface },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </GlassSurface>
+                ) : (
+                  <View
+                    style={[
+                      styles.indiceToggleOption,
+                      styles.chipAndroidNative,
+                      {
+                        backgroundColor: theme.surfaceVariants.containerHighest,
+                        borderColor: theme.outlineVariant + '38',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.indiceToggleText,
+                        { color: theme.onSurface },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
+      </View>
+    );
 
+    return (
+      <View style={styles.flex1}>
         <View style={styles.indiceBody}>
           <View style={styles.indiceListContainer}>
             <FlatList
               ref={indiceListRef}
               data={indiceData}
               extraData={`${language}-${offline.saved}-${indiceSection}`}
+              ListHeaderComponent={indiceToggleHeader}
               keyExtractor={(item, index) =>
                 item.type +
                 '_' +
@@ -961,7 +1065,6 @@ export default function HymnListScreen() {
                   />
                 </View>
               }
-              ListHeaderComponent={<View style={{ height: 8 }} />}
             />
           </View>
 
@@ -1360,33 +1463,89 @@ export default function HymnListScreen() {
                     const active = f === searchFilter || (isAll && activeIsAll);
                     const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
                     return (
-                      <TouchableOpacity
+                      <Pressable
                         key={`overlay-chip-${f}`}
                         onPress={() => handleFilterChange(f)}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: active
-                              ? theme.primary
-                              : theme.surfaceVariants.containerHighest,
-                          },
-                          isAll &&
-                            !active && {
-                              borderWidth: 1,
-                              borderColor: theme.primary + '44',
-                              backgroundColor: 'transparent',
-                            },
+                        style={({ pressed }) => [
+                          styles.amazonChipWrap,
+                          pressed && { opacity: 0.78, transform: [{ scale: 0.97 }] },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            { color: active ? theme.onPrimary : theme.onSurface },
-                          ]}
-                        >
-                          {displayLabel}
-                        </Text>
-                      </TouchableOpacity>
+                        {active ? (
+                          <View
+                            style={[
+                              styles.chip,
+                              styles.chipActiveSolid,
+                              {
+                                backgroundColor: theme.primary,
+                                borderColor: theme.primary,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                { color: theme.onPrimary },
+                              ]}
+                            >
+                              {displayLabel}
+                            </Text>
+                          </View>
+                        ) : Platform.OS === 'ios' ? (
+                          <GlassSurface
+                            isInteractive
+                            glassEffectStyle="regular"
+                            intensity={56}
+                            tonalColor={
+                              isDarkMode
+                                ? 'rgba(255,255,255,0.09)'
+                                : theme.surfaceVariants.containerHigh
+                            }
+                            style={[
+                              styles.chip,
+                              styles.chipIosGlass,
+                              {
+                                borderColor: isAll
+                                  ? theme.primary + '55'
+                                  : isDarkMode
+                                    ? 'rgba(255,255,255,0.16)'
+                                    : theme.outlineVariant + '44',
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                { color: theme.onSurface },
+                              ]}
+                            >
+                              {displayLabel}
+                            </Text>
+                          </GlassSurface>
+                        ) : (
+                          <View
+                            style={[
+                              styles.chip,
+                              styles.chipAndroidNative,
+                              {
+                                backgroundColor: theme.surfaceVariants.containerHighest,
+                                borderColor: isAll
+                                  ? theme.primary + '55'
+                                  : theme.outlineVariant + '38',
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                { color: theme.onSurface },
+                              ]}
+                            >
+                              {displayLabel}
+                            </Text>
+                          </View>
+                        )}
+                      </Pressable>
                     );
                   })}
                 </ScrollView>
@@ -1575,11 +1734,14 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   subTabText: {
-    fontFamily: 'PublicSans_500Medium',
-    fontSize: 15,
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '500',
+    fontSize: 15.5,
+    letterSpacing: -0.2,
   },
   subTabActiveText: {
-    fontFamily: 'PublicSans_700Bold',
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '700',
   },
   activeIndicator: {
     position: 'absolute',
@@ -1603,18 +1765,38 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: 'PublicSans_400Regular',
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '400',
     fontSize: 16,
+    letterSpacing: -0.15,
   },
-  chips: { gap: 10, paddingRight: 8, alignItems: 'center' },
+  chips: { gap: 8, paddingRight: 12, alignItems: 'center' },
+  amazonChipWrap: {
+    borderRadius: 12,
+  },
   chip: {
+    height: 38,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 100,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipActiveSolid: {
+    borderWidth: 1,
+  },
+  chipIosGlass: {
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  chipAndroidNative: {
+    borderWidth: 1,
+    elevation: 1,
   },
   chipText: {
-    fontFamily: 'PublicSans_500Medium',
-    fontSize: 14,
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '700',
+    fontSize: 14.5,
+    letterSpacing: -0.25,
   },
   listItem: {
     flexDirection: 'row',
@@ -1727,26 +1909,31 @@ const styles = StyleSheet.create({
   indiceToggleWrap: {
     paddingHorizontal: 24,
     paddingTop: 6,
-    paddingBottom: 4,
+    paddingBottom: 6,
     alignItems: 'center',
   },
   indiceTogglePill: {
     flexDirection: 'row',
-    borderRadius: 999,
-    padding: 3,
+    gap: 10,
     width: '100%',
     maxWidth: 320,
   },
-  indiceToggleOption: {
+  indiceToggleBtnWrap: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: 12,
+  },
+  indiceToggleOption: {
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 14,
   },
   indiceToggleText: {
-    fontSize: 13.5,
-    letterSpacing: 0.2,
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '700',
+    fontSize: 14.5,
+    letterSpacing: -0.25,
   },
   indiceBody: {
     flex: 1,
