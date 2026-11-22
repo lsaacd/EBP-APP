@@ -31,8 +31,17 @@ type Props = {
   children: React.ReactNode;
   /** Optional extra gesture for the header, e.g. a horizontal swipe. */
   headerGesture?: GestureType;
+  /** Rendered behind the content, clipped to the sheet's rounded shape. */
+  background?: React.ReactNode;
+  /** Floats above the sheet's top-right edge and travels with it. */
+  accessory?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 };
+
+// Room reserved above the sheet so the accessory stays inside the touchable
+// bounds of the moving container (views outside their parent get no touches).
+const ACCESSORY_SPACE = 58;
+const OVERSHOOT = 60;
 
 export default function DetentSheet({
   snapHeights,
@@ -41,6 +50,8 @@ export default function DetentSheet({
   header,
   children,
   headerGesture,
+  background,
+  accessory,
   style,
 }: Props) {
   const maxHeight = snapHeights[snapHeights.length - 1];
@@ -83,23 +94,54 @@ export default function DetentSheet({
 
   return (
     <Animated.View
-      style={[styles.sheet, { height: maxHeight + 60, paddingBottom: 60, marginBottom: -60 }, style, sheetStyle]}
+      pointerEvents="box-none"
+      style={[
+        styles.container,
+        { height: maxHeight + OVERSHOOT + ACCESSORY_SPACE, marginBottom: -OVERSHOOT },
+        sheetStyle,
+      ]}
     >
-      <SheetGrabber />
-      <GestureDetector gesture={gesture}>
-        <View collapsable={false}>{header}</View>
-      </GestureDetector>
-      <View style={styles.body}>{children}</View>
+      <View pointerEvents="box-none" style={styles.accessoryRow}>
+        {accessory}
+      </View>
+      <View style={[styles.sheet, { paddingBottom: OVERSHOOT }, style]}>
+        {background ? (
+          <View pointerEvents="none" style={styles.background}>
+            {background}
+          </View>
+        ) : null}
+        <SheetGrabber />
+        <GestureDetector gesture={gesture}>
+          <View collapsable={false}>{header}</View>
+        </GestureDetector>
+        <View style={styles.body}>{children}</View>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
+  container: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  accessoryRow: {
+    height: ACCESSORY_SPACE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 14,
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    overflow: 'hidden',
+  },
+  sheet: {
+    flex: 1,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     borderWidth: StyleSheet.hairlineWidth,

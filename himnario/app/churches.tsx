@@ -662,6 +662,35 @@ export default function ChurchesScreen() {
         openAuthSheet();
         return;
       }
+      const alreadyMine =
+        user.churchId === church.id ||
+        (!user.churchId && user.churchName === church.name);
+      if (alreadyMine) {
+        // Tapping the green "Your church" button offers to remove the link.
+        Alert.alert(
+          t.churchRemoveMyChurchTitle,
+          es
+            ? `“${church.name}” dejará de aparecer como tu iglesia en tu perfil.`
+            : `“${church.name}” will no longer show as your church on your profile.`,
+          [
+            { text: t.cancel, style: "cancel" },
+            {
+              text: t.churchRemoveMyChurchConfirm,
+              style: "destructive",
+              onPress: () => {
+                setSettingMyChurchId(church.id);
+                void updateProfile({ churchId: null, churchName: null })
+                  .then(() =>
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+                  )
+                  .catch((e) => Alert.alert(t.churchError, communityError(e, es)))
+                  .finally(() => setSettingMyChurchId(null));
+              },
+            },
+          ],
+        );
+        return;
+      }
       setSettingMyChurchId(church.id);
       try {
         const loc = [church.country, church.state ? `${church.city}, ${church.state}` : church.city]
@@ -677,8 +706,8 @@ export default function ChurchesScreen() {
         Alert.alert(
           t.churchChurchSynced,
           es
-            ? `Se vinculó “${church.name}” como tu iglesia actual en tu perfil en la nube.`
-            : `Linked “${church.name}” as your home church in your cloud profile.`,
+            ? `“${church.name}” ahora aparece como tu iglesia en tu perfil.`
+            : `“${church.name}” now shows as your church on your profile.`,
         );
       } catch (e) {
         Alert.alert(t.churchError, communityError(e, es));
@@ -1378,35 +1407,6 @@ export default function ChurchesScreen() {
               />
             </Pressable>
           </GlassSurface>
-
-          {Platform.OS !== "web" && !pinPickerOpen && (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={64}
-              style={styles.circleBtn}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.churchCenterOnMyLocation}
-                onPress={() => void requestNearMe(true)}
-                disabled={locating}
-                style={styles.circleBtnHit}
-              >
-                {locating ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <AppMenuIcon
-                    ios={userCoords ? "location.fill" : "location"}
-                    android="my-location"
-                    color={theme.onSurface}
-                    size={18}
-                    weight="semibold"
-                  />
-                )}
-              </Pressable>
-            </GlassSurface>
-          )}
         </View>
 
         {/* Admin Pending User Submissions Banner */}
@@ -1464,7 +1464,63 @@ export default function ChurchesScreen() {
           index={snapIndex}
           onIndexChange={handleSheetIndexChange}
           headerGesture={headerSwipe}
-          style={{ backgroundColor: bgSurface, borderColor: cardBorder }}
+          style={
+            isIOS
+              ? { backgroundColor: "transparent", borderColor: "transparent", shadowOpacity: 0 }
+              : { backgroundColor: bgSurface, borderColor: cardBorder }
+          }
+          background={
+            isIOS ? (
+              <GlassSurface
+                glassEffectStyle="regular"
+                intensity={70}
+                // A church card carries photos and a schedule: give it the
+                // frosted backing so text never competes with the map.
+                stableBackdrop={Boolean(selectedChurch)}
+                style={StyleSheet.absoluteFill}
+              />
+            ) : undefined
+          }
+          accessory={
+            Platform.OS !== "web" && !selectedChurch ? (
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={64}
+                style={styles.nearMeGlassPill}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.churchCenterOnMyLocation}
+                  onPress={() => void requestNearMe(true)}
+                  disabled={locating}
+                  style={styles.nearMeGlassHit}
+                >
+                  {locating ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <AppMenuIcon
+                      ios={userCoords ? "location.fill" : "location"}
+                      android="my-location"
+                      color={theme.onSurface}
+                      size={15}
+                      weight="semibold"
+                    />
+                  )}
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: theme.onSurface,
+                      fontFamily: fonts.sansSemiBold,
+                      fontSize: 14,
+                    }}
+                  >
+                    {t.churchNearMe}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
+            ) : undefined
+          }
           header={
             selectedChurch ? (
               <View
@@ -3209,6 +3265,18 @@ export default function ChurchesScreen() {
 }
 
 const styles = StyleSheet.create({
+  nearMeGlassPill: {
+    height: 40,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  nearMeGlassHit: {
+    height: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 15,
+  },
   sheetHeader: {
     paddingHorizontal: 18,
     paddingTop: 14,
