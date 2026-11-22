@@ -138,7 +138,7 @@ export default function ChurchesScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { theme, isDarkMode } = useTheme();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const es = language === "es";
   const { user, openAuthSheet, updateProfile } = useAuth();
   const { currentHymnId } = useNowPlaying();
@@ -201,7 +201,7 @@ export default function ChurchesScreen() {
   const [formCity, setFormCity] = useState("");
   const [formState, setFormState] = useState("");
   const [formCountry, setFormCountry] = useState(
-    es ? "Estados Unidos" : "United States",
+    t.churchUnitedStates,
   );
   const [formPostal, setFormPostal] = useState("");
   const [formCoordsInput, setFormCoordsInput] = useState("");
@@ -527,15 +527,13 @@ export default function ChurchesScreen() {
           setQrScannerOpen(true);
         } else {
           Alert.alert(
-            es ? "Permiso de cámara" : "Camera Permission",
-            es
-              ? "Activa el permiso de cámara en Ajustes para escanear códigos QR."
-              : "Enable camera permission in Settings to scan QR codes.",
+            t.churchCameraPermission,
+            t.churchEnableCameraPermissionInSettingsTo,
           );
         }
       })();
     }
-  }, [es, params.scan]);
+  }, [t, es, params.scan]);
 
   useEffect(() => {
     if (!params.id || churches.length === 0) return;
@@ -555,10 +553,8 @@ export default function ChurchesScreen() {
       const perm = await Camera.requestCameraPermissionsAsync();
       if (!perm.granted) {
         Alert.alert(
-          es ? "Permiso de cámara" : "Camera Permission",
-          es
-            ? "Activa el permiso de cámara en Ajustes para escanear códigos QR de himnos o iglesias."
-            : "Enable camera permission in Settings to scan hymn or church QR codes.",
+          t.churchCameraPermission,
+          t.churchEnableCameraPermissionInSettingsTo2,
         );
         return;
       }
@@ -566,13 +562,11 @@ export default function ChurchesScreen() {
       setQrScannerOpen(true);
     } catch {
       Alert.alert(
-        es ? "Cámara no disponible" : "Camera unavailable",
-        es
-          ? "No se pudo abrir el escáner QR en este dispositivo."
-          : "Could not open the QR scanner on this device.",
+        t.churchCameraUnavailable,
+        t.churchCouldNotOpenTheQrScanner,
       );
     }
-  }, [es]);
+  }, [t]);
 
   const handleQrScanned = useCallback(
     (result: { data?: string }) => {
@@ -610,13 +604,11 @@ export default function ChurchesScreen() {
 
       // 3. Fallback alert if unrecognized QR
       Alert.alert(
-        es ? "Código QR escaneado" : "QR Code Scanned",
-        es
-          ? "Este código QR no corresponde a un himno o iglesia verificada de El Buen Pastor."
-          : "This QR code does not match a verified El Buen Pastor hymn or church.",
+        t.churchQrCodeScanned,
+        t.churchThisQrCodeDoesNotMatch,
       );
     },
-    [churches, es, focusChurchOnMap, router],
+    [t, churches, focusChurchOnMap, router],
   );
 
   const openStreetPreview = useCallback(
@@ -628,7 +620,7 @@ export default function ChurchesScreen() {
           const presented = await presentAppleLookAround(church.lat, church.lng, {
             primaryTitle: church.address,
             secondaryTitle: `${church.city}${church.state ? `, ${church.state}` : ""}`,
-            doneLabel: es ? "Listo" : "Done",
+            doneLabel: t.done,
           });
           if (presented) return;
         }
@@ -648,7 +640,7 @@ export default function ChurchesScreen() {
         setLookingAroundId(null);
       }
     },
-    [es],
+    [t],
   );
 
   const openDirections = useCallback(
@@ -663,7 +655,7 @@ export default function ChurchesScreen() {
 
       if (Platform.OS === "ios") {
         Alert.alert(
-          es ? "Cómo llegar" : "Get Directions",
+          t.churchGetDirections,
           `${church.name}\n${church.address}, ${church.city}`,
           [
             {
@@ -674,14 +666,14 @@ export default function ChurchesScreen() {
               text: "Google Maps",
               onPress: () => void Linking.openURL(googleUrl).catch(() => {}),
             },
-            { text: es ? "Cancelar" : "Cancel", style: "cancel" },
+            { text: t.cancel, style: "cancel" },
           ],
         );
       } else {
         void Linking.openURL(googleUrl).catch(() => {});
       }
     },
-    [es],
+    [t],
   );
 
   const handleSetMyChurch = useCallback(
@@ -704,18 +696,18 @@ export default function ChurchesScreen() {
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          es ? "Iglesia sincronizada" : "Church synced",
+          t.churchChurchSynced,
           es
             ? `Se vinculó “${church.name}” como tu iglesia actual en tu perfil en la nube.`
             : `Linked “${church.name}” as your home church in your cloud profile.`,
         );
       } catch (e) {
-        Alert.alert(es ? "Error" : "Error", communityError(e, es));
+        Alert.alert(t.churchError, communityError(e, es));
       } finally {
         setSettingMyChurchId(null);
       }
     },
-    [es, openAuthSheet, updateProfile, user],
+    [t, es, openAuthSheet, updateProfile, user],
   );
 
   const resetFormFields = useCallback(() => {
@@ -725,7 +717,7 @@ export default function ChurchesScreen() {
     setFormAddress("");
     setFormCity("");
     setFormState("");
-    setFormCountry(es ? "Estados Unidos" : "United States");
+    setFormCountry(t.churchUnitedStates);
     setFormPostal("");
     setFormCoordsInput("");
     setFormPhotos([]);
@@ -733,7 +725,7 @@ export default function ChurchesScreen() {
     setFormSchedule("");
     setFormContact("");
     setFormError("");
-  }, [es]);
+  }, [t]);
 
   const openSubmitModal = useCallback(() => {
     Haptics.selectionAsync();
@@ -743,16 +735,14 @@ export default function ChurchesScreen() {
     }
     if (!user.emailVerified) {
       Alert.alert(
-        es ? "Verifica tu correo" : "Verify your email",
-        es
-          ? "Por favor verifica tu correo electrónico en tu perfil antes de sugerir una iglesia."
-          : "Please verify your email in Account before submitting a church.",
+        t.churchVerifyYourEmail,
+        t.churchPleaseVerifyYourEmailInAccount,
       );
       return;
     }
     resetFormFields();
     setSubmitOpen(true);
-  }, [es, openAuthSheet, resetFormFields, user]);
+  }, [t, openAuthSheet, resetFormFields, user]);
 
   const openEditChurchModal = useCallback((church: VerifiedChurch) => {
     Haptics.selectionAsync();
@@ -762,7 +752,7 @@ export default function ChurchesScreen() {
     setFormAddress(church.address || "");
     setFormCity(church.city || "");
     setFormState(church.state || "");
-    setFormCountry(church.country || (es ? "Estados Unidos" : "United States"));
+    setFormCountry(church.country || (t.churchUnitedStates));
     setFormPostal(church.postalCode || "");
     setFormCoordsInput(`${church.lat.toFixed(6)}, ${church.lng.toFixed(6)}`);
     setFormPhotos(getChurchPhotos(church));
@@ -771,7 +761,7 @@ export default function ChurchesScreen() {
     setFormContact(church.contactInfo || "");
     setFormError("");
     setSubmitOpen(true);
-  }, [es]);
+  }, [t]);
 
   const handlePickPhotos = useCallback(
     async (source: "camera" | "library") => {
@@ -779,7 +769,7 @@ export default function ChurchesScreen() {
       const remaining = maxPhotos - formPhotos.length;
       if (remaining <= 0) {
         Alert.alert(
-          es ? "Límite de fotos" : "Photo Limit",
+          t.churchPhotoLimit,
           es
             ? `Puedes adjuntar hasta ${maxPhotos} fotos.`
             : `You can attach up to ${maxPhotos} photos.`,
@@ -817,19 +807,19 @@ export default function ChurchesScreen() {
         setUploadingPhotos(false);
       }
     },
-    [api, es, formPhotos.length, maxPhotos, submitting, uploadingPhotos],
+    [t, api, es, formPhotos.length, maxPhotos, submitting, uploadingPhotos],
   );
 
   const handleDeleteChurch = useCallback(
     (church: VerifiedChurch) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        es ? "¿Eliminar iglesia?" : "Delete church?",
+        t.churchDeleteChurch,
         `${church.name}\n${church.address}, ${church.city}`,
         [
-          { text: es ? "Cancelar" : "Cancel", style: "cancel" },
+          { text: t.cancel, style: "cancel" },
           {
-            text: es ? "Eliminar" : "Delete",
+            text: t.delete,
             style: "destructive",
             onPress: async () => {
               try {
@@ -844,7 +834,7 @@ export default function ChurchesScreen() {
         ],
       );
     },
-    [api, es, loadChurches, selectedChurch?.id],
+    [t, api, es, loadChurches, selectedChurch?.id],
   );
 
   const autofillAddressFromCoords = useCallback(
@@ -919,18 +909,14 @@ export default function ChurchesScreen() {
     const country = formCountry.trim();
     if (!name || !address || !city || !country) {
       setFormError(
-        es
-          ? "Completa el nombre, dirección, ciudad y país de la iglesia."
-          : "Please fill in church name, address, city, and country.",
+        t.churchPleaseFillInChurchNameAddress,
       );
       return;
     }
     const cleanPhotoUrl = formPhotoUrl.trim();
     if (cleanPhotoUrl && !/^https:\/\/[^\s"'<>]+$/i.test(cleanPhotoUrl)) {
       setFormError(
-        es
-          ? "La URL de la foto debe comenzar con https:// (ej. Cloudflare R2)."
-          : "Photo URL must start with https:// (e.g. Cloudflare R2).",
+        t.churchPhotoUrlMustStartWithHttps,
       );
       return;
     }
@@ -972,9 +958,7 @@ export default function ChurchesScreen() {
       }
       if (lat === null || lng === null) {
         setFormError(
-          es
-            ? "No pudimos ubicar esa dirección automáticamente. Pega las coordenadas/enlace de Maps o usa “Elegir punto en el mapa”."
-            : "Could not locate that address automatically. Paste coordinates/Maps link or tap “Pick on Map”.",
+          t.churchCouldNotLocateThatAddressAutomatically,
         );
         setSubmitting(false);
         return;
@@ -1035,22 +1019,12 @@ export default function ChurchesScreen() {
       pendingSubmitAlertRef.current = {
         title: isAdmin
           ? wasEditing
-            ? es
-              ? "Iglesia actualizada y verificada"
-              : "Church updated & verified"
-            : es
-              ? "Iglesia verificada y publicada"
-              : "Church verified & published"
-          : es
-            ? "Solicitud enviada"
-            : "Submission received",
+            ? t.churchChurchUpdatedVerified
+            : t.churchChurchVerifiedPublished
+          : t.churchSubmissionReceived,
         body: isAdmin
-          ? es
-            ? "La iglesia ya aparece verificada en el mapa para todos los usuarios."
-            : "This church is now live and verified on the map for all users."
-          : es
-            ? "Gracias. El administrador revisará y verificará la iglesia antes de publicarla en el mapa oficial."
-            : "Thank you. The administrator will review and verify this church before publishing it on the official map.",
+          ? t.churchThisChurchIsNowLiveAnd
+          : t.churchThankYouTheAdministratorWillReview,
       };
       closeSubmitAnimated();
     } catch (e) {
@@ -1232,9 +1206,7 @@ export default function ChurchesScreen() {
                   fontSize: 16.5,
                 }}
               >
-                {es
-                  ? "Mueve el mapa hasta el techo de la iglesia"
-                  : "Pan the map onto the church building"}
+                {t.churchPanTheMapOntoTheChurch}
               </Text>
               <Text
                 style={{
@@ -1268,7 +1240,7 @@ export default function ChurchesScreen() {
                       fontSize: 14,
                     }}
                   >
-                    {es ? "Cancelar" : "Cancel"}
+                    {t.cancel}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -1291,7 +1263,7 @@ export default function ChurchesScreen() {
                       fontSize: 14.5,
                     }}
                   >
-                    {es ? "Confirmar ubicación" : "Confirm Location"}
+                    {t.churchConfirmLocation}
                   </Text>
                 </Pressable>
               </View>
@@ -1325,7 +1297,7 @@ export default function ChurchesScreen() {
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={es ? "Volver" : "Back"}
+              accessibilityLabel={t.homeMenuBack}
               onPress={() => {
                 Haptics.selectionAsync();
                 router.back();
@@ -1358,7 +1330,7 @@ export default function ChurchesScreen() {
               value={search}
               onChangeText={setSearch}
               placeholder={
-                es ? "Nombre, ciudad o código postal" : "Name, city, or zip"
+                t.churchNameCityOrZip
               }
               placeholderTextColor={mutedText}
               returnKeyType="search"
@@ -1368,7 +1340,7 @@ export default function ChurchesScreen() {
               <Pressable
                 hitSlop={8}
                 onPress={() => setSearch("")}
-                accessibilityLabel={es ? "Limpiar" : "Clear"}
+                accessibilityLabel={t.churchClear}
               >
                 <AppMenuIcon
                   ios="xmark.circle.fill"
@@ -1390,7 +1362,7 @@ export default function ChurchesScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={
-                  es ? "Escanear código QR" : "Scan QR code"
+                  t.churchScanQrCode
                 }
                 onPress={() => void openQrScanner()}
                 style={styles.circleBtnHit}
@@ -1415,7 +1387,7 @@ export default function ChurchesScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
-                es ? "Sugerir iglesia" : "Submit a church"
+                t.churchSubmitAChurch
               }
               onPress={openSubmitModal}
               style={styles.circleBtnHit}
@@ -1467,12 +1439,8 @@ export default function ChurchesScreen() {
                       ]}
                     >
                       {m === "map"
-                        ? es
-                          ? "Mapa"
-                          : "Map"
-                        : es
-                          ? "Lista"
-                          : "List"}
+                        ? t.profileMap
+                        : t.churchList}
                     </Text>
                   </Pressable>
                 );
@@ -1507,7 +1475,7 @@ export default function ChurchesScreen() {
                   style={[styles.modeBtnText, { color: theme.onSurface }]}
                   numberOfLines={1}
                 >
-                  {es ? "Cerca de mí" : "Near Me"}
+                  {t.churchNearMe}
                 </Text>
               </Pressable>
             </GlassSurface>
@@ -1524,7 +1492,7 @@ export default function ChurchesScreen() {
             {[null, ...availableCountries].map((cName) => {
               const active = countryFilter === cName;
               const label =
-                cName === null ? (es ? "Todas" : "All") : cName;
+                cName === null ? (t.churchAll) : cName;
               return (
                 <Pressable
                   key={label}
@@ -1631,12 +1599,10 @@ export default function ChurchesScreen() {
           {/* Header Hero */}
           <View style={styles.listHeaderBlock}>
             <Text style={[styles.screenTitle, { color: theme.onSurface }]}>
-              {es ? "Iglesias Verificadas" : "Verified Churches"}
+              {t.churchVerifiedChurches}
             </Text>
             <Text style={[styles.screenSub, { color: mutedText }]}>
-              {es
-                ? "Directorio oficial de congregaciones IDDV El Buen Pastor."
-                : "Official directory of verified IDDV El Buen Pastor congregations."}
+              {t.churchOfficialDirectoryOfVerifiedIddvEl}
             </Text>
           </View>
 
@@ -1665,7 +1631,7 @@ export default function ChurchesScreen() {
           {!loading && userCoords && !search.trim() && (
             <View style={{ gap: 10 }}>
               <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
-                {es ? "IGLESIAS CERCA DE MÍ" : "CHURCHES NEAR ME"}
+                {t.churchChurchesNearMe}
               </Text>
               {nearMeChurches.length > 0 ? (
                 <ScrollView
@@ -1746,9 +1712,7 @@ export default function ChurchesScreen() {
                         fontSize: 15,
                       }}
                     >
-                      {es
-                        ? "No encontramos una iglesia El Buen Pastor a menos de 80 km"
-                        : "No verified El Buen Pastor church within 50 miles"}
+                      {t.churchNoVerifiedElBuenPastorChurch}
                     </Text>
                   </View>
                   <Text
@@ -1763,9 +1727,7 @@ export default function ChurchesScreen() {
                       ? es
                         ? `La congregación verificada más cercana es ${closestChurch.name} (${formatDistance(closestChurch.distanceMiles, es)}). ¿Conoces una iglesia más cerca?`
                         : `The closest verified congregation is ${closestChurch.name} (${formatDistance(closestChurch.distanceMiles, es)} away). Know a congregation closer to you?`
-                      : es
-                        ? "Nuestro mapa oficial está creciendo. Si asistes a una congregación IDDV El Buen Pastor, envíala para que el administrador la verifique."
-                        : "Our official verified directory is growing. If you attend an IDDV El Buen Pastor congregation, submit it for admin verification."}
+                      : t.churchOurOfficialVerifiedDirectoryIsGrowing}
                   </Text>
                   <Pressable
                     onPress={openSubmitModal}
@@ -1787,7 +1749,7 @@ export default function ChurchesScreen() {
                         fontSize: 14,
                       }}
                     >
-                      {es ? "Sugerir una iglesia" : "Submit a Church"}
+                      {t.churchSubmitAChurch2}
                     </Text>
                   </Pressable>
                 </View>
@@ -1809,9 +1771,7 @@ export default function ChurchesScreen() {
                   fontSize: 13.5,
                 }}
               >
-                {es
-                  ? "Puedes buscar por ciudad, estado o código postal arriba sin activar la ubicación."
-                  : "You can search by city, state, or zip above without enabling location."}
+                {t.churchYouCanSearchByCityState}
               </Text>
             </View>
           )}
@@ -1843,12 +1803,8 @@ export default function ChurchesScreen() {
                   }}
                 >
                   {search.trim()
-                    ? es
-                      ? "No encontramos coincidencias"
-                      : "No matching churches found"
-                    : es
-                      ? "Aún no hay iglesias publicadas"
-                      : "No verified churches published yet"}
+                    ? t.churchNoMatchingChurchesFound
+                    : t.churchNoVerifiedChurchesPublishedYet}
                 </Text>
                 <Text
                   style={{
@@ -1858,9 +1814,7 @@ export default function ChurchesScreen() {
                     lineHeight: 20,
                   }}
                 >
-                  {es
-                    ? "¿Conoces una iglesia IDDV El Buen Pastor? Envía su dirección para que el administrador la verifique y aparezca en el mapa."
-                    : "Know an IDDV El Buen Pastor congregation? Submit its address so the administrator can verify and publish it on the map."}
+                  {t.churchKnowAnIddvElBuenPastor}
                 </Text>
                 <Pressable
                   onPress={openSubmitModal}
@@ -1883,12 +1837,8 @@ export default function ChurchesScreen() {
                     }}
                   >
                     {isAdmin
-                      ? es
-                        ? "Agregar iglesia verificada"
-                        : "Add Verified Church"
-                      : es
-                        ? "Sugerir una iglesia"
-                        : "Submit a Church"}
+                      ? t.churchAddVerifiedChurch
+                      : t.churchSubmitAChurch2}
                   </Text>
                 </Pressable>
               </View>
@@ -2043,12 +1993,8 @@ export default function ChurchesScreen() {
                   }}
                 >
                   {isAdmin
-                    ? es
-                      ? "Agregar iglesia verificada"
-                      : "Add a Verified Church"
-                    : es
-                      ? "¿No ves tu iglesia?"
-                      : "Don't see your church?"}
+                    ? t.churchAddAVerifiedChurch
+                    : t.churchDonTSeeYourChurch}
                 </Text>
                 <Text
                   style={{
@@ -2058,12 +2004,8 @@ export default function ChurchesScreen() {
                   }}
                 >
                   {isAdmin
-                    ? es
-                      ? "Publica una nueva congregación directo en el mapa"
-                      : "Publish a congregation directly on the map"
-                    : es
-                      ? "Envíala para verificación del administrador"
-                      : "Submit it for administrator verification"}
+                    ? t.churchPublishACongregationDirectlyOnThe
+                    : t.churchSubmitItForAdministratorVerification}
                 </Text>
               </View>
               <AppMenuIcon
@@ -2095,7 +2037,7 @@ export default function ChurchesScreen() {
               <Pressable
                 onPress={() => void requestNearMe(true)}
                 accessibilityRole="button"
-                accessibilityLabel={es ? "Centrar en mi ubicación" : "Center on my location"}
+                accessibilityLabel={t.churchCenterOnMyLocation}
                 style={({ pressed }) => [
                   styles.floatingGpsBtn,
                   {
@@ -2307,7 +2249,7 @@ export default function ChurchesScreen() {
                 <Pressable
                   hitSlop={10}
                   onPress={() => setSelectedChurch(null)}
-                  accessibilityLabel={es ? "Cerrar" : "Close"}
+                  accessibilityLabel={t.close}
                   style={[
                     styles.miniCloseBtn,
                     {
@@ -2384,7 +2326,7 @@ export default function ChurchesScreen() {
                       fontSize: 14,
                     }}
                   >
-                    {es ? "Cómo llegar" : "Directions"}
+                    {t.churchDirections}
                   </Text>
                 </Pressable>
 
@@ -2420,12 +2362,8 @@ export default function ChurchesScreen() {
                         }}
                       >
                         {isIOS
-                          ? es
-                            ? "Look Around"
-                            : "Look Around"
-                          : es
-                            ? "Vista calle"
-                            : "Street View"}
+                          ? t.churchLookAround
+                          : t.churchStreetView}
                       </Text>
                     </>
                   )}
@@ -2483,12 +2421,8 @@ export default function ChurchesScreen() {
                             }}
                           >
                             {isMyLinkedChurch
-                              ? es
-                                ? "Tu iglesia"
-                                : "Your Church"
-                              : es
-                                ? "Vincular mi iglesia"
-                                : "Set as My Church"}
+                              ? t.churchYourChurch
+                              : t.churchSetAsMyChurch}
                           </Text>
                         </>
                       )}
@@ -2525,7 +2459,7 @@ export default function ChurchesScreen() {
                       fontSize: 13.5,
                     }}
                   >
-                    {es ? "Código QR" : "QR Code"}
+                    {t.churchQrCode}
                   </Text>
                 </Pressable>
               </View>
@@ -2565,12 +2499,8 @@ export default function ChurchesScreen() {
                       }}
                     >
                       {selectedChurch.status === "pending"
-                        ? es
-                          ? "Revisar / Aprobar"
-                          : "Review / Approve"
-                        : es
-                          ? "Editar iglesia"
-                          : "Edit Church"}
+                        ? t.churchReviewApprove
+                        : t.churchEditChurch}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -2596,7 +2526,7 @@ export default function ChurchesScreen() {
                         fontSize: 13,
                       }}
                     >
-                      {es ? "Eliminar" : "Delete"}
+                      {t.delete}
                     </Text>
                   </Pressable>
                 </View>
@@ -2618,9 +2548,7 @@ export default function ChurchesScreen() {
                     }}
                   >
                     {loading
-                      ? es
-                        ? "Cargando iglesias…"
-                        : "Loading churches…"
+                      ? t.churchLoadingChurches
                       : userCoords && nearMeChurches.length > 0
                         ? es
                           ? `${nearMeChurches.length} iglesia${nearMeChurches.length === 1 ? "" : "s"} cerca de ti`
@@ -2629,9 +2557,7 @@ export default function ChurchesScreen() {
                           ? es
                             ? `${enrichedChurches.length} iglesias verificadas`
                             : `${enrichedChurches.length} verified churches`
-                          : es
-                            ? "Directorio El Buen Pastor"
-                            : "El Buen Pastor Directory"}
+                          : t.churchElBuenPastorDirectory}
                   </Text>
                   <Text
                     numberOfLines={2}
@@ -2647,16 +2573,10 @@ export default function ChurchesScreen() {
                         ? es
                           ? `Sin iglesias a <80 km · Más cercana: ${closestChurch.city} (${formatDistance(closestChurch.distanceMiles, es)})`
                           : `None within 50 mi · Closest: ${closestChurch.city} (${formatDistance(closestChurch.distanceMiles, es)})`
-                        : es
-                          ? "No encontramos una iglesia cerca. ¿Conoces una? Agrégala aquí."
-                          : "No church found nearby. Know one? Submit it for verification."
+                        : t.churchNoChurchFoundNearbyKnowOne
                       : enrichedChurches.length > 0
-                        ? es
-                          ? "Toca un pin en el mapa o abre la lista para ver horarios y direcciones."
-                          : "Tap a map pin or open the list to view service times & directions."
-                        : es
-                          ? "Envía tu congregación IDDV El Buen Pastor para verificación."
-                          : "Submit your IDDV El Buen Pastor congregation for verification."}
+                        ? t.churchTapAMapPinOrOpen
+                        : t.churchSubmitYourIddvElBuenPastor}
                   </Text>
                 </View>
 
@@ -2679,7 +2599,7 @@ export default function ChurchesScreen() {
                           fontSize: 13.5,
                         }}
                       >
-                        {es ? "Ver lista" : "View List"}
+                        {t.churchViewList}
                       </Text>
                     </Pressable>
                   ) : (
@@ -2697,7 +2617,7 @@ export default function ChurchesScreen() {
                           fontSize: 13.5,
                         }}
                       >
-                        {es ? "Sugerir" : "Submit"}
+                        {t.churchSubmit}
                       </Text>
                     </Pressable>
                   )}
@@ -2767,19 +2687,11 @@ export default function ChurchesScreen() {
                     >
                       {editingChurch
                         ? editingChurch.status === "pending"
-                          ? es
-                            ? "Revisar y aprobar iglesia"
-                            : "Review & Approve Church"
-                          : es
-                            ? "Editar iglesia verificada"
-                            : "Edit Verified Church"
+                          ? t.churchReviewApproveChurch
+                          : t.churchEditVerifiedChurch
                         : isAdmin
-                          ? es
-                            ? "Agregar iglesia verificada"
-                            : "Add Verified Church"
-                          : es
-                            ? "Sugerir una iglesia"
-                            : "Submit a Church"}
+                          ? t.churchAddVerifiedChurch
+                          : t.churchSubmitAChurch2}
                     </Text>
                     <GlassSurface
                       isInteractive
@@ -2790,7 +2702,7 @@ export default function ChurchesScreen() {
                       <Pressable
                         onPress={closeSubmitAnimated}
                         style={styles.circleBtnHit}
-                        accessibilityLabel={es ? "Cerrar" : "Close"}
+                        accessibilityLabel={t.close}
                       >
                         <AppMenuIcon
                           ios="xmark"
@@ -2819,12 +2731,8 @@ export default function ChurchesScreen() {
                   }}
                 >
                   {isAdmin
-                    ? es
-                      ? "Puedes pegar coordenadas o un enlace de Google/Apple Maps, elegir el punto exacto en el mapa o ingresar una foto en la nube (R2)."
-                      : "You can paste coordinates or a Google/Apple Maps link, pick the exact roof on the map, or attach a cloud photo URL (R2)."
-                    : es
-                      ? "Envía una iglesia IDDV El Buen Pastor para que el administrador la apruebe. Puedes pegar un enlace de Maps o elegir el punto en el mapa para mayor exactitud."
-                      : "Submit an IDDV El Buen Pastor church for admin approval. You can paste a Maps link or pick the exact point on the map for accuracy."}
+                    ? t.churchYouCanPasteCoordinatesOrA
+                    : t.churchSubmitAnIddvElBuenPastor}
                 </Text>
 
                 {/* Location Helper Card: Coordinates / Maps Link + Drop-a-Pin */}
@@ -2854,9 +2762,7 @@ export default function ChurchesScreen() {
                         flex: 1,
                       }}
                     >
-                      {es
-                        ? "Ubicación exacta (Coordenadas o enlace de Maps)"
-                        : "Exact Location (Coordinates or Maps Link)"}
+                      {t.churchExactLocationCoordinatesOrMapsLink}
                     </Text>
                     {Platform.OS !== "web" && (
                       <Pressable
@@ -2884,7 +2790,7 @@ export default function ChurchesScreen() {
                             fontSize: 12,
                           }}
                         >
-                          {es ? "Elegir en el mapa" : "Pick on Map"}
+                          {t.churchPickOnMap}
                         </Text>
                       </Pressable>
                     )}
@@ -2900,9 +2806,7 @@ export default function ChurchesScreen() {
                       }
                     }}
                     placeholder={
-                      es
-                        ? "Ej. 37.3812, -121.8975 o enlace de Google/Apple Maps"
-                        : "e.g. 37.3812, -121.8975 or Google/Apple Maps link"
+                      t.churchEG3738121218975
                     }
                     placeholderTextColor={mutedText}
                     autoCapitalize="none"
@@ -2938,83 +2842,73 @@ export default function ChurchesScreen() {
                         fontSize: 11.5,
                       }}
                     >
-                      {es
-                        ? "Opcional si escribes la calle y ciudad abajo, o toca “Elegir en el mapa” para fijar el pin en el techo."
-                        : "Optional if you enter the street address below, or tap “Pick on Map” to drop the pin on the roof."}
+                      {t.churchOptionalIfYouEnterTheStreet}
                     </Text>
                   )}
                 </View>
 
                 {[
                   {
-                    label: es ? "Nombre de la iglesia *" : "Church Name *",
+                    label: t.churchChurchName,
                     val: formName,
                     set: setFormName,
-                    placeholder: es
-                      ? "Ej. IDDV El Buen Pastor — San José"
-                      : "e.g. IDDV El Buen Pastor — San Jose",
+                    placeholder: t.churchEGIddvElBuenPastor,
                     max: 100,
                   },
                   {
-                    label: es ? "Pastor / Ministro (opcional)" : "Pastor / Minister (optional)",
+                    label: t.churchPastorMinisterOptional,
                     val: formPastor,
                     set: setFormPastor,
-                    placeholder: es ? "Ej. Pastor Juan Pérez" : "e.g. Pastor Juan Perez",
+                    placeholder: t.churchEGPastorJuanPerez,
                     max: 80,
                   },
                   {
-                    label: es ? "Dirección (calle y número) *" : "Street Address *",
+                    label: t.churchStreetAddress,
                     val: formAddress,
                     set: setFormAddress,
                     placeholder: "1234 Main St",
                     max: 140,
                   },
                   {
-                    label: es ? "Ciudad *" : "City *",
+                    label: t.churchCity,
                     val: formCity,
                     set: setFormCity,
-                    placeholder: es ? "Ej. Los Ángeles" : "e.g. Los Angeles",
+                    placeholder: t.churchEGLosAngeles,
                     max: 80,
                   },
                   {
-                    label: es ? "Estado / Provincia" : "State / Province",
+                    label: t.churchStateProvince,
                     val: formState,
                     set: setFormState,
-                    placeholder: es ? "Ej. California, Nuevo León" : "e.g. California, Texas",
+                    placeholder: t.churchEGCaliforniaTexas,
                     max: 60,
                   },
                   {
-                    label: es ? "País *" : "Country *",
+                    label: t.churchCountry,
                     val: formCountry,
                     set: setFormCountry,
-                    placeholder: es ? "Estados Unidos, México..." : "United States, Mexico...",
+                    placeholder: t.churchUnitedStatesMexico,
                     max: 60,
                   },
                   {
-                    label: es ? "Código postal (opcional)" : "Zip / Postal Code (optional)",
+                    label: t.churchZipPostalCodeOptional,
                     val: formPostal,
                     set: setFormPostal,
                     placeholder: "95112",
                     max: 24,
                   },
                   {
-                    label: es ? "Horarios de culto (opcional)" : "Service Times (optional)",
+                    label: t.churchServiceTimesOptional,
                     val: formSchedule,
                     set: setFormSchedule,
-                    placeholder: es
-                      ? "Ej. Domingos 10:00 AM · Miércoles 7:00 PM"
-                      : "e.g. Sundays 10:00 AM · Wednesdays 7:00 PM",
+                    placeholder: t.churchEGSundays1000Am,
                     max: 240,
                   },
                   {
-                    label: es
-                      ? "Teléfono o correo de verificación (privado)"
-                      : "Verification phone or email (private)",
+                    label: t.churchVerificationPhoneOrEmailPrivate,
                     val: formContact,
                     set: setFormContact,
-                    placeholder: es
-                      ? "Solo visible para el administrador"
-                      : "Visible only to administrator",
+                    placeholder: t.churchVisibleOnlyToAdministrator,
                     max: 160,
                   },
                 ].map((f) => (
@@ -3121,7 +3015,7 @@ export default function ChurchesScreen() {
                             fontSize: 13,
                           }}
                         >
-                          {es ? "Tomar foto" : "Take Photo"}
+                          {t.churchTakePhoto}
                         </Text>
                       </Pressable>
 
@@ -3164,7 +3058,7 @@ export default function ChurchesScreen() {
                             fontSize: 13,
                           }}
                         >
-                          {es ? "Galería" : "Gallery"}
+                          {t.churchGallery}
                         </Text>
                       </Pressable>
                     </View>
@@ -3228,12 +3122,8 @@ export default function ChurchesScreen() {
                               }}
                             >
                               {idx === 0
-                                ? es
-                                  ? "★ Portada"
-                                  : "★ Cover"
-                                : es
-                                  ? "Hacer portada"
-                                  : "Make cover"}
+                                ? t.churchCover
+                                : t.churchMakeCover}
                             </Text>
                           </Pressable>
 
@@ -3278,9 +3168,7 @@ export default function ChurchesScreen() {
                         value={formPhotoUrl}
                         onChangeText={setFormPhotoUrl}
                         placeholder={
-                          es
-                            ? "O pega enlace https:// de foto en la nube…"
-                            : "Or paste cloud photo https:// URL…"
+                          t.churchOrPasteCloudPhotoHttpsUrl
                         }
                         placeholderTextColor={mutedText}
                         maxLength={300}
@@ -3305,9 +3193,7 @@ export default function ChurchesScreen() {
                             const clean = formPhotoUrl.trim();
                             if (!/^https:\/\/[^\s"'<>]+$/i.test(clean)) {
                               setFormError(
-                                es
-                                  ? "La URL de la foto debe comenzar con https://"
-                                  : "Photo URL must start with https://",
+                                t.churchPhotoUrlMustStartWithHttps2,
                               );
                               return;
                             }
@@ -3335,7 +3221,7 @@ export default function ChurchesScreen() {
                               fontSize: 13,
                             }}
                           >
-                            {es ? "Añadir" : "Add"}
+                            {t.churchAdd}
                           </Text>
                         </Pressable>
                       )}
@@ -3380,18 +3266,10 @@ export default function ChurchesScreen() {
                       {isAdmin
                         ? editingChurch
                           ? editingChurch.status === "pending"
-                            ? es
-                              ? "Aprobar y publicar en el mapa"
-                              : "Approve & Publish on Map"
-                            : es
-                              ? "Guardar cambios"
-                              : "Save Changes"
-                          : es
-                            ? "Verificar y publicar"
-                            : "Verify & Publish"
-                        : es
-                          ? "Enviar solicitud para aprobación"
-                          : "Send Request for Approval"}
+                            ? t.churchApprovePublishOnMap
+                            : t.churchSaveChanges
+                          : t.churchVerifyPublish
+                        : t.churchSendRequestForApproval}
                     </Text>
                   )}
                 </Pressable>
@@ -3471,7 +3349,7 @@ export default function ChurchesScreen() {
                       fontSize: 15,
                     }}
                   >
-                    {es ? "Listo" : "Done"}
+                    {t.done}
                   </Text>
                 </Pressable>
               </>
@@ -3563,9 +3441,7 @@ export default function ChurchesScreen() {
                     textAlign: "center",
                   }}
                 >
-                  {es
-                    ? "Escanea este código QR desde Himnario El Buen Pastor para abrir y vincular esta iglesia."
-                    : "Scan this QR code in Himnario El Buen Pastor to open and link this church."}
+                  {t.churchScanThisQrCodeInHimnario}
                 </Text>
 
                 <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
@@ -3587,7 +3463,7 @@ export default function ChurchesScreen() {
                         fontSize: 14,
                       }}
                     >
-                      {es ? "Cerrar" : "Close"}
+                      {t.close}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -3616,7 +3492,7 @@ export default function ChurchesScreen() {
                         fontSize: 14,
                       }}
                     >
-                      {es ? "Compartir" : "Share"}
+                      {t.shareModalTitle}
                     </Text>
                   </Pressable>
                 </View>
@@ -3662,7 +3538,7 @@ export default function ChurchesScreen() {
                   fontSize: 20,
                 }}
               >
-                {es ? "Escanear código QR" : "Scan QR Code"}
+                {t.accountScanQrCode}
               </Text>
               <Pressable
                 onPress={() => setQrScannerOpen(false)}
@@ -3680,7 +3556,7 @@ export default function ChurchesScreen() {
                     fontSize: 14.5,
                   }}
                 >
-                  {es ? "Cerrar" : "Close"}
+                  {t.close}
                 </Text>
               </Pressable>
             </View>
@@ -3722,9 +3598,7 @@ export default function ChurchesScreen() {
                     textAlign: "center",
                   }}
                 >
-                  {es
-                    ? "Apunta al código QR de una iglesia o himno de El Buen Pastor"
-                    : "Point at an El Buen Pastor church or hymn QR code"}
+                  {t.churchPointAtAnElBuenPastor}
                 </Text>
               </View>
             </View>

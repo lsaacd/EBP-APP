@@ -223,7 +223,7 @@ export default function HymnListScreen() {
       const labelB = translateCategory(b, language);
       return labelA.localeCompare(labelB);
     });
-    const allLabel = language === 'es' ? 'Todos' : 'All';
+    const allLabel = t.filterAll;
 
     if (searchFilter !== 'Todos' && searchFilter !== 'All' && sorted.includes(searchFilter)) {
       const filteredSorted = sorted.filter((tag) => tag !== searchFilter);
@@ -231,7 +231,7 @@ export default function HymnListScreen() {
     }
 
     return [allLabel, ...sorted];
-  }, [activeSubTab, language, searchFilter]);
+  }, [t, activeSubTab, language, searchFilter]);
 
   // ── Vertical scroll-position slider state ──────────────────────────────
   const [scrollFraction, setScrollFraction] = useState(0);
@@ -307,7 +307,7 @@ export default function HymnListScreen() {
     const isAll = f === 'Todos' || f === 'All';
     const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
     const active = f === searchFilter || (isAll && activeIsAll);
-    const defaultAll = language === 'es' ? 'Todos' : 'All';
+    const defaultAll = t.filterAll;
     setSearchFilter(active && !isAll ? defaultAll : f);
     chipsScrollRef.current?.scrollTo({ x: 0, animated: true });
     overlayChipsScrollRef.current?.scrollTo({ x: 0, animated: true });
@@ -784,7 +784,7 @@ export default function HymnListScreen() {
             accessible
             accessibilityRole="adjustable"
             accessibilityLabel={
-              language === 'es' ? 'Deslizador numérico de himnos' : 'Hymn number scroller'
+              t.hymnsHymnNumberScroller
             }
             accessibilityValue={{ text: `${currentHymnNumber} / ${lastHymnNumber}` }}
             style={[
@@ -861,8 +861,8 @@ export default function HymnListScreen() {
   };
 
   const renderIndice = () => {
-    const coritosLabel = language === 'es' ? 'Coritos' : 'Choruses';
-    const himnosLabel = t.subTabHimnos || (language === 'es' ? 'Himnos' : 'Hymns');
+    const coritosLabel = t.hymnsChoruses;
+    const himnosLabel = t.subTabHimnos || (t.tabHymns);
 
     const indiceToggleHeader = (
       <View style={styles.indiceToggleWrap}>
@@ -1096,7 +1096,7 @@ export default function HymnListScreen() {
                   accessible
                   accessibilityRole="adjustable"
                   accessibilityLabel={
-                    language === 'es' ? 'Índice alfabético' : 'Alphabetical index'
+                    t.hymnsAlphabeticalIndex
                   }
                   accessibilityValue={{ text: draggingLetter || '' }}
                   style={styles.alphabetSidebar}
@@ -1397,7 +1397,7 @@ export default function HymnListScreen() {
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   handleSearchChange('');
-                  const defaultAll = language === 'es' ? 'Todos' : 'All';
+                  const defaultAll = t.filterAll;
                   setSearchFilter(defaultAll);
                   searchRef.current?.blur();
                 }}
@@ -1435,7 +1435,7 @@ export default function HymnListScreen() {
               onPress={() => {
                 Keyboard.dismiss();
                 handleSearchChange('');
-                const defaultAll = language === 'es' ? 'Todos' : 'All';
+                const defaultAll = t.filterAll;
                 setSearchFilter(defaultAll);
                 searchRef.current?.blur();
               }}
@@ -1664,7 +1664,7 @@ export default function HymnListScreen() {
                         marginBottom: 6,
                       }}
                     >
-                      {language === 'es' ? 'Sin resultados' : 'No results found'}
+                      {t.hymnsNoResultsFound}
                     </Text>
                     <Text
                       style={{

@@ -133,15 +133,9 @@ export default function HomeScreen() {
     : ['#FFFFFF', '#F7F7FA', '#EAEAEF'];
   const bandTopBorderColor = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
 
-  const heroSubtitle = language === 'es'
-    ? 'Colección completa de alabanzas y coritos'
-    : 'Complete hymn and chorus collection';
-  const recentsSubtitle = language === 'es'
-    ? 'Alabanzas que has abierto recientemente.'
-    : 'Hymns you have opened recently.';
-  const mottoLabelFormatted = language === 'es'
-    ? 'Lema de nuestra Iglesia'
-    : 'Our Church Motto';
+  const heroSubtitle = t.homeCompleteHymnAndChorusCollection;
+  const recentsSubtitle = t.homeHymnsYouHaveOpenedRecently;
+  const mottoLabelFormatted = t.homeOurChurchMotto;
 
   // ── Shared scroll content ─────────────────────────────────────────────────
   const scrollContent = (
@@ -310,7 +304,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={[styles.recentsLabel, { color: theme.primary }]}>
-                  {language === 'es' ? 'Limpiar' : 'Clear'}
+                  {t.churchClear}
                 </Text>
               </TouchableOpacity>
             )}
@@ -470,7 +464,7 @@ export default function HomeScreen() {
     >
       <View style={[styles.headerTitleRow, IS_IPAD && styles.tabletCenter]}>
         <Text style={[styles.headerTitle, { color: headerTitleColor, fontSize: 34 }]}
-          numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{language === 'es' ? 'Inicio' : 'Home'}</Text>
+          numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t.tabHome}</Text>
         <HomeHeaderActions glassEpoch={headerGlassEpoch} onSearch={handleHeaderSearchPress} />
       </View>
     </Animated.View>

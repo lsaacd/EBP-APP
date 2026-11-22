@@ -56,7 +56,7 @@ export default function CommunityProfile({
 }) {
   const { user, updateProfile } = useAuth(),
     { theme, isDarkMode } = useTheme(),
-    { language } = useLanguage(),
+    { language, t } = useLanguage(),
     es = language === "es",
     api = useCommunityApi();
   const [busy, setBusy] = useState(false),
@@ -173,12 +173,8 @@ export default function CommunityProfile({
           }}
         >
           {field === "ministry"
-            ? es
-              ? "Elige tu ministerio o membresía para mostrar junto a tu nombre en los comentarios. Solo Obispo puede recibir verificación del administrador."
-              : "Choose your ministry or membership to show next to your name in comments. Only Bishop can receive administrator verification."
-            : es
-              ? "Elige tu coro para mostrar junto a tu nombre en los comentarios."
-              : "Choose your choir to show next to your name in comments."}
+            ? t.profileChooseYourMinistryOrMembershipTo
+            : t.profileChooseYourChoirToShowNext}
         </Text>
         <View
           style={[
@@ -235,16 +231,10 @@ export default function CommunityProfile({
                       ]}
                     >
                       {key === "obispo"
-                        ? es
-                          ? "GOBIERNO / MINISTERIO PASTORAL"
-                          : "PASTORAL MINISTRY"
+                        ? t.profilePastoralMinistry
                         : key === "secretario"
-                          ? es
-                            ? "SERVICIO LOCAL Y ENSEÑANZA"
-                            : "LOCAL SERVICE & TEACHING"
-                          : es
-                            ? "MEMBRESÍA"
-                            : "MEMBERSHIP"}
+                          ? t.profileLocalServiceTeaching
+                          : t.profileMembership}
                     </Text>
                   </View>
                 )}
@@ -273,9 +263,7 @@ export default function CommunityProfile({
                   >
                     {key
                       ? values[key][es ? 0 : 1]
-                      : es
-                        ? "Prefiero no mostrar"
-                        : "Prefer not to show"}
+                      : t.profilePreferNotToShow}
                   </Text>
                   {checked && (
                     <AppMenuIcon
@@ -321,7 +309,7 @@ export default function CommunityProfile({
                 fontSize: 15,
               }}
             >
-              {es ? "No hay usuarios bloqueados." : "No blocked users."}
+              {t.profileNoBlockedUsers}
             </Text>
           ) : (
             blocks.map((b, idx) => (
@@ -370,7 +358,7 @@ export default function CommunityProfile({
                       fontSize: 14.5,
                     }}
                   >
-                    {es ? "Desbloquear" : "Unblock"}
+                    {t.profileUnblock}
                   </Text>
                 </Pressable>
               </React.Fragment>
@@ -435,7 +423,7 @@ export default function CommunityProfile({
         {onOpenChurchesMap && (
           <View style={{ gap: 6 }}>
             <Text style={[styles.sectionHeader, { color: mutedText }]}>
-              {es ? "DIRECTORIO VERIFICADO" : "VERIFIED DIRECTORY"}
+              {t.profileVerifiedDirectory}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -487,9 +475,7 @@ export default function CommunityProfile({
                   >
                     {user.churchId && user.churchName
                       ? user.churchName
-                      : es
-                        ? "Elegir mi iglesia en el mapa"
-                        : "Pick my church on the map"}
+                      : t.profilePickMyChurchOnTheMap}
                   </Text>
                   {!!user.churchId && (
                     <AppMenuIcon
@@ -510,12 +496,8 @@ export default function CommunityProfile({
                   }}
                 >
                   {user.churchId
-                    ? es
-                      ? "Iglesia oficial vinculada · Toca para ver en el mapa o cambiar"
-                      : "Official linked church · Tap to view on map or change"
-                    : es
-                      ? "Toca una iglesia verificada en el mapa para sincronizarla con tu perfil"
-                      : "Tap a verified church on the map to sync it with your profile"}
+                    ? t.profileOfficialLinkedChurchTapToView
+                    : t.profileTapAVerifiedChurchOnThe}
                 </Text>
               </View>
               <AppMenuIcon
@@ -532,7 +514,7 @@ export default function CommunityProfile({
         {/* Unified iOS Grouped Settings Card: Country, City, Church */}
         <View style={{ gap: 6 }}>
           <Text style={[styles.sectionHeader, { color: mutedText }]}>
-            {es ? "UBICACIÓN E IGLESIA" : "CHURCH & LOCATION"}
+            {t.profileChurchLocation}
           </Text>
           <View
             style={[
@@ -543,7 +525,7 @@ export default function CommunityProfile({
             {/* Row 1: Collapsible iOS Country Selector */}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${es ? "País" : "Country"}: ${selectedCountry ? (es ? selectedCountry.es : selectedCountry.en) : (es ? "Opcional" : "Optional")}`}
+              accessibilityLabel={`${t.profileCountry}: ${selectedCountry ? (es ? selectedCountry.es : selectedCountry.en) : (t.profileOptional)}`}
               accessibilityState={{ expanded: countryPickerOpen, disabled: busy }}
               disabled={busy}
               onPress={() => {
@@ -563,7 +545,7 @@ export default function CommunityProfile({
                 numberOfLines={1}
                 style={[styles.label, { color: theme.onSurface, width: 82 }]}
               >
-                {es ? "País" : "Country"}
+                {t.profileCountry}
               </Text>
               <Text
                 numberOfLines={1}
@@ -580,9 +562,7 @@ export default function CommunityProfile({
                   ? es
                     ? selectedCountry.es
                     : selectedCountry.en
-                  : es
-                    ? "Opcional"
-                    : "Optional"}
+                  : t.profileOptional}
               </Text>
               <AppMenuIcon
                 ios={countryPickerOpen ? "chevron.up" : "chevron.down"}
@@ -652,9 +632,7 @@ export default function CommunityProfile({
                             ? es
                               ? c.es
                               : c.en
-                            : es
-                              ? "Sin especificar"
-                              : "None"}
+                            : t.profileNone}
                         </Text>
                         {active && (
                           <AppMenuIcon
@@ -686,15 +664,15 @@ export default function CommunityProfile({
                 numberOfLines={1}
                 style={[styles.label, { color: theme.onSurface, width: 82 }]}
               >
-                {es ? "Ciudad" : "City"}
+                {t.profileCity}
               </Text>
               <TextInput
-                accessibilityLabel={es ? "Ciudad y estado" : "City and state"}
+                accessibilityLabel={t.profileCityAndState}
                 value={regionDraft}
                 onChangeText={setRegionDraft}
                 maxLength={56}
                 editable={!busy}
-                placeholder={es ? "Ej. Riverbank, CA" : "e.g. Riverbank, CA"}
+                placeholder={t.profileEGRiverbankCa}
                 placeholderTextColor={mutedText}
                 style={{
                   flex: 1,
@@ -720,15 +698,15 @@ export default function CommunityProfile({
                 numberOfLines={1}
                 style={[styles.label, { color: theme.onSurface, width: 82 }]}
               >
-                {es ? "Iglesia" : "Church"}
+                {t.profileChurch}
               </Text>
               <TextInput
-                accessibilityLabel={es ? "Iglesia local" : "Local church"}
+                accessibilityLabel={t.profileLocalChurch}
                 value={churchDraft}
                 onChangeText={setChurchDraft}
                 maxLength={80}
                 editable={!busy}
-                placeholder={es ? "Ej. El Buen Pastor" : "e.g. El Buen Pastor"}
+                placeholder={t.profileEGElBuenPastor}
                 placeholderTextColor={mutedText}
                 style={{
                   flex: 1,
@@ -769,10 +747,10 @@ export default function CommunityProfile({
                 flex: 1,
               }}
             >
-              {es ? "Mostrar en mi perfil" : "Show on my profile"}
+              {t.profileShowOnMyProfile}
             </Text>
             <Switch
-              accessibilityLabel={es ? "Mostrar iglesia y ubicación en mi perfil" : "Show church and location on my profile"}
+              accessibilityLabel={t.profileShowChurchAndLocationOnMy}
               value={showPublicDraft}
               onValueChange={(v) => {
                 Haptics.selectionAsync();
@@ -798,9 +776,7 @@ export default function CommunityProfile({
               paddingHorizontal: 14,
             }}
           >
-            {es
-              ? "Opcional. Solo se muestra cuando alguien toca tu perfil en el chat."
-              : "Optional. Only shown when someone taps your profile in chat."}
+            {t.profileOptionalOnlyShownWhenSomeoneTaps}
           </Text>
         </View>
 
@@ -833,7 +809,7 @@ export default function CommunityProfile({
               fontSize: 16,
             }}
           >
-            {busy ? (es ? "Guardando…" : "Saving…") : es ? "Guardar" : "Save"}
+            {busy ? (t.profileSaving) : t.save}
           </Text>
         </Pressable>
       </View>
@@ -845,15 +821,15 @@ export default function CommunityProfile({
       (MINISTRIES as Record<string, [string, string]>)[user.ministry]?.[
         es ? 0 : 1
       ]) ||
-    (es ? "Ninguno" : "None");
+    (t.profileNone2);
   const choirText =
     (user.choir &&
       (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
-    (es ? "Ninguno" : "None");
+    (t.profileNone2);
   const churchLocationText =
     user.churchName ||
     user.location ||
-    (es ? "Opcional" : "Optional");
+    (t.profileOptional);
 
   const isAdmin =
     user.role === "admin" &&
@@ -863,7 +839,7 @@ export default function CommunityProfile({
     <View style={{ gap: 14 }}>
       <View style={{ gap: 8 }}>
         <Text style={[styles.sectionHeader, { color: mutedText }]}>
-          {es ? "COMUNIDAD" : "COMMUNITY"}
+          {t.profileCommunity}
         </Text>
         <View
           style={[
@@ -895,7 +871,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={[styles.label, { color: theme.onSurface }]}
             >
-              {es ? "Ministerio" : "Ministry"}
+              {t.profileMinistry}
             </Text>
             <Text
               numberOfLines={1}
@@ -948,7 +924,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={[styles.label, { color: theme.onSurface }]}
             >
-              {es ? "Coro" : "Choir"}
+              {t.profileChoir}
             </Text>
             <Text
               numberOfLines={1}
@@ -1001,7 +977,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={[styles.label, { color: theme.onSurface }]}
             >
-              {es ? "Mi iglesia" : "My Church"}
+              {t.profileMyChurch}
             </Text>
             <View
               style={{
@@ -1083,14 +1059,14 @@ export default function CommunityProfile({
                   numberOfLines={1}
                   style={[styles.label, { color: theme.onSurface }]}
                 >
-                  {es ? "Iglesias" : "Churches"}
+                  {t.profileChurches}
                 </Text>
                 <Text
                   numberOfLines={1}
                   ellipsizeMode="tail"
                   style={[styles.valueText, { color: mutedText }]}
                 >
-                  {es ? "Mapa" : "Map"}
+                  {t.profileMap}
                 </Text>
                 <AppMenuIcon
                   ios="chevron.right"
@@ -1138,7 +1114,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={[styles.label, { color: theme.onSurface, flex: 1 }]}
             >
-              {es ? "Bloqueados" : "Blocked"}
+              {t.profileBlocked}
             </Text>
             <AppMenuIcon
               ios="chevron.right"
@@ -1182,7 +1158,7 @@ export default function CommunityProfile({
               numberOfLines={1}
               style={[styles.label, { color: theme.onSurface, flex: 1 }]}
             >
-              {es ? "Moderación" : "Moderation"}
+              {t.profileModeration}
             </Text>
             <AppMenuIcon
               ios="chevron.right"

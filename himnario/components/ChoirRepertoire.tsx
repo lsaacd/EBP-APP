@@ -17,7 +17,7 @@ export type Repertoire = {
 };
 export default function ChoirRepertoire() {
   const { user } = useAuth(),
-    { language } = useLanguage(),
+    { language, t } = useLanguage(),
     { theme } = useTheme(),
     api = useCommunityApi(),
     router = useRouter();
@@ -67,7 +67,7 @@ export default function ChoirRepertoire() {
           <View style={styles.ids}>
             {item.hymnIds.map((id) => (
               <Pressable
-                accessibilityLabel={`${language === "es" ? "Abrir alabanza" : "Open hymn"} ${id}`}
+                accessibilityLabel={`${t.choirOpenHymn} ${id}`}
                 key={id}
                 onPress={() => router.push(`/hymn/${id}`)}
                 style={[

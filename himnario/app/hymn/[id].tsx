@@ -119,7 +119,6 @@ export default function HymnDetail() {
   const [shareSheetVisible, setShareSheetVisible] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
-  const es = language === 'es';
   const {
     commentVerseId,
     summary: hymnSummary,
@@ -370,12 +369,8 @@ export default function HymnDetail() {
                 {
                   id: 'favorite',
                   title: isFavorite(String(hymn.id))
-                    ? es
-                      ? 'Guardado'
-                      : 'Saved'
-                    : es
-                      ? 'Guardar'
-                      : 'Save',
+                    ? t.offlineAudioBadge
+                    : t.save,
                   state: isFavorite(String(hymn.id)) ? 'on' : 'off',
                   image: Platform.select({
                     ios: isFavorite(String(hymn.id)) ? 'bookmark.fill' : 'bookmark',
@@ -385,7 +380,7 @@ export default function HymnDetail() {
                 },
                 {
                   id: 'like',
-                  title: `${es ? 'Me gusta' : 'Like'}${
+                  title: `${t.playerLike}${
                     hymnSummary.likesCount > 0 ? ` (${hymnSummary.likesCount})` : ''
                   }`,
                   state: hymnSummary.myReaction === 1 ? 'on' : 'off',
@@ -397,7 +392,7 @@ export default function HymnDetail() {
                 },
                 {
                   id: 'dislike',
-                  title: `${es ? 'No me gusta' : 'Dislike'}${
+                  title: `${t.playerDislike}${
                     isAdmin &&
                     typeof hymnSummary.dislikesCount === 'number' &&
                     hymnSummary.dislikesCount > 0
@@ -413,7 +408,7 @@ export default function HymnDetail() {
                 },
                 {
                   id: 'comments',
-                  title: `${es ? 'Comentarios' : 'Comments'}${
+                  title: `${t.playerComments}${
                     hymnSummary.commentsCount > 0 ? ` (${hymnSummary.commentsCount})` : ''
                   }`,
                   image: Platform.select({
@@ -442,7 +437,7 @@ export default function HymnDetail() {
               <View
                 style={styles.iconBtn}
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Comunidad y favoritos' : 'Community and favorites'}
+                accessibilityLabel={t.readerCommunityAndFavorites}
               >
                 <AppMenuIcon
                   ios={

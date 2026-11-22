@@ -96,7 +96,7 @@ export default function VerseDiscussionSheet({
   subtitleOverride?: string;
 }) {
   const { theme, isDarkMode } = useTheme(),
-    { language } = useLanguage(),
+    { language, t } = useLanguage(),
     es = language === "es";
   const { user, token, openAuthSheet, requestEmailVerification, refreshUser } =
     useAuth();
@@ -1179,9 +1179,7 @@ export default function VerseDiscussionSheet({
                     lineHeight: 18,
                   }}
                 >
-                  {es
-                    ? "Recuerda mantener los comentarios respetuosos y edificantes siguiendo las Normas de la Comunidad de El Buen Pastor. "
-                    : "Remember to keep comments respectful and uplifting by following the El Buen Pastor Community Guidelines. "}
+                  {t.discussionRememberToKeepCommentsRespectfulAnd}
                   <Text
                     onPress={openCommunityGuidelines}
                     style={{
@@ -1189,7 +1187,7 @@ export default function VerseDiscussionSheet({
                       fontFamily: fonts.sansSemiBold,
                     }}
                   >
-                    {es ? "Más información" : "Learn more"}
+                    {t.discussionLearnMore}
                   </Text>
                 </Text>
               </View>

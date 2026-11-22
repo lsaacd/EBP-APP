@@ -457,16 +457,16 @@ export function AuthSheet({
           void runResolution('cloud');
         },
       },
-      { text: t.authCancel, style: 'cancel' },
+      { text: t.cancel, style: 'cancel' },
     ]);
   };
 
   const handleConfirmDeleteAccount = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Alert.alert(t.authDeleteConfirmTitle, t.authDeleteConfirmBody, [
-      { text: t.authCancel, style: 'cancel' },
+      { text: t.cancel, style: 'cancel' },
       {
-        text: t.authDeleteConfirmAction,
+        text: t.delete,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -494,12 +494,8 @@ export function AuthSheet({
   };
 
   // ── Share Sub-Page Handlers ───────────────────────────────────────────────
-  const inviteTitle = es
-    ? 'Himnario El Buen Pastor — App Oficial'
-    : 'El Buen Pastor Hymnal — Official App';
-  const inviteBody = es
-    ? 'Alaba a Dios donde estés. Descarga la aplicación oficial del Himnario El Buen Pastor (637 himnos y 124 coritos con letras y audio sin conexión):'
-    : 'Praise God wherever you are. Download the official El Buen Pastor Hymnal app (637 hymns and 124 choruses with lyrics and offline audio):';
+  const inviteTitle = t.appShareElBuenPastorHymnalOfficialApp;
+  const inviteBody = t.appSharePraiseGodWhereverYouAreDownload;
   const fullShareMessage = `${inviteBody}\n\n${SMART_APP_URL}`;
 
   const handleShareMessages = async () => {
@@ -514,9 +510,7 @@ export function AuthSheet({
       );
     } catch {
       setShareStatusMessage(
-        es
-          ? 'No se pudo abrir el menú para compartir.'
-          : 'Could not open the share menu.'
+        t.appShareCouldNotOpenTheShareMenu
       );
     }
   };
@@ -547,9 +541,7 @@ export function AuthSheet({
       }
     } catch {
       setShareStatusMessage(
-        es
-          ? 'No se pudo compartir la imagen. Intenta de nuevo.'
-          : 'Could not share the image. Please try again.'
+        t.appShareCouldNotShareTheImagePlease
       );
     } finally {
       setSharingImage(false);
@@ -560,7 +552,7 @@ export function AuthSheet({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await Clipboard.setStringAsync(SMART_APP_URL);
     setShareStatusMessage(
-      es ? 'Enlace copiado al portapapeles' : 'Link copied to clipboard'
+      t.shareLinkCopied
     );
   };
 
@@ -573,14 +565,14 @@ export function AuthSheet({
       : mode === 'register'
       ? t.authCreateAccount
       : t.authSignIn,
-    'profile-details': es ? 'Cuenta y perfil' : 'Account Details',
-    ministry: es ? 'Ministerio' : 'Ministry',
-    choir: es ? 'Coro' : 'Choir',
-    'church-location': es ? 'Mi iglesia' : 'My Church',
-    blocks: es ? 'Bloqueados' : 'Blocked',
-    moderation: es ? 'Moderación' : 'Moderation',
-    'share-app': es ? 'Compartir app' : 'Share App',
-    help: es ? 'Ayuda' : 'Help',
+    'profile-details': t.accountAccountDetails,
+    ministry: t.profileMinistry,
+    choir: t.profileChoir,
+    'church-location': t.profileMyChurch,
+    blocks: t.profileBlocked,
+    moderation: t.profileModeration,
+    'share-app': t.accountShareApp,
+    help: t.accountHelp,
   };
 
   const initials = user
@@ -670,20 +662,20 @@ export function AuthSheet({
       {!user && (
         <>
           {renderMenuRow(
-            es ? 'Iglesias' : 'Churches',
+            t.profileChurches,
             'map',
             'map',
             () => {
               pendingPostCloseRef.current = 'churches';
               animateClose();
             },
-            es ? 'Mapa' : 'Map'
+            t.profileMap
           )}
           <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
         </>
       )}
       {renderMenuRow(
-        es ? 'Escanear código QR' : 'Scan QR Code',
+        t.accountScanQrCode,
         'qrcode.viewfinder',
         'qr-code-scanner',
         () => {
@@ -693,7 +685,7 @@ export function AuthSheet({
       )}
       <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
       {renderMenuRow(
-        t.homeMenuSettings || (es ? 'Ajustes' : 'Settings'),
+        t.tabSettings || (t.tabSettings),
         'gearshape',
         'settings',
         () => {
@@ -703,7 +695,7 @@ export function AuthSheet({
       )}
       <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
       {renderMenuRow(
-        es ? 'Compartir app' : 'Share App',
+        t.accountShareApp,
         'square.and.arrow.up',
         'share',
         () => {
@@ -717,7 +709,7 @@ export function AuthSheet({
       )}
       <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
       {renderMenuRow(
-        es ? 'Ayuda' : 'Help',
+        t.accountHelp,
         'questionmark.circle',
         'help-outline',
         () => goSubPage('help')
@@ -730,20 +722,16 @@ export function AuthSheet({
     const ministryLabel =
       (user.ministry &&
         (MINISTRIES as Record<string, [string, string]>)[user.ministry]?.[es ? 0 : 1]) ||
-      (es ? 'Sin asignar' : 'Not set');
+      (t.accountNotSet);
     const choirLabel =
       (user.choir &&
         (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
-      (es ? 'Sin asignar' : 'Not set');
-    const churchLabel = user.churchName || (es ? 'Sin asignar' : 'Not set');
-    const locationLabel = user.location || (es ? 'Sin asignar' : 'Not set');
+      (t.accountNotSet);
+    const churchLabel = user.churchName || (t.accountNotSet);
+    const locationLabel = user.location || (t.accountNotSet);
     const visibilityLabel = user.showChurchLocation
-      ? es
-        ? 'Visible'
-        : 'Visible'
-      : es
-        ? 'Oculto'
-        : 'Hidden';
+      ? t.accountVisible
+      : t.accountHidden;
 
     const detailRow = (
       label: string,
@@ -912,7 +900,7 @@ export function AuthSheet({
               paddingHorizontal: 14,
             }}
           >
-            {es ? 'INFORMACIÓN DE PERFIL' : 'PROFILE DETAILS'}
+            {t.accountProfileDetails}
           </Text>
           <View
             style={[
@@ -920,15 +908,15 @@ export function AuthSheet({
               { backgroundColor: cardBg, borderColor: cardBorder },
             ]}
           >
-            {detailRow(es ? 'Ministerio' : 'Ministry', ministryLabel, () => goSubPage('ministry'))}
+            {detailRow(t.profileMinistry, ministryLabel, () => goSubPage('ministry'))}
             <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
-            {detailRow(es ? 'Coro' : 'Choir', choirLabel, () => goSubPage('choir'))}
+            {detailRow(t.profileChoir, choirLabel, () => goSubPage('choir'))}
             <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
-            {detailRow(es ? 'Iglesia' : 'Church', churchLabel, () => goSubPage('church-location'))}
+            {detailRow(t.profileChurch, churchLabel, () => goSubPage('church-location'))}
             <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
-            {detailRow(es ? 'Ubicación' : 'Location', locationLabel, () => goSubPage('church-location'))}
+            {detailRow(t.accountLocation, locationLabel, () => goSubPage('church-location'))}
             <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: dividerColor }} />
-            {detailRow(es ? 'Perfil público' : 'Public profile', visibilityLabel, () => goSubPage('church-location'))}
+            {detailRow(t.accountPublicProfile, visibilityLabel, () => goSubPage('church-location'))}
           </View>
         </View>
 
@@ -944,7 +932,7 @@ export function AuthSheet({
               numberOfLines={1}
               style={[styles.actionRowTitle, { color: theme.onSurface, flexShrink: 0 }]}
             >
-              {es ? 'Estado' : 'Status'}
+              {t.accountStatus}
             </Text>
             <Text
               numberOfLines={1}
@@ -958,10 +946,8 @@ export function AuthSheet({
               }}
             >
               {user.emailVerified
-                ? `${es ? 'Verificado' : 'Verified'} · ${statsLabel}`
-                : es
-                  ? 'Sin verificar'
-                  : 'Unverified'}
+                ? `${t.accountVerified} · ${statsLabel}`
+                : t.accountUnverified}
             </Text>
           </View>
           {!user.emailVerified && (
@@ -1019,7 +1005,7 @@ export function AuthSheet({
         {/* Apple Books Compact Contained Account Pill */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${user.displayName || user.email}, ${es ? 'Cuenta y perfil' : 'Account Details'}`}
+          accessibilityLabel={`${user.displayName || user.email}, ${t.accountAccountDetails}`}
           onPress={() => goSubPage('profile-details')}
           style={({ pressed }) => [
             styles.group,
@@ -1171,7 +1157,7 @@ export function AuthSheet({
               numberOfLines={1}
               style={[styles.actionRowTitle, { color: theme.onSurface, flexShrink: 0 }]}
             >
-              {es ? 'Sincronizar' : 'Sync'}
+              {t.accountSync}
             </Text>
             <Text
               numberOfLines={1}
@@ -1185,16 +1171,10 @@ export function AuthSheet({
               }}
             >
               {isSyncing
-                ? es
-                  ? 'Sincronizando…'
-                  : 'Syncing…'
+                ? t.authSyncingStatus
                 : syncBlocked
-                  ? es
-                    ? 'En pausa'
-                    : 'Paused'
-                  : es
-                    ? 'Sincronizado'
-                    : 'Synced'}
+                  ? t.accountPaused
+                  : t.accountSynced}
             </Text>
             {isSyncing ? (
               <ActivityIndicator size="small" color={theme.primary} />

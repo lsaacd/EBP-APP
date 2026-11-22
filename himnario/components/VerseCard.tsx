@@ -167,7 +167,7 @@ async function loadBrandLogoDataUri(): Promise<string | null> {
 }
 
 export default function VerseCard() {
-  const { language } = useLanguage(),
+  const { language, t } = useLanguage(),
     es = language === "es";
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
@@ -897,7 +897,7 @@ export default function VerseCard() {
       // A failed PNG export must not silently switch to an unrequested text/link share.
       throw new Error("verse_share_not_ready");
     } catch {
-      setMessage(es ? "No se pudo compartir." : "Could not share.");
+      setMessage(t.verseCardCouldNotShare);
     } finally {
       shareLockRef.current = false;
       setSharing(false);
@@ -911,41 +911,41 @@ export default function VerseCard() {
   const moreActions: MenuAction[] = [
     {
       id: "customize",
-      title: es ? "Fondos" : "Backgrounds",
+      title: t.verseCardBackgrounds,
       image: icon("photo.on.rectangle", "ic_menu_gallery"),
       imageColor: menuTint,
     },
     {
-      title: es ? "Color del texto" : "Text color",
+      title: t.verseCardTextColor,
       image: icon("textformat", "ic_menu_sort_alphabetically"),
       imageColor: menuTint,
       subactions: [
         {
           id: "text:auto",
-          title: es ? "Automático (según fondo)" : "Automatic (by background)",
+          title: t.verseCardAutomaticByBackground,
           state: textColorMode === "auto" ? "on" : "off",
         },
         {
           id: "text:light",
-          title: es ? "Texto blanco" : "White text",
+          title: t.verseCardWhiteText,
           state: textColorMode === "light" ? "on" : "off",
         },
         {
           id: "text:dark",
-          title: es ? "Texto negro" : "Black text",
+          title: t.verseCardBlackText,
           state: textColorMode === "dark" ? "on" : "off",
         },
       ],
     },
     {
       id: "copy",
-      title: es ? "Copiar versículo" : "Copy verse",
+      title: t.verseCardCopyVerse,
       image: icon("doc.on.doc", "ic_menu_edit"),
       imageColor: menuTint,
     },
     {
       id: "report",
-      title: es ? "Reportar un problema" : "Report an issue",
+      title: t.verseCardReportAnIssue,
       image: icon("flag", "ic_menu_report_image"),
       imageColor: menuTint,
     },
@@ -1001,7 +1001,7 @@ export default function VerseCard() {
         {/* Restored Apple Books-style Section Header */}
         <View style={styles.headerBlock}>
           <Text style={[styles.sectionTitle, { color: headingColor }]}>
-            {es ? "Versículo de Hoy" : "Verse of the Day"}
+            {t.verseCardVerseOfTheDay}
           </Text>
         </View>
 
@@ -1038,7 +1038,7 @@ export default function VerseCard() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
-                es ? "Ver versículo en pantalla completa" : "View full-screen verse"
+                t.verseCardViewFullScreenVerse
               }
               onPress={() => setFullScreenOpen(true)}
               style={{ gap: 6 }}
@@ -1059,7 +1059,7 @@ export default function VerseCard() {
               <Pressable
                 style={styles.action}
                 onPress={() => like()}
-                accessibilityLabel={`${es ? "Me gusta" : "Like"}: ${summary.likesCount}`}
+                accessibilityLabel={`${t.playerLike}: ${summary.likesCount}`}
                 accessibilityState={{
                   selected: summary.likedByMe,
                 }}
@@ -1095,7 +1095,7 @@ export default function VerseCard() {
               <Pressable
                 style={styles.action}
                 onPress={() => setDiscussion(true)}
-                accessibilityLabel={`${es ? "Comentarios" : "Comments"}: ${summary.commentsCount}`}
+                accessibilityLabel={`${t.playerComments}: ${summary.commentsCount}`}
               >
                 <AppMenuIcon
                   ios="bubble.right"
@@ -1111,7 +1111,7 @@ export default function VerseCard() {
                 style={styles.action}
                 disabled={sharing}
                 onPress={() => void share()}
-                accessibilityLabel={es ? "Compartir versículo" : "Share verse"}
+                accessibilityLabel={t.verseCardShareVerse}
               >
                 <Animated.View
                   style={[
@@ -1131,7 +1131,7 @@ export default function VerseCard() {
                   )}
                 </Animated.View>
                 <Text style={[styles.count, { color: fgColor }]}>
-                  {es ? "Compartir" : "Share"}
+                  {t.shareModalTitle}
                 </Text>
               </Pressable>
               {HAS_NATIVE_MENU ? (
@@ -1145,7 +1145,7 @@ export default function VerseCard() {
                     accessible
                     accessibilityRole="button"
                     style={styles.action}
-                    accessibilityLabel={es ? "Más opciones" : "More options"}
+                    accessibilityLabel={t.shareSystemMore}
                   >
                     <AppMenuIcon
                       ios="ellipsis"
@@ -1154,7 +1154,7 @@ export default function VerseCard() {
                       size={22}
                     />
                     <Text style={[styles.count, { color: fgColor }]}>
-                      {es ? "Más" : "More"}
+                      {t.shareMore}
                     </Text>
                   </View>
                 </MenuView>
@@ -1162,7 +1162,7 @@ export default function VerseCard() {
                 <Pressable
                   accessibilityRole="button"
                   style={styles.action}
-                  accessibilityLabel={es ? "Más opciones" : "More options"}
+                  accessibilityLabel={t.shareSystemMore}
                   onPress={() => setPickerOpen(true)}
                 >
                   <AppMenuIcon
@@ -1248,7 +1248,7 @@ export default function VerseCard() {
               >
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={es ? "Cerrar" : "Close"}
+                  accessibilityLabel={t.close}
                   onPress={closeFullAnimated}
                   style={styles.fullCircleBtn}
                 >
@@ -1278,7 +1278,7 @@ export default function VerseCard() {
                       accessible
                       accessibilityRole="button"
                       accessibilityLabel={
-                        es ? "Más opciones" : "More options"
+                        t.shareSystemMore
                       }
                       style={styles.fullCircleBtn}
                     >
@@ -1302,7 +1302,7 @@ export default function VerseCard() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={
-                      es ? "Más opciones" : "More options"
+                      t.shareSystemMore
                     }
                     onPress={() => {
                       setFullScreenOpen(false);
@@ -1324,7 +1324,7 @@ export default function VerseCard() {
 
           <View style={styles.fullCenter}>
             <Text style={[styles.eyebrow, { color: subFgColor }]}>
-              {es ? "Versículo de Hoy" : "Verse of the Day"}
+              {t.verseCardVerseOfTheDay}
             </Text>
             <Text style={[styles.fullRef, { color: fgColor }]}>
               {`${quote.ref} RVR09`}
@@ -1411,7 +1411,7 @@ export default function VerseCard() {
                 )}
               </Animated.View>
               <Text style={[styles.count, { color: fgColor }]}>
-                {es ? "Compartir" : "Share"}
+                {t.shareModalTitle}
               </Text>
             </Pressable>
           </View>
@@ -1447,7 +1447,7 @@ export default function VerseCard() {
             <Pressable
               style={StyleSheet.absoluteFill}
               onPress={closePickerAnimated}
-              accessibilityLabel={es ? "Cerrar" : "Close"}
+              accessibilityLabel={t.close}
             />
           </Animated.View>
           <Animated.View
@@ -1482,7 +1482,7 @@ export default function VerseCard() {
                         setPickerPage("hub");
                       }}
                       style={styles.closeHit}
-                      accessibilityLabel={es ? "Volver" : "Back"}
+                      accessibilityLabel={t.homeMenuBack}
                     >
                       <AppMenuIcon
                         ios="chevron.left"
@@ -1503,16 +1503,10 @@ export default function VerseCard() {
                   numberOfLines={1}
                 >
                   {pickerPage === "backgrounds"
-                    ? es
-                      ? "Fondos del versículo"
-                      : "Verse backgrounds"
+                    ? t.verseCardVerseBackgrounds
                     : pickerPage === "covers"
-                      ? es
-                        ? "Portada del Himnario"
-                        : "Hymnal cover"
-                      : es
-                        ? "Fondo y texto del versículo"
-                        : "Verse background & text"}
+                      ? t.verseCardHymnalCover
+                      : t.verseCardVerseBackgroundText}
                 </Text>
                 <GlassSurface
                   isInteractive
@@ -1523,7 +1517,7 @@ export default function VerseCard() {
                   <Pressable
                     onPress={closePickerAnimated}
                     style={styles.closeHit}
-                    accessibilityLabel={es ? "Cerrar" : "Close"}
+                    accessibilityLabel={t.close}
                   >
                     <AppMenuIcon
                       ios="xmark"
@@ -1560,7 +1554,7 @@ export default function VerseCard() {
                       { color: theme.onSurfaceVariant },
                     ]}
                   >
-                    {es ? "COLOR DEL TEXTO" : "TEXT COLOR"}
+                    {t.verseCardTextColor2}
                   </Text>
                   <Text
                     style={{
@@ -1569,9 +1563,7 @@ export default function VerseCard() {
                       fontFamily: fonts.sansRegular,
                     }}
                   >
-                    {es
-                      ? "Elige texto blanco o negro"
-                      : "Pick white or black text"}
+                    {t.verseCardPickWhiteOrBlackText}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -1606,7 +1598,7 @@ export default function VerseCard() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="radio"
-                    accessibilityLabel={es ? "Texto blanco" : "White text"}
+                    accessibilityLabel={t.verseCardWhiteText}
                     accessibilityState={{ checked: textColorMode === "light" }}
                     onPress={() => updateTextColorMode("light")}
                     style={{
@@ -1625,7 +1617,7 @@ export default function VerseCard() {
                   />
                   <Pressable
                     accessibilityRole="radio"
-                    accessibilityLabel={es ? "Texto negro" : "Black text"}
+                    accessibilityLabel={t.verseCardBlackText}
                     accessibilityState={{ checked: textColorMode === "dark" }}
                     onPress={() => updateTextColorMode("dark")}
                     style={{
@@ -1652,7 +1644,7 @@ export default function VerseCard() {
                   { color: theme.onSurfaceVariant, marginTop: 6 },
                 ]}
               >
-                {es ? "PERSONALIZACIÓN" : "CUSTOMIZATION"}
+                {t.verseCardCustomization}
               </Text>
 
               {/* Tappable Verse Background Card */}
@@ -1695,7 +1687,7 @@ export default function VerseCard() {
                       { color: theme.onSurface, fontSize: 16 },
                     ]}
                   >
-                    {es ? "Fondo del versículo" : "Verse background"}
+                    {t.verseCardVerseBackground}
                   </Text>
                   <Text
                     style={{
@@ -1706,9 +1698,7 @@ export default function VerseCard() {
                     numberOfLines={1}
                   >
                     {isDefaultClassic
-                      ? es
-                        ? "Predeterminado (tema)"
-                        : "Default (theme)"
+                      ? t.verseCardDefaultTheme
                       : background.label[language]}{" "}
                     ·{" "}
                     {es
@@ -1778,7 +1768,7 @@ export default function VerseCard() {
                           { color: theme.onSurface, fontSize: 16 },
                         ]}
                       >
-                        {es ? "Portada del Himnario" : "Hymnal cover"}
+                        {t.verseCardHymnalCover}
                       </Text>
                       <Text
                         style={{
@@ -1827,9 +1817,7 @@ export default function VerseCard() {
                       fontSize: 13,
                     }}
                   >
-                    {es
-                      ? "Usar fondo predeterminado (tema)"
-                      : "Use default background (theme)"}
+                    {t.verseCardUseDefaultBackgroundTheme}
                   </Text>
                 </Pressable>
               )}
@@ -1848,7 +1836,7 @@ export default function VerseCard() {
                   <Text
                     style={[styles.downloadTitle, { color: theme.onSurface }]}
                   >
-                    {es ? "Fondos sin conexión" : "Offline backgrounds"}
+                    {t.verseCardOfflineBackgrounds}
                   </Text>
                   <Text
                     style={{
@@ -1881,7 +1869,7 @@ export default function VerseCard() {
                             fontSize: 13,
                           }}
                         >
-                          {es ? "Descargar todo" : "Download all"}
+                          {t.verseCardDownloadAll}
                         </Text>
                       )}
                     </Pressable>
@@ -1905,7 +1893,7 @@ export default function VerseCard() {
                           fontSize: 13,
                         }}
                       >
-                        {es ? "Borrar" : "Clear"}
+                        {t.verseCardClear}
                       </Text>
                     </Pressable>
                   )}
@@ -1919,7 +1907,7 @@ export default function VerseCard() {
                   { color: theme.onSurfaceVariant },
                 ]}
               >
-                {es ? "ELEGIR O DESCARGAR FONDO" : "CHOOSE OR DOWNLOAD"}
+                {t.verseCardChooseOrDownload}
               </Text>
               {VERSE_BACKGROUNDS.map((item) => {
                 const isSelected = customBg === item.id;
@@ -1978,13 +1966,9 @@ export default function VerseCard() {
                         >
                           {item.remoteUrl
                             ? isSaved
-                              ? es
-                                ? "Guardado en el teléfono"
-                                : "Saved on phone"
-                              : `${es ? "En la nube" : "Cloud"} · ${formatMb(item.approxBytes || 0)}`
-                            : es
-                              ? "Incluido sin conexión"
-                              : "Built-in offline"}
+                              ? t.verseCardSavedOnPhone
+                              : `${t.verseCardCloud} · ${formatMb(item.approxBytes || 0)}`
+                            : t.verseCardBuiltInOffline}
                         </Text>
                       </View>
                     </Pressable>
@@ -1993,7 +1977,7 @@ export default function VerseCard() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={
-                        es ? "Marcar fondo favorito" : "Favorite background"
+                        t.verseCardFavoriteBackground
                       }
                       onPress={() => toggleFavoriteBg(item.id)}
                       style={styles.iconActionHit}
@@ -2013,12 +1997,8 @@ export default function VerseCard() {
                         disabled={isDownloading}
                         accessibilityLabel={
                           isSaved
-                            ? es
-                              ? "Borrar descarga"
-                              : "Remove download"
-                            : es
-                              ? "Descargar fondo"
-                              : "Download background"
+                            ? t.verseCardRemoveDownload
+                            : t.verseCardDownloadBackground
                         }
                         onPress={() => {
                           Haptics.selectionAsync();
@@ -2075,7 +2055,7 @@ export default function VerseCard() {
                   <Text
                     style={[styles.downloadTitle, { color: theme.onSurface }]}
                   >
-                    {es ? "Portadas sin conexión" : "Offline covers"}
+                    {t.verseCardOfflineCovers}
                   </Text>
                   <Text
                     style={{
@@ -2111,7 +2091,7 @@ export default function VerseCard() {
                             fontSize: 13,
                           }}
                         >
-                          {es ? "Descargar todo" : "Download all"}
+                          {t.verseCardDownloadAll}
                         </Text>
                       )}
                     </Pressable>
@@ -2135,7 +2115,7 @@ export default function VerseCard() {
                           fontSize: 13,
                         }}
                       >
-                        {es ? "Borrar" : "Clear"}
+                        {t.verseCardClear}
                       </Text>
                     </Pressable>
                   )}
@@ -2148,9 +2128,7 @@ export default function VerseCard() {
                   { color: theme.onSurfaceVariant },
                 ]}
               >
-                {es
-                  ? "ELEGIR O DESCARGAR PORTADA"
-                  : "CHOOSE OR DOWNLOAD COVER"}
+                {t.verseCardChooseOrDownloadCover}
               </Text>
               {HYMN_COVERS.map((item) => {
                 const isSelected = coverState.selectedId === item.id;
@@ -2218,13 +2196,9 @@ export default function VerseCard() {
                         >
                           {item.remoteUrl
                             ? isSaved
-                              ? es
-                                ? "Guardada en el teléfono"
-                                : "Saved on phone"
-                              : `${es ? "En la nube" : "Cloud"} · ${formatMb(item.approxBytes || 0)}`
-                            : es
-                              ? "Incluida sin conexión"
-                              : "Built-in offline"}
+                              ? t.verseCardSavedOnPhone2
+                              : `${t.verseCardCloud} · ${formatMb(item.approxBytes || 0)}`
+                            : t.verseCardBuiltInOffline2}
                         </Text>
                       </View>
                     </Pressable>
@@ -2232,7 +2206,7 @@ export default function VerseCard() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={
-                        es ? "Marcar portada favorita" : "Favorite cover"
+                        t.verseCardFavoriteCover
                       }
                       onPress={() => {
                         Haptics.selectionAsync();
@@ -2254,12 +2228,8 @@ export default function VerseCard() {
                         disabled={isDownloading}
                         accessibilityLabel={
                           isSaved
-                            ? es
-                              ? "Borrar descarga"
-                              : "Remove download"
-                            : es
-                              ? "Descargar portada"
-                              : "Download cover"
+                            ? t.verseCardRemoveDownload
+                            : t.verseCardDownloadCover
                         }
                         onPress={() => {
                           Haptics.selectionAsync();
@@ -2414,7 +2384,7 @@ export default function VerseCard() {
                 fontSize={28}
                 letterSpacing={3}
               >
-                {es ? "VERSÍCULO DE HOY" : "VERSE OF THE DAY"}
+                {t.verseCardVerseOfTheDay2}
               </SvgText>
               <SvgText
                 x={96}

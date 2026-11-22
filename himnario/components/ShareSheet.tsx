@@ -73,8 +73,7 @@ export interface ShareSheetProps {
 
 export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' }: ShareSheetProps) {
   const { theme, isDarkMode } = useTheme();
-  const { t, language, hymnLanguage } = useLanguage();
-  const es = language !== 'en';
+  const { t, hymnLanguage } = useLanguage();
   const hymnEn = hymnLanguage === 'en';
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -184,10 +183,10 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
         Platform.OS === 'ios'
           ? { title: `${label} · ${hymn.title}`, message: `${label} · ${hymn.title}\nHimnario El Buen Pastor`, url: publicUrl }
           : { title: `${label} · ${hymn.title}`, message: linkMessage },
-        { dialogTitle: es ? 'Compartir alabanza' : 'Share hymn' },
+        { dialogTitle: t.shareHymnTitle },
       );
     } catch {
-      setStatusMessage(es ? 'No se pudo abrir el menú para compartir. Inténtalo de nuevo.' : 'Could not open the share menu. Please try again.');
+      setStatusMessage(t.shareSheetCouldNotOpenTheShareMenu);
     }
   };
 
@@ -217,7 +216,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       iconBg: 'rgba(52, 199, 89, 0.16)',
       iconColor: '#34C759',
       title: t.shareMessages,
-      subtitle: es ? 'Mensajes y más aplicaciones de tu dispositivo' : 'Messages and more apps on your device',
+      subtitle: t.shareSheetMessagesAndMoreAppsOnYour,
       onPress: handleMessages,
     },
     {
@@ -235,8 +234,8 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       icon: 'picture-as-pdf' as const,
       iconBg: theme.primary + '18',
       iconColor: theme.primary,
-      title: es ? 'Crear PDF' : 'Create PDF',
-      subtitle: es ? 'Elige formato, tamaño y columnas' : 'Choose format, size, and columns',
+      title: t.shareSheetCreatePdf,
+      subtitle: t.shareSheetChooseFormatSizeAndColumns,
       onPress: handleOpenPdf,
     },
     {

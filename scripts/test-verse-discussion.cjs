@@ -25,6 +25,10 @@ const compile = (file, deps = {}) => {
 const thread = compile("himnario/utils/verseDiscussionState.ts");
 const { createVerseLikeQueue } = compile("himnario/utils/verseLikeQueue.ts");
 const rules = compile("himnario/data/communityRules.js");
+const { strings } = compile("himnario/context/LanguageContext.tsx", {
+  react: { createContext: () => ({}) },
+  "@react-native-async-storage/async-storage": { default: {} },
+});
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((a, b) => {
@@ -235,7 +239,7 @@ function fixture(saved = new Map()) {
         },
       }),
     },
-    "../context/LanguageContext": { useLanguage: () => ({ language: "es" }) },
+    "../context/LanguageContext": { useLanguage: () => ({ language: "es", t: strings.es }) },
     "../context/AuthContext": { useAuth: () => auth },
     "../theme/theme": { fonts },
     "../data/communityRules": rules,

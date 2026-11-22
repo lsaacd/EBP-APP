@@ -406,8 +406,7 @@ interface MusicPlayerProps {
 // ─────────────────────────────────────────────────────────────
 function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBottom, miniPlayerHeight }: MusicPlayerProps) {
   const { isDarkMode } = useTheme();
-  const { t, language, hymnLanguage } = useLanguage();
-  const es = language === 'es';
+  const { t, hymnLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -857,7 +856,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                   pressed && { opacity: 0.72 },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Me gusta' : 'Like'}
+                accessibilityLabel={t.playerLike}
               >
                 <View style={styles.likeIconAnchor}>
                   <LikeSparkBurst progress={likeBurst} />
@@ -890,7 +889,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                   pressed && { opacity: 0.72 },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'No me gusta' : 'Dislike'}
+                accessibilityLabel={t.playerDislike}
               >
                 <Animated.View style={dislikeAnimStyle}>
                   <ThumbIcon
@@ -917,7 +916,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                   pressed && { opacity: 0.72 },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Comentarios' : 'Comments'}
+                accessibilityLabel={t.playerComments}
               >
                 <Animated.View style={commentAnimStyle}>
                   <CommentIcon size={27} color="rgba(255,255,255,0.94)" />
@@ -966,13 +965,13 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                 ]}
                 id="music-player-lyrics"
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Letra' : 'Lyrics'}
+                accessibilityLabel={t.playerLyrics}
               >
                 <Animated.View style={lyricsAnimStyle}>
                   <MaterialIcons name="format-quote" size={22} color="#ffffff" />
                 </Animated.View>
                 <Text style={styles.lyricsCapsuleText} numberOfLines={1}>
-                  {es ? 'Letra' : 'Lyrics'}
+                  {t.playerLyrics}
                 </Text>
               </Pressable>
             </View>
@@ -1086,7 +1085,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                   setPlaylistModalVisible(true);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Guardar en lista' : 'Save to playlist'}
+                accessibilityLabel={t.playerSaveToPlaylist}
               >
                 <Animated.View style={playlistAnimStyle}>
                   <MaterialIcons name="playlist-add" size={32} color="rgba(255,255,255,0.9)" />
@@ -1100,7 +1099,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                 onPress={handleFavoriteTap}
                 id="music-player-favorite"
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Favorito' : 'Favorite'}
+                accessibilityLabel={t.playerFavorite}
               >
                 <Animated.View style={favAnimStyle}>
                   <MaterialIcons
@@ -1113,12 +1112,12 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
 
               {/* Playback Speed (Native Liquid Glass Menu on iOS / Native PopupMenu on Android) */}
               <MenuView
-                title={es ? 'Velocidad de reproducción' : 'Playback speed'}
+                title={t.playerPlaybackSpeed}
                 themeVariant="dark"
                 shouldOpenOnLongPress={false}
                 actions={[0.75, 0.85, 1, 1.15, 1.25, 1.5].map((rate) => ({
                   id: String(rate),
-                  title: rate === 1 ? (es ? '1x · Normal' : '1x · Normal') : `${rate}x`,
+                  title: rate === 1 ? (t.player1xNormal) : `${rate}x`,
                   state: Math.abs(playbackRate - rate) < 0.01 ? 'on' : 'off',
                   image: Platform.select({
                     ios: rate === 1 ? 'gauge.with.dots.needle.50percent' : rate < 1 ? 'tortoise' : 'hare',
@@ -1133,7 +1132,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                 <View
                   style={styles.bottomAction}
                   accessibilityRole="button"
-                  accessibilityLabel={es ? 'Velocidad de reproducción' : 'Playback speed'}
+                  accessibilityLabel={t.playerPlaybackSpeed}
                 >
                   <Animated.View
                     style={[
@@ -1175,7 +1174,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                 }}
                 id="music-player-share"
                 accessibilityRole="button"
-                accessibilityLabel={es ? 'Compartir' : 'Share'}
+                accessibilityLabel={t.shareModalTitle}
               >
                 <Animated.View style={shareAnimStyle}>
                   <MaterialIcons

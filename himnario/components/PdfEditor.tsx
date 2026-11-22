@@ -59,7 +59,7 @@ export interface PdfEditorProps {
 
 export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
   const { theme, isDarkMode } = useTheme();
-  const { language, hymnLanguage } = useLanguage();
+  const { language, hymnLanguage, t } = useLanguage();
   const es = language !== 'en';
   const { width: windowWidth } = useWindowDimensions();
 
@@ -123,7 +123,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
         await Print.printAsync({ uri });
       }
     } catch {
-      setError(es ? 'No se pudo crear el PDF. Intenta de nuevo.' : 'Could not create the PDF. Please try again.');
+      setError(t.sharePdfError);
     } finally {
       setBusy(null);
     }
@@ -141,7 +141,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
       // Cancelling the print dialog rejects on some platforms; only surface real failures.
       const message = String(e?.message ?? '');
       if (!/cancel/i.test(message)) {
-        setError(es ? 'No se pudo abrir la impresión. Intenta de nuevo.' : 'Could not open printing. Please try again.');
+        setError(t.pdfCouldNotOpenPrintingPleaseTry);
       }
     } finally {
       setBusy(null);
@@ -158,25 +158,23 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
         <TouchableOpacity
           onPress={onBack}
           style={[styles.iconBtn, { backgroundColor: chipBg }]}
-          accessibilityLabel={es ? 'Volver a compartir' : 'Back to share'}
+          accessibilityLabel={t.pdfBackToShare}
         >
           <MaterialIcons name="chevron-left" size={22} color={theme.onSurfaceVariant} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>
-          {es ? 'Preparar PDF' : 'Prepare PDF'}
+          {t.pdfPreparePdf}
         </Text>
         <TouchableOpacity
           onPress={onClose}
           style={[styles.iconBtn, { backgroundColor: chipBg }]}
-          accessibilityLabel={es ? 'Cerrar vista previa del PDF' : 'Close PDF preview'}
+          accessibilityLabel={t.pdfClosePdfPreview}
         >
           <MaterialIcons name="close" size={18} color={theme.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
       <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>
-        {es
-          ? 'Elige el formato, ajusta el tamaño y descarga o imprime la alabanza.'
-          : 'Choose the format, adjust the size, and download or print the hymn.'}
+        {t.pdfChooseTheFormatAdjustTheSize}
       </Text>
 
       <ScrollView
@@ -186,7 +184,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
       >
         {/* Formato */}
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>
-          {es ? 'Formato' : 'Format'}
+          {t.pdfFormat}
         </Text>
         <Segmented
           value={format}
@@ -195,8 +193,8 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
             setFormat(v);
           }}
           options={[
-            { value: 'single', label: es ? 'Una página' : 'One page' },
-            { value: 'two-up', label: es ? 'Dos copias (cortar)' : 'Two copies (cut)' },
+            { value: 'single', label: t.pdfOnePage },
+            { value: 'two-up', label: t.pdfTwoCopiesCut },
           ]}
         />
 
@@ -204,7 +202,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
         <View style={styles.inlineRow}>
           <View style={styles.inlineCol}>
             <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>
-              {es ? 'Letra (pt)' : 'Text (pt)'}
+              {t.pdfTextPt}
             </Text>
             <View style={[styles.stepper, { borderColor: border, backgroundColor: theme.surfaceVariants.containerLowest }]}>
               <TouchableOpacity
@@ -214,7 +212,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
                   tap();
                   setRequested(Math.max(PDF_MIN_FONT, plan.fontSize - 0.5));
                 }}
-                accessibilityLabel={es ? 'Reducir letra del PDF' : 'Decrease PDF text size'}
+                accessibilityLabel={t.pdfDecreasePdfTextSize}
               >
                 <Text style={[styles.stepTxt, { color: theme.primary, opacity: plan.fontSize <= PDF_MIN_FONT ? 0.3 : 1 }]}>−</Text>
               </TouchableOpacity>
@@ -226,7 +224,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
                   tap();
                   setRequested(Math.min(PDF_MAX_FONT, plan.fontSize + 0.5));
                 }}
-                accessibilityLabel={es ? 'Aumentar letra del PDF' : 'Increase PDF text size'}
+                accessibilityLabel={t.pdfIncreasePdfTextSize}
               >
                 <Text
                   style={[
@@ -241,7 +239,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
           </View>
           <View style={[styles.inlineCol, { flex: 1.25 }]}>
             <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>
-              {es ? 'Columnas' : 'Columns'}
+              {t.pdfColumns}
             </Text>
             <Segmented
               value={columns}
@@ -250,8 +248,8 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
                 setColumns(v);
               }}
               options={[
-                { value: 1, label: es ? 'Una' : 'One' },
-                { value: 2, label: es ? 'Dos' : 'Two' },
+                { value: 1, label: t.pdfOne },
+                { value: 2, label: t.pdfTwo },
               ]}
             />
           </View>
@@ -268,12 +266,12 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
           >
             <MaterialIcons name="fit-screen" size={18} color={theme.primary} />
             <Text style={[styles.fitTxt, { color: theme.primary }]}>
-              {es ? 'Ajustar a la página' : 'Fit to page'}
+              {t.pdfFitToPage}
             </Text>
           </TouchableOpacity>
           <View style={styles.titleToggle}>
             <Text style={[styles.toggleTxt, { color: theme.onSurface }]}>
-              {es ? 'Incluir título' : 'Include title'}
+              {t.pdfIncludeTitle}
             </Text>
             <Switch
               value={includeTitle}
@@ -282,7 +280,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
                 setIncludeTitle(v);
               }}
               trackColor={{ true: theme.primary }}
-              accessibilityLabel={es ? 'Incluir título' : 'Include title'}
+              accessibilityLabel={t.pdfIncludeTitle}
             />
           </View>
         </View>
@@ -304,7 +302,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
             style={[styles.paper, { width: previewWidth, height: previewHeight }]}
             accessible
             accessibilityRole="image"
-            accessibilityLabel={es ? 'Vista previa de la alabanza en PDF' : 'PDF preview of the hymn'}
+            accessibilityLabel={t.pdfPdfPreviewOfTheHymn}
           >
             <SvgXml xml={previewXml} width={previewWidth} height={previewHeight} />
           </View>
@@ -324,7 +322,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
             <>
               <MaterialIcons name="ios-share" size={18} color={theme.onPrimary} />
               <Text style={[styles.primaryTxt, { color: theme.onPrimary }]}>
-                {es ? 'Guardar PDF' : 'Save PDF'}
+                {t.pdfSavePdf}
               </Text>
             </>
           )}
@@ -340,7 +338,7 @@ export default function PdfEditor({ hymn, onBack, onClose }: PdfEditorProps) {
             <>
               <MaterialIcons name="print" size={18} color={theme.primary} />
               <Text style={[styles.secondaryTxt, { color: theme.primary }]}>
-                {es ? 'Imprimir' : 'Print'}
+                {t.pdfPrint}
               </Text>
             </>
           )}

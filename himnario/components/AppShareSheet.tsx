@@ -67,8 +67,7 @@ export function AppShareContent({
   onAfterWhatsApp,
 }: AppShareContentProps) {
   const { theme, isDarkMode } = useTheme();
-  const { language } = useLanguage();
-  const es = language !== 'en';
+  const { t } = useLanguage();
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Math.max(240, Math.min(windowWidth - (embedded ? 36 : 40), 560));
   const bannerHeight = Math.round((cardWidth * 630) / 1200);
@@ -77,13 +76,9 @@ export function AppShareContent({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [sharingImage, setSharingImage] = useState(false);
 
-  const inviteTitle = es
-    ? 'Himnario El Buen Pastor — App Oficial'
-    : 'El Buen Pastor Hymnal — Official App';
+  const inviteTitle = t.appShareElBuenPastorHymnalOfficialApp;
 
-  const inviteBody = es
-    ? 'Alaba a Dios donde estés. Descarga la aplicación oficial del Himnario El Buen Pastor (637 himnos y 124 coritos con letras y audio sin conexión):'
-    : 'Praise God wherever you are. Download the official El Buen Pastor Hymnal app (637 hymns and 124 choruses with lyrics and offline audio):';
+  const inviteBody = t.appSharePraiseGodWhereverYouAreDownload;
 
   const fullShareMessage = `${inviteBody}\n\n${SMART_APP_URL}`;
 
@@ -99,9 +94,7 @@ export function AppShareContent({
       );
     } catch {
       setStatusMessage(
-        es
-          ? 'No se pudo abrir el menú para compartir.'
-          : 'Could not open the share menu.'
+        t.appShareCouldNotOpenTheShareMenu
       );
     }
   };
@@ -133,9 +126,7 @@ export function AppShareContent({
       }
     } catch {
       setStatusMessage(
-        es
-          ? 'No se pudo compartir la imagen. Intenta de nuevo.'
-          : 'Could not share the image. Please try again.'
+        t.appShareCouldNotShareTheImagePlease
       );
     } finally {
       setSharingImage(false);
@@ -146,7 +137,7 @@ export function AppShareContent({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await Clipboard.setStringAsync(SMART_APP_URL);
     setStatusMessage(
-      es ? 'Enlace copiado al portapapeles' : 'Link copied to clipboard'
+      t.shareLinkCopied
     );
   };
 
@@ -155,10 +146,8 @@ export function AppShareContent({
   const options = [
     {
       key: 'messages',
-      title: es ? 'Mensajes y más…' : 'Messages & more…',
-      subtitle: es
-        ? 'Compartir enlace por iMessage, SMS o redes sociales'
-        : 'Share link via iMessage, SMS, or social apps',
+      title: t.appShareMessagesMore,
+      subtitle: t.appShareShareLinkViaImessageSmsOr,
       onPress: handleMessages,
       iconBg: isIOS ? 'transparent' : 'rgba(52, 199, 89, 0.16)',
       iconColor: '#34C759',
@@ -169,9 +158,7 @@ export function AppShareContent({
     {
       key: 'whatsapp',
       title: 'WhatsApp',
-      subtitle: es
-        ? 'Enviar invitación con vista previa a un chat o grupo'
-        : 'Send invite with preview banner to a chat or group',
+      subtitle: t.appShareSendInviteWithPreviewBannerTo,
       onPress: handleWhatsApp,
       iconBg: 'transparent',
       iconColor: '#25D366',
@@ -182,15 +169,9 @@ export function AppShareContent({
       key: 'share-image',
       title:
         tab === 'qr'
-          ? es
-            ? 'Compartir imagen del código QR'
-            : 'Share QR code image'
-          : es
-            ? 'Compartir tarjeta promocional'
-            : 'Share promotional banner',
-      subtitle: es
-        ? 'Ideal para estados de WhatsApp, historias o grupos'
-        : 'Great for WhatsApp Status, Stories, or church groups',
+          ? t.appShareShareQrCodeImage
+          : t.appShareSharePromotionalBanner,
+      subtitle: t.appShareGreatForWhatsappStatusStoriesOr,
       onPress: handleSharePromoImage,
       iconBg: theme.primary + '18',
       iconColor: theme.primary,
@@ -199,7 +180,7 @@ export function AppShareContent({
     },
     {
       key: 'copy-link',
-      title: es ? 'Copiar enlace de descarga' : 'Copy download link',
+      title: t.appShareCopyDownloadLink,
       subtitle: 'himnarioebp.com/app',
       onPress: handleCopyLink,
       iconBg: theme.primary + '18',
@@ -256,7 +237,7 @@ export function AppShareContent({
             ]}
             numberOfLines={1}
           >
-            {es ? 'Tarjeta' : 'Banner'}
+            {t.appShareBanner}
           </Text>
         </Pressable>
 
@@ -293,7 +274,7 @@ export function AppShareContent({
             ]}
             numberOfLines={1}
           >
-            {es ? 'Código QR' : 'In-Person QR'}
+            {t.appShareInPersonQr}
           </Text>
         </Pressable>
       </View>
@@ -347,9 +328,7 @@ export function AppShareContent({
                 style={[styles.bannerFooterTitle, { color: theme.onSurface }]}
                 numberOfLines={1}
               >
-                {es
-                  ? 'Disponible gratis para iPhone y Android'
-                  : 'Available free for iPhone & Android'}
+                {t.appShareAvailableFreeForIphoneAndroid}
               </Text>
             </View>
             <MaterialIcons
@@ -382,12 +361,10 @@ export function AppShareContent({
             />
           </View>
           <Text style={[styles.qrTitle, { color: theme.onSurface }]}>
-            {es ? 'Escanea para descargar' : 'Scan to download'}
+            {t.appShareScanToDownload}
           </Text>
           <Text style={[styles.qrSubtitle, { color: theme.onSurfaceVariant }]}>
-            {es
-              ? 'Pídele a un hermano que apunte con la cámara de su teléfono para instalar la app en iPhone o Android.'
-              : 'Ask someone nearby to point their phone camera here to install on iPhone or Android.'}
+            {t.appShareAskSomeoneNearbyToPointTheir}
           </Text>
         </View>
       )}
@@ -485,8 +462,7 @@ export interface AppShareSheetProps {
 
 export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) {
   const { theme } = useTheme();
-  const { language } = useLanguage();
-  const es = language !== 'en';
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const travel = Math.max(420, Math.round(windowHeight * 0.82));
@@ -571,7 +547,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>
-          {es ? 'Compartir Aplicación' : 'Share App'}
+          {t.appShareShareApp}
         </Text>
         <TouchableOpacity
           onPress={animateClose}
@@ -579,7 +555,7 @@ export default function AppShareSheet({ visible, onClose }: AppShareSheetProps) 
             styles.closeBtn,
             { backgroundColor: theme.surfaceVariants.containerHighest },
           ]}
-          accessibilityLabel={es ? 'Cerrar' : 'Close'}
+          accessibilityLabel={t.close}
         >
           <MaterialIcons name="close" size={18} color={theme.onSurfaceVariant} />
         </TouchableOpacity>
