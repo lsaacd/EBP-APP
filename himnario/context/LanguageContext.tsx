@@ -515,7 +515,7 @@ export const strings = {
     churchSubmitItForAdministratorVerification: "Envíala para verificación del administrador",
     churchCenterOnMyLocation: "Centrar en mi ubicación",
     churchDirections: "Cómo llegar",
-    churchLookAround: "Look Around",
+    churchLookAround: "Mirar alrededor",
     churchStreetView: "Vista calle",
     churchYourChurch: "Tu iglesia",
     churchSetAsMyChurch: "Vincular mi iglesia",
