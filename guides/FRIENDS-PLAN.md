@@ -1,6 +1,6 @@
 # Friends ("Hermanos") — build plan
 
-> **Status (November 23, 2026):** phase 1 is built and tested in the repository but **not deployed**: migration `0009_friends.sql` has not been applied to the live database, the Worker with the friends routes is not deployed, the privacy/terms text is not published, and no OTA carries the screens. Phases 2–4 are not started.
+> **Status (November 23, 2026):** **phase 1 is live** — migration `0009_friends.sql` applied, Worker `3689b22f`, Pages deploy `6c4da9bc` (privacy and terms), iOS OTA `3dc3d29a`. It has not been exercised with two real accounts on devices yet. Phases 2–4 are not started.
 > Any agent may build it, one phase at a time, with the owner's go-ahead before each live step.
 
 ## What the owner decided
@@ -107,7 +107,7 @@ Per phase, in this order: tests → D1 migration (if any) → Worker deploy → 
 - For now a person can only be found through the comments (tap their name). Suggestions arrive in phase 4.
 - Server tests: seven cases at the end of `scripts/test-verse-community.cjs`.
 
-**To take phase 1 live, in this order, each with the owner's go-ahead:**
+**How phase 1 went live (the same order applies to later phases, each with the owner's go-ahead):**
 1. `npx wrangler d1 execute ebp-himnario-db --remote --file "migrations/0009_friends.sql"` (from `workers/ebp-auth-sync`).
 2. `npx wrangler deploy`.
 3. `scripts/deploy-cloudflare.ps1 -AudioBaseUrl "https://audio.himnarioebp.com" -SkipAudioUpload` for the privacy and terms text.
