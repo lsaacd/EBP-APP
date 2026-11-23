@@ -1,5 +1,33 @@
 # App editing
 
+## November 23, 2026 (late night 3) — Native MapKit Driving ETA, `40×12` SheetGrabber & Pre-App-Store Audit (iOS Build #34 `d1f054c9`, `2.0.0-release-5`)
+
+### What changed (commit `63c7307`, Pages `94eaed5a`, iOS Build #34 `d1f054c9-2609-46c8-8b90-c92ea369d04c`)
+1. **Native Apple MapKit Driving Distance & Travel Time (`AppleLookAroundModule.swift`, `apple-look-around/index.ts`, `churchMapUtils.ts`, `churches.tsx`):**
+   - Added `AsyncFunction("getDrivingEstimate")` in `AppleLookAroundModule.swift` using `MKDirections.calculateETA` (with fresh `MKDirections.calculate` fallback) returning road driving distance and traffic-aware ETA matching Apple Maps (`44 mi (71 km) · 56 min` with a car icon instead of straight-line `38 mi`).
+   - Added ~200 m origin-grid caching in `churches.tsx` and graceful fallback to `~38 mi (61 km)` when offline or outside iOS.
+2. **Standardized `40×12` `SheetGrabber` Pill (`himnario/components/SheetGrabber.tsx`):**
+   - Set shared pill width from `33` → **`40`** (`40×12`, `borderRadius: 999`) across all bottom sheets.
+3. **Dependency Audit & Fixes (`himnario/package.json`, `himnario/package-lock.json`):**
+   - Caught and pinned missing direct dependency `expo-file-system` (imported as `expo-file-system/legacy` in 4 files, previously only working via accidental hoisting).
+   - Updated SDK 54 patches (`expo@~54.0.37`, `expo-asset@~12.0.14`, `expo-constants@~18.0.14`, `expo-updates@~29.0.20`); verified all 3 `patch-package` patches apply cleanly.
+4. **Pre-App-Store Compliance & Stability Fixes (`app.json`, `CommunityProfile.tsx`, `VerseDiscussionSheet.tsx`, `AuthSheet.tsx`, `hymnCommunity.ts`, `theme.js`, `churches.tsx`, `_layout.tsx`, `pushNotifications.ts`, `VerseCard.tsx`, `churchPhotoUpload.ts`, `ChoirRepertoire.tsx`, `MusicPlayer.tsx`, `hymn/[id].tsx`, `favorites.tsx`, `hymns.tsx`, `LanguageContext.tsx`, `docs/privacy.html`, `docs/terms.html`):**
+   - Cleaned `ios.infoPlist` via plugin config to drop unused `NSMicrophoneUsageDescription`, `NSLocationAlways*`, and `NSFaceIDUsageDescription`; added explicit `ios.privacyManifests` (`NSPrivacyTracking: false`, `UserDefaults` `CA92.1`, `FileTimestamp` `C617.1`) and `CFBundleLocalizations: ["es", "en"]`.
+   - Removed silent background `acceptUgcTerms()` in `hymnCommunity.ts`, added explicit inline & alert Guideline 1.2 UGC Community Rules gate in `VerseDiscussionSheet.tsx`, and added clickable Terms & Privacy links during registration in `AuthSheet.tsx`.
+   - Replaced nested iOS `<Modal>` choir suggestion dialog in `CommunityProfile.tsx` with an inline expandable card (prevents UIKit Fabric freeze inside `AuthSheet` Modal); moved `VerseCard` full-screen → picker handoff to `onDismiss`.
+   - Changed `darkTheme.outlineVariant` from `rgba(...)` to `#38383A` (fixing 25 invalid `+ '<hex>'` dark-mode colors), fixed dark-mode white-on-cream badge contrast, fixed broken `/(tabs)` notification route to `/(tabs)/home`, deduplicated cold-start notification taps, guarded QR `decodeURIComponent`, prevented GPS fix from re-fetching `/churches`, removed `"TestFlight"` user-facing fallback error string, fixed auth success banner cancellation, and aligned English labels.
+   - Updated `docs/privacy.html` & `docs/terms.html` (ES & EN, administrator anonymous) for Choir suggestions/moderation and foreground MapKit driving estimates.
+
+### Published live IDs
+- **Pages (`ebp-himnario`):** Deploy `94eaed5a` (`https://94eaed5a.ebp-himnario.pages.dev` → `https://himnarioebp.com/`, verified `privacy.html` & `terms.html` live).
+- **iOS Build #34 (`production`, runtime `2.0.0-release-5`):** EAS Build `d1f054c9-2609-46c8-8b90-c92ea369d04c` · Auto-Submission `ba24a1c2-cb7a-4d3c-8b96-e3c14a5f1f31` (finished & uploaded to App Store Connect).
+
+### Verification & remaining manual checks
+- Verified: `tsc --noEmit` 0 errors, `npx expo install --check` up to date, `npx expo lint` 0 errors / 49 warnings, all 11 Node test suites (191/191 passed), `test-web-search.js` (761 items), `audit-secrets.py` (0 findings across 3,339 files), `npx expo export --platform ios` (2,114 modules, 8.22 MB Hermes bundle, zero Apple fonts), `npx expo config --type introspect` (verified exact 3 `UsageDescription` keys & privacy manifest), EAS Build #34 compiled & submitted cleanly.
+- Manual checks on TestFlight Build #34 before clicking Submit for App Store Review: verify driving distance + ETA on church cards (`44 mi (71 km) · 56 min`), `40×12` grabber pill across sheets, explicit UGC rules gate on a fresh/unaccepted test account, inline Suggest Choir card inside Account → Coro, Dark Mode card borders & badges, and supply a test member account in App Store Connect Review Notes.
+
+---
+
 ## November 23, 2026 (late night 2) — `33×12` SheetGrabber Standard, Church Draft Guard, Coro Filadelfia & Choir Submissions/Moderation (OTA `dc4ca9aa`)
 
 ### What changed (commit `6d5e969`, D1 `0015_choirs.sql`, Worker `d0008031`, iOS OTA `dc4ca9aa-232d-465a-a7a6-890babd35f38`)

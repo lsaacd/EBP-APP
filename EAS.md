@@ -1,5 +1,28 @@
 # Native builds and updates
 
+## November 23, 2026 — App Store Release Candidate: iOS Production Build #34 (`runtimeVersion: "2.0.0-release-5"`)
+
+Final App Store release build adding native **Apple MapKit driving distance & traffic-aware travel time** (`MKDirections.calculateETA()` in `AppleLookAroundModule.swift`), the standardized **`40×12` `SheetGrabber` pill**, pinned **`expo-file-system`** + SDK 54 dependency patches, and all **pre-App-Store compliance and stability fixes**.
+
+- **Source version and runtime:** `version: "2.0.0"`, `"runtimeVersion": "2.0.0-release-5"` (bumped from `2.0.0-notif-4` for the new `getDrivingEstimate` native Swift function, cleaned `Info.plist` permissions, explicit `ios.privacyManifests`, and `CFBundleLocalizations`).
+- **iOS `production`, Build #34 (`2.0.0 (34)`) — finished and auto-submitted to App Store Connect / TestFlight:**
+  - **EAS Build:** [`d1f054c9-2609-46c8-8b90-c92ea369d04c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/d1f054c9-2609-46c8-8b90-c92ea369d04c)
+  - **IPA Artifact:** `https://expo.dev/artifacts/eas/4ZqjbdGHTpA-hjMGmUjhQiHhVtb1Kl5MMwAoxiVk5uY.ipa`
+  - **Auto-Submission:** [`ba24a1c2-cb7a-4d3c-8b96-e3c14a5f1f31`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/ba24a1c2-cb7a-4d3c-8b96-e3c14a5f1f31) (Uploaded to App Store Connect — do **not** run a manual `eas submit`).
+  - **Native & Compliance Changes in `2.0.0-release-5`:**
+    - `AppleLookAroundModule.swift`: added `getDrivingEstimate(fromLat, fromLng, toLat, toLng)` using `MKDirections.calculateETA` (with fresh `MKDirections.calculate` fallback) so church cards show real road distance & travel time matching Apple Maps (`44 mi (71 km) · 56 min`).
+    - `himnario/app.json`: disabled unused `NSMicrophoneUsageDescription`, `NSLocationAlways*`, and `NSFaceIDUsageDescription`; added explicit `ios.privacyManifests` (`NSPrivacyTracking: false`, `UserDefaults` `CA92.1`, `FileTimestamp` `C617.1`) and `CFBundleLocalizations: ["es", "en"]`.
+    - `himnario/package.json`: pinned direct dependency `expo-file-system` and updated SDK 54 patches (`expo@~54.0.37`, `expo-asset@~12.0.14`, `expo-constants@~18.0.14`, `expo-updates@~29.0.20`); all 3 `patch-package` patches verified intact.
+    - App fixes embedded in Build #34 (commit `63c7307`): `40×12` `SheetGrabber`, Guideline 1.2 explicit UGC EULA/Community Rules gate (`VerseDiscussionSheet.tsx`, `AuthSheet.tsx`, removed silent auto-accept in `hymnCommunity.ts`), removed nested iOS `<Modal>` freeze in `CommunityProfile.tsx`, fixed dark-mode `outlineVariant` hex & contrast bugs, fixed `/(tabs)/home` notification route + cold-start dedupe, fixed QR `decodeURIComponent` guard, removed `"TestFlight"` user-facing fallback error copy.
+- **Backend & Web Paired Deployments (Live):**
+  - **Cloudflare Pages (`ebp-himnario`):** Deploy `94eaed5a` (`https://94eaed5a.ebp-himnario.pages.dev` → `https://himnarioebp.com/`), updating `docs/privacy.html` & `docs/terms.html` (ES & EN) for Choir suggestions/moderation and foreground Apple MapKit driving estimates.
+  - **Cloudflare Worker (`ebp-himnario-sync`):** Version `d0008031-4669-4541-bd68-55f7e6ee3770` (unchanged, live).
+  - **Cloudflare D1 (`ebp-himnario-db`):** Migrations `0002`–`0015_choirs.sql` (unchanged, live).
+- **Commit:** `63c7307` (pushed to `app-web-parity` & `main`).
+- **Validation at build time:** `tsc --noEmit` 0 errors, `npx expo install --check` clean, `npx expo lint` 0 errors (49 warnings), all 11 Node test suites (191/191 tests passed), `test-web-search.js` passed (761 items), `audit-secrets.py` 0 findings (3,339 files), `npx expo export --platform ios` succeeded cleanly (2,114 modules, zero Apple fonts bundled).
+
+---
+
 ## November 23, 2026 — Full Native Rebuild: iOS Production Build #33 & OTA (`runtimeVersion: "2.0.0-notif-4"`)
 
 Ships **127 daily bilingual verses** with consecutive daily rotation (`getLocalDayNumber()`), **Notifications Phase 1** (in-app notification center + 5 community triggers + per-category switches), **Notifications Phase 2** (native `expo-notifications` + `expo-device` + Expo Push Service delivery), **animated floating-label forms** (`AnimatedField`), **redesigned Auth & Church forms**, and the **8-character minimum password length** across mobile, Worker, and web.
@@ -117,7 +140,7 @@ Run native commands from `himnario/`. Configuration lives in `app.json` and `eas
 - iOS bundle: `com.elbuenpastor`; App Store Connect ID: `6794435414`.
 - Provisioning Profile: `ZM5HK4A7JT` (has `Associated Domains` enabled for `applinks:himnarioebp.com`).
 - Android package: `com.elbuenpastor.himnario`.
-- Current runtime: explicit `"2.0.0-notif-4"` in `himnario/app.json`; source version `2.0.0` (iOS Build 33). Builds 30–31 use `2.0.0-media-3`; older iOS Build 29 uses `2.0.0-maps-2`; the older Android preview binary still uses `2.0.0-securestore-1`.
+- Current runtime: explicit `"2.0.0-release-5"` in `himnario/app.json`; source version `2.0.0` (iOS Build 34). Build 33 uses `2.0.0-notif-4`; Builds 30–31 use `2.0.0-media-3`; older iOS Build 29 uses `2.0.0-maps-2`; the older Android preview binary still uses `2.0.0-securestore-1`.
 - Profiles include `development`, `ios-simulator`, `preview`, `preview-arm64`, `production`. `preview-arm64` builds an Android APK; `production` produces the store build.
 - Production submission config supplies the iOS App Store Connect ID (`6794435414`). Android automated submission is not configured there.
 
