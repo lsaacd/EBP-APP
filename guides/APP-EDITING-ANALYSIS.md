@@ -1,5 +1,29 @@
 # App editing
 
+## November 23, 2026 (late evening) — 127 Daily Verses & Notifications Phase 1 + 2 (iOS Build #32, `2.0.0-notif-4`)
+
+### What changed (commits `a948821` and `1751815`)
+1. **Expanded Daily Verses (`himnario/data/dailyVerses.ts`):**
+   - Expanded from 27 → **127 public-domain bilingual verses** (Reina-Valera 1909 + WEB/KJV) while keeping all 27 original `id` slugs intact.
+   - Switched `getDailyVerse()` to `getLocalDayNumber()` (`Date.UTC(y, m, d) / 86_400_000 % length`) so verses step strictly +1 per day across month boundaries and leap years.
+2. **Notifications Phase 1 (In-App Inbox) + Phase 2 (Native Expo Push):**
+   - D1 migrations `0013_notifications.sql` (`notifications` table + unique dedupe index + 3 per-user toggle columns) and `0014_push_tokens.sql` (`push_tokens` table).
+   - Worker (`community.js`, `index.js`): triggers on `comment_like`, `comment_reply`, `friend_request`, `friend_accepted`, and `shared_playlist`; self/block/preference guards; Expo Push Service (`https://exp.host/--/api/v2/push/send`) dispatch via `ctx.waitUntil()` with automatic `DeviceNotRegistered` token pruning; `POST /auth/logout` deletes device push token; block/hide/delete cleanup.
+   - App: installed `expo-notifications` + `expo-device`, added plugin with cross-free Android icon (`android-monochrome-app-logo.png`), bumped `runtimeVersion` to `2.0.0-notif-4`, added `NotificationsPanel.tsx`, `utils/notifications.ts`, `utils/notificationsStore.ts`, `utils/pushNotifications.ts`, Account sheet row + unread badge, header avatar dot, and lock-screen push deep-linking in `app/_layout.tsx`.
+   - Privacy: updated `docs/privacy.html` (Spanish & English, administrator anonymous).
+
+### Published live IDs
+- **D1 (`ebp-himnario-db`):** `0013_notifications.sql` & `0014_push_tokens.sql` applied remotely.
+- **Worker (`ebp-himnario-sync`):** Version `79656977-059a-4765-b3b3-33a2ecc87136`.
+- **Pages (`ebp-himnario`):** Deploy `466a89e2` (`https://466a89e2.ebp-himnario.pages.dev`).
+- **iOS Build #32 (`production`, runtime `2.0.0-notif-4`):** EAS Build `448311eb-f325-4d93-a68c-1fce3c481f19` · Auto-Submission `d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`.
+
+### Verification & remaining manual checks
+- Verified: `tsc --noEmit` clean, all Node suites pass (`test-verse-community.cjs` 34/34, `test-church-sheet.cjs` 21/21, `test-mobile-auth.cjs`, `test-mobile-auth-email.cjs`, `test-verse-discussion.cjs` 18/18), `test-web-search.js`, `audit-secrets.py` (0 findings across 3,335 files), live Worker smoke test (`200`/`401`).
+- Manual check needed: confirm Build #32 succeeds on EAS (if provisioning profile `ZM5HK4A7JT` lacks `aps-environment`, run `eas credentials -p ios` interactively to add Push Notifications + APNs Push Key and re-run build), then test lock-screen delivery between two accounts on TestFlight.
+
+---
+
 ## November 23, 2026 — Verse comment fixes, comment liking & Friends Phase 3 shared playlists (OTA `369019dc`)
 
 Completed everything left in progress after Claude hit its limit, verified end-to-end, and deployed in strict order (D1 → Worker → Pages → iOS OTA).

@@ -1,6 +1,23 @@
 # Native builds and updates
 
-## November 22, 2026 (evening) — iOS Production Build #31 and three OTAs (`runtimeVersion: "2.0.0-media-3"`)
+## November 23, 2026 — Full Native Rebuild: iOS Production Build #32 (`runtimeVersion: "2.0.0-notif-4"`)
+
+Ships **127 daily bilingual verses** with consecutive daily rotation (`getLocalDayNumber()`), **Notifications Phase 1** (in-app notification center + 5 community triggers + per-category switches), and **Notifications Phase 2** (native `expo-notifications` + `expo-device` + Expo Push Service delivery).
+
+- **Source version and runtime:** `version: "2.0.0"`, `"runtimeVersion": "2.0.0-notif-4"` (bumped from `2.0.0-media-3` due to adding `expo-notifications` and `expo-device`).
+- **iOS `production`, Build #32 (`2.0.0 (32)`) — queued/building with auto-submit:**
+  - **EAS Build:** [`448311eb-f325-4d93-a68c-1fce3c481f19`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/448311eb-f325-4d93-a68c-1fce3c481f19)
+  - **Auto-submission:** [`d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984) (do **not** run a manual `eas submit`).
+  - **Note on iOS APNs Push Key:** Verify in `eas credentials -p ios` that `com.elbuenpastor` has the Push Notifications capability + an APNs Push Key uploaded to EAS so Expo Push Service can deliver lock-screen notifications to iOS.
+- **Backend & Web Paired Deployments (Live):**
+  - **Cloudflare D1 (`ebp-himnario-db`):** Migrations `0013_notifications.sql` and `0014_push_tokens.sql` applied remotely.
+  - **Cloudflare Worker (`ebp-himnario-sync`):** Version `79656977-059a-4765-b3b3-33a2ecc87136`.
+  - **Cloudflare Pages (`ebp-himnario`):** Deploy `466a89e2` (`https://466a89e2.ebp-himnario.pages.dev`, updated `privacy.html` for in-app and optional push notifications).
+- **Commits:** `a948821` (127 daily verses + plan) and `1751815` (Notifications Phase 1 & 2, `2.0.0-notif-4`).
+
+---
+
+## November 22, 2026 (evening) — iOS Production Build #31 and OTAs (`runtimeVersion: "2.0.0-media-3"`)
 
 Current release record. The Build #30 entry below describes the morning of the same day.
 

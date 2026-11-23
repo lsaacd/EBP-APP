@@ -1,7 +1,11 @@
 # Notifications ("Notificaciones") — Architecture & Rollout Plan
 
 > **Created:** November 23, 2026
-> **Status:** Planned (not started).
+> **Status:** **Phase 1 & Phase 2 implemented and deployed!**
+> - D1 migrations `0013_notifications.sql` and `0014_push_tokens.sql` applied remotely.
+> - Worker `ebp-himnario-sync` version `79656977-059a-4765-b3b3-33a2ecc87136` live.
+> - Pages `ebp-himnario` deploy `466a89e2` live (`docs/privacy.html` updated).
+> - iOS Production Build #32 (`448311eb-f325-4d93-a68c-1fce3c481f19`, runtime `2.0.0-notif-4`, auto-submit `d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`) queued/building. Verify APNs Push Key in `eas credentials -p ios` and test on two physical devices.
 > **Applies to:** Mobile app (`himnario/`), Cloudflare Worker (`workers/ebp-auth-sync/`), D1 (`ebp-himnario-db`), and `docs/privacy.html`.
 
 ---

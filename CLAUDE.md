@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 23, 2026 (after iOS Build 31, D1 `0011`/`0012`, Worker `5c474ce7`, Pages `a6f62e3a`, and OTA `369019dc`)
+> **Last Updated:** November 23, 2026 (after 127 daily verses, Notifications Phase 1 & 2, D1 `0013`/`0014`, Worker `79656977`, Pages `466a89e2`, and iOS Build #32 `448311eb`)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-media-3"` (iOS Builds #30 and #31 on App Store Connect / TestFlight)
+> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-notif-4"` (iOS Build #32 queued/building; Builds #30 and #31 remain on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
@@ -21,18 +21,17 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 
 ---
 
-## 2. Live Production State (November 22, 2026, evening)
+## 2. Live Production State (November 23, 2026)
 
-- **iOS Native Production Build #31 (`2.0.0`, runtime `2.0.0-media-3`):**
-  - EAS Build: `2105a538-0d18-4d29-83f6-a922c35ac656` (auto-submitted via `e1843910-ba89-4066-9549-1a6bb45b077b`). Same native modules as Build #30 plus the Look Around fix (presented directly, scene requested by map item).
-  - Apple accepted it with warning **ITMS-90725** (built with the iOS 26 SDK; Xcode 27 required from April 2027). See open task 1.
-  - Build #30 (`b6501dac-6ab5-4a5f-86e1-1740ce1036d3`) is still installed on some devices and shares the same runtime.
-- **Latest iOS OTA on `production` / `2.0.0-media-3`:** update group `369019dc-4640-4979-a539-7295465e3e38` (iOS update `01a206e7-8cd7-7146-affc-1d2255b46af5`: verse comment fixes, comment liking, and Friends phase 3 shared playlists). Earlier groups: `327e2203-2407-49fe-a0aa-20eb9e81f77b`, `3dc3d29a-6969-41f3-acb5-28afaabf1591`, `03709a08-ad27-47f4-af2b-60593f0213e1`, `a08f14ab-e56c-4b6f-acc2-26b05f7740ad`, `b58d065d-b081-4161-9d7f-67ab1695cc1d`, `d351bb27-fd01-46bb-b304-393d7258d8a6`, `78f9b043-d4a3-4337-b59f-6a299003ac05`, `4cb9ae0d-49bc-4385-85ce-f11e02914322`.
-- **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`).
-- **Cloudflare Worker (`ebp-himnario-sync`):** Version `5c474ce7-4a59-40cf-a72f-cbb11a0428c7` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; adds `POST /verse-comments/:id/like`, comment `likesCount`/`likedByMe`, `sort=top` by likes + replies, and Friends phase 3 shared playlists routes). **Always deploy migrations before Workers.**
-- **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0012` applied live (November 23: `0009_friends.sql`, `0010_friend_sharing.sql`, `0011_shared_playlists.sql`, `0012_comment_likes.sql`). One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title). The seed in `migrations/0008_church_gallery_and_link.sql` still has the old value.
+- **iOS Native Production Build #32 (`2.0.0`, runtime `2.0.0-notif-4`):**
+  - EAS Build: `448311eb-f325-4d93-a68c-1fce3c481f19` (auto-submitted via `d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`). Adds `expo-notifications`, `expo-device`, Notifications Phase 1 (in-app inbox) & Phase 2 (Expo Push lock-screen alerts), and 127 consecutive daily verses.
+  - Builds #30 (`b6501dac`) and #31 (`2105a538`) remain on `2.0.0-media-3` (latest OTA `369019dc-4640-4979-a539-7295465e3e38`).
+  - Apple warning **ITMS-90725** (built with iOS 26 SDK; Xcode 27 required from April 2027) still applies until the SDK 58 upgrade.
+- **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`), plus Firebase FCM v1 credentials for Android lock-screen pushes.
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `79656977-059a-4765-b3b3-33a2ecc87136` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; adds Notifications Phase 1 routes, per-category toggles on `PUT /auth/profile`, and Phase 2 Expo Push Service delivery + token cleanup). **Always deploy migrations before Workers.**
+- **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0014` applied live (November 23: `0009`–`0012` plus `0013_notifications.sql` and `0014_push_tokens.sql`). One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title).
 - **Cloudflare R2 (`ebp-himnario-audio` → `https://audio.himnarioebp.com/`):** Hosts hymn `.m4a` audio, `verse-backgrounds/{1,2}.png`, `hymn-covers/*.png`, and `church-photos/` (`riverbank-ca-{1,2}.jpg` + user uploads under `church-photos/uploads/<uuid>.<ext>`).
-- **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `a6f62e3a.ebp-himnario.pages.dev` (November 23, from commit `2aaa2fe`: privacy and terms updated for comment likes and shared playlists). Note: `scripts/deploy-cloudflare.ps1` loads `.env.cloudflare` (which can fail with `7403`); stage `docs/` excluding `docs/audio/`, write `js/storage-config.js`, and deploy directly with Wrangler OAuth (`--commit-dirty=true`). Cloudflare caches at the edge, so a removed file can still be served for a while — purge in the dashboard if it matters.
+- **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `466a89e2.ebp-himnario.pages.dev` (November 23, from commit `1751815`: privacy updated for in-app and optional push notifications). Stage `docs/` excluding `docs/audio/`, write `js/storage-config.js`, and deploy directly with Wrangler OAuth (`--commit-dirty=true`).
 
 ---
 
