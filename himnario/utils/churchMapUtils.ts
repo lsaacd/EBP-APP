@@ -39,6 +39,15 @@ function isValidCoordPair(lat: number, lng: number): boolean {
  * Parses direct coordinate strings ("37.3812, -121.8975") or Google Maps / Apple Maps URLs
  * into validated { lat, lng } coordinates.
  */
+/**
+ * The public link for a church, used by the QR code on its card. The app's
+ * scanner recognises this shape, and on a phone without the app installed it
+ * opens the church on the website.
+ */
+export function churchShareUrl(id: string): string {
+  return `https://himnarioebp.com/churches?id=${encodeURIComponent(id)}`;
+}
+
 export function parseCoordsOrMapsInput(raw: string): LatLngPoint | null {
   if (typeof raw !== "string") return null;
   let text = raw.trim();

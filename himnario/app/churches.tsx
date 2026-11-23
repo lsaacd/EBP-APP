@@ -50,6 +50,7 @@ import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
+import ChurchQrSheet from "../components/ChurchQrSheet";
 import { parseServiceTimes } from "../utils/churchSchedule";
 import { churchDisplayName, servantDisplayName } from "../utils/churchName";
 import {
@@ -177,6 +178,7 @@ export default function ChurchesScreen() {
   // cancelling the scanner then returns to where the user came from.
   const scannerOnlyVisitRef = useRef(false);
   const [lookingAroundId, setLookingAroundId] = useState<string | null>(null);
+  const [qrShareChurch, setQrShareChurch] = useState<VerifiedChurch | null>(null);
   const qrScanLockedRef = useRef(false);
   const handledDeepLinkRef = useRef<string | null>(null);
   const [userCoords, setUserCoords] = useState<{
@@ -2221,7 +2223,7 @@ export default function ChurchesScreen() {
                       style={({ pressed }) => [
                         styles.actionBtnSecondary,
                         {
-                          flex: 1,
+                          flex: 1.35,
                           backgroundColor: isMyLinkedChurch
                             ? isDarkMode
                               ? "rgba(52,199,89,0.18)"
@@ -2268,6 +2270,41 @@ export default function ChurchesScreen() {
                     </Pressable>
                   );
                 })()}
+
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setQrShareChurch(selectedChurch);
+                  }}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.actionBtnSecondary,
+                    {
+                      flex: 0.85,
+                      backgroundColor: isDarkMode
+                        ? "rgba(255,255,255,0.09)"
+                        : theme.surfaceVariants.containerHighest,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="qrcode"
+                    android="qr-code-2"
+                    color={theme.onSurface}
+                    size={16}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: theme.onSurface,
+                      ...fonts.sansSemiBold,
+                      fontSize: 13.5,
+                    }}
+                  >
+                    {t.churchQrCodeAction}
+                  </Text>
+                </Pressable>
                     </View>
 
               {isAdmin && (
@@ -3477,6 +3514,8 @@ export default function ChurchesScreen() {
           })()}
         </View>
       </Modal>
+
+      <ChurchQrSheet church={qrShareChurch} onClose={() => setQrShareChurch(null)} />
 
       {/* ── In-App Camera QR Code Scanner Modal ───────────────────────────── */}
       {Platform.OS !== "web" && (
