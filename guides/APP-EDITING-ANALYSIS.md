@@ -1,5 +1,28 @@
 # App editing
 
+## November 23, 2026 (late night) — Bigger SheetGrabber, Church Form ActionToast & “Coritos” → “Estribillos” (OTA `8d7718d5`)
+
+### What changed (commit `07de4a3`, Pages `3cc47454`, iOS OTA `8d7718d5-7db4-43c2-88db-b7fc0639bc6d`)
+1. **Bigger, High-Contrast Floating Sheet Pill (`himnario/components/SheetGrabber.tsx`):**
+   - Resized the shared pill across all bottom sheets from `46×5` (`rgba(255,255,255,0.78)`, clearance `16`) to **`64×7`, `borderRadius: 999`, `rgba(255,255,255,0.92)`** with subtle hairline edge + crisper drop shadow and `SHEET_GRABBER_CLEARANCE = 22`.
+2. **Auto-Dismissing Toast & Status Polish in Church Form (`himnario/components/ActionToast.tsx`, `himnario/app/churches.tsx`, `himnario/context/LanguageContext.tsx`):**
+   - Added reusable `ActionToast` (Reanimated `FadeInUp`/`FadeOutUp`, Liquid Glass pill, green icon badge, auto-dismisses after 2.6 s without blocking touches).
+   - Fires on confirming a new pin on the map (`"Ubicación actualizada"` / `"Location updated"` with coordinate subtitle), pasting valid new coordinates/Maps links, adding photos via Camera, Gallery, or Cloud URL (`"Foto agregada"` / `"{count} fotos agregadas"`), and switching cover photo (`"Portada actualizada"`).
+   - Added a persistent green `"Actualizada"` / `"Updated"` badge + soft green border tint on the Location card once changed, plus a green-tinted photo counter pill (`N/10`) and `"Subiendo…"` / `"Uploading…"` upload indicator in the Photos card.
+3. **Renamed “Coritos” → “Estribillos” Everywhere (`LanguageContext.tsx`, `hymns.tsx`, `alabanzasPaginas.js`, `docs/`):**
+   - Replaced all visible Spanish `"Coritos"` labels (Índice segmented tab, Índice title, search section headers, Home card subtitle, share copy, and `E73` tag `'Corito Clásico'` → `'Estribillo Clásico'`) across both mobile app and website (`docs/js/library.js`, `docs/index.html`, `docs/app/index.html`).
+   - Regenerated `docs/data/hymns-data.js` and all 761 static hymn pages (`scripts/extract-hymns.js`, `scripts/generate-hymn-pages.js`).
+
+### Published live IDs
+- **Pages (`ebp-himnario`):** Deploy `3cc47454` (`https://3cc47454.ebp-himnario.pages.dev`).
+- **iOS OTA (`production`, runtime `2.0.0-notif-4`):** Group `8d7718d5-7db4-43c2-88db-b7fc0639bc6d`, iOS update `01a2078d-b263-7a2a-adf3-904d5004df73`.
+
+### Verification & not verified
+- Verified: `tsc --noEmit` clean, all 11 Node suites pass, `test-web-search.js` (761 hymns/choruses), `audit-secrets.py` (0 findings across 3,338 files), `git grep` confirmed zero remaining user-facing `"corito"` strings in `himnario/` or `docs/`.
+- Not verified on physical hardware: check the larger `SheetGrabber`, Church pin/photo `ActionToast` timing, and updated `"Estribillos"` labels on TestFlight Build #33 after pulling OTA `8d7718d5`.
+
+---
+
 ## November 23, 2026 (night) — iOS Build #33 Finished + Animated Forms, Cleaner Auth/Church UI & 8-Char Passwords (OTA `6382c472`)
 
 ### Build #33 resolution

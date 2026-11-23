@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 23, 2026 (after iOS Build #33 `1f834da7` on `2.0.0-notif-4`, animated Auth & Church forms, 8-char password minimum, Worker `c21e262a`, Pages `1b9a25e1`, and iOS OTA `6382c472`).
+> **Last updated:** November 23, 2026 (after iOS Build #33 `1f834da7` on `2.0.0-notif-4`, Worker `c21e262a`, Pages `3cc47454`, and iOS OTA `8d7718d5` with larger SheetGrabber, Church form ActionToast, and `"coritos"` → `"estribillos"`).
 
 ## Before you start
 
