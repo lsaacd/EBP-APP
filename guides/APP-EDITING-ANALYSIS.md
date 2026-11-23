@@ -1,5 +1,37 @@
 # App editing
 
+## November 23, 2026 (night) — iOS Build #33 Finished + Animated Forms, Cleaner Auth/Church UI & 8-Char Passwords (OTA `6382c472`)
+
+### Build #33 resolution
+- iOS Build #32 (`448311eb-f325-4d93-a68c-1fce3c481f19`) errored at `Run fastlane` (0 EAS build credits used) because `--non-interactive` reused the pre-push provisioning profile `ZM5HK4A7JT` without `aps-environment`.
+- Confirmed APNs Push Key via `eas credentials -p ios` and ran interactive `eas build --platform ios --profile production --auto-submit`, producing **iOS Production Build #33 (`1f834da7-0481-4481-b29a-8464a531f880`, runtime `2.0.0-notif-4`, status `finished`)** auto-submitted to App Store Connect / TestFlight.
+
+### What changed (commit `614cb15` and iOS OTA `6382c472-bd5f-414b-a049-70da51aeadd6`)
+1. **Reusable Animated Input (`himnario/components/AnimatedField.tsx`) + Password Strength Helper (`himnario/utils/passwordStrength.ts`):**
+   - Floating label springs smoothly from centered placeholder to top-left label on focus/value, animating a burgundy focus ring (`theme.primary`), soft shadow, and `Haptics.selectionAsync()`.
+   - Supports `grouped` mode (borderless row inside an iOS Contacts-style inset card with animated 3px left focus accent bar and hairline dividers) and `rightElement` forwarding.
+2. **AuthSheet UI Overhaul (`himnario/components/AuthSheet.tsx`, `himnario/context/LanguageContext.tsx`):**
+   - Cut word clutter: replaced 3 stacked paragraphs (removing the 4-line sync-replacement banner) with 1 concise subtitle and compact `"Opcional · Funciona sin conexión"` / `"Optional · Works offline"` footer.
+   - Added Reanimated sliding pill on the Sign In / Create Account tabs, `AnimatedField` inputs with `Next` → `Done` keyboard chaining, gentle error shake on validation/auth failures, and a 3-segment visual password strength bar (*Débil / Buena / Fuerte* / *Weak / Good / Strong*) during registration.
+3. **Church Add/Edit Form Redesign (`himnario/app/churches.tsx`):**
+   - Removed the 3-line intro paragraph (eliminating the internal `"(R2)"` wording).
+   - Slimmed the Location block into a compact single-row card (`✓ address` + crisp `"Cambiar"` / `"Mapa"` pill) with admin-only raw coordinates/Maps URL input tucked behind a collapsible toggle.
+   - Replaced 5 stacked text boxes with a single 3-row iOS Contacts-style grouped address card (`Dirección`, `Ciudad | Estado / Prov.`, `País | Código postal`) using `AnimatedField` (`grouped` mode) and keyboard `Next` chaining, and upgraded optional fields to `AnimatedField`.
+4. **Minimum Password Length Lowered `12` → `8` Characters Across Stack:**
+   - Updated Worker (`workers/ebp-auth-sync/index.js`, `email-auth.js`), mobile app (`AuthContext.tsx`, `AuthSheet.tsx`, `LanguageContext.tsx`), web reset page (`docs/account.html`, `docs/js/account.js`), and tests (`test-mobile-auth.cjs`, `test-auth-security.cjs`, `test-church-sheet.cjs`). Max length remains `128`; existing accounts unaffected.
+
+### Published live IDs
+- **Worker (`ebp-himnario-sync`):** Version `c21e262a-d339-4407-a061-70dec6c94b51` (`/health` = `200`).
+- **Pages (`ebp-himnario`):** Deploy `1b9a25e1` (`https://1b9a25e1.ebp-himnario.pages.dev`).
+- **iOS Build #33 (`production`, runtime `2.0.0-notif-4`):** EAS Build `1f834da7-0481-4481-b29a-8464a531f880`.
+- **iOS OTA (`production`, runtime `2.0.0-notif-4`):** Group `6382c472-bd5f-414b-a049-70da51aeadd6`, iOS update `01a20775-be7c-746f-8f05-b017a25299b1`.
+
+### Verification & not verified
+- Verified: `tsc --noEmit` clean, all 11 Node test suites pass (including new 8-char Worker registration test and `getPasswordStrength` test), `test-web-search.js` (761 hymns/choruses), `audit-secrets.py` (0 findings across 3,337 files), live Worker `/health` = 200.
+- Not verified on physical hardware: inspect the new `AnimatedField` animations, sliding Auth tabs, password strength bar, and grouped Church address card in light & dark mode on TestFlight Build #33 after pulling OTA `6382c472`.
+
+---
+
 ## November 23, 2026 (late evening) — 127 Daily Verses & Notifications Phase 1 + 2 (iOS Build #32, `2.0.0-notif-4`)
 
 ### What changed (commits `a948821` and `1751815`)

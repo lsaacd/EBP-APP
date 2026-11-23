@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 23, 2026 (after 127 daily verses, Notifications Phase 1 & 2, D1 `0013`/`0014`, Worker `79656977`, Pages `466a89e2`, and iOS Build #32 `448311eb`)
+> **Last Updated:** November 23, 2026 (after iOS Build #33 `1f834da7`, animated form UI + 8-char password minimum, Worker `c21e262a`, Pages `1b9a25e1`, and iOS OTA `6382c472` on `2.0.0-notif-4`)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-notif-4"` (iOS Build #32 queued/building; Builds #30 and #31 remain on `2.0.0-media-3`)
+> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-notif-4"` (iOS Build #33 finished & auto-submitted; latest OTA `6382c472`; Builds #30 and #31 remain on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
@@ -23,15 +23,16 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 
 ## 2. Live Production State (November 23, 2026)
 
-- **iOS Native Production Build #32 (`2.0.0`, runtime `2.0.0-notif-4`):**
-  - EAS Build: `448311eb-f325-4d93-a68c-1fce3c481f19` (auto-submitted via `d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`). Adds `expo-notifications`, `expo-device`, Notifications Phase 1 (in-app inbox) & Phase 2 (Expo Push lock-screen alerts), and 127 consecutive daily verses.
+- **iOS Native Production Build #33 (`2.0.0`, runtime `2.0.0-notif-4`):**
+  - EAS Build: `1f834da7-0481-4481-b29a-8464a531f880` (finished & auto-submitted to TestFlight / App Store Connect with Push Notifications + APNs Push Key synced; Build #32 `448311eb` errored at fastlane with 0 credits charged). Adds `expo-notifications`, `expo-device`, Notifications Phase 1 (in-app inbox) & Phase 2 (Expo Push lock-screen alerts), and 127 consecutive daily verses.
+  - Latest iOS OTA on `2.0.0-notif-4`: Group `6382c472-bd5f-414b-a049-70da51aeadd6` (iOS update `01a20775-be7c-746f-8f05-b017a25299b1`, commit `614cb15`) — reusable `AnimatedField`, upgraded `AuthSheet` & Church add/edit forms, and 8-character password minimum.
   - Builds #30 (`b6501dac`) and #31 (`2105a538`) remain on `2.0.0-media-3` (latest OTA `369019dc-4640-4979-a539-7295465e3e38`).
   - Apple warning **ITMS-90725** (built with iOS 26 SDK; Xcode 27 required from April 2027) still applies until the SDK 58 upgrade.
 - **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`), plus Firebase FCM v1 credentials for Android lock-screen pushes.
-- **Cloudflare Worker (`ebp-himnario-sync`):** Version `79656977-059a-4765-b3b3-33a2ecc87136` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; adds Notifications Phase 1 routes, per-category toggles on `PUT /auth/profile`, and Phase 2 Expo Push Service delivery + token cleanup). **Always deploy migrations before Workers.**
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `c21e262a-d339-4407-a061-70dec6c94b51` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; lowers minimum password length from 12 to 8 on register and recovery, building on `79656977` Notifications Phase 1 & 2 + Expo Push delivery). **Always deploy migrations before Workers.**
 - **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0014` applied live (November 23: `0009`–`0012` plus `0013_notifications.sql` and `0014_push_tokens.sql`). One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title).
 - **Cloudflare R2 (`ebp-himnario-audio` → `https://audio.himnarioebp.com/`):** Hosts hymn `.m4a` audio, `verse-backgrounds/{1,2}.png`, `hymn-covers/*.png`, and `church-photos/` (`riverbank-ca-{1,2}.jpg` + user uploads under `church-photos/uploads/<uuid>.<ext>`).
-- **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `466a89e2.ebp-himnario.pages.dev` (November 23, from commit `1751815`: privacy updated for in-app and optional push notifications). Stage `docs/` excluding `docs/audio/`, write `js/storage-config.js`, and deploy directly with Wrangler OAuth (`--commit-dirty=true`).
+- **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `1b9a25e1.ebp-himnario.pages.dev` (November 23, from commit `614cb15`: `account.html` & `js/account.js` updated to 8-char password minimum, building on `466a89e2` privacy notifications update). Stage `docs/` excluding `docs/audio/`, write `js/storage-config.js`, and deploy directly with Wrangler OAuth (`--commit-dirty=true`).
 
 ---
 

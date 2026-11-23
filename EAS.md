@@ -1,19 +1,21 @@
 # Native builds and updates
 
-## November 23, 2026 — Full Native Rebuild: iOS Production Build #32 (`runtimeVersion: "2.0.0-notif-4"`)
+## November 23, 2026 — Full Native Rebuild: iOS Production Build #33 & OTA (`runtimeVersion: "2.0.0-notif-4"`)
 
-Ships **127 daily bilingual verses** with consecutive daily rotation (`getLocalDayNumber()`), **Notifications Phase 1** (in-app notification center + 5 community triggers + per-category switches), and **Notifications Phase 2** (native `expo-notifications` + `expo-device` + Expo Push Service delivery).
+Ships **127 daily bilingual verses** with consecutive daily rotation (`getLocalDayNumber()`), **Notifications Phase 1** (in-app notification center + 5 community triggers + per-category switches), **Notifications Phase 2** (native `expo-notifications` + `expo-device` + Expo Push Service delivery), **animated floating-label forms** (`AnimatedField`), **redesigned Auth & Church forms**, and the **8-character minimum password length** across mobile, Worker, and web.
 
 - **Source version and runtime:** `version: "2.0.0"`, `"runtimeVersion": "2.0.0-notif-4"` (bumped from `2.0.0-media-3` due to adding `expo-notifications` and `expo-device`).
-- **iOS `production`, Build #32 (`2.0.0 (32)`) — queued/building with auto-submit:**
-  - **EAS Build:** [`448311eb-f325-4d93-a68c-1fce3c481f19`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/448311eb-f325-4d93-a68c-1fce3c481f19)
-  - **Auto-submission:** [`d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/d3ef3366-a4b9-4201-bf5f-ec3b6e5c7984) (do **not** run a manual `eas submit`).
-  - **Note on iOS APNs Push Key:** Verify in `eas credentials -p ios` that `com.elbuenpastor` has the Push Notifications capability + an APNs Push Key uploaded to EAS so Expo Push Service can deliver lock-screen notifications to iOS.
+- **iOS `production`, Build #33 (`2.0.0 (33)`) — finished and auto-submitted to App Store Connect / TestFlight:**
+  - **EAS Build:** [`1f834da7-0481-4481-b29a-8464a531f880`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/1f834da7-0481-4481-b29a-8464a531f880) (auto-submitted — do **not** run a manual `eas submit`).
+  - **IPA Artifact:** `https://expo.dev/artifacts/eas/oMEV0Y57YjGyBg85txN2eS5zXA1qaTp8dQobfQwd4EA.ipa`
+  - **Note on Build #32 (`448311eb-f325-4d93-a68c-1fce3c481f19`):** Errored at `Run fastlane` (0 Expo Build credits charged) because `--non-interactive` reused the pre-push provisioning profile `ZM5HK4A7JT` without `aps-environment`. Verified APNs Push Key in `eas credentials -p ios` and ran interactive `eas build` to sync Push Notifications capability for Build #33.
+- **iOS OTAs on branch `production`, runtime `2.0.0-notif-4` (newest first):**
+  - [`6382c472-bd5f-414b-a049-70da51aeadd6`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/6382c472-bd5f-414b-a049-70da51aeadd6) — **current** (November 23, from commit `614cb15`, iOS update `01a20775-be7c-746f-8f05-b017a25299b1`). Reusable Reanimated `AnimatedField` (floating labels, focus ring, haptics, inset-grouped variant), upgraded `AuthSheet` (sliding pill tabs, concise copy, error shake, 3-bar password strength meter), redesigned Church add/edit form (removed R2 intro text, compact location card with collapsible admin coordinates, 3-row iOS Contacts-style grouped address card), and 8-character password minimum.
 - **Backend & Web Paired Deployments (Live):**
   - **Cloudflare D1 (`ebp-himnario-db`):** Migrations `0013_notifications.sql` and `0014_push_tokens.sql` applied remotely.
-  - **Cloudflare Worker (`ebp-himnario-sync`):** Version `79656977-059a-4765-b3b3-33a2ecc87136`.
-  - **Cloudflare Pages (`ebp-himnario`):** Deploy `466a89e2` (`https://466a89e2.ebp-himnario.pages.dev`, updated `privacy.html` for in-app and optional push notifications).
-- **Commits:** `a948821` (127 daily verses + plan) and `1751815` (Notifications Phase 1 & 2, `2.0.0-notif-4`).
+  - **Cloudflare Worker (`ebp-himnario-sync`):** Version `c21e262a-d339-4407-a061-70dec6c94b51` (8-char minimum password on register & recovery; builds on `79656977` notifications + Expo Push).
+  - **Cloudflare Pages (`ebp-himnario`):** Deploy `1b9a25e1` (`https://1b9a25e1.ebp-himnario.pages.dev`, updated `account.html` & `js/account.js` to 8-char password minimum; builds on `466a89e2` privacy notifications update).
+- **Commits:** `a948821` (127 daily verses), `1751815` (Notifications Phase 1 & 2, `2.0.0-notif-4`), `614cb15` (animated forms, cleaner Auth & Church UI, 8-char password minimum).
 
 ---
 
@@ -113,7 +115,7 @@ Run native commands from `himnario/`. Configuration lives in `app.json` and `eas
 - iOS bundle: `com.elbuenpastor`; App Store Connect ID: `6794435414`.
 - Provisioning Profile: `ZM5HK4A7JT` (has `Associated Domains` enabled for `applinks:himnarioebp.com`).
 - Android package: `com.elbuenpastor.himnario`.
-- Current runtime: explicit `"2.0.0-media-3"` in `himnario/app.json`; source version `2.0.0` (iOS Build 30). Older iOS Build 29 uses `2.0.0-maps-2`; the older Android preview binary still uses `2.0.0-securestore-1`.
+- Current runtime: explicit `"2.0.0-notif-4"` in `himnario/app.json`; source version `2.0.0` (iOS Build 33). Builds 30–31 use `2.0.0-media-3`; older iOS Build 29 uses `2.0.0-maps-2`; the older Android preview binary still uses `2.0.0-securestore-1`.
 - Profiles include `development`, `ios-simulator`, `preview`, `preview-arm64`, `production`. `preview-arm64` builds an Android APK; `production` produces the store build.
 - Production submission config supplies the iOS App Store Connect ID (`6794435414`). Android automated submission is not configured there.
 
