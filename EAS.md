@@ -1,5 +1,12 @@
 # Native builds and updates
 
+## November 23, 2026 — Church member directories
+
+- **iOS production OTA for Build #34** on runtime `2.0.0-release-5` and version `2.0.0`. [Expo update group e27859f1-fcb2-4317-af1e-a8a1f43e064b](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/e27859f1-fcb2-4317-af1e-a8a1f43e064b). Update ID `01a20800-f4fa-73e0-86e1-05e3802f1e4d`.
+- **Cloudflare Worker** `ebp-himnario-sync` version `8376daf2-d1cd-4991-823e-60ea2e3d6718` deployed before the OTA. Existing D1 schema supports the change.
+- **Source commit** `4ffa8f4` pushed to both `main` and `app-web-parity`. Android's existing preview APK uses the older `2.0.0-securestore-1` runtime.
+- TypeScript, 192 regression tests, web search checks, and the iOS export passed. Lint reported zero errors and 49 warnings. The live directory endpoints returned 401 for signed-out requests. Signed-in verification on a physical phone is pending.
+
 ## November 23, 2026 — App Store Release Candidate: iOS Production Build #34 (`runtimeVersion: "2.0.0-release-5"`)
 
 Final App Store release build adding native **Apple MapKit driving distance & traffic-aware travel time** (`MKDirections.calculateETA()` in `AppleLookAroundModule.swift`), the standardized **`40×12` `SheetGrabber` pill**, pinned **`expo-file-system`** + SDK 54 dependency patches, and all **pre-App-Store compliance and stability fixes**.

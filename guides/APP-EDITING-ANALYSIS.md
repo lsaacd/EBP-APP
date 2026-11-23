@@ -1,5 +1,12 @@
 # App editing
 
+## November 23, 2026 — Hermanos church directories and legacy links
+
+- The Worker repairs a missing church ID when the saved name matches exactly one approved, verified church. Unrelated profile saves preserve the ID. Ambiguous names go through the map selection flow.
+- **Hermanos** now shows the linked church's directory and an empty state with a map action. The linked church card also opens the directory. Both views support paging and friendship status. An explicit directory opt-out hides the member even if already a friend.
+- The shared sheet grabber measures `47×12`. The app uses iOS runtime `2.0.0-release-5`.
+- Source commit `4ffa8f4`, Worker `8376daf2-d1cd-4991-823e-60ea2e3d6718`, and iOS production OTA `e27859f1-fcb2-4317-af1e-a8a1f43e064b`. See [EAS.md](../EAS.md) for release verification. On TestFlight Build #34, check a legacy Riverbank link, an opted-in friend, and an account that opted out. This signed-in device check is pending.
+
 ## November 23, 2026 (late night 4) — Admin Choir Removal UI (OTA `54f32fc2` on `2.0.0-release-5`)
 
 ### What changed (commit `5a58f5b`, iOS OTA `54f32fc2-2b66-4974-b86b-51732df0cd3c`)
