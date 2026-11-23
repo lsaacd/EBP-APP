@@ -9,7 +9,7 @@ Current release record. The Build #30 entry below describes the morning of the s
   - **EAS Build:** [`2105a538-0d18-4d29-83f6-a922c35ac656`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/2105a538-0d18-4d29-83f6-a922c35ac656)
   - **Auto-submission:** [`e1843910-ba89-4066-9549-1a6bb45b077b`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/e1843910-ba89-4066-9549-1a6bb45b077b) (do **not** run a manual `eas submit`).
   - **Native change:** `himnario/modules/apple-look-around/ios/AppleLookAroundModule.swift` now presents `MKLookAroundViewController` directly and requests the scene by map item. No new native modules; JavaScript interface unchanged.
-  - **Apple warning ITMS-90725:** built with the iOS 26.0 SDK (EAS image `macos-sequoia-15.6-xcode-26.0`, the `sdk-54` default). From April 2027 uploads need Xcode 27. This requires the Expo SDK upgrade in [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md); do **not** set an Xcode 27 `image` on SDK 54.
+  - **Apple warning ITMS-90725:** built with the iOS 26.0 SDK (EAS image `macos-sequoia-15.6-xcode-26.0`, the `sdk-54` default). From April 2027 uploads need Xcode 27. This requires the Expo SDK upgrade in [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md); do **not** set an Xcode 27 `image` on SDK 54.
 - **iOS OTAs on branch `production`, runtime `2.0.0-media-3` (newest first):**
   - [`d351bb27-fd01-46bb-b304-393d7258d8a6`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/d351bb27-fd01-46bb-b304-393d7258d8a6) — current. Church form keyboard dismissal, QR scan from Account returns on cancel, top Liquid Glass controls, `SDD` title, native system fonts, location-first church form with schedule picker.
   - `78f9b043-d4a3-4337-b59f-6a299003ac05` — Liquid Glass sheet, "Cerca de mí" pill, unlink church, city-only church names, "Mirar alrededor".
@@ -50,7 +50,7 @@ User requested a full EAS native rebuild to ship native **Apple Maps Look Around
 
 ## Local verse chat fixes — November 20, 2026 (Superseded by Build 30)
 
-Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](docs/guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
+Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
 
 
 ## November 20, 2026 — Published iOS OTA after Antigravity handoff
@@ -70,7 +70,7 @@ Earlier release/development entries below remain historical evidence and may des
 
 ## Local community implementation — November 17, 2026
 
-Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](docs/guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
+Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
 
 
 ## November 15, 2026 — Full Security, Email Auth & UI Polish Live Status (`2.0.0`, `runtimeVersion: "2.0.0-securestore-1"`)
@@ -81,7 +81,7 @@ All security, Email Auth, Cloudflare Pages, and `expo-secure-store` native rebui
 - **Native Rebuilds (`runtimeVersion: "2.0.0-securestore-1"`)**:
   - **Android (`preview-arm64` APK)**: `45c31c43-e36e-4952-a15a-238ac2c1521c`
   - **iOS (`production`, Build `22`)**: `a72551f5-58d3-403c-b8d6-589f048c0ad6` (App Store Connect auto-submit `c1d9bbc6-4df7-4301-bb98-965a42c4d974`). *Note: Build `22` delivered to App Store Connect with early warning `ITMS-91182` for `assets/fonts/ios/SFProText-Semibold.otf`; `assets/fonts/ios/` has since been deleted so Build `23+` will be completely clean.*
-- **Latest OTA Update (`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`, `production` & `preview`, runtime `2.0.0-securestore-1`)**: Fixed `AuthSheet` Settings Font Size `12 px` lock bug (full Slider + live preview + 1 px steppers), restored native iOS `UISwitch` colors (`#34C759`), restored classic cream/burgundy profile avatar (removing the Apple blue gradient), separated/tightened `HomeHeaderActions` glass bubbles (`gap: 12`, `spacing: 6`, `±7 pt`), and unified `app/_layout.tsx` on `@expo-google-fonts/newsreader` + `@expo-google-fonts/public-sans`. See [SECURITY-REMEDIATION-PLAN.md](docs/guides/SECURITY-REMEDIATION-PLAN.md) and [APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md).
+- **Latest OTA Update (`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`, `production` & `preview`, runtime `2.0.0-securestore-1`)**: Fixed `AuthSheet` Settings Font Size `12 px` lock bug (full Slider + live preview + 1 px steppers), restored native iOS `UISwitch` colors (`#34C759`), restored classic cream/burgundy profile avatar (removing the Apple blue gradient), separated/tightened `HomeHeaderActions` glass bubbles (`gap: 12`, `spacing: 6`, `±7 pt`), and unified `app/_layout.tsx` on `@expo-google-fonts/newsreader` + `@expo-google-fonts/public-sans`. See [SECURITY-REMEDIATION-PLAN.md](guides/SECURITY-REMEDIATION-PLAN.md) and [APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md).
 
 Run native commands from `himnario/`. Configuration lives in `app.json` and `eas.json`; credentials belong outside source control.
 ## Configuration
@@ -267,7 +267,7 @@ Published after Isaac authorized OTA testing for the latest visual fixes (explic
 - **Android `preview` update group**: `afa55c01-fafa-4e65-8d75-08bcfe2dd478`; update `01a1b2e0-833d-712d-a64a-80f12fdc8660`.
 - **iOS `production` update group**: `e7e7584d-f5c5-4626-aa57-ee480ffe49e5`; update `01a1b2e1-2d3b-73ef-94a2-101b518e1302`.
 - Both fresh platform exports and EAS publications succeeded. Android uploaded 1 asset, iOS 25, each reusing 102 existing assets. No audio catalog re-upload, native rebuild, store submission, Git commit or website deployment.
-- iOS `production` also targets compatible App Store installations. Runtime matching (`1.1.0`) is not proof of native module equivalence across older `1.1.0` binaries (though `HomeHeaderActions.tsx` guards `MenuView` with `UIManager.hasViewManagerConfig('MenuView')` and `GlassSurface.tsx` guards `ExpoGlassEffect` so pre-Build-17 binaries safely fall back). Actual phone launch, menu symbols, tab sizing and mini-player glass/gradient still require device verification. See `docs/guides/APP-EDITING-ANALYSIS.md` for changed files and device checklist.
+- iOS `production` also targets compatible App Store installations. Runtime matching (`1.1.0`) is not proof of native module equivalence across older `1.1.0` binaries (though `HomeHeaderActions.tsx` guards `MenuView` with `UIManager.hasViewManagerConfig('MenuView')` and `GlassSurface.tsx` guards `ExpoGlassEffect` so pre-Build-17 binaries safely fall back). Actual phone launch, menu symbols, tab sizing and mini-player glass/gradient still require device verification. See `guides/APP-EDITING-ANALYSIS.md` for changed files and device checklist.
 
 ### November 5, 2026 (Night) — Native Menu (`@react-native-menu/menu`), Full-Res Cover, Stable Seek & Index Scrubbing Rebuild
 
@@ -343,7 +343,7 @@ Isaac explicitly requested new binaries, not only OTA updates. Both archives inc
 7. **Lyric Fixes (`himnario/data/alabanzasPaginas.js`, `docs/data/hymns-data.js`, `docs/hymn/`)**:
    - Fixed lowercase singular `"dios"` references in Hymns 6, 204, 222, 248, 249, and the Chorus of Hymn 409.
 
-See [Google Play status](docs/guides/GOOGLE-PLAY-RELEASE-PLAN.md) and the [project overview](README.md).
+See [Google Play status](guides/GOOGLE-PLAY-RELEASE-PLAN.md) and the [project overview](README.md).
 
 
 ## Security & Email-Auth Rebuild (`runtimeVersion: "2.0.0-securestore-1"`, November 15, 2026)

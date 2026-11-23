@@ -16,7 +16,7 @@
 | `scripts/` | 11 Node regression test suites (`test-*.cjs` + `test-web-search.js`), hymn page generators (`extract-hymns.js`, `generate-hymn-pages.js`), and Cloudflare Pages deploy script |
 | `.github/workflows/ci.yml` | Runs the type check and all test suites on pushes to `main` / `app-web-parity` and on pull requests |
 
-For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md), [EAS.md](EAS.md), and [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md).
+For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md), [EAS.md](EAS.md), and [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md).
 
 ---
 
@@ -45,7 +45,7 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 6. **Never Run Manual `eas submit` After `--auto-submit`:** Causes Apple `ITMS-90189: Redundant Binary Upload`.
 7. **Keep Hymn IDs as Strings & Keep Estribillos (`E`-prefixed) Separate:** Always regenerate `docs/` with `scripts/extract-hymns.js` and `scripts/generate-hymn-pages.js` after editing `himnario/data/alabanzasPaginas.js`.
 8. **Publish OTAs Only From an Up-to-Date Checkout:** `eas update --branch production` replaces the JavaScript on every installed app with the contents of the current folder. Run `git pull --ff-only` and confirm `git log -1` matches `origin` first, or the live app is silently reverted. Record every publish in [EAS.md](EAS.md).
-9. **Do Not Point SDK 54 at an Xcode 27 Build Image:** Leave `image` unset in `himnario/eas.json`. Apps built with Xcode 27 only launch on iOS 27 with UIKit scene support, which SDK 54 lacks. The fix is the SDK upgrade in [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md), on its own branch with a new `runtimeVersion`.
+9. **Do Not Point SDK 54 at an Xcode 27 Build Image:** Leave `image` unset in `himnario/eas.json`. Apps built with Xcode 27 only launch on iOS 27 with UIKit scene support, which SDK 54 lacks. The fix is the SDK upgrade in [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md), on its own branch with a new `runtimeVersion`.
 10. **Fonts Are Native System Fonts:** Use the tokens in `himnario/theme/fonts.ts` by spreading them (`{ ...fonts.bold, fontSize: 20 }`). Never write a raw `fontFamily` name and never bundle Apple font files (`ITMS-91182`).
 11. **Strings Live in the String Table:** User-facing text goes in `himnario/context/LanguageContext.tsx` in both `es` and `en`, read as `t.key`. Avoid new inline `es ? '…' : '…'` pairs.
 12. **Church Wording:** Show church names with `churchDisplayName()` ("Riverbank", not "IDDV El Buen Pastor — Riverbank") and leaders with `servantDisplayName()` ("SDD Hno Azael Tapia"; no Pastor / Co-Pastor). Say "Esta es mi iglesia", not "Vincular".
@@ -101,7 +101,7 @@ eas build --platform android --profile preview-arm64 --non-interactive
 
 ## 5. Open / Next Tasks
 
-1. **Expo SDK 54 → 58 for Xcode 27 (deferred by the owner; deadline April 2027):** Full plan and limits in [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md). Own branch, new `runtimeVersion`, one SDK at a time. Not started.
+1. **Expo SDK 54 → 58 for Xcode 27 (deferred by the owner; deadline April 2027):** Full plan and limits in [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md). Own branch, new `runtimeVersion`, one SDK at a time. Not started.
 2. **Device Check of the November 22 Evening Work:** It was built without a simulator; only the owner's phone has seen it. Confirm on TestFlight: churches top glass controls and the sheet rising on search / Lista / pin tap; church card (schedule rows, "Esta es mi iglesia" and unlink); the church form (pin fills the address, "Más detalles", schedule picker, keyboard dismiss); QR scan from Account returning on cancel; Look Around opening scrollable and facing the building (Build 31 only); native fonts on every screen for truncated labels; the floating grabber on each sheet.
 3. **Android `2.0.0-media-3` Native Rebuild:** Run `eas build --platform android --profile preview-arm64` (and `production` `.aab` for Google Play). Best combined with task 1 so both platforms share a runtime.
 4. **Code Health (no user-visible change):** split `himnario/app/churches.tsx` (about 4,000 lines, one component); move the remaining interpolated `es ? … : …` strings into the string table; move hard-coded colours into `theme/theme.js`; remove unused native packages (`expo-audio`, `react-native-bottom-tabs`) at the next native rebuild; the hymn `.m4a` files are tracked in git twice (`docs/audio`, `himnario/assets/audio`, 1.26 GB of history).
@@ -112,7 +112,7 @@ eas build --platform android --profile preview-arm64 --non-interactive
 
 ## 6. What Changed on November 22, 2026 (evening)
 
-All of this is in OTA `d351bb27` and iOS Build 31. Details in [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md).
+All of this is in OTA `d351bb27` and iOS Build 31. Details in [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md).
 
 - **Cleanup:** removed about 2,000 lines of unreferenced components and template files, dropped `shaka-player` and `@gorhom/bottom-sheet`, added CI.
 - **String table:** 337 inline Spanish/English pairs moved into `LanguageContext.tsx`.

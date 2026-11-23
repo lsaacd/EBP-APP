@@ -16,7 +16,7 @@ Source: `components/VerseDiscussionSheet.tsx`, `components/VerseCard.tsx`, `app/
 
 ## November 20, 2026 — Current iOS release
 
-Finished Antigravity's verse PNG-sharing/My Church handoff and published verified **iOS production OTA `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`**, runtime **2.0.0-maps-2**, for compatible **iOS build 29**. Version remains **2.0.0**. Added SVG asset-readiness checks, image-only iOS sharing, and form accessibility; TypeScript and 101 tests passed. The Android preview APK remains on `2.0.0-securestore-1` and cannot receive this maps-runtime update. No rebuild or backend/website deployment was performed in this turn. See [release evidence](../../EAS.md) for details; older entries below are historical.
+Finished Antigravity's verse PNG-sharing/My Church handoff and published verified **iOS production OTA `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`**, runtime **2.0.0-maps-2**, for compatible **iOS build 29**. Version remains **2.0.0**. Added SVG asset-readiness checks, image-only iOS sharing, and form accessibility; TypeScript and 101 tests passed. The Android preview APK remains on `2.0.0-securestore-1` and cannot receive this maps-runtime update. No rebuild or backend/website deployment was performed in this turn. See [release evidence](../EAS.md) for details; older entries below are historical.
 
 
 ## Local community implementation — November 17, 2026
@@ -26,17 +26,17 @@ Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire,
 
 ## Current local security handoff — November 15, 2026
 
-**Updated live status:** The user retained source version **2.0.0** and authorized only the reset containment for deployment. Worker `b5bc8c5b-5fbe-435f-8f78-a1cd5d793735` now rejects POST `/auth/reset-password` (including trailing slash) with 503 `recovery_unavailable`. Other local Worker changes remain unreleased; existing cloud login/sync behavior was preserved. See [EAS evidence](../../EAS.md). Older test binaries with the same 2.0.0 runtime can lack SecureStore: a native rebuild and compatibility isolation are still required before later app releases/OTA.
+**Updated live status:** The user retained source version **2.0.0** and authorized only the reset containment for deployment. Worker `b5bc8c5b-5fbe-435f-8f78-a1cd5d793735` now rejects POST `/auth/reset-password` (including trailing slash) with 503 `recovery_unavailable`. Other local Worker changes remain unreleased; existing cloud login/sync behavior was preserved. See [EAS evidence](../EAS.md). Older test binaries with the same 2.0.0 runtime can lack SecureStore: a native rebuild and compatibility isolation are still required before later app releases/OTA.
 
 Read [SECURITY-REMEDIATION-PLAN.md](SECURITY-REMEDIATION-PLAN.md) before changing auth/sync or releasing. Source is now unreleased `2.0.0`; protected credential storage adds a native module and must not be sent OTA to older 2.0.0 test binaries that lack SecureStore. Earlier feature and release notes remain historical evidence, not a security assurance. The unsafe password-reset method is disabled locally and in the reset-only live patch; automatic sync now uses revision preconditions. Full email recovery, email verification, sensitive-action reauthentication, automatic conflict reconciliation and cloud operational checks remain outstanding.
 
-Use [ARCHITECTURE.md](../../ARCHITECTURE.md) for the source map, [EAS.md](../../EAS.md) for builds, and [README.md](../../README.md) for current status. These replace the old future-fixes and agent handoff plans.
+Use [ARCHITECTURE.md](../ARCHITECTURE.md) for the source map, [EAS.md](../EAS.md) for builds, and [README.md](../README.md) for current status. These replace the old future-fixes and agent handoff plans.
 
 ## Before changing code
 
 - Inspect Git status and current source; preserve unrelated edits. Note that active app feature work is on branch `app-web-parity` (with `main` synchronized).
 - Android playback is fixed and confirmed working by Isaac. Preserve the TrackPlayer patch, native adapter and headless service.
-- Build 7's iOS crash report is historical. Between November 2 and November 6, 2026, iOS builds 14 (`cba76d98`), 15 (`462818a5`), 16 (`de9dc116`), and **17 (`fc6d5e27`, auto-submitted via `ba7d443f`)** and Android `preview-arm64` APKs (`4ca994b5`, `dc086d80`, `4d3297e8`, and **`9f2eccb4`**) were built, followed by the **November 6 OTA updates** (`e7e7584d` on iOS `production`, `afa55c01` on Android `preview`); see [EAS.md](../../EAS.md) for evidence and links.
+- Build 7's iOS crash report is historical. Between November 2 and November 6, 2026, iOS builds 14 (`cba76d98`), 15 (`462818a5`), 16 (`de9dc116`), and **17 (`fc6d5e27`, auto-submitted via `ba7d443f`)** and Android `preview-arm64` APKs (`4ca994b5`, `dc086d80`, `4d3297e8`, and **`9f2eccb4`**) were built, followed by the **November 6 OTA updates** (`e7e7584d` on iOS `production`, `afa55c01` on Android `preview`); see [EAS.md](../EAS.md) for evidence and links.
 - Use PowerShell `-LiteralPath` for paths containing parentheses (`app/(tabs)`).
 - Keep theme tokens, bilingual strings, separate hymn/estribillo IDs, existing storage keys and playlist shapes.
 - Minimize hides the full player; stop/clear ends playback. Do not merge those behaviors.

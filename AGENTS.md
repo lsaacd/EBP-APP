@@ -26,7 +26,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 
 | Task | Where to read | Notes |
 | --- | --- | --- |
-| **Expo SDK 54 → 58 for Xcode 27** | [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md) | Deferred by the owner. Deadline April 2027. Must be done on its own branch with a new `runtimeVersion`. |
+| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Deferred by the owner. Deadline April 2027. Must be done on its own branch with a new `runtimeVersion`. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |
 | Device check of the churches redesign | CLAUDE.md section 5 | Built without a simulator; only the owner's phone has seen it. |
 | Remaining inline strings | `git grep -n "es$" himnario/app himnario/components` | A few dozen strings with interpolated values are still inline `es ? … : …` pairs. |
@@ -35,7 +35,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 ## Working alongside other agents
 
 - One agent per branch at a time. If two agents edit the same branch in different folders, the second `eas update` or push overwrites the first.
-- Leave a dated entry in [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md) when you finish: what changed, what you published, what you could not verify.
+- Leave a dated entry in [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) when you finish: what changed, what you published, what you could not verify.
 - Do not rewrite another agent's unfinished work. If the working tree has changes you did not make, stop and ask the owner.
 
 ## Quick links
@@ -44,6 +44,6 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 - **Project overview:** [README.md](README.md)
 - **Architecture and file map:** [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Builds, runtimes and OTA record:** [EAS.md](EAS.md)
-- **Current editing handoff:** [docs/guides/APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md)
-- **Older editing history:** [docs/guides/APP-EDITING-HISTORY.md](docs/guides/APP-EDITING-HISTORY.md)
-- **Cloudflare deployment:** [docs/guides/CLOUDFLARE-DEPLOYMENT.md](docs/guides/CLOUDFLARE-DEPLOYMENT.md)
+- **Current editing handoff:** [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md)
+- **Older editing history:** [guides/APP-EDITING-HISTORY.md](guides/APP-EDITING-HISTORY.md)
+- **Cloudflare deployment:** [guides/CLOUDFLARE-DEPLOYMENT.md](guides/CLOUDFLARE-DEPLOYMENT.md)

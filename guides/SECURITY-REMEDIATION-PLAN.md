@@ -1,6 +1,6 @@
 # App, website and API security remediation plan
 
-Reviewed November 15, 2026. This is a proposed implementation and verification plan, not a record of completed fixes or a finding that a breach occurred. Preserve the existing release history and unrelated Antigravity work. See [architecture](../../ARCHITECTURE.md), [app editing](APP-EDITING-ANALYSIS.md), and [deployment](CLOUDFLARE-DEPLOYMENT.md).
+Reviewed November 15, 2026. This is a proposed implementation and verification plan, not a record of completed fixes or a finding that a breach occurred. Preserve the existing release history and unrelated Antigravity work. See [architecture](../ARCHITECTURE.md), [app editing](APP-EDITING-ANALYSIS.md), and [deployment](CLOUDFLARE-DEPLOYMENT.md).
 
 ## Implementation status — first local hardening pass
 

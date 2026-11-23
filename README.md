@@ -8,7 +8,7 @@ This block is the current state; the Build 30 block below describes the morning 
 - **Churches screen redesigned:** map with Liquid Glass controls, one bottom sheet that rises on search / Lista / pin tap, per-day service times, city-only church names, `SDD` leader title, unlink, and a location-first submission form with a schedule picker.
 - **Native system fonts** on both platforms (`himnario/theme/fonts.ts`); 337 inline strings moved into the string table; about 2,000 lines of dead code removed; CI added (`.github/workflows/ci.yml`).
 - **Look Around** opens Apple's screen directly (Build 31 only).
-- **Deferred:** Expo SDK 54 → 58 for Apple's Xcode 27 requirement (April 2027). See [docs/guides/SDK-58-UPGRADE-PLAN.md](docs/guides/SDK-58-UPGRADE-PLAN.md).
+- **Deferred:** Expo SDK 54 → 58 for Apple's Xcode 27 requirement (April 2027). See [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md).
 - **Validation:** type check clean; all 11 Node test suites (151 tests) pass.
 - **Agent handoff (Claude, Codex, Antigravity):** read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md) before editing, and pull first.
 
@@ -31,7 +31,7 @@ All November 22 features, backend migrations (`0003`–`0008`), Cloudflare Worke
   7. **Audio End-of-Track Freeze Deadlock & 24 App-Wide Stability Fixes + Sync Conflict Resolution (`resolveSyncConflict`)**.
 - **Android Status:** Android still needs a fresh `preview-arm64` / `production` native rebuild on `2.0.0-media-3` to pick up `react-native-maps`, `expo-location`, `expo-camera`, `expo-image-picker`, and `expo-image-manipulator`.
 - **Validation:** `npx --prefix himnario tsc -p himnario/tsconfig.json --noEmit` (0 errors) and all 10 Node test suites (`scripts/test-*.cjs`, 143 tests) pass.
-- **Claude / Codex Handoff:** Read [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), [APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [EAS.md](EAS.md) before editing.
+- **Claude / Codex Handoff:** Read [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), [APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [EAS.md](EAS.md) before editing.
 
 ---
 
@@ -39,7 +39,7 @@ All November 22 features, backend migrations (`0003`–`0008`), Cloudflare Worke
 
 ## Local verse chat fixes — November 20, 2026 (Now Shipped in Build 30)
 
-Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](docs/guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
+Keyboard-visible first taps, emoji/self-reply submission, failed-send recovery, pending reply IDs and rapid heart toggles are fixed locally. **115 tests and TypeScript pass.** No OTA, rebuild or deployment was performed for this follow-up; the last published update remains `6d52ccb1-13d5-4cb7-a1c9-022c3701bf9a`. Source version/runtime stay **2.0.0 / 2.0.0-maps-2**. See [the app editing handoff](guides/APP-EDITING-ANALYSIS.md) for causes, safeguards and device checks.
 
 
 ## November 20, 2026 — Current iOS release
@@ -49,7 +49,7 @@ Finished Antigravity's verse PNG-sharing/My Church handoff and published verifie
 
 ## Local community implementation — November 17, 2026
 
-Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](docs/guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
+Verse-of-the-Day discussions, profiles, sole-admin moderation, choir repertoire, prepared backgrounds, player overlay/navigation fixes and bilingual legal drafts are implemented locally. **No deployment, OTA, native rebuild or store submission was made for this work.** Version remains **2.0.0**, runtime **2.0.0-securestore-1**; no native dependencies changed. See the [implementation and release handoff](guides/VERSE-COMMUNITY-HANDOFF.md) for schema migration 0003, safeguards, validation and release order. Earlier live-state notes below are historical and do not describe this unreleased work.
 
 
 Mobile app in `himnario/`; companion website in `docs/`.
@@ -57,7 +57,7 @@ Mobile app in `himnario/`; companion website in `docs/`.
 **Latest Production & Security State — November 15, 2026 (`2.0.0`, `runtimeVersion: "2.0.0-securestore-1"`):**
 - **Backend & Email Auth Live (Cloudflare):** D1 migration `0002_email_auth.sql` applied on `ebp-himnario-db`; `auth.himnarioebp.com` Email Sending active (`Enabled`, MX/SPF/DKIM/DMARC verified); hardened Worker `ebp-himnario-sync` (`6e056043-383c-44e6-9187-22ee9aad0c52`) deployed with `env.EMAIL` binding (`cuenta@auth.himnarioebp.com`), `expectedRevision` optimistic sync concurrency (`409 sync_conflict`), atomic `security.js` rate limits, and token-based recovery/verification via `https://himnarioebp.com/account.html` (Cloudflare Pages `f21d7e62`).
 - **Mobile Builds & Latest OTA:** Native binaries built with `expo-secure-store` hardware-encrypted session storage (`45c31c43` Android `preview-arm64`; `a72551f5` iOS `production` Build `22`, auto-submitted `c1d9bbc6`). Latest UI/font/bubble fixes and `ITMS-91182` Apple font removal are live via OTA update group **`f2dae896-2d5b-4ad6-96c9-b49e3249ae4a`** (`production` and `preview` on `2.0.0-securestore-1`).
-- **Next Up for Codex / Claude:** See [APP-EDITING-ANALYSIS.md](docs/guides/APP-EDITING-ANALYSIS.md), [SECURITY-REMEDIATION-PLAN.md](docs/guides/SECURITY-REMEDIATION-PLAN.md), and [EAS.md](EAS.md) for the next clean iOS binary (`Build 23+`, free of `ITMS-91182` bundled Apple fonts) and optional email verification UX enhancements.
+- **Next Up for Codex / Claude:** See [APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md), [SECURITY-REMEDIATION-PLAN.md](guides/SECURITY-REMEDIATION-PLAN.md), and [EAS.md](EAS.md) for the next clean iOS binary (`Build 23+`, free of `ITMS-91182` bundled Apple fonts) and optional email verification UX enhancements.
 
 ## Status — November 15, 2026 (Version `2.0.0`)
 
@@ -102,7 +102,7 @@ Mobile app in `himnario/`; companion website in `docs/`.
   - Features four actions in order: **1. Messages** (`Share.share` with `imessage-brand.png` on iOS), **2. WhatsApp** (`whatsapp-brand.png`), **3. Crear PDF** (opens the interactive **Preparar PDF** modal with Letter portrait / 2-up landscape, font stepper, 1–2 columns, and live SVG preview), **4. Copiar letra**.
 - **Google Play Website Integration, Default Light Mode & Cloudflare Deployment**:
   - The website (`https://himnarioebp.com/`) features a 2-step onboarding flow for Google Play closed testing (`https://groups.google.com/g/himnario-app-testers` → `https://play.google.com/apps/testing/com.elbuenpastor.himnario`) and opens strictly in **Light Mode by default** across all pages and all 761 static hymn preview pages.
-- **For Antigravity, Claude, and Codex**: Read the [app editing handoff](docs/guides/APP-EDITING-ANALYSIS.md) before changing the UI. Preserve all November 2–6 UI/UX decisions documented there.
+- **For Antigravity, Claude, and Codex**: Read the [app editing handoff](guides/APP-EDITING-ANALYSIS.md) before changing the UI. Preserve all November 2–6 UI/UX decisions documented there.
 
 ## Development
 
@@ -117,10 +117,10 @@ python -m http.server 8765 --bind 127.0.0.1 --directory docs
 ## Guides
 
 - [Architecture and data](ARCHITECTURE.md)
-- [App editing](docs/guides/APP-EDITING-ANALYSIS.md)
+- [App editing](guides/APP-EDITING-ANALYSIS.md)
 - [Native builds and updates](EAS.md)
-- [Google Play status](docs/guides/GOOGLE-PLAY-RELEASE-PLAN.md)
+- [Google Play status](guides/GOOGLE-PLAY-RELEASE-PLAN.md)
 - [Website maintenance](docs/README.md)
-- [Website deployment](docs/guides/CLOUDFLARE-DEPLOYMENT.md)
+- [Website deployment](guides/CLOUDFLARE-DEPLOYMENT.md)
 
 [Privacy](docs/privacy.html) · [Terms](docs/terms.html)
