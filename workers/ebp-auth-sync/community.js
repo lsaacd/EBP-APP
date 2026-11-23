@@ -1098,6 +1098,19 @@ export async function handleCommunity(
     }
     return json({ ok: true });
   }
+  // Public ranking for the "Más gustados" filter. Likes only: dislike counts
+  // stay private to the administrator, and hymns nobody liked are left out
+  // rather than ranked last.
+  if (path === "/hymns/top" && method === "GET") {
+    const rows = await all(
+      "SELECT hymn_id,likes_count FROM hymn_stats WHERE likes_count>0 ORDER BY likes_count DESC, updated_at DESC, hymn_id ASC LIMIT 50",
+    );
+    return json(
+      { hymns: rows.map((r) => ({ hymnId: r.hymn_id, likesCount: r.likes_count })) },
+      200,
+      { "Cache-Control": "public, max-age=120" },
+    );
+  }
   const hymnRoute = path.match(
     /^\/hymns\/([a-z0-9-]+)\/(summary|reaction)$/,
   );

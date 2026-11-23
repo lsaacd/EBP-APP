@@ -706,6 +706,31 @@ test("hymn like and dislike reactions update counts and hide dislike count from 
   assert.equal(afterSwitch.data.dislikesCount, 0);
 });
 
+test("the public hymn ranking lists liked hymns most-liked first and never exposes dislikes", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Rank A" }),
+    b = await f.account({ name: "Rank B" }),
+    c = await f.account({ name: "Rank C" });
+  const react = (hymn, reaction, who) =>
+    f.call(`/hymns/${hymn}/reaction`, "POST", { reaction }, who.token);
+  // hymn 7: three likes · 315-a: one like · 9: only a dislike · e12: liked, then withdrawn
+  for (const who of [a, b, c]) assert.equal((await react("7", 1, who)).status, 200);
+  assert.equal((await react("315-a", 1, a)).status, 200);
+  assert.equal((await react("9", -1, b)).status, 200);
+  assert.equal((await react("e12", 1, c)).status, 200);
+  assert.equal((await react("e12", 0, c)).status, 200);
+
+  const guest = await f.call("/hymns/top", "GET");
+  assert.equal(guest.status, 200);
+  assert.deepEqual(guest.data.hymns, [
+    { hymnId: "7", likesCount: 3 },
+    { hymnId: "315-a", likesCount: 1 },
+  ]);
+  assert.ok(!JSON.stringify(guest.data).includes("dislike"));
+  // The single-hymn routes keep working beside the new path.
+  assert.equal((await f.call("/hymns/7/summary", "GET")).data.likesCount, 3);
+});
+
 test("admin can edit and approve pending churches with cloud photoUrl, and coordinate/cluster utilities work", async () => {
   const f = fixture(),
     member = await f.account({ name: "Hermano Juan", verified: true }),

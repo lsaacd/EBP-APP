@@ -240,3 +240,29 @@ test('"near me" picks the closest church, including across the date line', () =>
   assert.equal(nearestIndex(merced, [churches[0]]), 0);
   assert.equal(nearestIndex({ lat: 0, lng: 179.5 }, [{ lat: 0, lng: 170 }, { lat: 0, lng: -179.5 }]), 1);
 });
+
+test('"Más gustados" keeps only liked hymns, most-liked first, ties in hymnal order', () => {
+  const { rankByLikes, parseTopHymns, hymnSlug } = load('himnario/utils/hymnRanking.ts');
+  assert.equal(hymnSlug('315 A'), '315-a');
+  assert.equal(hymnSlug('E12'), 'e12');
+  assert.equal(hymnSlug(7), '7');
+
+  const likes = parseTopHymns({
+    hymns: [
+      { hymnId: '7', likesCount: 3 },
+      { hymnId: '315-a', likesCount: 5 },
+      { hymnId: '2', likesCount: 3 },
+      { hymnId: 'bad', likesCount: 'many' },
+      { hymnId: '9', likesCount: 0 },
+      { likesCount: 4 },
+    ],
+  });
+  assert.deepEqual(likes, { 7: 3, '315-a': 5, 2: 3 });
+  assert.deepEqual(parseTopHymns(null), {});
+  assert.deepEqual(parseTopHymns({ hymns: 'nope' }), {});
+
+  const results = [1, 2, 7, 9, '315 A'].map((id) => ({ hymn: { id }, snippet: '' }));
+  const ranked = rankByLikes(results, likes);
+  assert.deepEqual(ranked.map((r) => [r.hymn.id, r.likes]), [['315 A', 5], [2, 3], [7, 3]]);
+  assert.deepEqual(rankByLikes(results, {}), []);
+});

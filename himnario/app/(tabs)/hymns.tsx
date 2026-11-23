@@ -19,6 +19,7 @@ import {
   Text,
   StyleSheet,
   TextInput,
+  ActivityIndicator,
   TouchableOpacity,
   ScrollView,
   Platform,
@@ -42,6 +43,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from '../../utils/haptics';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { useHymnFilter } from '../../context/HymnFilterContext';
+import { TOP_HYMNS_FILTER, rankByLikes, useTopHymns } from '../../utils/topHymns';
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
@@ -172,6 +174,8 @@ export default function HymnListScreen() {
   const { currentHymnId } = useNowPlaying();
   const [isFocused, setIsFocused] = useState(false);
   const blurAnim = useRef(new Animated.Value(0)).current;
+  const isTopFilter = searchFilter === TOP_HYMNS_FILTER;
+  const { likes: topLikes, loading: topLoading } = useTopHymns(isTopFilter);
   const isSearchActive =
     isFocused ||
     search.length > 0 ||
@@ -227,10 +231,10 @@ export default function HymnListScreen() {
 
     if (searchFilter !== 'Todos' && searchFilter !== 'All' && sorted.includes(searchFilter)) {
       const filteredSorted = sorted.filter((tag) => tag !== searchFilter);
-      return [allLabel, searchFilter, ...filteredSorted];
+      return [allLabel, TOP_HYMNS_FILTER, searchFilter, ...filteredSorted];
     }
 
-    return [allLabel, ...sorted];
+    return [allLabel, TOP_HYMNS_FILTER, ...sorted];
   }, [t, activeSubTab, language, searchFilter]);
 
   // ── Vertical scroll-position slider state ──────────────────────────────
@@ -327,6 +331,7 @@ export default function HymnListScreen() {
     }
 
     const matchesFilters = (h: any) => {
+      if (isTopFilter) return true; // ranked below instead of filtered by category
       if (!isAll) {
         const hasCat =
           h.categories &&
@@ -367,11 +372,24 @@ export default function HymnListScreen() {
         )
       : localizedEstribillosData.map((h) => ({ hymn: h, score: 0, kind: '', snippet: '' }));
 
+    if (isTopFilter) {
+      // Most-liked first; the like count takes the place of the search snippet.
+      const withCount = (items: SearchResult<any>[]) =>
+        rankByLikes(items, topLikes).map((item) => ({
+          ...item,
+          snippet: t.hymnsMostLikedCount.replace('{n}', String(item.likes)),
+        }));
+      return { himnos: withCount(himnosHits), estribillos: withCount(estribillosHits) };
+    }
+
     return {
       himnos: himnosHits.filter((r) => matchesFilters(r.hymn)),
       estribillos: estribillosHits.filter((r) => matchesFilters(r.hymn)),
     };
   }, [
+    t,
+    isTopFilter,
+    topLikes,
     search,
     searchFilter,
     language,
@@ -630,7 +648,11 @@ export default function HymnListScreen() {
                   const isAll = f === 'Todos' || f === 'All';
                   const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
                   const active = f === searchFilter || (isAll && activeIsAll);
-                  const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
+                  const displayLabel = isAll
+                    ? t.filterAll
+                    : f === TOP_HYMNS_FILTER
+                      ? t.hymnsMostLiked
+                      : translateCategory(f, language);
                   return (
                     <Pressable
                       key={f}
@@ -1461,7 +1483,11 @@ export default function HymnListScreen() {
                     const isAll = f === 'Todos' || f === 'All';
                     const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';
                     const active = f === searchFilter || (isAll && activeIsAll);
-                    const displayLabel = isAll ? t.filterAll : translateCategory(f, language);
+                    const displayLabel = isAll
+                    ? t.filterAll
+                    : f === TOP_HYMNS_FILTER
+                      ? t.hymnsMostLiked
+                      : translateCategory(f, language);
                     return (
                       <Pressable
                         key={`overlay-chip-${f}`}
@@ -1654,7 +1680,15 @@ export default function HymnListScreen() {
                         marginBottom: 20,
                       }}
                     >
-                      <MaterialIcons name="search-off" size={40} color={theme.primary + '70'} />
+                      {isTopFilter && topLoading ? (
+                        <ActivityIndicator color={theme.primary} />
+                      ) : (
+                        <MaterialIcons
+                          name={isTopFilter && !search.trim() ? 'favorite-border' : 'search-off'}
+                          size={40}
+                          color={theme.primary + '70'}
+                        />
+                      )}
                     </View>
                     <Text
                       style={{
@@ -1664,7 +1698,7 @@ export default function HymnListScreen() {
                         marginBottom: 6,
                       }}
                     >
-                      {t.hymnsNoResultsFound}
+                      {isTopFilter && !search.trim() ? t.hymnsMostLikedEmpty : t.hymnsNoResultsFound}
                     </Text>
                     <Text
                       style={{
@@ -1675,7 +1709,9 @@ export default function HymnListScreen() {
                         paddingHorizontal: 40,
                       }}
                     >
-                      {language === 'es'
+                      {isTopFilter && !search.trim()
+                        ? t.hymnsMostLikedEmptySub
+                        : language === 'es'
                         ? search
                           ? `No se encontraron himnos ni estribillos para "${search}"`
                           : 'Escribe un número, título o frase de la letra'
