@@ -28,7 +28,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 | Task | Where to read | Notes |
 | --- | --- | --- |
 | **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Deferred by the owner. Deadline April 2027. Must be done on its own branch with a new `runtimeVersion`. |
-| **Friends ("Hermanos")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Phase 1 (requests, accept, fuller profile for friends) is live. Phases 2–4 (favourites, shared playlists, church suggestions) are not started; server ships before the app each time. |
+| **Friends ("Hermanos")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Phases 1, 2 and 4 are live (requests, a friend's favourites, church suggestions). Phase 3 (sending a playlist to a friend) is not started. Migration before Worker before app, every time. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |
 | Device check of the churches redesign | CLAUDE.md section 5 | Built without a simulator; only the owner's phone has seen it. |
 | Remaining inline strings | `git grep -n "es$" himnario/app himnario/components` | A few dozen strings with interpolated values are still inline `es ? … : …` pairs. |
