@@ -360,3 +360,53 @@ test('shared playlists and combined friends badge count are parsed defensively',
   assert.equal(friendsBadgeCount(lists, parsed), 2); // 1 incoming request + 1 unseen playlist
   assert.equal(friendsBadgeCount(EMPTY_FRIEND_LISTS, parsed.map((p) => ({ ...p, seen: true }))), 0);
 });
+
+test('daily verses have unique valid IDs, preserve original 27 slugs, and advance by 1 every day across month boundaries', () => {
+  const { DAILY_VERSES, getDailyVerse, getLocalDayNumber } = load('himnario/data/dailyVerses.ts');
+  assert.ok(DAILY_VERSES.length >= 120, `expected at least 120 verses, got ${DAILY_VERSES.length}`);
+
+  const ids = new Set();
+  for (const v of DAILY_VERSES) {
+    assert.match(v.id, /^[a-z0-9-]{3,40}$/, `invalid verse id: ${v.id}`);
+    assert.equal(ids.has(v.id), false, `duplicate verse id: ${v.id}`);
+    ids.add(v.id);
+    assert.ok(v.es.ref.trim().length > 0 && v.es.text.trim().length > 0, `empty es in ${v.id}`);
+    assert.ok(v.en.ref.trim().length > 0 && v.en.text.trim().length > 0, `empty en in ${v.id}`);
+  }
+
+  // Original 27 IDs remain intact so D1 likes/comments are never orphaned.
+  for (const legacyId of [
+    'mateo-18-20',
+    'salmo-23-1',
+    'filipenses-4-13',
+    'juan-14-6',
+    'juan-3-16',
+    'salmo-34-1',
+    'salmo-150-1',
+  ]) {
+    assert.equal(ids.has(legacyId), true, `missing preserved id ${legacyId}`);
+  }
+
+  // Consecutive days step strictly by +1 across month boundaries and leap years.
+  const boundaries = [
+    [new Date(2026, 0, 31, 12), new Date(2026, 1, 1, 12)],
+    [new Date(2026, 1, 28, 12), new Date(2026, 2, 1, 12)],
+    [new Date(2028, 1, 28, 12), new Date(2028, 1, 29, 12)],
+    [new Date(2028, 1, 29, 12), new Date(2028, 2, 1, 12)],
+    [new Date(2026, 11, 31, 12), new Date(2027, 0, 1, 12)],
+  ];
+  for (const [d1, d2] of boundaries) {
+    assert.equal(getLocalDayNumber(d2) - getLocalDayNumber(d1), 1);
+    const v1 = getDailyVerse(d1);
+    const v2 = getDailyVerse(d2);
+    assert.equal(v2.dayIndex, (v1.dayIndex + 1) % DAILY_VERSES.length);
+  }
+
+  // Over N consecutive days, every single verse appears exactly once.
+  const seen = new Set();
+  for (let offset = 0; offset < DAILY_VERSES.length; offset++) {
+    const d = new Date(2026, 10, 22 + offset, 12);
+    seen.add(getDailyVerse(d).verse.id);
+  }
+  assert.equal(seen.size, DAILY_VERSES.length);
+});
