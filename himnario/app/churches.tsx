@@ -52,7 +52,7 @@ import DetentSheet from "../components/DetentSheet";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
 import { parseServiceTimes } from "../utils/churchSchedule";
-import { churchDisplayName, servantDisplayName } from "../utils/churchName";
+import { churchDisplayName, servantBareName, servantDisplayName } from "../utils/churchName";
 import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
@@ -820,7 +820,8 @@ export default function ChurchesScreen() {
     Haptics.selectionAsync();
     setEditingChurch(church);
     setFormName(church.name || "");
-    setFormPastor(church.pastorName || "");
+    // The field holds only the name; "SDD Hno" is added when it is shown.
+    setFormPastor(servantBareName(church.pastorName));
     setFormAddress(church.address || "");
     setFormCity(church.city || "");
     setFormState(church.state || "");
@@ -1045,7 +1046,7 @@ export default function ChurchesScreen() {
 
       const payload = {
         name,
-        pastorName: formPastor.trim() || null,
+        pastorName: servantBareName(formPastor) || null,
         address,
         city,
         state: formState.trim() || null,

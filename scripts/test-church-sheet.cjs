@@ -112,15 +112,26 @@ test('the schedule editor writes text the church card reads back unchanged', () 
   assert.equal(formatClock(12 * 60 + 5), '12:05 PM');
 });
 
-test('congregation leaders are shown with the SDD title, replacing older titles', () => {
+test('leaders are entered as a plain name and shown as "SDD Hno <name>"', () => {
+  const { servantBareName } = load('himnario/utils/churchName.ts');
+  // What the form saves → what the card shows.
+  assert.equal(servantDisplayName('Azael Tapia'), 'SDD Hno Azael Tapia');
+  // Older records and people who type the title anyway end up the same.
   assert.equal(servantDisplayName('Hno Azael Tapia'), 'SDD Hno Azael Tapia');
-  assert.equal(servantDisplayName('Co-Pastor Azael Tapia'), 'SDD Azael Tapia');
-  assert.equal(servantDisplayName('Pastor Juan Pérez'), 'SDD Juan Pérez');
-  assert.equal(servantDisplayName('SDD Hna. María López'), 'SDD Hna. María López');
-  assert.equal(servantDisplayName('Siervo de Dios Hno Pedro'), 'SDD Hno Pedro');
-  assert.equal(servantDisplayName('Pastora Ana'), 'SDD Ana');
+  assert.equal(servantDisplayName('Co-Pastor Azael Tapia'), 'SDD Hno Azael Tapia');
+  assert.equal(servantDisplayName('SDD Hno. Juan Pérez'), 'SDD Hno Juan Pérez');
+  assert.equal(servantDisplayName('Siervo de Dios Hermano Pedro'), 'SDD Hno Pedro');
+  // A sister keeps Hna.
+  assert.equal(servantDisplayName('Hna María López'), 'SDD Hna María López');
   assert.equal(servantDisplayName('  '), '');
   assert.equal(servantDisplayName(null), '');
+
+  // The form field shows and stores only the name.
+  assert.equal(servantBareName('SDD Hno Azael Tapia'), 'Azael Tapia');
+  assert.equal(servantBareName('Hno Azael Tapia'), 'Azael Tapia');
+  assert.equal(servantBareName('Azael Tapia'), 'Azael Tapia');
+  assert.equal(servantBareName('Hernán Hnos'), 'Hernán Hnos');
+  assert.equal(servantBareName(''), '');
 });
 
 test("the QR link a church shares is one the app's own scanner accepts", () => {
