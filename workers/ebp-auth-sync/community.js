@@ -171,9 +171,11 @@ function publicComment(row) {
     body: row.body,
     createdAt: row.created_at,
     editedAt: row.edited_at,
+    likesCount: Number(row.likes_count || 0),
+    likedByMe: Boolean(row.liked_by_me),
   };
 }
-const publicSelect = `SELECT c.*,u.name,u.ministry,u.choir,u.badge_verified FROM verse_comments c LEFT JOIN users u ON u.id=c.user_id`;
+const publicSelect = `SELECT c.*,u.name,u.ministry,u.choir,u.badge_verified,(SELECT count(*) FROM verse_comment_likes l WHERE l.comment_id=c.id) AS likes_count,EXISTS(SELECT 1 FROM verse_comment_likes l WHERE l.comment_id=c.id AND l.user_id=?2) AS liked_by_me FROM verse_comments c LEFT JOIN users u ON u.id=c.user_id`;
 const visibility = `c.hidden_at IS NULL AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM verse_comments p WHERE p.id=c.parent_id AND p.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM user_blocks pb WHERE (pb.blocker_user_id=?2 AND pb.blocked_user_id=p.user_id) OR (pb.blocked_user_id=?2 AND pb.blocker_user_id=p.user_id))))
  AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?2 AND b.blocked_user_id=c.user_id) OR (b.blocked_user_id=?2 AND b.blocker_user_id=c.user_id))`;
 
@@ -183,6 +185,7 @@ export async function deleteCommunityAccount(env, id) {
       "UPDATE verse_comments SET user_id=NULL,author_name_snapshot='Cuenta eliminada' WHERE user_id=?1",
     ).bind(id),
     env.DB.prepare("DELETE FROM verse_likes WHERE user_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM verse_comment_likes WHERE user_id=?1").bind(id),
     env.DB.prepare(
       "DELETE FROM user_blocks WHERE blocker_user_id=?1 OR blocked_user_id=?1",
     ).bind(id),
@@ -191,6 +194,9 @@ export async function deleteCommunityAccount(env, id) {
     ).bind(id),
     env.DB.prepare(
       "DELETE FROM friendships WHERE user_low=?1 OR user_high=?1",
+    ).bind(id),
+    env.DB.prepare(
+      "DELETE FROM shared_playlists WHERE from_user=?1 OR to_user=?1",
     ).bind(id),
     ...["user_data", "sessions", "email_tokens", "hymn_reactions"].map((t) =>
       env.DB.prepare(`DELETE FROM ${t} WHERE user_id=?1`).bind(id),
@@ -206,7 +212,7 @@ export async function handleCommunity(
   { path, authenticate, serializeUser, json },
 ) {
   if (
-    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends)(\/|$)/.test(path) &&
+    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends|playlists)(\/|$)/.test(path) &&
     !["/auth/profile", "/auth/ugc-terms/accept"].includes(path)
   )
     return null;
@@ -333,7 +339,7 @@ export async function handleCommunity(
       const sort = url.searchParams.get("sort") === "top" ? "top" : "newest";
       const orderBy =
         sort === "top" && !parent && !cursor
-          ? "(SELECT count(*) FROM verse_comments r WHERE r.parent_id=c.id AND r.hidden_at IS NULL) DESC, c.created_at DESC, c.id DESC"
+          ? "((SELECT count(*) FROM verse_comment_likes l WHERE l.comment_id=c.id) + (SELECT count(*) FROM verse_comments r WHERE r.parent_id=c.id AND r.hidden_at IS NULL)) DESC, c.created_at DESC, c.id DESC"
           : "c.created_at DESC,c.id DESC";
       const rows = await all(
         `${publicSelect} WHERE c.verse_id=?1 AND ${visibility} AND ${parent ? "c.parent_id=?3" : "c.parent_id IS NULL AND ?3 IS NULL"} AND (c.created_at<?4 OR (c.created_at=?4 AND c.id<?5)) ORDER BY ${orderBy} LIMIT ?6`,
@@ -472,18 +478,62 @@ export async function handleCommunity(
     }
   }
   const commentRoute = path.match(
-    /^\/verse-comments\/([a-z0-9-]+)(\/report)?$/,
+    /^\/verse-comments\/([a-z0-9-]+)(?:\/(report|like))?$/,
   );
   if (commentRoute) {
     participant(user);
-    const [, id, report] = commentRoute;
+    const [, id, action] = commentRoute;
     const row = await env.DB.prepare(
       "SELECT * FROM verse_comments WHERE id=?1 AND hidden_at IS NULL",
     )
       .bind(id)
       .first();
     if (!row) fail(404, "not_found");
-    if (report && method === "POST") {
+    if (action === "like" && method === "POST") {
+      if (row.user_id && (await blockedEitherWay(user.id, row.user_id)))
+        fail(404, "not_found");
+      if (row.parent_id) {
+        const parentRow = await env.DB.prepare(
+          "SELECT user_id,hidden_at FROM verse_comments WHERE id=?1",
+        )
+          .bind(row.parent_id)
+          .first();
+        if (
+          !parentRow ||
+          parentRow.hidden_at != null ||
+          (parentRow.user_id && (await blockedEitherWay(user.id, parentRow.user_id)))
+        )
+          fail(404, "not_found");
+      }
+      await quota(env, `comment-like:${user.id}`, 60, 60000);
+      await quota(env, `comment-like-ip:${ip}`, 180, 60000);
+      const body = await bodyOf(request);
+      if (typeof body.liked !== "boolean") fail(400, "invalid_like");
+      if (body.liked) {
+        await env.DB.prepare(
+          "INSERT INTO verse_comment_likes(user_id,comment_id,created_at) VALUES(?1,?2,?3) ON CONFLICT DO NOTHING",
+        )
+          .bind(user.id, id, now)
+          .run();
+      } else {
+        await env.DB.prepare(
+          "DELETE FROM verse_comment_likes WHERE user_id=?1 AND comment_id=?2",
+        )
+          .bind(user.id, id)
+          .run();
+      }
+      const countRow = await env.DB.prepare(
+        "SELECT count(*) AS n FROM verse_comment_likes WHERE comment_id=?1",
+      )
+        .bind(id)
+        .first();
+      return json({
+        ok: true,
+        liked: body.liked,
+        likesCount: Number(countRow?.n || 0),
+      });
+    }
+    if (action === "report" && method === "POST") {
       await quota(env, `report:${user.id}`, 10, 3600000);
       await quota(env, `report-ip:${ip}`, 30, 3600000);
       const body = await bodyOf(request);
@@ -515,26 +565,28 @@ export async function handleCommunity(
       }
       return json({ ok: true });
     }
-    if (row.user_id !== user.id && !admin) fail(403, "forbidden");
-    await quota(env, `comment-edit:${user.id}`, 20, 600000);
-    if (method === "PUT") {
-      let body;
-      try {
-        body = normalizeComment((await bodyOf(request)).body);
-      } catch (e) {
-        if (e instanceof RequestError) throw e;
-        fail(400, e.message);
+    if (!action) {
+      if (row.user_id !== user.id && !admin) fail(403, "forbidden");
+      await quota(env, `comment-edit:${user.id}`, 20, 600000);
+      if (method === "PUT") {
+        let body;
+        try {
+          body = normalizeComment((await bodyOf(request)).body);
+        } catch (e) {
+          if (e instanceof RequestError) throw e;
+          fail(400, e.message);
+        }
+        await env.DB.prepare(
+          "UPDATE verse_comments SET body=?2,edited_at=?3 WHERE id=?1 AND hidden_at IS NULL",
+        )
+          .bind(id, body, now)
+          .run();
+        return json({ ok: true });
       }
-      await env.DB.prepare(
-        "UPDATE verse_comments SET body=?2,edited_at=?3 WHERE id=?1 AND hidden_at IS NULL",
-      )
-        .bind(id, body, now)
-        .run();
-      return json({ ok: true });
-    }
-    if (method === "DELETE") {
-      await hideComment(env, id, user.id, now);
-      return json({ ok: true });
+      if (method === "DELETE") {
+        await hideComment(env, id, user.id, now);
+        return json({ ok: true });
+      }
     }
   }
   const blockRoute = path.match(/^\/users\/([a-z0-9-]+)\/block$/);
@@ -558,6 +610,9 @@ export async function handleCommunity(
         env.DB.prepare(
           "DELETE FROM friendships WHERE user_low=?1 AND user_high=?2",
         ).bind(blockLow, blockHigh),
+        env.DB.prepare(
+          "DELETE FROM shared_playlists WHERE (from_user=?1 AND to_user=?2) OR (from_user=?2 AND to_user=?1)",
+        ).bind(user.id, id),
       ]);
       return json({ ok: true });
     }
@@ -759,6 +814,122 @@ export async function handleCommunity(
       favorites = [];
     }
     return json({ shared: true, favorites }, 200, { "Cache-Control": "private, no-store" });
+  }
+  // Phase 3: sending a copy of a playlist to an accepted friend.
+  const friendPlaylists = path.match(/^\/friends\/([a-z0-9-]+)\/playlists$/);
+  if (friendPlaylists && method === "POST") {
+    participant(user);
+    const otherId = friendPlaylists[1];
+    if (!validId(otherId) || otherId === user.id) fail(400, "invalid_friend");
+    const body = await bodyOf(request);
+    if (typeof body.name !== "string") fail(400, "invalid_playlist");
+    const cleanName = body.name.replace(/\s+/g, " ").trim();
+    if (
+      !cleanName ||
+      cleanName.length > 60 ||
+      /[<>\u0000-\u001f]/u.test(cleanName)
+    )
+      fail(400, "invalid_playlist");
+    if (
+      !Array.isArray(body.hymnIds) ||
+      body.hymnIds.length < 1 ||
+      body.hymnIds.length > 200
+    )
+      fail(400, "invalid_playlist");
+    const deduped = [];
+    for (const rawId of body.hymnIds) {
+      if (typeof rawId !== "string") fail(400, "invalid_playlist");
+      const trimmedId = rawId.trim();
+      if (!/^[A-Za-z0-9 ]{1,8}$/.test(trimmedId)) fail(400, "invalid_playlist");
+      if (!deduped.includes(trimmedId)) deduped.push(trimmedId);
+    }
+    if (deduped.length < 1 || deduped.length > 200)
+      fail(400, "invalid_playlist");
+    await quota(env, `share-playlist:${user.id}`, 10, 3600000);
+    await quota(env, `share-playlist-ip:${ip}`, 30, 3600000);
+    const [low, high] = pairOf(user.id, otherId);
+    const [link, target, blocked] = await Promise.all([
+      env.DB.prepare(
+        "SELECT status FROM friendships WHERE user_low=?1 AND user_high=?2",
+      )
+        .bind(low, high)
+        .first(),
+      env.DB.prepare("SELECT id,suspended_at FROM users WHERE id=?1")
+        .bind(otherId)
+        .first(),
+      blockedEitherWay(user.id, otherId),
+    ]);
+    if (!target || target.suspended_at != null || blocked || link?.status !== "accepted")
+      fail(403, "not_friends");
+    const id = uuid();
+    await env.DB.prepare(
+      "INSERT INTO shared_playlists(id,from_user,to_user,name,hymn_ids_json,created_at,seen_at) VALUES(?1,?2,?3,?4,?5,?6,NULL)",
+    )
+      .bind(id, user.id, otherId, cleanName, JSON.stringify(deduped), now)
+      .run();
+    return json({ ok: true, id }, 201);
+  }
+  if (path === "/playlists/shared" && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const rows = await all(
+      `SELECT s.id,s.from_user,s.name,s.hymn_ids_json,s.created_at,s.seen_at,u.name AS from_name
+       FROM shared_playlists s
+       JOIN users u ON u.id=s.from_user
+       WHERE s.to_user=?1 AND u.suspended_at IS NULL
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
+       ORDER BY s.created_at DESC, s.id DESC LIMIT 50`,
+      user.id,
+    );
+    const playlists = rows.map((r) => {
+      let hymnIds = [];
+      try {
+        const parsed = JSON.parse(r.hymn_ids_json || "[]");
+        if (Array.isArray(parsed)) {
+          hymnIds = parsed
+            .filter(
+              (x) => typeof x === "string" && /^[A-Za-z0-9 ]{1,8}$/.test(x),
+            )
+            .slice(0, 200);
+        }
+      } catch {}
+      return {
+        id: r.id,
+        fromUserId: r.from_user,
+        fromName: r.from_name,
+        fromInitials: initials(r.from_name),
+        name: r.name,
+        hymnIds,
+        createdAt: r.created_at,
+        seen: r.seen_at != null,
+      };
+    });
+    return json({ playlists }, 200, { "Cache-Control": "private, no-store" });
+  }
+  const sharedSeenRoute = path.match(/^\/playlists\/shared\/([a-z0-9-]+)\/seen$/);
+  if (sharedSeenRoute && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    const sharedId = sharedSeenRoute[1];
+    if (!validId(sharedId)) fail(400, "invalid_playlist");
+    await quota(env, `shared-playlist-act:${user.id}`, 120, 3600000);
+    await env.DB.prepare(
+      "UPDATE shared_playlists SET seen_at=COALESCE(seen_at,?3) WHERE id=?1 AND to_user=?2",
+    )
+      .bind(sharedId, user.id, now)
+      .run();
+    return json({ ok: true });
+  }
+  const sharedDeleteRoute = path.match(/^\/playlists\/shared\/([a-z0-9-]+)$/);
+  if (sharedDeleteRoute && method === "DELETE") {
+    if (!user) fail(401, "unauthorized");
+    const sharedId = sharedDeleteRoute[1];
+    if (!validId(sharedId)) fail(400, "invalid_playlist");
+    await quota(env, `shared-playlist-act:${user.id}`, 120, 3600000);
+    await env.DB.prepare(
+      "DELETE FROM shared_playlists WHERE id=?1 AND to_user=?2",
+    )
+      .bind(sharedId, user.id)
+      .run();
+    return json({ ok: true });
   }
   const friendAccept = path.match(/^\/friends\/requests\/([a-z0-9-]+)\/accept$/);
   if (friendAccept && method === "POST") {

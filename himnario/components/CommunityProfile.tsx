@@ -65,7 +65,7 @@ export default function CommunityProfile({
     { language, t } = useLanguage(),
     es = language === "es",
     api = useCommunityApi();
-  const { lists: friendLists, refresh: refreshFriends } = useFriends();
+  const { lists: friendLists, badgeCount: friendsBadge, refresh: refreshFriends } = useFriends();
   // One fetch when the signed-in account's profile mounts keeps the badge current.
   useEffect(() => {
     if (user?.id && !subPage) void refreshFriends();
@@ -1072,9 +1072,9 @@ export default function CommunityProfile({
             >
               {t.friendsTitle}
             </Text>
-            {friendLists.incoming.length > 0 ? (
+            {friendsBadge > 0 ? (
               <View
-                accessibilityLabel={`${friendLists.incoming.length} ${t.friendsRequests}`}
+                accessibilityLabel={`${friendsBadge} ${t.friendsNotificationsLabel}`}
                 style={{
                   minWidth: 22,
                   height: 22,
@@ -1086,7 +1086,7 @@ export default function CommunityProfile({
                 }}
               >
                 <Text style={{ ...fonts.sansBold, fontSize: 12.5, color: "#FFFFFF" }}>
-                  {friendLists.incoming.length}
+                  {friendsBadge}
                 </Text>
               </View>
             ) : friendLists.friends.length > 0 ? (

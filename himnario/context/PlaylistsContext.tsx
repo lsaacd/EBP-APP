@@ -13,6 +13,7 @@ export interface Playlist {
 interface PlaylistsContextType {
   playlists: Playlist[];
   createPlaylist: (name: string) => void;
+  importPlaylist: (name: string, hymnIds: string[]) => Playlist | null;
   deletePlaylist: (id: string) => void;
   updatePlaylistName: (id: string, name: string) => void;
   addHymnToPlaylist: (playlistId: string, hymnId: string) => void;
@@ -24,6 +25,7 @@ interface PlaylistsContextType {
 const PlaylistsContext = createContext<PlaylistsContextType>({
   playlists: [],
   createPlaylist: () => {},
+  importPlaylist: () => null,
   deletePlaylist: () => {},
   updatePlaylistName: () => {},
   addHymnToPlaylist: () => {},
@@ -72,6 +74,26 @@ export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
     commitPlaylists(prev => [...prev, newPlaylist]);
   }, [commitPlaylists]);
 
+  const importPlaylist = useCallback((name: string, hymnIds: string[]): Playlist | null => {
+    const cleanName = name.trim().slice(0, 100);
+    if (!cleanName) return null;
+    const uniqueIds = Array.from(
+      new Set(
+        (Array.isArray(hymnIds) ? hymnIds : [])
+          .map((id) => String(id).trim())
+          .filter(Boolean),
+      ),
+    ).slice(0, 200);
+    const newPlaylist: Playlist = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      name: cleanName,
+      hymnIds: uniqueIds,
+      createdAt: Date.now(),
+    };
+    commitPlaylists(prev => [...prev, newPlaylist]);
+    return newPlaylist;
+  }, [commitPlaylists]);
+
   const deletePlaylist = useCallback((id: string) => {
     commitPlaylists(prev => prev.filter(p => p.id !== id));
   }, [commitPlaylists]);
@@ -113,6 +135,7 @@ export function PlaylistsProvider({ children }: { children: React.ReactNode }) {
     <PlaylistsContext.Provider value={{
       playlists,
       createPlaylist,
+      importPlaylist,
       deletePlaylist,
       updatePlaylistName,
       addHymnToPlaylist,

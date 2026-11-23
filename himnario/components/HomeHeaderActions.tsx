@@ -14,6 +14,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth, computeUserInitials } from '../context/AuthContext';
+import { useFriends } from '../utils/friendsStore';
 import GlassSurface from './GlassSurface';
 import AppMenuIcon from './AppMenuIcon';
 import * as Haptics from '../utils/haptics';
@@ -68,10 +69,22 @@ export default function HomeHeaderActions({
   const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { user, openAuthSheet } = useAuth();
+  const { badgeCount: friendsBadge, refreshIfStale: refreshFriendsIfStale } = useFriends();
   const isIOS = Platform.OS === 'ios';
   const navigation = useContext(NavigationContext);
   const wasBlurredRef = useRef(false);
   const [glassKey, setGlassKey] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void refreshFriendsIfStale(15000);
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void refreshFriendsIfStale(15000);
+      }
+    });
+    return () => sub.remove();
+  }, [refreshFriendsIfStale, user?.id]);
 
   const searchTranslateX = useSharedValue(0);
   const searchTranslateY = useSharedValue(0);
@@ -228,6 +241,12 @@ export default function HomeHeaderActions({
           color={theme.primary}
         />
       )}
+      {user && friendsBadge > 0 ? (
+        <View
+          pointerEvents="none"
+          style={styles.badgeDot}
+        />
+      ) : null}
     </Pressable>
   );
 
@@ -341,5 +360,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     includeFontPadding: false,
     textAlign: 'center',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#D64545',
   },
 });

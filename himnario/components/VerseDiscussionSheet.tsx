@@ -126,6 +126,7 @@ export default function VerseDiscussionSheet({
   scopeRef.current = scope;
   const postingRef = useRef<object | null>(null);
   const actingRef = useRef<object | null>(null);
+  const likingCommentsRef = useRef<Set<string>>(new Set());
   const commentsRef = useRef(comments);
   const threadVersion = useRef(0);
   const hasLoadedPage = useRef(false);
@@ -171,6 +172,9 @@ export default function VerseDiscussionSheet({
     friendStatus: FriendStatus | null;
     loading: boolean;
   } | null>(null);
+  // True only when the comment list itself could not be loaded. A failed send
+  // sets `error` too, and must not make the list claim to be offline.
+  const [loadFailed, setLoadFailed] = useState(false);
   const authorFetchSeq = useRef(0);
   const input = useRef<TextInput>(null);
   const authAfterDismiss = useRef(false);
@@ -391,6 +395,7 @@ export default function VerseDiscussionSheet({
     setActing(false);
     postingRef.current = null;
     actingRef.current = null;
+    likingCommentsRef.current.clear();
     setError("");
     invalidateActions();
     void saveQueue.current
@@ -434,13 +439,12 @@ export default function VerseDiscussionSheet({
       setLoading(true);
       if (!merge) setError("");
       try {
-        const qs = new URLSearchParams();
-        qs.set("sort", activeSort);
+        const parts = [`sort=${encodeURIComponent(activeSort)}`];
         if (more && cursorRef.current) {
-          qs.set("cursor", cursorRef.current);
+          parts.push(`cursor=${encodeURIComponent(cursorRef.current)}`);
         }
         const page = await api<CommentPage>(
-          `/verses/${verse.id}/comments?${qs.toString()}`,
+          `/verses/${verse.id}/comments?${parts.join("&")}`,
         );
         if (
           id !== generation.current ||
@@ -448,6 +452,7 @@ export default function VerseDiscussionSheet({
           postingRef.current
         )
           return;
+        setLoadFailed(false);
         setComments((prev) =>
           merge
             ? mergeThreadPage(prev, page.comments)
@@ -463,8 +468,10 @@ export default function VerseDiscussionSheet({
         if (!merge || !hasLoadedPage.current) setCursor(page.nextCursor);
         hasLoadedPage.current = true;
       } catch (e) {
-        if (id === generation.current && !merge)
+        if (id === generation.current && !merge) {
           setError(communityError(e, es));
+          setLoadFailed(true);
+        }
       } finally {
         if (id === generation.current) setLoading(false);
       }
@@ -474,6 +481,7 @@ export default function VerseDiscussionSheet({
   useEffect(() => {
     if (visible) {
       setComments([]);
+      setLoadFailed(false);
       hasLoadedPage.current = false;
       setCursor(null);
       setBlocked(new Set());
@@ -595,6 +603,8 @@ export default function VerseDiscussionSheet({
         body,
         createdAt: now,
         editedAt: null,
+        likesCount: 0,
+        likedByMe: false,
         replies: [],
         repliesCursor: null,
       };
@@ -649,9 +659,42 @@ export default function VerseDiscussionSheet({
               ),
             );
           else setComments((previous) => removeComment(previous, temporaryId));
-          // All draft controls are locked for this write, preserving the exact retry ID.
-          setDraft(submitted);
-          setError(communityError(e, es));
+          const lostParent =
+            e instanceof Error &&
+            e.message === "invalid_parent" &&
+            Boolean(submitted.parentId) &&
+            !submitted.editId;
+          const staleRequestId =
+            e instanceof Error &&
+            (e.message === "idempotency_conflict" ||
+              e.message === "invalid_request_id") &&
+            !submitted.editId;
+          const missingEdit =
+            e instanceof Error &&
+            e.message === "not_found" &&
+            Boolean(submitted.editId);
+          if (lostParent) {
+            // The comment being answered is gone (deleted, hidden, or a reply
+            // target restored from an old saved draft). Keep the words, drop
+            // the reply, and let the next Send post it as a new comment.
+            setDraft({ ...blank(), body: submitted.body });
+            setError(
+              label(
+                "The comment you were replying to no longer exists. Tap Send to post this as a new comment.",
+                "El comentario al que respondías ya no existe. Toca Enviar para publicarlo como comentario nuevo.",
+              ),
+            );
+          } else if (missingEdit) {
+            setDraft({ ...blank(), body: submitted.body });
+            setError(t.commentEditMissing);
+          } else if (staleRequestId) {
+            setDraft({ ...submitted, requestId: uuid.v4() });
+            setError(t.commentRetrySend);
+          } else {
+            // All draft controls are locked for this write, preserving the exact retry ID.
+            setDraft(submitted);
+            setError(communityError(e, es));
+          }
         }
       } finally {
         if (postingRef.current === operation) {
@@ -660,6 +703,70 @@ export default function VerseDiscussionSheet({
           // A read refresh never keeps the composer locked after the write finishes.
           if (current()) void load(false, true);
         }
+      }
+    })();
+  };
+  const toggleCommentLike = (c: VerseComment) => {
+    if (
+      scopeRef.current !== scope ||
+      isPendingComment(c) ||
+      likingCommentsRef.current.has(c.id) ||
+      !participate()
+    )
+      return;
+    const wasLiked = Boolean(c.likedByMe);
+    const nextLiked = !wasLiked;
+    const prevCount = Number(c.likesCount || 0);
+    const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+    const epoch = actionGeneration.current;
+    const operationScope = scope;
+    likingCommentsRef.current.add(c.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setError("");
+    setComments((previous) =>
+      updateComment(previous, c.id, (row) => ({
+        ...row,
+        likedByMe: nextLiked,
+        likesCount: nextCount,
+      })),
+    );
+    void (async () => {
+      try {
+        const res = await api<{
+          ok?: boolean;
+          liked?: boolean;
+          likesCount?: number;
+        }>(`/verse-comments/${c.id}/like`, "POST", { liked: nextLiked });
+        if (
+          epoch !== actionGeneration.current ||
+          scopeRef.current !== operationScope
+        )
+          return;
+        if (typeof res?.likesCount === "number") {
+          setComments((previous) =>
+            updateComment(previous, c.id, (row) => ({
+              ...row,
+              likedByMe: typeof res.liked === "boolean" ? res.liked : nextLiked,
+              likesCount: res.likesCount,
+            })),
+          );
+        }
+      } catch (e) {
+        if (
+          epoch === actionGeneration.current &&
+          scopeRef.current === operationScope
+        ) {
+          setComments((previous) =>
+            updateComment(previous, c.id, (row) => ({
+              ...row,
+              likedByMe: wasLiked,
+              likesCount: prevCount,
+            })),
+          );
+          setError(communityError(e, es));
+        }
+      } finally {
+        likingCommentsRef.current.delete(c.id);
       }
     })();
   };
@@ -934,25 +1041,59 @@ export default function VerseDiscussionSheet({
         <Text selectable style={[styles.body, { color }]}>
           {c.body}
         </Text>
-        <Pressable
-          disabled={isPendingComment(c) || posting || !ready}
-          accessibilityState={{
-            disabled: isPendingComment(c) || posting || !ready,
-          }}
-          onPress={() => {
-            if (participate()) start(c);
-          }}
-          style={[
-            styles.reply,
-            { opacity: isPendingComment(c) || posting || !ready ? 0.4 : 1 },
-          ]}
-        >
-          <Text
-            style={{ color: theme.primary, ...fonts.sansSemiBold }}
+        <View style={styles.commentActions}>
+          <Pressable
+            disabled={isPendingComment(c)}
+            accessibilityRole="button"
+            accessibilityLabel={c.likedByMe ? t.commentUnlike : t.commentLike}
+            accessibilityState={{
+              selected: Boolean(c.likedByMe),
+              disabled: isPendingComment(c),
+            }}
+            onPress={() => toggleCommentLike(c)}
+            style={({ pressed }) => [
+              styles.commentLikeBtn,
+              { opacity: isPendingComment(c) ? 0.4 : pressed ? 0.65 : 1 },
+            ]}
           >
-            {label("Reply", "Responder")}
-          </Text>
-        </Pressable>
+            <AppMenuIcon
+              ios={c.likedByMe ? "heart.fill" : "heart"}
+              android={c.likedByMe ? "favorite" : "favorite-border"}
+              size={16}
+              color={c.likedByMe ? "#FF2D55" : theme.onSurfaceVariant}
+            />
+            {(c.likesCount || 0) > 0 ? (
+              <Text
+                style={{
+                  color: c.likedByMe ? "#FF2D55" : theme.onSurfaceVariant,
+                  ...fonts.sansSemiBold,
+                  fontSize: 13,
+                }}
+              >
+                {c.likesCount}
+              </Text>
+            ) : null}
+          </Pressable>
+          <Pressable
+            disabled={isPendingComment(c) || posting || !ready}
+            accessibilityState={{
+              disabled: isPendingComment(c) || posting || !ready,
+            }}
+            onPress={() => {
+              if (participate()) start(c);
+            }}
+            style={[
+              styles.reply,
+              { opacity: isPendingComment(c) || posting || !ready ? 0.4 : 1 },
+            ]}
+          >
+            <Text
+              style={{ color: theme.primary, ...fonts.sansSemiBold }}
+            >
+              {label("Reply", "Responder")}
+            </Text>
+          </Pressable>
+        </View>
         {c.replies?.map((r) => row(r, true))}
         {c.repliesCursor && (
           <Pressable
@@ -1241,7 +1382,7 @@ export default function VerseDiscussionSheet({
                       textAlign: "center",
                     }}
                   >
-                    {error
+                    {loadFailed
                       ? label(
                           "Comments are available online",
                           "Comentarios disponibles con conexión",
@@ -1256,7 +1397,7 @@ export default function VerseDiscussionSheet({
                       textAlign: "center",
                     }}
                   >
-                    {error
+                    {loadFailed
                       ? label(
                           "Check your connection and pull down to retry.",
                           "Revisa tu conexión y desliza para reintentar.",
@@ -1864,6 +2005,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     marginTop: 10,
+  },
+  commentActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  commentLikeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    minHeight: 44,
+    minWidth: 36,
   },
   reply: { paddingVertical: 12, paddingHorizontal: 8, minHeight: 44 },
   composer: { padding: 16, gap: 10 },

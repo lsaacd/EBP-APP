@@ -19,6 +19,8 @@ export type VerseComment = {
   body: string;
   createdAt: number;
   editedAt: number | null;
+  likesCount?: number;
+  likedByMe?: boolean;
   replies?: VerseComment[];
   repliesCursor?: string | null;
 };
@@ -105,6 +107,22 @@ export function communityError(error: unknown, es: boolean) {
     ugc_terms_required: [
       "Acepta las normas de comunidad para participar.",
       "Accept the community rules to participate.",
+    ],
+    idempotency_conflict: [
+      "Hubo un conflicto al enviar. Inténtalo de nuevo.",
+      "There was a send conflict. Please try again.",
+    ],
+    not_found: [
+      "Ese contenido ya no está disponible.",
+      "That content is no longer available.",
+    ],
+    not_friends: [
+      "Solo puedes compartir con hermanos que hayas aceptado.",
+      "You can only share with accepted friends.",
+    ],
+    invalid_playlist: [
+      "La lista no es válida o tiene demasiadas alabanzas.",
+      "This playlist is invalid or has too many hymns.",
     ],
   };
   return (

@@ -319,3 +319,44 @@ test('friend favourites and church suggestions are read defensively', () => {
   const some = parseSuggestions({ users: [{ id: 'u1', name: 'Vera' }, { nope: 1 }], hasChurch: true });
   assert.deepEqual(some.users.map((u) => u.name), ['Vera']);
 });
+
+test('shared playlists and combined friends badge count are parsed defensively', () => {
+  const { parseSharedPlaylists, friendsBadgeCount, EMPTY_FRIEND_LISTS } = load('himnario/utils/friends.ts');
+  assert.deepEqual(parseSharedPlaylists(null), []);
+  assert.deepEqual(parseSharedPlaylists({ playlists: 'nope' }), []);
+
+  const parsed = parseSharedPlaylists({
+    playlists: [
+      {
+        id: 'sp-1',
+        fromUserId: 'u1',
+        fromName: 'Ana Ruiz',
+        fromInitials: 'AR',
+        name: 'Culto dominical',
+        hymnIds: ['7', 315, '315 A', '', 'x'.repeat(30)],
+        createdAt: 1700000000000,
+        seen: false,
+      },
+      {
+        id: 'sp-2',
+        fromUserId: 'u2',
+        fromName: 'Beto Luna',
+        name: 'Coros',
+        hymnIds: ['E1'],
+        seen: true,
+      },
+      { id: 'bad-row' },
+    ],
+  });
+  assert.equal(parsed.length, 2);
+  assert.deepEqual(parsed[0].hymnIds, ['7', '315', '315 A']);
+  assert.equal(parsed[0].seen, false);
+  assert.equal(parsed[1].seen, true);
+
+  const lists = {
+    ...EMPTY_FRIEND_LISTS,
+    incoming: [{ id: 'u3', name: 'Eva', initials: 'E', ministry: null, choir: null, badgeVerified: false, memberSince: null, churchId: null, churchName: null, location: null }],
+  };
+  assert.equal(friendsBadgeCount(lists, parsed), 2); // 1 incoming request + 1 unseen playlist
+  assert.equal(friendsBadgeCount(EMPTY_FRIEND_LISTS, parsed.map((p) => ({ ...p, seen: true }))), 0);
+});

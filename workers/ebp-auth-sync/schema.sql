@@ -191,3 +191,25 @@ ALTER TABLE users ADD COLUMN share_favorites_with_friends INTEGER NOT NULL DEFAU
 -- church. NULL means "not chosen yet", which follows show_church_location:
 -- someone who hides their church is not revealed as a member until they opt in.
 ALTER TABLE users ADD COLUMN suggest_to_church_members INTEGER CHECK(suggest_to_church_members IN (0,1));
+
+-- Friends ("Hermanos"), phase 3: a playlist sent to one friend.
+-- It is a copy taken when it was sent, not a live link to the sender's list.
+CREATE TABLE IF NOT EXISTS shared_playlists (
+  id TEXT PRIMARY KEY,
+  from_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  to_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  hymn_ids_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  seen_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_shared_playlists_to ON shared_playlists(to_user, created_at DESC);
+
+-- Likes on individual verse and hymn comments (and replies).
+CREATE TABLE IF NOT EXISTS verse_comment_likes (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  comment_id TEXT NOT NULL REFERENCES verse_comments(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY(user_id, comment_id)
+);
+CREATE INDEX IF NOT EXISTS idx_verse_comment_likes_comment ON verse_comment_likes(comment_id);

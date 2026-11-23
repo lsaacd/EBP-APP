@@ -119,3 +119,61 @@ export function parseSuggestions(payload: unknown): FriendSuggestions {
     hasChurch: data.hasChurch !== false,
   };
 }
+
+// ── Phase 3: playlists shared between friends ───────────────────────────────
+
+export type SharedPlaylist = {
+  id: string;
+  fromUserId: string;
+  fromName: string;
+  fromInitials: string;
+  name: string;
+  hymnIds: string[];
+  createdAt: number;
+  seen: boolean;
+};
+
+export function parseSharedPlaylists(payload: unknown): SharedPlaylist[] {
+  const data = (payload ?? {}) as Record<string, unknown>;
+  if (!Array.isArray(data.playlists)) return [];
+  const out: SharedPlaylist[] = [];
+  for (const row of data.playlists) {
+    if (!row || typeof row !== 'object') continue;
+    const item = row as Record<string, unknown>;
+    if (
+      typeof item.id !== 'string' ||
+      typeof item.fromUserId !== 'string' ||
+      typeof item.fromName !== 'string' ||
+      typeof item.name !== 'string'
+    ) {
+      continue;
+    }
+    const hymnIds = Array.isArray(item.hymnIds)
+      ? item.hymnIds
+          .filter((id) => typeof id === 'string' || typeof id === 'number')
+          .map((id) => String(id).trim())
+          .filter((id) => id.length > 0 && id.length <= 12)
+          .slice(0, 200)
+      : [];
+    out.push({
+      id: item.id,
+      fromUserId: item.fromUserId,
+      fromName: item.fromName,
+      fromInitials: typeof item.fromInitials === 'string' ? item.fromInitials : '',
+      name: item.name,
+      hymnIds,
+      createdAt: typeof item.createdAt === 'number' && Number.isFinite(item.createdAt) ? item.createdAt : 0,
+      seen: item.seen === true,
+    });
+  }
+  return out;
+}
+
+/** Total badge count for the "Hermanos" row: pending requests + unseen shared playlists. */
+export function friendsBadgeCount(
+  lists: FriendLists,
+  sharedPlaylists: SharedPlaylist[],
+): number {
+  const unseenPlaylists = sharedPlaylists.reduce((acc, item) => acc + (item.seen ? 0 : 1), 0);
+  return lists.incoming.length + unseenPlaylists;
+}

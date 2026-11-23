@@ -527,6 +527,119 @@ test("failed edit restores the old row and retains the editable text", async () 
   );
   f.unmount();
 });
+test("replying to a comment that no longer exists keeps the text and drops the reply", async () => {
+  const f = fixture();
+  await f.ready([comment("parent")]);
+  f.button("Responder").props.onPress();
+  await flush();
+  f.input().props.onChangeText("Amen");
+  await flush();
+  f.send().props.onPress();
+  await flush();
+  const post = f.requests.find((r) => r.method === "POST");
+  assert.equal(post.body.parentId, "parent");
+  post.reject(new Error("invalid_parent"));
+  await flush();
+  f.requests.at(-1).resolve({ comments: [], nextCursor: null });
+  await flush();
+
+  // The words are kept, the composer is no longer stuck in "Respondiendo".
+  assert.equal(f.input().props.value, "Amen");
+  assert.equal(
+    f.all("Text").some((n) => f.texts(n) === "Respondiendo · Cancelar"),
+    false,
+  );
+  assert.equal(
+    f.all("Text").some((n) => f.texts(n).includes("ya no existe")),
+    true,
+  );
+
+  // Sending again posts it as a new comment, with a fresh request id.
+  f.send().props.onPress();
+  await flush();
+  const retry = f.requests.filter((r) => r.method === "POST").at(-1);
+  assert.equal(retry.body.parentId, undefined);
+  assert.equal(retry.body.body, "Amen");
+  assert.notEqual(retry.body.clientRequestId, post.body.clientRequestId);
+  retry.resolve({ id: "fresh" });
+  await flush();
+  f.unmount();
+});
+test("a failed send does not make an empty comment list claim to be offline", async () => {
+  const f = fixture();
+  await f.ready([]);
+  f.input().props.onChangeText("Gloria a Dios");
+  await flush();
+  f.send().props.onPress();
+  await flush();
+  f.requests.find((r) => r.method === "POST").reject(new Error("rate_limited"));
+  await flush();
+  f.requests.at(-1).resolve({ comments: [], nextCursor: null });
+  await flush();
+  const shown = f.all("Text").map((n) => f.texts(n));
+  assert.equal(shown.includes("Comentarios disponibles con conexión"), false);
+  assert.equal(shown.includes("No hay comentarios aún"), true);
+  f.unmount();
+});
+test("liking a comment updates optimistically, reconciles with server count, and rolls back on failure", async () => {
+  const f = fixture();
+  await f.ready([{ ...comment("c1", "Amén"), likesCount: 2, likedByMe: false }]);
+  const likeBtn = () =>
+    f
+      .all("Pressable")
+      .find(
+        (n) =>
+          n.props.accessibilityLabel === "Me gusta" ||
+          n.props.accessibilityLabel === "Quitar me gusta",
+      );
+  assert.equal(likeBtn().props.accessibilityLabel, "Me gusta");
+  assert.equal(f.texts(likeBtn()), "2");
+
+  // Optimistic like increments immediately.
+  likeBtn().props.onPress();
+  await flush();
+  assert.equal(likeBtn().props.accessibilityLabel, "Quitar me gusta");
+  assert.equal(f.texts(likeBtn()), "3");
+  const postLike = f.requests.find((r) => r.path === "/verse-comments/c1/like");
+  assert.deepEqual(postLike.body, { liked: true });
+  // Server reconciles count to 4 (e.g. another user liked concurrently).
+  postLike.resolve({ ok: true, liked: true, likesCount: 4 });
+  await flush();
+  assert.equal(f.texts(likeBtn()), "4");
+
+  // Failed unlike rolls back to liked=true and count=4.
+  likeBtn().props.onPress();
+  await flush();
+  assert.equal(likeBtn().props.accessibilityLabel, "Me gusta");
+  assert.equal(f.texts(likeBtn()), "3");
+  const postUnlike = f.requests.filter((r) => r.path === "/verse-comments/c1/like").at(-1);
+  postUnlike.reject(new Error("offline"));
+  await flush();
+  assert.equal(likeBtn().props.accessibilityLabel, "Quitar me gusta");
+  assert.equal(f.texts(likeBtn()), "4");
+  f.unmount();
+});
+test("idempotency_conflict regenerates requestId so retrying succeeds without getting stuck", async () => {
+  const f = fixture();
+  await f.ready([]);
+  f.input().props.onChangeText("Aleluya");
+  await flush();
+  f.send().props.onPress();
+  await flush();
+  const first = f.requests.find((r) => r.method === "POST");
+  first.reject(new Error("idempotency_conflict"));
+  await flush();
+  f.requests.at(-1).resolve({ comments: [], nextCursor: null });
+  await flush();
+  assert.equal(f.input().props.value, "Aleluya");
+  f.send().props.onPress();
+  await flush();
+  const retry = f.requests.filter((r) => r.method === "POST").at(-1);
+  assert.notEqual(retry.body.clientRequestId, first.body.clientRequestId);
+  retry.resolve({ id: "recovered" });
+  await flush();
+  f.unmount();
+});
 test("cancelling a reply keeps the typed text and sends it without an obsolete parent", async () => {
   const f = fixture();
   await f.ready([comment("parent")]);

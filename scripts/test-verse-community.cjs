@@ -1358,3 +1358,209 @@ test("church suggestions list only people who chose to be found, from the same c
   assert.deepEqual((await suggest()).users.map((u) => u.name), ["Opted Olga"]);
   assert.equal((await f.call("/friends/suggestions", "GET")).status, 401);
 });
+
+// ── Comment likes ───────────────────────────────────────────────────────────
+test("members can like and unlike comments and replies, sort=top ranks liked comments first, and blocks/deletes clean up", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" }),
+    b = await f.account({ name: "Beto Luna" }),
+    c = await f.account({ name: "Carlos Sol" }),
+    unverified = await f.account({ name: "Unverified", verified: false });
+
+  const c1 = await f.post(a, "Primer comentario");
+  const c2 = await f.post(b, "Segundo comentario");
+  const reply = await f.post(a, "Una respuesta edificante", c1.data.id);
+  assert.equal(c1.status, 201);
+  assert.equal(c2.status, 201);
+  assert.equal(reply.status, 201);
+
+  // Guests and unverified accounts cannot like comments.
+  assert.equal(
+    (await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: true })).status,
+    401,
+  );
+  assert.equal(
+    (await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: true }, unverified.token)).status,
+    403,
+  );
+  // Invalid payload rejected.
+  assert.equal(
+    (await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: "yes" }, a.token)).status,
+    400,
+  );
+
+  // Two likes on c2 (0 replies) beat c1 (1 reply, 0 likes) in sort=top.
+  const l1 = await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: true }, a.token);
+  assert.equal(l1.status, 200);
+  assert.deepEqual(l1.data, { ok: true, liked: true, likesCount: 1 });
+  // Idempotent duplicate like does not double count.
+  const l1Dup = await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: true }, a.token);
+  assert.deepEqual(l1Dup.data, { ok: true, liked: true, likesCount: 1 });
+
+  const l2 = await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: true }, c.token);
+  assert.deepEqual(l2.data, { ok: true, liked: true, likesCount: 2 });
+
+  // Replies can also be liked.
+  const rLike = await f.call(`/verse-comments/${reply.data.id}/like`, "POST", { liked: true }, b.token);
+  assert.deepEqual(rLike.data, { ok: true, liked: true, likesCount: 1 });
+
+  // GET comments returns likesCount and per-viewer likedByMe.
+  const topForA = (await f.call("/verses/juan-14-6/comments?sort=top", "GET", undefined, a.token)).data.comments;
+  assert.equal(topForA[0].id, c2.data.id);
+  assert.equal(topForA[0].likesCount, 2);
+  assert.equal(topForA[0].likedByMe, true);
+  assert.equal(topForA[1].id, c1.data.id);
+  assert.equal(topForA[1].likesCount, 0);
+  assert.equal(topForA[1].likedByMe, false);
+  assert.equal(topForA[1].replies[0].likesCount, 1);
+  assert.equal(topForA[1].replies[0].likedByMe, false);
+
+  const topForGuest = (await f.call("/verses/juan-14-6/comments?sort=top", "GET")).data.comments;
+  assert.equal(topForGuest[0].likesCount, 2);
+  assert.equal(topForGuest[0].likedByMe, false);
+
+  // Unlike decrements cleanly.
+  const unlike = await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: false }, a.token);
+  assert.deepEqual(unlike.data, { ok: true, liked: false, likesCount: 1 });
+
+  // Blocked users cannot like each other's comments (404).
+  await f.call(`/users/${b.id}/block`, "POST", {}, c.token);
+  assert.equal(
+    (await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: true }, c.token)).status,
+    404,
+  );
+
+  // Deleting an account removes its comment likes.
+  const del = await f.call("/auth/account", "DELETE", undefined, c.token);
+  assert.equal(del.status, 200);
+  const afterDel = (await f.call("/verses/juan-14-6/comments?sort=newest", "GET")).data.comments;
+  const c2Row = afterDel.find((x) => x.id === c2.data.id);
+  assert.equal(c2Row.likesCount, 0);
+});
+
+// ── Friends, phase 3 (shared playlists) ─────────────────────────────────────
+test("only accepted friends can send playlist copies, recipient can list, mark seen, and delete; blocks and account deletion clean up", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" }),
+    b = await f.account({ name: "Beto Luna" }),
+    stranger = await f.account({ name: "Extraño" });
+
+  // Guests cannot list or send.
+  assert.equal((await f.call("/playlists/shared", "GET")).status, 401);
+  assert.equal(
+    (await f.call(`/friends/${b.id}/playlists`, "POST", { name: "Domingo", hymnIds: ["1"] })).status,
+    401,
+  );
+
+  // Non-friends and pending requests cannot send playlists (403 not_friends).
+  assert.equal(
+    (await f.call(`/friends/${b.id}/playlists`, "POST", { name: "Domingo", hymnIds: ["1"] }, stranger.token)).status,
+    403,
+  );
+  await ask(f, a, b);
+  assert.equal(
+    (await f.call(`/friends/${b.id}/playlists`, "POST", { name: "Domingo", hymnIds: ["1"] }, a.token)).status,
+    403,
+  );
+
+  // Accept friendship.
+  await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+
+  // Validation rejects empty name, long name, HTML, empty hymnIds, invalid hymnIds, >200 hymns.
+  for (const bad of [
+    { name: "   ", hymnIds: ["1"] },
+    { name: "x".repeat(61), hymnIds: ["1"] },
+    { name: "<script>", hymnIds: ["1"] },
+    { name: "Domingo", hymnIds: [] },
+    { name: "Domingo", hymnIds: ["../bad"] },
+    { name: "Domingo", hymnIds: Array.from({ length: 201 }, (_, i) => String(i + 1)) },
+  ]) {
+    assert.equal(
+      (await f.call(`/friends/${b.id}/playlists`, "POST", bad, a.token)).status,
+      400,
+    );
+  }
+
+  // Send a valid playlist copy (duplicates are deduplicated in order).
+  const sent = await f.call(
+    `/friends/${b.id}/playlists`,
+    "POST",
+    { name: "Culto del domingo", hymnIds: ["7", "315 A", "E12", "7"] },
+    a.token,
+  );
+  assert.equal(sent.status, 201);
+  assert.equal(sent.data.ok, true);
+  assert.ok(sent.data.id);
+
+  // Recipient lists it as unseen.
+  const inbox = await f.call("/playlists/shared", "GET", undefined, b.token);
+  assert.equal(inbox.status, 200);
+  assert.equal(inbox.data.playlists.length, 1);
+  assert.equal(inbox.data.playlists[0].id, sent.data.id);
+  assert.equal(inbox.data.playlists[0].fromUserId, a.id);
+  assert.equal(inbox.data.playlists[0].fromName, "Ana Ruiz");
+  assert.equal(inbox.data.playlists[0].name, "Culto del domingo");
+  assert.deepEqual(inbox.data.playlists[0].hymnIds, ["7", "315 A", "E12"]);
+  assert.equal(inbox.data.playlists[0].seen, false);
+
+  // Someone else cannot mark seen or delete it.
+  await f.call(`/playlists/shared/${sent.data.id}/seen`, "POST", {}, a.token);
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, b.token)).data.playlists[0].seen,
+    false,
+  );
+  await f.call(`/playlists/shared/${sent.data.id}`, "DELETE", undefined, a.token);
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, b.token)).data.playlists.length,
+    1,
+  );
+
+  // Recipient marks seen and then deletes it.
+  assert.equal(
+    (await f.call(`/playlists/shared/${sent.data.id}/seen`, "POST", {}, b.token)).status,
+    200,
+  );
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, b.token)).data.playlists[0].seen,
+    true,
+  );
+  assert.equal(
+    (await f.call(`/playlists/shared/${sent.data.id}`, "DELETE", undefined, b.token)).status,
+    200,
+  );
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, b.token)).data.playlists.length,
+    0,
+  );
+
+  // Blocking removes shared playlists in both directions and prevents new ones.
+  const sent2 = await f.call(
+    `/friends/${b.id}/playlists`,
+    "POST",
+    { name: "Coros juveniles", hymnIds: ["E1", "E2"] },
+    a.token,
+  );
+  assert.equal(sent2.status, 201);
+  await f.call(`/users/${a.id}/block`, "POST", {}, b.token);
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, b.token)).data.playlists.length,
+    0,
+  );
+  assert.equal(
+    (await f.call(`/friends/${b.id}/playlists`, "POST", { name: "Otra", hymnIds: ["1"] }, a.token)).status,
+    403,
+  );
+
+  // Account deletion removes shared playlists (both sent and received).
+  const c = await f.account({ name: "Carlos Sol" });
+  await befriend(f, a, c);
+  assert.equal(
+    (await f.call(`/friends/${c.id}/playlists`, "POST", { name: "Ensayo", hymnIds: ["10"] }, a.token)).status,
+    201,
+  );
+  assert.equal((await f.call("/auth/account", "DELETE", undefined, a.token)).status, 200);
+  assert.equal(
+    (await f.call("/playlists/shared", "GET", undefined, c.token)).data.playlists.length,
+    0,
+  );
+});

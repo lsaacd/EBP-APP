@@ -10,6 +10,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } f
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { usePlaylists } from '../context/PlaylistsContext';
 import { fonts } from '../theme/theme';
 import { MINISTRIES, CHOIRS } from '../data/communityRules';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
@@ -22,6 +23,7 @@ import {
   type FriendFavorites,
   type FriendProfile,
   type FriendStatus,
+  type SharedPlaylist,
 } from '../utils/friends';
 import { useFriends } from '../utils/friendsStore';
 import AppMenuIcon from './AppMenuIcon';
@@ -42,9 +44,23 @@ export default function FriendsPanel({
   const { theme, isDarkMode } = useTheme();
   const { language, hymnLanguage, t } = useLanguage();
   const { user, updateProfile } = useAuth();
+  const { importPlaylist } = usePlaylists();
   const es = language !== 'en';
-  const { lists, suggestions, loading, refresh, refreshSuggestions, fetchFavorites } = useFriends();
+  const {
+    lists,
+    suggestions,
+    sharedPlaylists,
+    loading,
+    refresh,
+    refreshSuggestions,
+    fetchFavorites,
+    markSharedPlaylistSeen,
+    deleteSharedPlaylist,
+  } = useFriends();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openSharedId, setOpenSharedId] = useState<string | null>(null);
+  const [savedSharedIds, setSavedSharedIds] = useState<Record<string, boolean>>({});
+  const [deletingSharedId, setDeletingSharedId] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Record<string, FavoritesState>>({});
   const [showAllFor, setShowAllFor] = useState<string | null>(null);
   const [savingSwitch, setSavingSwitch] = useState<string | null>(null);
@@ -284,12 +300,225 @@ export default function FriendsPanel({
     </View>
   );
 
+  const toggleSharedPlaylist = (item: SharedPlaylist) => {
+    Haptics.selectionAsync();
+    const opening = openSharedId !== item.id;
+    setOpenSharedId(opening ? item.id : null);
+    if (opening && !item.seen) {
+      void markSharedPlaylistSeen(item.id);
+    }
+  };
+
+  const handleSaveSharedPlaylist = (item: SharedPlaylist) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    importPlaylist(item.name, item.hymnIds);
+    setSavedSharedIds((prev) => ({ ...prev, [item.id]: true }));
+    if (!item.seen) {
+      void markSharedPlaylistSeen(item.id);
+    }
+  };
+
+  const handleDeleteSharedPlaylist = (item: SharedPlaylist) => {
+    if (deletingSharedId) return;
+    Haptics.selectionAsync();
+    setDeletingSharedId(item.id);
+    deleteSharedPlaylist(item.id)
+      .then(() => {
+        if (openSharedId === item.id) setOpenSharedId(null);
+      })
+      .catch((e) => Alert.alert(t.churchError, communityError(e, es)))
+      .finally(() => setDeletingSharedId(null));
+  };
+
+  const renderSharedPlaylistsSection = () => {
+    if (sharedPlaylists.length === 0) return null;
+    return (
+      <View style={{ gap: 8 }}>
+        <Text style={[styles.sectionHeader, { color: mutedText }]}>
+          {`${t.friendsSharedPlaylists} (${sharedPlaylists.length})`}
+        </Text>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          {sharedPlaylists.map((item, index) => {
+            const open = openSharedId === item.id;
+            const saved = savedSharedIds[item.id] === true;
+            const known = item.hymnIds
+              .map((id) => hymnById.get(id))
+              .filter(Boolean) as { id: string; number: string; title: string }[];
+            const countLabel = `${known.length} ${known.length === 1 ? t.songCount_one : t.songCount_other}`;
+            const senderLabel = t.friendsSharedBy.replace('{name}', item.fromName);
+            return (
+              <View key={item.id}>
+                {index > 0 && <View style={[styles.divider, { backgroundColor: divider }]} />}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: open }}
+                  onPress={() => toggleSharedPlaylist(item)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    pressed && {
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D',
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: isDarkMode ? 'rgba(181,69,69,0.24)' : theme.primary + '16',
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="music.note.list"
+                      android="queue-music"
+                      color={isDarkMode ? '#F0A8A8' : theme.primary}
+                      size={19}
+                    />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ ...fonts.sansSemiBold, fontSize: 16, color: theme.onSurface, flexShrink: 1 }}
+                      >
+                        {item.name}
+                      </Text>
+                      {!item.seen ? (
+                        <View
+                          style={{
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 999,
+                            backgroundColor: '#D64545',
+                          }}
+                        >
+                          <Text style={{ ...fonts.sansBold, fontSize: 10.5, color: '#FFFFFF' }}>
+                            {t.friendsSharedNewBadge}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text numberOfLines={1} style={{ ...fonts.sansRegular, fontSize: 13, color: mutedText }}>
+                      {`${senderLabel} · ${countLabel}`}
+                    </Text>
+                  </View>
+                  <AppMenuIcon
+                    ios={open ? 'chevron.up' : 'chevron.down'}
+                    android={open ? 'expand-less' : 'expand-more'}
+                    color={mutedText}
+                    size={13}
+                    weight="semibold"
+                  />
+                </Pressable>
+
+                {open && (
+                  <View style={styles.details}>
+                    <View style={{ gap: 2 }}>
+                      {known.map((hymn) => (
+                        <Pressable
+                          key={hymn.id}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            onOpenHymn?.(hymn.id);
+                          }}
+                          style={({ pressed }) => [styles.hymnRow, pressed && { opacity: 0.6 }]}
+                        >
+                          <Text style={{ ...fonts.bold, fontSize: 15, color: theme.primary, width: 44 }} numberOfLines={1}>
+                            {hymn.number}
+                          </Text>
+                          <Text style={{ ...fonts.sansRegular, fontSize: 14.5, color: theme.onSurface, flex: 1 }} numberOfLines={1}>
+                            {hymn.title}
+                          </Text>
+                          <AppMenuIcon ios="chevron.right" android="chevron-right" color={mutedText} size={11} weight="semibold" />
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={saved || known.length === 0}
+                        onPress={() => handleSaveSharedPlaylist(item)}
+                        style={({ pressed }) => ({
+                          flex: 1,
+                          minHeight: 40,
+                          borderRadius: 12,
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          backgroundColor: saved
+                            ? isDarkMode
+                              ? 'rgba(52,199,89,0.20)'
+                              : 'rgba(52,199,89,0.14)'
+                            : theme.primary,
+                          opacity: pressed ? 0.8 : 1,
+                        })}
+                      >
+                        <AppMenuIcon
+                          ios={saved ? 'checkmark' : 'plus'}
+                          android={saved ? 'check' : 'playlist-add'}
+                          color={saved ? '#34C759' : theme.onPrimary}
+                          size={15}
+                          weight="semibold"
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            ...fonts.sansSemiBold,
+                            fontSize: 13.5,
+                            color: saved ? '#34C759' : theme.onPrimary,
+                          }}
+                        >
+                          {saved ? t.friendsPlaylistSaved : t.friendsSavePlaylist}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={deletingSharedId === item.id}
+                        onPress={() => handleDeleteSharedPlaylist(item)}
+                        style={({ pressed }) => ({
+                          minHeight: 40,
+                          borderRadius: 12,
+                          paddingHorizontal: 14,
+                          paddingVertical: 8,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.surfaceVariants.containerHigh,
+                          opacity: deletingSharedId === item.id ? 0.5 : pressed ? 0.75 : 1,
+                        })}
+                      >
+                        <Text style={{ ...fonts.sansSemiBold, fontSize: 13.5, color: mutedText }}>
+                          {t.friendsRemoveSharedPlaylist}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   const nobody =
-    lists.friends.length + lists.incoming.length + lists.outgoing.length + suggestions.users.length === 0;
+    lists.friends.length +
+      lists.incoming.length +
+      lists.outgoing.length +
+      suggestions.users.length +
+      sharedPlaylists.length ===
+    0;
 
   return (
     <View style={{ gap: 18 }}>
       {section(t.friendsRequests, lists.incoming, 'incoming')}
+      {renderSharedPlaylistsSection()}
       {section(t.friendsMine, lists.friends, 'friends')}
       {section(t.friendsFromMyChurch, suggestions.users, 'none')}
       {section(t.friendsSent, lists.outgoing, 'outgoing')}
