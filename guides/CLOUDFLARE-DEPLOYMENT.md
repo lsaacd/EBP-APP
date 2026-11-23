@@ -14,6 +14,7 @@ From the repository root, after reviewing and testing the intended website chang
 This is a publishing command. Use it for an authorized release, not as a local check.
 
 The script regenerates share pages and the Apple association file, stages `docs/` without the large audio directory, injects the audio base into staged `js/storage-config.js`, and deploys Pages to branch `main`. Keep credentials out of source.
+The script uses the active Wrangler OAuth session or an already configured process token. It does not read the stale `.env.cloudflare` file.
 
 Omit `-SkipAudioUpload` only when intentionally uploading the local `docs/audio/*.m4a` recordings to R2. Routine HTML/CSS/JS changes do not need another audio upload.
 

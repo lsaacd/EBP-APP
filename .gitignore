@@ -18,6 +18,8 @@ scratch/
 .cloudflare-pages-stage/
 .wrangler/
 .wrangler-cache/
+workers/ebp-auth-sync/.expo-worker-*/
+himnario/.expo-worker-*/
 __pycache__/
 *.pyc
 
