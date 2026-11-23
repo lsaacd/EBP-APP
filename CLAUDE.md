@@ -1,6 +1,6 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 22, 2026 (late evening — after iOS Build 31 and OTA `a08f14ab`)
+> **Last Updated:** November 22, 2026 (late evening — after iOS Build 31 and OTA `03709a08`; updated November 23)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
 > **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-media-3"` (iOS Builds #30 and #31 on App Store Connect / TestFlight)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
@@ -27,9 +27,9 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
   - EAS Build: `2105a538-0d18-4d29-83f6-a922c35ac656` (auto-submitted via `e1843910-ba89-4066-9549-1a6bb45b077b`). Same native modules as Build #30 plus the Look Around fix (presented directly, scene requested by map item).
   - Apple accepted it with warning **ITMS-90725** (built with the iOS 26 SDK; Xcode 27 required from April 2027). See open task 1.
   - Build #30 (`b6501dac-6ab5-4a5f-86e1-1740ce1036d3`) is still installed on some devices and shares the same runtime.
-- **Latest iOS OTA on `production` / `2.0.0-media-3`:** update group `a08f14ab-e56c-4b6f-acc2-26b05f7740ad` (hymn number label, hymn QR, miles + km, near-me opens the closest church). It contains everything in section 6. Earlier groups: `b58d065d-b081-4161-9d7f-67ab1695cc1d`, `d351bb27-fd01-46bb-b304-393d7258d8a6`, `78f9b043-d4a3-4337-b59f-6a299003ac05`, `4cb9ae0d-49bc-4385-85ce-f11e02914322`.
+- **Latest iOS OTA on `production` / `2.0.0-media-3`:** update group `03709a08-ad27-47f4-af2b-60593f0213e1` ("Más gustados" ranking, name-only leader field). It contains everything in section 6. Earlier groups: `a08f14ab-e56c-4b6f-acc2-26b05f7740ad`, `b58d065d-b081-4161-9d7f-67ab1695cc1d`, `d351bb27-fd01-46bb-b304-393d7258d8a6`, `78f9b043-d4a3-4337-b59f-6a299003ac05`, `4cb9ae0d-49bc-4385-85ce-f11e02914322`.
 - **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`).
-- **Cloudflare Worker (`ebp-himnario-sync`):** Version `3e08460e-b5b5-4f99-97f1-eaa8bac1365b` at `https://ebp-himnario-sync.himnario.workers.dev`. Unchanged on November 22 evening.
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `ba6eb62e-973d-43dd-b5c4-815974459235` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; adds the public `GET /hymns/top` ranking, nothing else changed from `3e08460e`).
 - **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0008` applied live. One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title). The seed in `migrations/0008_church_gallery_and_link.sql` still has the old value.
 - **Cloudflare R2 (`ebp-himnario-audio` → `https://audio.himnarioebp.com/`):** Hosts hymn `.m4a` audio, `verse-backgrounds/{1,2}.png`, `hymn-covers/*.png`, and `church-photos/` (`riverbank-ca-{1,2}.jpg` + user uploads under `church-photos/uploads/<uuid>.<ext>`).
 - **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `afdbd124.ebp-himnario.pages.dev` (November 22, from commit `285e83e`), published with `scripts/deploy-cloudflare.ps1 -AudioBaseUrl "https://audio.himnarioebp.com" -SkipAudioUpload`. Note: that script regenerates the static hymn pages, which rewrites ~1,500 files with different line endings on Windows; the content is identical, so `git checkout -- docs/` afterwards. Cloudflare caches at the edge, so a removed file can still be served for a while — purge in the dashboard if it matters.
@@ -124,5 +124,7 @@ All of this is in OTA `d351bb27` and iOS Build 31. Details in [guides/APP-EDITIN
 - **Typography:** native system fonts on both platforms via `theme/fonts.ts`.
 - **Hymn reader and share (OTA `a08f14ab`):** label above the title (`t.hymnNumberLabel` / `t.chorusNumberLabel`); share sheet has a "Código QR" page (`components/HymnQrPanel.tsx`) encoding `https://himnarioebp.com/hymn/<id>/` for people without the app.
 - **Distances and near me (OTA `a08f14ab`):** `formatDistance()` shows both units ("38 mi (61 km)"); "Cerca de mí" uses `nearestIndex()` to open the closest church.
+- **"Más gustados" (OTA `03709a08`, Worker `ba6eb62e`):** a chip beside "Todos" in the Himnos tab lists liked hymns most-liked first (`utils/topHymns.ts`, `utils/hymnRanking.ts`, `GET /hymns/top`). Likes only; never show dislike counts or rank unliked hymns.
+- **Church leader field (OTA `03709a08`):** the form takes only the name; `servantDisplayName()` adds "SDD Hno" (or keeps "Hna"), `servantBareName()` strips titles for the field.
 - **Look Around (native, Build 31):** presented directly so it is interactive at once.
 - **Church QR code (OTA `b58d065d`):** back on the card with Share and Print. Encoded on the device by `utils/qrPath.ts` and drawn with `react-native-svg`; printing emits the same path as inline SVG. Do not reintroduce the old `api.qrserver.com` image — it needed a network and a third party.
