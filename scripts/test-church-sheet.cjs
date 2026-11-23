@@ -314,10 +314,43 @@ test('friend favourites and church suggestions are read defensively', () => {
   assert.deepEqual(parseFriendFavorites({ shared: false, favorites: ['7'] }), { shared: false, favorites: [] });
   assert.deepEqual(parseFriendFavorites(null), { shared: true, favorites: [] });
 
-  assert.deepEqual(parseSuggestions({ users: [], hasChurch: false }), { users: [], hasChurch: false });
-  assert.deepEqual(parseSuggestions(undefined), { users: [], hasChurch: true });
-  const some = parseSuggestions({ users: [{ id: 'u1', name: 'Vera' }, { nope: 1 }], hasChurch: true });
+  assert.deepEqual(parseSuggestions({ users: [], hasChurch: false }), {
+    users: [],
+    hasChurch: false,
+    churchId: null,
+    churchName: null,
+    churchMembers: [],
+    churchMembersNextOffset: null,
+  });
+  assert.deepEqual(parseSuggestions(undefined), {
+    users: [],
+    hasChurch: true,
+    churchId: null,
+    churchName: null,
+    churchMembers: [],
+    churchMembersNextOffset: null,
+  });
+  const some = parseSuggestions({
+    users: [{ id: 'u1', name: 'Vera' }, { nope: 1 }],
+    hasChurch: true,
+    churchId: 'church-riverbank-ca',
+    churchName: 'Riverbank',
+    churchMembers: [
+      { invalid: true },
+      { id: 'u2', name: 'Isaac V2', friendStatus: 'friends' },
+      { id: 'u1', name: 'Vera', friendStatus: 'none' },
+    ],
+  });
   assert.deepEqual(some.users.map((u) => u.name), ['Vera']);
+  assert.equal(some.churchId, 'church-riverbank-ca');
+  assert.equal(some.churchName, 'Riverbank');
+  assert.deepEqual(
+    some.churchMembers.map((m) => [m.name, m.friendStatus]),
+    [
+      ['Isaac V2', 'friends'],
+      ['Vera', 'none'],
+    ],
+  );
 });
 
 test('shared playlists and combined friends badge count are parsed defensively', () => {

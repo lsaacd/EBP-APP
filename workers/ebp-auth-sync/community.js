@@ -463,7 +463,8 @@ export async function handleCommunity(
   if (path === "/auth/profile" && method === "PUT") {
     if (!user) fail(401, "unauthorized");
     await quota(env, `profile:${user.id}`, 20, 60000);
-    const p = profile(await bodyOf(request), user);
+    const body = await bodyOf(request);
+    const p = profile(body, user);
     if (p.choir != null && !Object.hasOwn(CHOIRS, p.choir)) {
       const approvedChoir = await env.DB.prepare(
         "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
@@ -472,8 +473,8 @@ export async function handleCommunity(
         .first();
       if (!approvedChoir) fail(400, "invalid_choir");
     }
-    await env.DB.prepare(
-      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
+    const saved = await env.DB.prepare(
+      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=CASE WHEN ?14=1 THEN ?8 ELSE church_id END,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1 RETURNING church_id",
     )
       .bind(
         user.id,
@@ -489,12 +490,14 @@ export async function handleCommunity(
         p.notify_comment_likes,
         p.notify_comment_replies,
         p.notify_friends,
+        body.churchId === undefined ? 0 : 1,
       )
-      .run();
+      .first();
     return json({
       user: serializeUser({
         ...user,
         ...p,
+        church_id: saved?.church_id ?? null,
         badge_verified: user.ministry === p.ministry ? user.badge_verified : 0,
       }),
     });
@@ -1022,23 +1025,116 @@ export async function handleCommunity(
   }
   // Phase 4: people who linked the same verified church. Only those who chose
   // to be suggested, or who already show their church publicly.
-  if (path === "/friends/suggestions" && method === "GET") {
-    if (!user) fail(401, "unauthorized");
-    if (!user.church_id)
-      return json({ users: [], hasChurch: false }, 200, { "Cache-Control": "private, no-store" });
+  const resolveUserChurchId = async () => {
+    if (!user) return null;
+    if (user.church_id) {
+      const linked = await env.DB.prepare(
+        "SELECT id FROM churches WHERE id=?1 AND status='approved' AND verified=1",
+      ).bind(user.church_id).first();
+      return linked?.id ?? null;
+    }
+    const rawName = typeof user?.church_name === "string" ? user.church_name.trim() : "";
+    if (!rawName) return null;
+    const matches = await all(
+      "SELECT id FROM churches WHERE status='approved' AND verified=1 AND (LOWER(name)=LOWER(?1) OR LOWER(city)=LOWER(?1)) LIMIT 2",
+      rawName,
+    );
+    if (matches.length !== 1) return null;
+    const repaired = await env.DB.prepare(
+      "UPDATE users SET church_id=?2 WHERE id=?1 AND church_id IS NULL AND church_name=?3 RETURNING church_id",
+    ).bind(user.id, matches[0].id, user.church_name).first();
+    return repaired?.church_id ?? null;
+  };
+  const listChurchMembers = async (churchId, offset) => {
     const rows = await all(
-      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
+              f.status AS f_status, f.requested_by AS f_requested_by
        FROM users u
+       LEFT JOIN friendships f
+         ON (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id)
        WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
          AND COALESCE(u.suggest_to_church_members,u.show_church_location)=1
          AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
-         AND NOT EXISTS(SELECT 1 FROM friendships f WHERE (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id))
-       ORDER BY u.name COLLATE NOCASE ASC LIMIT 20`,
+       ORDER BY u.name COLLATE NOCASE ASC, u.id ASC LIMIT 51 OFFSET ?3`,
       user.id,
-      user.church_id,
+      churchId,
+      offset,
     );
+    const members = rows.slice(0, 50).map((row) => {
+      const friendStatus =
+        row.f_status === "accepted"
+          ? "friends"
+          : row.f_status === "pending"
+            ? row.f_requested_by === user.id
+              ? "outgoing"
+              : "incoming"
+            : "none";
+      return {
+        ...friendSummary(row, friendStatus === "friends"),
+        friendStatus,
+      };
+    });
+    return { members, nextOffset: rows.length > 50 ? offset + 50 : null };
+  };
+  const churchMembersOffset = () => {
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    if (!Number.isSafeInteger(offset) || offset < 0) fail(400, "invalid_offset");
+    return offset;
+  };
+  if (path === "/friends/suggestions" && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const resolvedChurchId = await resolveUserChurchId();
+    if (!resolvedChurchId)
+      return json({ users: [], hasChurch: false }, 200, { "Cache-Control": "private, no-store" });
+    const [rows, directory, churchRow] = await Promise.all([
+      all(
+        `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+         FROM users u
+         WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
+           AND COALESCE(u.suggest_to_church_members,u.show_church_location)=1
+           AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
+           AND NOT EXISTS(SELECT 1 FROM friendships f WHERE (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id))
+         ORDER BY u.name COLLATE NOCASE ASC LIMIT 20`,
+        user.id,
+        resolvedChurchId,
+      ),
+      listChurchMembers(resolvedChurchId, churchMembersOffset()),
+      env.DB.prepare("SELECT name FROM churches WHERE id=?1 LIMIT 1")
+        .bind(resolvedChurchId)
+        .first(),
+    ]);
     return json(
-      { users: rows.map((row) => friendSummary(row, false)), hasChurch: true },
+      {
+        users: rows.map((row) => friendSummary(row, false)),
+        hasChurch: true,
+        churchId: resolvedChurchId,
+        churchName: churchRow?.name || user.church_name || null,
+        churchMembers: directory.members,
+        churchMembersNextOffset: directory.nextOffset,
+      },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
+  const churchMembersMatch = path.match(/^\/churches\/([a-zA-Z0-9_-]{3,64})\/members$/);
+  if (churchMembersMatch && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const churchId = churchMembersMatch[1];
+    const resolvedChurchId = await resolveUserChurchId();
+    if (!resolvedChurchId || resolvedChurchId !== churchId)
+      fail(403, "not_church_member");
+    const [directory, churchRow] = await Promise.all([
+      listChurchMembers(churchId, churchMembersOffset()),
+      env.DB.prepare("SELECT name FROM churches WHERE id=?1 LIMIT 1")
+        .bind(churchId)
+        .first(),
+    ]);
+    return json(
+      {
+        churchId,
+        churchName: churchRow?.name || user.church_name || null,
+        ...directory,
+      },
       200,
       { "Cache-Control": "private, no-store" },
     );

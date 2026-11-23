@@ -10,6 +10,7 @@ import {
   EMPTY_FRIEND_LISTS,
   EMPTY_SUGGESTIONS,
   friendsBadgeCount,
+  mergeChurchMembers,
   parseFriendFavorites,
   parseFriendLists,
   parseFriendStatus,
@@ -118,11 +119,17 @@ export function useFriends() {
   );
 
   /** People from the same linked church. Only the friends page asks for this. */
-  const refreshSuggestions = useCallback(async () => {
+  const refreshSuggestions = useCallback(async (offset = 0) => {
     if (!userId) return;
     try {
-      const next = parseSuggestions(await api('/friends/suggestions'));
+      const next = parseSuggestions(await api(`/friends/suggestions?offset=${offset}`));
       const current = cache && cache.userId === userId ? cache : null;
+      if (offset) {
+        if (!current?.suggestions.churchId ||
+            current.suggestions.churchId !== next.churchId ||
+            current.suggestions.churchMembersNextOffset !== offset) return;
+        next.churchMembers = mergeChurchMembers(current.suggestions.churchMembers, next.churchMembers);
+      }
       publish({
         userId,
         lists: current?.lists ?? EMPTY_FRIEND_LISTS,

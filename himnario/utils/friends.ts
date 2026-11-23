@@ -104,19 +104,58 @@ export function parseFriendFavorites(payload: unknown): FriendFavorites {
 
 // ── Phase 4: people from the same church ────────────────────────────────────
 
+export type ChurchMemberProfile = FriendProfile & {
+  friendStatus: FriendStatus;
+};
+
 export type FriendSuggestions = {
   users: FriendProfile[];
   /** False when the signed-in person has not linked a verified church. */
   hasChurch: boolean;
+  churchId: string | null;
+  churchName: string | null;
+  churchMembers: ChurchMemberProfile[];
+  churchMembersNextOffset: number | null;
 };
 
-export const EMPTY_SUGGESTIONS: FriendSuggestions = { users: [], hasChurch: true };
+export const EMPTY_SUGGESTIONS: FriendSuggestions = {
+  users: [],
+  hasChurch: false,
+  churchId: null,
+  churchName: null,
+  churchMembers: [],
+  churchMembersNextOffset: null,
+};
+
+export function parseChurchMembersOffset(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+export function mergeChurchMembers(current: ChurchMemberProfile[], next: ChurchMemberProfile[]) {
+  return [...new Map([...current, ...next].map(member => [member.id, member])).values()];
+}
+
+export function parseChurchMembers(raw: unknown): ChurchMemberProfile[] {
+  if (!Array.isArray(raw)) return [];
+  const parsed = parseFriendLists({ friends: raw }).friends;
+  const statuses = new Map(raw.filter(row => row && typeof row.id === 'string').map(row => [row.id, row.friendStatus]));
+  return parsed.map((profile) => {
+    return {
+      ...profile,
+      friendStatus: parseFriendStatus(statuses.get(profile.id)) ?? 'none',
+    };
+  });
+}
 
 export function parseSuggestions(payload: unknown): FriendSuggestions {
   const data = (payload ?? {}) as Record<string, unknown>;
   return {
     users: parseFriendLists({ friends: data.users }).friends,
     hasChurch: data.hasChurch !== false,
+    churchId: typeof data.churchId === 'string' && data.churchId ? data.churchId : null,
+    churchName: typeof data.churchName === 'string' && data.churchName ? data.churchName : null,
+    churchMembers: parseChurchMembers(data.churchMembers),
+    churchMembersNextOffset: parseChurchMembersOffset(data.churchMembersNextOffset),
   };
 }
 

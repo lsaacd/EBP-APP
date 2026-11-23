@@ -1328,6 +1328,9 @@ test("church suggestions list only people who chose to be found, from the same c
 
   // Without a linked church there is nobody to suggest.
   assert.deepEqual(await suggest(), { users: [], hasChurch: false });
+  f.sql.prepare(
+    "INSERT OR IGNORE INTO churches (id,name,address,city,country,lat,lng,status,verified,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+  ).run("church-riverbank-ca", "Riverbank", "Test address", "Riverbank", "United States", 37.73, -120.93, "approved", 1, Date.now());
   await saveProfile(f, me, { churchId: "church-riverbank-ca", churchName: "Riverbank" });
 
   const visible = await member("Visible Vera", "church-riverbank-ca", { showChurchLocation: true });
@@ -1831,4 +1834,66 @@ test("Coro Filadelfia is built in, members can suggest choirs, and admin approva
   assert.equal((await f.call("/mod/choirs/betel", "DELETE", undefined, admin.token)).status, 200);
   const memberRow = f.sql.prepare("SELECT choir FROM users WHERE id=?1").get(member.id);
   assert.equal(memberRow.choir, null);
+});
+
+test("church members directory self-heals missing church_id and lists opt-in members and friends privately", async () => {
+  const f = fixture();
+  const me = await f.account({ name: "Isaac" });
+  const friend = await f.account({ name: "Isaac V2" });
+  const optIn = await f.account({ name: "Marta Lopez" });
+  const hidden = await f.account({ name: "Oculto Oscar" });
+  const outsider = await f.account({ name: "Otro Templo" });
+
+  // Seed approved Riverbank church
+  f.sql
+    .prepare(
+      "INSERT OR REPLACE INTO churches (id,name,address,city,country,lat,lng,status,verified,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    )
+    .run("church-riverbank-ca", "IDDV El Buen Pastor — Riverbank", "3109 Santa Fe St", "Riverbank", "United States", 37.73, -120.93, "approved", 1, Date.now());
+
+  // Simulate legacy user whose church_id was wiped while church_name remained
+  f.sql.prepare("UPDATE users SET church_id=NULL, church_name=?1 WHERE id=?2").run("IDDV El Buen Pastor — Riverbank", me.id);
+  await saveProfile(f, friend, { churchId: "church-riverbank-ca", churchName: "IDDV El Buen Pastor — Riverbank", suggestToChurchMembers: true });
+  await saveProfile(f, optIn, { churchId: "church-riverbank-ca", churchName: "IDDV El Buen Pastor — Riverbank", suggestToChurchMembers: true });
+  await saveProfile(f, hidden, { churchId: "church-riverbank-ca", churchName: "IDDV El Buen Pastor — Riverbank", suggestToChurchMembers: false, showChurchLocation: false });
+  await saveProfile(f, outsider, { churchId: "church-modesto-ca", churchName: "Modesto", suggestToChurchMembers: true });
+  await befriend(f, me, friend);
+  await befriend(f, me, hidden);
+
+  // /friends/suggestions self-heals church_id and returns both new suggestions and full churchMembers
+  const res = await f.call("/friends/suggestions", "GET", undefined, me.token);
+  assert.equal(res.status, 200);
+  assert.equal(res.data.hasChurch, true);
+  assert.equal(res.data.churchId, "church-riverbank-ca");
+  assert.deepEqual(res.data.users.map((u) => u.name), ["Marta Lopez"]);
+  assert.deepEqual(
+    res.data.churchMembers.map((u) => [u.name, u.friendStatus]),
+    [
+      ["Isaac V2", "friends"],
+      ["Marta Lopez", "none"],
+    ],
+  );
+  // Confirm church_id was persisted in D1
+  assert.equal(f.sql.prepare("SELECT church_id FROM users WHERE id=?1").get(me.id).church_id, "church-riverbank-ca");
+
+  // GET /churches/:id/members works for linked members, rejects outsiders (403) and guests (401)
+  const dir = await f.call("/churches/church-riverbank-ca/members", "GET", undefined, me.token);
+  assert.equal(dir.status, 200);
+  assert.deepEqual(
+    dir.data.members.map((u) => [u.name, u.friendStatus]),
+    [
+      ["Isaac V2", "friends"],
+      ["Marta Lopez", "none"],
+    ],
+  );
+  assert.equal((await f.call("/churches/church-riverbank-ca/members", "GET", undefined, outsider.token)).status, 403);
+  assert.equal((await f.call("/churches/church-riverbank-ca/members", "GET")).status, 401);
+  assert.deepEqual((await f.call("/churches/church-riverbank-ca/members?offset=1", "GET", undefined, me.token)).data.members.map(u => u.name), ["Marta Lopez"]);
+
+  f.sql.prepare(
+    "INSERT INTO churches (id,name,address,city,country,lat,lng,status,verified,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+  ).run("another-riverbank", "Another church", "Test address", "Riverbank", "United States", 38, -120, "approved", 1, Date.now());
+  f.sql.prepare("UPDATE users SET church_id=NULL, church_name='Riverbank' WHERE id=?1").run(me.id);
+  assert.equal((await f.call("/friends/suggestions", "GET", undefined, me.token)).data.hasChurch, false);
+  assert.equal(f.sql.prepare("SELECT church_id FROM users WHERE id=?1").get(me.id).church_id, null);
 });

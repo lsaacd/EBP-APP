@@ -53,6 +53,10 @@ import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
+import FriendButton from "../components/FriendButton";
+import { mergeChurchMembers, parseChurchMembers, parseChurchMembersOffset, type ChurchMemberProfile } from "../utils/friends";
+import { MINISTRIES, choirDisplayName } from "../data/communityRules";
+import { useApprovedChoirs } from "../utils/choirsStore";
 import { parseServiceTimes } from "../utils/churchSchedule";
 import { churchDisplayName, servantBareName, servantDisplayName } from "../utils/churchName";
 import {
@@ -153,7 +157,7 @@ export default function ChurchesScreen() {
   const { theme, isDarkMode } = useTheme();
   const { language, t } = useLanguage();
   const es = language === "es";
-  const { user, openAuthSheet, updateProfile } = useAuth();
+  const { user, openAuthSheet, updateProfile, refreshUser } = useAuth();
   const { currentHymnId } = useNowPlaying();
   const api = useCommunityApi();
   const mapRef = useRef<MapView | null>(null);
@@ -205,6 +209,13 @@ export default function ChurchesScreen() {
   const [settingMyChurchId, setSettingMyChurchId] = useState<string | null>(
     null,
   );
+  const { bySlug: choirsBySlug } = useApprovedChoirs();
+  const [churchMembersOpen, setChurchMembersOpen] = useState(false);
+  const [churchMembers, setChurchMembers] = useState<ChurchMemberProfile[]>([]);
+  const [churchMembersLoading, setChurchMembersLoading] = useState(false);
+  const [churchMembersFailed, setChurchMembersFailed] = useState(false);
+  const [churchMembersNextOffset, setChurchMembersNextOffset] = useState<number | null>(null);
+  const churchMembersRequest = useRef(0);
 
   // Submit / Add / Edit Church Modal State
   const [submitOpen, setSubmitOpen] = useState(false);
@@ -871,6 +882,43 @@ export default function ChurchesScreen() {
     },
     [t],
   );
+
+  const loadChurchMembers = useCallback(
+    async (churchId: string, offset = 0) => {
+      if (!user) return;
+      const request = ++churchMembersRequest.current;
+      setChurchMembersLoading(true);
+      setChurchMembersFailed(false);
+      try {
+        const res = await api<{ members?: unknown; nextOffset?: unknown }>(
+          `/churches/${encodeURIComponent(churchId)}/members?offset=${offset}`,
+        );
+        if (request !== churchMembersRequest.current) return;
+        const members = parseChurchMembers(res?.members);
+        setChurchMembers(current => offset ? mergeChurchMembers(current, members) : members);
+        setChurchMembersNextOffset(parseChurchMembersOffset(res?.nextOffset));
+        if (!user.churchId) void refreshUser().catch(() => {});
+      } catch {
+        if (request === churchMembersRequest.current) {
+          setChurchMembers([]);
+          setChurchMembersNextOffset(null);
+          setChurchMembersFailed(true);
+        }
+      } finally {
+        if (request === churchMembersRequest.current) setChurchMembersLoading(false);
+      }
+    },
+    [api, refreshUser, user],
+  );
+
+  useEffect(() => {
+    setChurchMembersOpen(false);
+    setChurchMembers([]);
+    setChurchMembersNextOffset(null);
+    setChurchMembersLoading(false);
+    setChurchMembersFailed(false);
+    return () => { churchMembersRequest.current += 1; };
+  }, [selectedChurch?.id, user?.id]);
 
   const handleSetMyChurch = useCallback(
     async (church: VerifiedChurch) => {
@@ -2546,6 +2594,226 @@ export default function ChurchesScreen() {
                   </Text>
                 </Pressable>
                     </View>
+
+              {(() => {
+                const isMyLinkedChurch =
+                  Boolean(user) &&
+                  (user?.churchId === selectedChurch.id ||
+                    (!user?.churchId && user?.churchName === selectedChurch.name));
+                if (!isMyLinkedChurch) return null;
+                return (
+                  <View
+                    style={{
+                      marginTop: 10,
+                      borderRadius: 16,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: isDarkMode
+                        ? "rgba(255,255,255,0.10)"
+                        : theme.outlineVariant + "55",
+                      backgroundColor: isDarkMode
+                        ? "rgba(255,255,255,0.05)"
+                        : theme.surfaceVariants.containerLow,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: churchMembersOpen }}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        const next = !churchMembersOpen;
+                        setChurchMembersOpen(next);
+                        if (next) void loadChurchMembers(selectedChurch.id);
+                      }}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 11,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        opacity: pressed ? 0.84 : 1,
+                      })}
+                    >
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          backgroundColor: isDarkMode
+                            ? "rgba(255,255,255,0.09)"
+                            : theme.primary + "14",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <AppMenuIcon
+                          ios="person.2.fill"
+                          android="group"
+                          color={theme.primary}
+                          size={16}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <Text
+                          style={{
+                            color: theme.onSurface,
+                            ...fonts.sansSemiBold,
+                            fontSize: 14.5,
+                          }}
+                        >
+                          {t.churchMembersRowTitle}
+                        </Text>
+                        <Text
+                          style={{
+                            color: theme.onSurfaceVariant,
+                            ...fonts.sansRegular,
+                            fontSize: 12,
+                          }}
+                        >
+                          {t.churchMembersRowSub}
+                        </Text>
+                      </View>
+                      <AppMenuIcon
+                        ios={churchMembersOpen ? "chevron.up" : "chevron.down"}
+                        android={churchMembersOpen ? "expand-less" : "expand-more"}
+                        color={theme.onSurfaceVariant}
+                        size={13}
+                        weight="semibold"
+                      />
+                    </Pressable>
+
+                    {churchMembersOpen && (
+                      <View
+                        style={{
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: isDarkMode
+                            ? "rgba(255,255,255,0.08)"
+                            : theme.outlineVariant + "55",
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          gap: 10,
+                        }}
+                      >
+                        {churchMembersLoading ? (
+                          <View style={{ paddingVertical: 10, alignItems: "center" }}>
+                            <ActivityIndicator size="small" color={theme.primary} />
+                          </View>
+                        ) : churchMembersFailed ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => void loadChurchMembers(selectedChurch.id)}
+                            style={{ padding: 14 }}
+                          >
+                            <Text style={{ ...fonts.sansSemiBold, color: theme.primary }}>
+                              {t.churchMembersRetry}
+                            </Text>
+                          </Pressable>
+                        ) : churchMembers.length === 0 ? (
+                          <Text
+                            style={{
+                              color: theme.onSurfaceVariant,
+                              ...fonts.sansRegular,
+                              fontSize: 13,
+                              lineHeight: 18,
+                              paddingVertical: 4,
+                            }}
+                          >
+                            {t.churchMembersEmpty}
+                          </Text>
+                        ) : (
+                          churchMembers.map((member) => {
+                            const role = [
+                              member.ministry
+                                ? (MINISTRIES as Record<string, [string, string]>)[member.ministry]?.[es ? 0 : 1]
+                                : null,
+                              member.choir
+                                ? choirDisplayName(member.choir, es, choirsBySlug)
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ");
+                            return (
+                              <View
+                                key={member.id}
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 10,
+                                }}
+                              >
+                                <View
+                                  style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 17,
+                                    backgroundColor: theme.primary,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      ...fonts.sansBold,
+                                      fontSize: 12.5,
+                                      color: theme.onPrimary,
+                                    }}
+                                  >
+                                    {member.initials}
+                                  </Text>
+                                </View>
+                                <View style={{ flex: 1, gap: 1 }}>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{
+                                      color: theme.onSurface,
+                                      ...fonts.sansSemiBold,
+                                      fontSize: 14.5,
+                                    }}
+                                  >
+                                    {member.name}
+                                  </Text>
+                                  {!!role && (
+                                    <Text
+                                      numberOfLines={1}
+                                      style={{
+                                        color: theme.onSurfaceVariant,
+                                        ...fonts.sansRegular,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      {role}
+                                    </Text>
+                                  )}
+                                </View>
+                                <FriendButton
+                                  userId={member.id}
+                                  name={member.name}
+                                  status={member.friendStatus}
+                                  compact
+                                  onStatusChange={() =>
+                                    void loadChurchMembers(selectedChurch.id)
+                                  }
+                                />
+                              </View>
+                            );
+                          })
+                        )}
+                        {!churchMembersLoading && churchMembersNextOffset !== null && (
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => void loadChurchMembers(selectedChurch.id, churchMembersNextOffset)}
+                            style={{ padding: 14 }}
+                          >
+                            <Text style={{ ...fonts.sansSemiBold, color: theme.primary }}>
+                              {t.churchMembersLoadMore}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
 
               {isAdmin && (
                 <View

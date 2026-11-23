@@ -44,7 +44,7 @@ export default function FriendsPanel({
 }) {
   const { theme, isDarkMode } = useTheme();
   const { language, hymnLanguage, t } = useLanguage();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const { importPlaylist } = usePlaylists();
   const es = language !== 'en';
   const {
@@ -69,7 +69,13 @@ export default function FriendsPanel({
   useEffect(() => {
     void refresh();
     void refreshSuggestions();
-  }, [refresh, refreshSuggestions]);
+  }, [refresh, refreshSuggestions, user?.churchId, user?.churchName]);
+
+  useEffect(() => {
+    if (user && !user.churchId && suggestions.churchId) {
+      void refreshUser().catch(() => {});
+    }
+  }, [refreshUser, suggestions.churchId, user]);
 
   // Hymns and choruses by id, in the language the person reads hymns in.
   const hymnById = useMemo(() => {
@@ -509,23 +515,195 @@ export default function FriendsPanel({
     );
   };
 
+  const hasLinkedChurch = Boolean(user?.churchId) || suggestions.hasChurch;
+  const myChurchLabel = churchDisplayName(
+    suggestions.churchName || user?.churchName || '',
+  );
+  const directoryMatchesChurch = !user?.churchId || user.churchId === suggestions.churchId;
+  const churchMembers = directoryMatchesChurch ? suggestions.churchMembers : [];
+
   const nobody =
     lists.friends.length +
       lists.incoming.length +
       lists.outgoing.length +
       suggestions.users.length +
+      churchMembers.length +
       sharedPlaylists.length ===
     0;
+
+  const renderMyChurchMembersSection = () => {
+    if (!hasLinkedChurch) return null;
+    const headerTitle = myChurchLabel
+      ? t.friendsChurchMembersTitle.replace('{church}', myChurchLabel.toUpperCase())
+      : t.friendsFromMyChurch;
+    const nextOffset = directoryMatchesChurch ? suggestions.churchMembersNextOffset : null;
+    return (
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14 }}>
+          <Text style={[styles.sectionHeader, { color: mutedText, paddingHorizontal: 0 }]}>
+            {headerTitle}
+          </Text>
+          {onOpenChurchesMap ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => {
+                Haptics.selectionAsync();
+                onOpenChurchesMap();
+              }}
+            >
+              <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: theme.primary }}>
+                {t.friendsChurchViewMap}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          {churchMembers.length === 0 ? (
+            <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <AppMenuIcon ios="building.columns" android="account-balance" color={mutedText} size={20} />
+              <Text style={{ flex: 1, ...fonts.sansRegular, fontSize: 13.5, lineHeight: 19, color: mutedText }}>
+                {t.friendsChurchMembersEmpty.replace('{church}', myChurchLabel || t.friendsFromMyChurch.toLowerCase())}
+              </Text>
+            </View>
+          ) : (
+            churchMembers.map((person, index) => {
+              const rowKey = `church:${person.id}`;
+              const open = openId === rowKey;
+              const role = roleLine(person);
+              const since = memberSinceLabel(person.memberSince, es);
+              const badgeText =
+                person.friendStatus === 'friends'
+                  ? t.churchMembersBadgeFriend
+                  : person.friendStatus === 'outgoing' || person.friendStatus === 'incoming'
+                    ? t.churchMembersBadgePending
+                    : null;
+              return (
+                <View key={person.id}>
+                  {index > 0 && <View style={[styles.divider, { backgroundColor: divider }]} />}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: open }}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      const opening = openId !== rowKey;
+                      setOpenId(opening ? rowKey : null);
+                      if (opening && person.friendStatus === 'friends') void loadFavorites(person.id);
+                    }}
+                    style={({ pressed }) => [
+                      styles.row,
+                      pressed && {
+                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D',
+                      },
+                    ]}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+                      <Text style={{ ...fonts.sansBold, fontSize: 14, color: isDarkMode ? '#1A1A1A' : '#FFFFFF' }}>
+                        {person.initials}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text numberOfLines={1} style={{ ...fonts.sansSemiBold, fontSize: 16, color: theme.onSurface }}>
+                        {person.name}
+                      </Text>
+                      {role ? (
+                        <Text numberOfLines={1} style={{ ...fonts.sansRegular, fontSize: 13, color: mutedText }}>
+                          {role}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {badgeText ? (
+                      <View
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 999,
+                          backgroundColor:
+                            person.friendStatus === 'friends'
+                              ? isDarkMode
+                                ? 'rgba(52,199,89,0.18)'
+                                : 'rgba(52,199,89,0.12)'
+                              : isDarkMode
+                                ? 'rgba(255,255,255,0.09)'
+                                : theme.surfaceVariants.containerHigh,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            ...fonts.sansSemiBold,
+                            fontSize: 11.5,
+                            color:
+                              person.friendStatus === 'friends'
+                                ? isDarkMode
+                                  ? '#4CD964'
+                                  : '#248A3D'
+                                : mutedText,
+                          }}
+                        >
+                          {badgeText}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <AppMenuIcon
+                      ios={open ? 'chevron.up' : 'chevron.down'}
+                      android={open ? 'expand-less' : 'expand-more'}
+                      color={mutedText}
+                      size={13}
+                      weight="semibold"
+                    />
+                  </Pressable>
+
+                  {open && (
+                    <View style={styles.details}>
+                      {since ? (
+                        <View style={styles.detailLine}>
+                          <AppMenuIcon ios="calendar" android="event" color={mutedText} size={15} />
+                          <Text style={[styles.detailText, { color: theme.onSurface }]}>{since}</Text>
+                        </View>
+                      ) : null}
+                      {person.friendStatus === 'friends' ? (
+                        <View style={{ gap: 6, marginTop: 2 }}>
+                          <Text style={[styles.subHeader, { color: mutedText }]}>{t.friendsFavorites}</Text>
+                          {renderFavorites(person)}
+                        </View>
+                      ) : null}
+                      <FriendButton
+                        userId={person.id}
+                        name={person.name}
+                        status={person.friendStatus}
+                        compact
+                        onStatusChange={() => {
+                          setOpenId(null);
+                          void refreshSuggestions();
+                        }}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          )}
+          {nextOffset !== null && (
+            <Pressable accessibilityRole="button" onPress={() => void refreshSuggestions(nextOffset)} style={{ padding: 14 }}>
+              <Text style={{ ...fonts.sansSemiBold, color: theme.primary }}>{t.churchMembersLoadMore}</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={{ gap: 18 }}>
       {section(t.friendsRequests, lists.incoming, 'incoming')}
       {renderSharedPlaylistsSection()}
       {section(t.friendsMine, lists.friends, 'friends')}
-      {section(t.friendsFromMyChurch, suggestions.users, 'none')}
+      {hasLinkedChurch
+        ? renderMyChurchMembersSection()
+        : section(t.friendsFromMyChurch, suggestions.users, 'none')}
       {section(t.friendsSent, lists.outgoing, 'outgoing')}
 
-      {nobody && (
+      {nobody && !hasLinkedChurch && (
         <View style={[styles.card, styles.emptyCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           {loading ? (
             <ActivityIndicator color={theme.primary} />
@@ -544,7 +722,7 @@ export default function FriendsPanel({
       )}
 
       {/* Without a linked church there is nobody to suggest: offer the way to link one. */}
-      {!suggestions.hasChurch && onOpenChurchesMap ? (
+      {!hasLinkedChurch && onOpenChurchesMap ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => {
