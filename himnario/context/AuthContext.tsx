@@ -478,7 +478,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authenticate = useCallback(async (
     mode: 'login' | 'register', email: string, password: string, name?: string
   ) => {
-    if (mode === 'register' && password.length < 12) throw new Error('password_too_short');
+    if (mode === 'register' && password.length < 8) throw new Error('password_too_short');
     const priorAccountId = userRef.current?.id || null;
     const epoch = invalidateRequests();
     sessionPendingRef.current = true;

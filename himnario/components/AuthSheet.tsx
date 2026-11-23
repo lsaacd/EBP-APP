@@ -36,6 +36,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  withSequence,
   runOnJS,
   cancelAnimation,
   FadeInRight,
@@ -59,6 +61,8 @@ import { APPLE_AVATAR_GRADIENT } from './HomeHeaderActions';
 import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
 import { MINISTRIES, CHOIRS } from '../data/communityRules';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
+import { getPasswordStrength } from '../utils/passwordStrength';
+import AnimatedField from './AnimatedField';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -137,6 +141,24 @@ export function AuthSheet({
   const [emailAction, setEmailAction] = useState<'recovery' | 'verification' | 'refresh' | null>(null);
   const accountActionRef = useRef(0);
   const [linkError, setLinkError] = useState(false);
+
+  // Refs & Reanimated values for AuthSheet fields, sliding pill, and error shake
+  const nameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const [segmentTrackWidth, setSegmentTrackWidth] = useState(0);
+  const segmentProgress = useSharedValue(0);
+  const formShakeX = useSharedValue(0);
+
+  useEffect(() => {
+    if (mode === 'login' || mode === 'register') {
+      segmentProgress.value = withSpring(mode === 'register' ? 1 : 0, {
+        damping: 20,
+        stiffness: 280,
+        mass: 0.8,
+      });
+    }
+  }, [mode, segmentProgress]);
 
   // Share sub-page state
   const [shareTab, setShareTab] = useState<'banner' | 'qr'>('banner');
@@ -330,7 +352,30 @@ export function AuthSheet({
     transform: [{ translateY: progress.value * travel }],
   }));
 
+  const segmentPillStyle = useAnimatedStyle(() => {
+    const pillW = Math.max(0, (segmentTrackWidth - 8) / 2);
+    return {
+      width: pillW,
+      opacity: segmentTrackWidth > 0 ? 1 : 0,
+      transform: [{ translateX: segmentProgress.value * pillW }],
+    };
+  }, [segmentTrackWidth]);
+
+  const formShakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: formShakeX.value }],
+  }));
+
   if (!visible) return null;
+
+  const triggerFormShake = () => {
+    formShakeX.value = withSequence(
+      withTiming(-7, { duration: 48 }),
+      withTiming(7, { duration: 48 }),
+      withTiming(-5, { duration: 44 }),
+      withTiming(5, { duration: 44 }),
+      withTiming(0, { duration: 40 }),
+    );
+  };
 
   const switchMode = (nextMode: AuthMode) => {
     Haptics.selectionAsync();
@@ -407,16 +452,19 @@ export function AuthSheet({
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
       setErrorMessage(t.authErrorEmailRequired);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerFormShake();
       return;
     }
     if (mode === 'register' && name.trim().length < 2) {
       setErrorMessage(t.authErrorInvalidName);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerFormShake();
       return;
     }
-    if (!password || (mode === 'register' && password.length < 12)) {
+    if (!password || (mode === 'register' && password.length < 8)) {
       setErrorMessage(mode === 'register' ? t.authErrorRegisterPasswordLength : t.authErrorPasswordRequired);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerFormShake();
       return;
     }
 
@@ -436,6 +484,7 @@ export function AuthSheet({
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       displayAuthError(err);
+      triggerFormShake();
     } finally {
       setSubmitting(false);
     }
@@ -1298,244 +1347,268 @@ export function AuthSheet({
     );
   };
 
-  const renderSignedOutAccountSection = () => (
-    <>
-      <Text style={[styles.leadSubtitle, { color: theme.onSurfaceVariant }]}>
-        {mode === 'recovery' ? t.authRecoveryHelp : t.authSyncSubtitle}
-      </Text>
-      {mode === 'login' && (
-        <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant }]}>
-          {t.authLoginReplaceWarning}
-        </Text>
-      )}
+  const renderSignedOutAccountSection = () => {
+    const strength = mode === 'register' ? getPasswordStrength(password) : 0;
+    const strengthColor =
+      strength === 1 ? '#D64545' : strength === 2 ? '#C98A1C' : '#2E9E56';
+    const strengthLabel =
+      strength === 1
+        ? t.authPasswordWeak
+        : strength === 2
+          ? t.authPasswordGood
+          : t.authPasswordStrong;
+    const cardStroke = isDarkMode ? 'rgba(255,255,255,0.12)' : theme.outlineVariant + '55';
 
-      {mode !== 'recovery' && <View
-          style={[
-            styles.segmentedBar,
-            {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: theme.outlineVariant + '55',
-            },
-          ]}
-        >
-          {(['login', 'register'] as const).map((tab) => {
-            const active = mode === tab;
-            const label = tab === 'login' ? t.authSignIn : t.authCreateAccount;
-            return (
-              <Pressable
-                key={tab}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                disabled={submitting || isLoading}
-                onPress={() => switchMode(tab)}
-                style={[
-                  styles.segmentButton,
-                  active && {
-                    backgroundColor: theme.primary,
-                  },
-                ]}
-              >
-                <Text
+    return (
+      <>
+        <Text style={[styles.leadSubtitle, { color: theme.onSurfaceVariant }]}>
+          {mode === 'recovery' ? t.authRecoveryHelp : t.authSyncSubtitle}
+        </Text>
+
+        {mode !== 'recovery' && (
+          <View
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0 && Math.abs(w - segmentTrackWidth) > 0.5) {
+                setSegmentTrackWidth(w);
+              }
+            }}
+            style={[
+              styles.segmentedBar,
+              {
+                backgroundColor: theme.surfaceVariants.containerLow,
+                borderColor: cardStroke,
+              },
+            ]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.segmentSlidingPill,
+                { backgroundColor: theme.primary },
+                segmentPillStyle,
+              ]}
+            />
+            {(['login', 'register'] as const).map((tab) => {
+              const active = mode === tab;
+              const label = tab === 'login' ? t.authSignIn : t.authCreateAccount;
+              return (
+                <Pressable
+                  key={tab}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  disabled={submitting || isLoading}
+                  onPress={() => switchMode(tab)}
                   style={[
-                    styles.segmentButtonText,
-                    { color: active ? theme.onPrimary : theme.onSurfaceVariant },
+                    styles.segmentButton,
+                    segmentTrackWidth === 0 && active && { backgroundColor: theme.primary },
                   ]}
                 >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>}
+                  <Text
+                    style={[
+                      styles.segmentButtonText,
+                      { color: active ? theme.onPrimary : theme.onSurfaceVariant },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
-      {/* Auth Form Card */}
-      <View
-        style={[
-          styles.group,
-          {
-            backgroundColor: theme.surfaceVariants.containerLow,
-            borderColor: theme.outlineVariant + '50',
-            paddingVertical: 14,
-          },
-        ]}
-      >
-        {mode === 'register' && (
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>
-              {t.authNameLabel}
-            </Text>
-            <TextInput
+        {/* Auth Form Card */}
+        <Animated.View
+          style={[
+            styles.group,
+            styles.authFormCard,
+            {
+              backgroundColor: theme.surfaceVariants.containerLow,
+              borderColor: cardStroke,
+            },
+            formShakeStyle,
+          ]}
+        >
+          {mode === 'register' && (
+            <AnimatedField
+              ref={nameInputRef}
+              label={t.authNameLabel}
               value={name}
               onChangeText={setName}
               placeholder={t.authNamePlaceholder}
-              placeholderTextColor={theme.onSurfaceVariant + '70'}
               autoCapitalize="words"
               textContentType="name"
               autoComplete="name"
               returnKeyType="next"
-              style={[
-                styles.textInput,
-                {
-                  color: theme.onSurface,
-                  backgroundColor: theme.surfaceVariants.containerLowest,
-                  borderColor: theme.outlineVariant + '60',
-                },
-              ]}
+              blurOnSubmit={false}
+              onSubmitEditing={() => emailInputRef.current?.focus()}
             />
-          </View>
-        )}
+          )}
 
-        <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>
-            {t.authEmailLabel}
-          </Text>
-          <TextInput
+          <AnimatedField
+            ref={emailInputRef}
+            label={t.authEmailLabel}
             value={email}
             onChangeText={setEmail}
             placeholder={t.authEmailPlaceholder}
-            placeholderTextColor={theme.onSurfaceVariant + '70'}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             textContentType="emailAddress"
             autoComplete="email"
-            accessibilityLabel={t.authEmailLabel}
             editable={!emailAction && !submitting}
             returnKeyType={mode === 'recovery' ? 'send' : 'next'}
-            onSubmitEditing={mode === 'recovery' ? () => handleEmailAction('recovery') : undefined}
-            style={[
-              styles.textInput,
-              {
-                color: theme.onSurface,
-                backgroundColor: theme.surfaceVariants.containerLowest,
-                borderColor: theme.outlineVariant + '60',
-              },
-            ]}
+            blurOnSubmit={mode === 'recovery'}
+            onSubmitEditing={
+              mode === 'recovery'
+                ? () => handleEmailAction('recovery')
+                : () => passwordInputRef.current?.focus()
+            }
           />
-        </View>
 
-        {mode !== 'recovery' && <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>
-            {t.authPasswordLabel}
-          </Text>
-          <View
-            style={[
-              styles.passwordInputWrap,
+          {mode !== 'recovery' && (
+            <View style={styles.passwordFieldBlock}>
+              <AnimatedField
+                ref={passwordInputRef}
+                label={t.authPasswordLabel}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={
+                  mode === 'register'
+                    ? t.authRegisterPasswordPlaceholder
+                    : t.authLoginPasswordPlaceholder
+                }
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType={mode === 'login' ? 'password' : 'newPassword'}
+                autoComplete={mode === 'login' ? 'password' : 'new-password'}
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
+                rightElement={
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? t.authHidePassword : t.authShowPassword}
+                    hitSlop={8}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setShowPassword((prev) => !prev);
+                    }}
+                    style={styles.passwordEyeBtn}
+                  >
+                    <AppMenuIcon
+                      ios={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                      android={showPassword ? 'visibility-off' : 'visibility'}
+                      color={theme.onSurfaceVariant}
+                      size={20}
+                    />
+                  </Pressable>
+                }
+              />
+
+              {mode === 'register' && strength > 0 && (
+                <View style={styles.strengthRow} accessibilityLiveRegion="polite">
+                  <View style={styles.strengthBars}>
+                    {[1, 2, 3].map((step) => (
+                      <View
+                        key={step}
+                        style={[
+                          styles.strengthSegment,
+                          {
+                            backgroundColor:
+                              strength >= step
+                                ? strengthColor
+                                : isDarkMode
+                                  ? 'rgba(255,255,255,0.14)'
+                                  : theme.outlineVariant + '60',
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[styles.strengthLabel, { color: strengthColor }]}>
+                    {strengthLabel}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!!errorMessage && (
+            <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
+              {errorMessage}
+            </Text>
+          )}
+          {!!infoMessage && (
+            <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
+              {infoMessage}
+            </Text>
+          )}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              mode === 'recovery'
+                ? t.authSendRecovery
+                : mode === 'register'
+                  ? t.authSubmitRegister
+                  : t.authSubmitSignIn
+            }
+            disabled={submitting || isLoading || !!emailAction}
+            onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+            style={({ pressed }) => [
+              styles.primaryButton,
               {
-                backgroundColor: theme.surfaceVariants.containerLowest,
-                borderColor: theme.outlineVariant + '60',
+                backgroundColor: theme.primary,
+                opacity: submitting || emailAction ? 0.65 : pressed ? 0.88 : 1,
               },
             ]}
           >
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder={mode === 'register' ? t.authRegisterPasswordPlaceholder : t.authLoginPasswordPlaceholder}
-              placeholderTextColor={theme.onSurfaceVariant + '70'}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType={mode === 'login' ? 'password' : 'newPassword'}
-              autoComplete={mode === 'login' ? 'password' : 'new-password'}
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              style={[
-                styles.passwordTextInput,
-                {
-                  color: theme.onSurface,
-                },
-              ]}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? t.authHidePassword : t.authShowPassword}
-              hitSlop={8}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setShowPassword((prev) => !prev);
-              }}
-              style={styles.passwordEyeBtn}
-            >
-              <AppMenuIcon
-                ios={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                android={showPassword ? 'visibility-off' : 'visibility'}
-                color={theme.onSurfaceVariant}
-                size={20}
-              />
-            </Pressable>
-          </View>
-        </View>}
-
-        {!!errorMessage && (
-          <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
-            {errorMessage}
-          </Text>
-        )}
-        {!!infoMessage && (
-          <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
-            {infoMessage}
-          </Text>
-        )}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            mode === 'recovery' ? t.authSendRecovery : mode === 'register'
-              ? t.authSubmitRegister
-              : t.authSubmitSignIn
-          }
-          disabled={submitting || isLoading || !!emailAction}
-          onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            {
-              backgroundColor: theme.primary,
-              opacity: submitting || emailAction ? 0.65 : pressed ? 0.88 : 1,
-            },
-          ]}
-        >
-          {submitting || emailAction ? (
-            <ActivityIndicator size="small" color={theme.onPrimary} />
-          ) : (
-            <Text style={[styles.primaryButtonText, { color: theme.onPrimary }]}>
-              {mode === 'recovery' ? t.authSendRecovery : mode === 'register'
-                ? t.authSubmitRegister
-                : t.authSubmitSignIn}
-            </Text>
-          )}
-        </Pressable>
-
-        <View style={styles.secondaryLinksRow}>
-          {(mode === 'login' || mode === 'recovery') && (
-            <Pressable
-              accessibilityRole="button"
-              disabled={submitting || isLoading}
-              onPress={() => {
-                Keyboard.dismiss();
-                setPassword('');
-                setShowPassword(false);
-                setErrorMessage(null);
-                switchMode(mode === 'recovery' ? 'login' : 'recovery');
-              }}
-              style={styles.textLinkHit}
-            >
-              <Text style={[styles.textLinkLabel, { color: theme.primary }]}>
-                {mode === 'recovery' ? t.authBackToSignIn : t.authForgotPassword}
+            {submitting || emailAction ? (
+              <ActivityIndicator size="small" color={theme.onPrimary} />
+            ) : (
+              <Text style={[styles.primaryButtonText, { color: theme.onPrimary }]}>
+                {mode === 'recovery'
+                  ? t.authSendRecovery
+                  : mode === 'register'
+                    ? t.authSubmitRegister
+                    : t.authSubmitSignIn}
               </Text>
-            </Pressable>
+            )}
+          </Pressable>
+
+          {(mode === 'login' || mode === 'recovery') && (
+            <View style={styles.secondaryLinksRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={submitting || isLoading}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setPassword('');
+                  setShowPassword(false);
+                  setErrorMessage(null);
+                  switchMode(mode === 'recovery' ? 'login' : 'recovery');
+                }}
+                style={styles.textLinkHit}
+              >
+                <Text style={[styles.textLinkLabel, { color: theme.primary }]}>
+                  {mode === 'recovery' ? t.authBackToSignIn : t.authForgotPassword}
+                </Text>
+              </Pressable>
+            </View>
           )}
+        </Animated.View>
 
-        </View>
-      </View>
+        <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant }]}>
+          {t.authOptionalNote}
+        </Text>
 
-      <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant }]}>
-        {t.authOptionalNote}
-      </Text>
-
-      {/* Unified App Menu Section (Share App, Settings, Help, History) */}
-      {renderUnifiedAppMenuSection()}
-    </>
-  );
+        {/* Unified App Menu Section (Share App, Settings, Help, History) */}
+        {renderUnifiedAppMenuSection()}
+      </>
+    );
+  };
 
   // ── Sub-Page: Consejos y Ayuda ───────────────────────────────────────────
   const renderHelpSubPage = () => (
@@ -1937,10 +2010,17 @@ const styles = StyleSheet.create({
   },
   segmentedBar: {
     flexDirection: 'row',
+    position: 'relative',
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 4,
-    gap: 6,
+  },
+  segmentSlidingPill: {
+    position: 'absolute',
+    left: 4,
+    top: 4,
+    bottom: 4,
+    borderRadius: 10,
   },
   segmentButton: {
     flex: 1,
@@ -1948,6 +2028,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   segmentButtonText: {
     ...fonts.sansSemiBold,
@@ -1957,6 +2038,33 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+  },
+  authFormCard: {
+    padding: 14,
+    gap: 11,
+  },
+  passwordFieldBlock: {
+    gap: 7,
+  },
+  strengthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+  },
+  strengthBars: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 5,
+  },
+  strengthSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthLabel: {
+    ...fonts.sansSemiBold,
+    fontSize: 11.5,
   },
   inputContainer: {
     paddingHorizontal: 16,
@@ -2018,9 +2126,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   primaryButton: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    minHeight: 48,
+    marginTop: 4,
+    minHeight: 50,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2031,7 +2138,7 @@ const styles = StyleSheet.create({
   },
   secondaryLinksRow: {
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 2,
   },
   textLinkHit: {
     paddingVertical: 6,

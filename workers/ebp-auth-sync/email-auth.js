@@ -301,7 +301,7 @@ export async function handleEmailAuth(request, env, ctx, { path, authenticate, s
   await quota(env, `email-${purpose}-complete-ip:${ip}`, 30, 15 * 60 * 1000);
   const body = await strictBody(request, reset ? ['token', 'newPassword'] : ['token']);
   if (typeof body.token !== 'string' || !/^[a-f0-9]{64}$/.test(body.token)) throw new RequestError(400, 'invalid_token');
-  if (reset && (typeof body.newPassword !== 'string' || body.newPassword.length < 12 || body.newPassword.length > 128)) {
+  if (reset && (typeof body.newPassword !== 'string' || body.newPassword.length < 8 || body.newPassword.length > 128)) {
     throw new RequestError(400, 'weak_password');
   }
   const digest = await tokenHash(purpose, body.token);

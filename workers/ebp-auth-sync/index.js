@@ -255,9 +255,9 @@ const handler = {
         if (!name || name.length < 2 || name.length > 100) {
           return jsonResponse({ error: 'invalid_name', message: 'Please enter your name.' }, 400);
         }
-        if (!password || password.length < 12 || password.length > 128) {
+        if (!password || password.length < 8 || password.length > 128) {
           return jsonResponse(
-            { error: 'weak_password', message: 'Password must be at least 12 characters.' },
+            { error: 'weak_password', message: 'Password must be at least 8 characters.' },
             400,
           );
         }

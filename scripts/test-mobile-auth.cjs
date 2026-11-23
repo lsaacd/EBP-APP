@@ -118,8 +118,8 @@ test('overlapping manual PUTs serialize and use the newly acknowledged revision'
 test('login omits localData, accepts existing short passwords, and applies authoritative cloud',async()=>{
   const f=fixture();await flush();await login(f,{password:'old'});const body=JSON.parse(f.requests[0].options.body);assert.equal('localData' in body,false);assert.deepEqual(f.local.favorites,['cloud']);assert.equal(f.auth.lastSyncedAt,new Date(1000).toISOString());assert.equal(f.stored().revision,1000);assert.equal(f.auth.syncBlocked,false);f.unmount();
 });
-test('registration requires 12 characters and alone may send initial localData',async()=>{
-  const f=fixture();await flush();await assert.rejects(f.auth.register('A','a@b.com','12345678901'),/password_too_short/);assert.equal(f.requests.length,0);await login(f,{mode:'register',password:'123456789012'});const body=JSON.parse(f.requests[0].options.body);assert.deepEqual(body.localData.favorites,['offline']);f.unmount();
+test('registration requires 8 characters and alone may send initial localData',async()=>{
+  const f=fixture();await flush();await assert.rejects(f.auth.register('A','a@b.com','1234567'),/password_too_short/);assert.equal(f.requests.length,0);await login(f,{mode:'register',password:'12345678'});const body=JSON.parse(f.requests[0].options.body);assert.deepEqual(body.localData.favorites,['offline']);f.unmount();
 });
 test('legacy resetPassword delegates to email recovery without sending password or name',async()=>{
   const f=fixture();await flush();const pending=f.auth.resetPassword('a@b.com','password','A').catch(e=>e);await flush();assert.equal(f.requests.length,1);const body=JSON.parse(f.requests[0].options.body);assert.equal('password' in body,false);assert.equal('name' in body,false);f.requests[0].resolve(reply(503,{error:'recovery_unavailable'}));assert.equal((await pending).message,'recovery_unavailable');f.unmount();

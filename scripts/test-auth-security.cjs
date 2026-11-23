@@ -103,3 +103,11 @@ test('expired and revoked sessions fail; account deletion cannot target a differ
   f.sql.prepare('UPDATE sessions SET expires_at = 1').run();
   assert.equal((await f.call('/sync','GET',undefined,b.token)).status,401);
 });
+test('registration enforces 8-character minimum password length', async () => {
+  const f=fixture();
+  const short=await f.call('/auth/register','POST',{email:'short@example.test',name:'Short User',password:'1234567',localData:snapshot()},null,{'CF-Connecting-IP':'192.0.2.9'});
+  assert.equal(short.status,400);
+  assert.equal((await short.json()).error,'weak_password');
+  const ok=await f.call('/auth/register','POST',{email:'ok@example.test',name:'Valid User',password:'12345678',localData:snapshot()},null,{'CF-Connecting-IP':'192.0.2.10'});
+  assert.equal(ok.status,200);
+});

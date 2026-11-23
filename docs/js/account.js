@@ -75,11 +75,11 @@
       expired: 'El enlace ha vencido, ya se usó o no es válido. Solicita uno nuevo desde la aplicación.',
       unavailable: 'No pudimos completar la solicitud. El servicio puede no estar disponible. Inténtalo de nuevo o solicita un nuevo enlace desde la aplicación.',
       timeout: 'La solicitud tardó demasiado. No podemos confirmar si se completó. Puedes intentarlo de nuevo; si el enlace ya no es válido, vuelve a la aplicación o solicita uno nuevo.',
-      passwordLength: 'La nueva contraseña debe tener entre 12 y 128 caracteres.',
+      passwordLength: 'La nueva contraseña debe tener entre 8 y 128 caracteres.',
       passwordMismatch: 'Las contraseñas no coinciden. Revisa la confirmación.',
       formLegend: 'Confirmar la acción de tu cuenta', newPassword: 'Nueva contraseña',
       confirmPassword: 'Confirmar nueva contraseña',
-      passwordHelp: 'Usa entre 12 y 128 caracteres. Elige una contraseña que no uses en otros servicios.',
+      passwordHelp: 'Usa entre 8 y 128 caracteres. Elige una contraseña que no uses en otros servicios.',
       showPasswords: 'Mostrar contraseñas', hidePasswords: 'Ocultar contraseñas',
       confirmEmail: 'Confirmar correo', savePassword: 'Guardar contraseña',
       privacy: 'Nada se confirma al abrir este enlace. La acción solo se envía cuando pulsas el botón.',
@@ -102,11 +102,11 @@
       expired: 'This link has expired, has already been used, or is invalid. Request a new one from the app.',
       unavailable: 'We could not complete your request. The service may be unavailable. Try again or request a new link from the app.',
       timeout: 'The request took too long. We cannot confirm whether it completed. You can try again; if the link is no longer valid, return to the app or request a new one.',
-      passwordLength: 'Your new password must contain between 12 and 128 characters.',
+      passwordLength: 'Your new password must contain between 8 and 128 characters.',
       passwordMismatch: 'The passwords do not match. Check the confirmation.',
       formLegend: 'Confirm your account action', newPassword: 'New password',
       confirmPassword: 'Confirm new password',
-      passwordHelp: 'Use between 12 and 128 characters. Choose a password you do not use for other services.',
+      passwordHelp: 'Use between 8 and 128 characters. Choose a password you do not use for other services.',
       showPasswords: 'Show passwords', hidePasswords: 'Hide passwords',
       confirmEmail: 'Confirm email', savePassword: 'Save password',
       privacy: 'Opening this link does not confirm anything. The action is only sent when you press the button.',
@@ -202,7 +202,7 @@
       password.removeAttribute('aria-invalid');
       confirmation.removeAttribute('aria-invalid');
       if (action === 'reset') {
-        if (password.value.length < 12 || password.value.length > 128) {
+        if (password.value.length < 8 || password.value.length > 128) {
           password.setAttribute('aria-invalid', 'true');
           showStatus('passwordLength', false);
           password.focus();

@@ -49,6 +49,7 @@ import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
+import AnimatedField from "../components/AnimatedField";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
 import { parseServiceTimes } from "../utils/churchSchedule";
@@ -217,7 +218,13 @@ export default function ChurchesScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [showAddressFields, setShowAddressFields] = useState(false);
+  const [showCoordsInput, setShowCoordsInput] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const formAddressRef = useRef<TextInput>(null);
+  const formCityRef = useRef<TextInput>(null);
+  const formStateRef = useRef<TextInput>(null);
+  const formCountryRef = useRef<TextInput>(null);
+  const formPostalRef = useRef<TextInput>(null);
   // Legacy schedules the picker cannot represent stay editable as plain text.
   const [scheduleAsText, setScheduleAsText] = useState(false);
   const parsedFormCoords = useMemo(
@@ -795,6 +802,7 @@ export default function ChurchesScreen() {
     setFormContact("");
     setFormError("");
     setShowAddressFields(false);
+    setShowCoordsInput(false);
     setShowMoreDetails(false);
     setScheduleAsText(false);
   }, [t]);
@@ -834,6 +842,7 @@ export default function ChurchesScreen() {
     setFormContact(church.contactInfo || "");
     setFormError("");
     setShowAddressFields(true);
+    setShowCoordsInput(false);
     setShowMoreDetails(true);
     setScheduleAsText(!canEditSchedule(church.serviceTimes || ""));
     setSubmitOpen(true);
@@ -1259,36 +1268,22 @@ export default function ChurchesScreen() {
     set: (value: string) => void;
     placeholder: string;
     max: number;
+    returnKeyType?: "next" | "done";
+    onSubmitEditing?: () => void;
   }) => (
-    <View key={f.label} style={{ gap: 5 }}>
-      <Text
-        style={{
-          color: mutedText,
-          ...fonts.sansSemiBold,
-          fontSize: 12.5,
-          marginLeft: 2,
-        }}
-      >
-        {f.label}
-      </Text>
-      <TextInput
-        value={f.val}
-        onChangeText={f.set}
-        placeholder={f.placeholder}
-        placeholderTextColor={mutedText}
-        maxLength={f.max}
-        returnKeyType="done"
-        editable={!submitting}
-        style={[
-          styles.formInput,
-          {
-            backgroundColor: cardBg,
-            borderColor: cardBorder,
-            color: theme.onSurface,
-          },
-        ]}
-      />
-    </View>
+    <AnimatedField
+      key={f.label}
+      label={f.label}
+      value={f.val}
+      onChangeText={f.set}
+      placeholder={f.placeholder}
+      maxLength={f.max}
+      returnKeyType={f.returnKeyType ?? "done"}
+      blurOnSubmit={f.returnKeyType !== "next"}
+      onSubmitEditing={f.onSubmitEditing}
+      editable={!submitting}
+      surfaceColor={cardBg}
+    />
   );
 
   return (
@@ -2818,21 +2813,8 @@ export default function ChurchesScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={isIOS ? "interactive" : "on-drag"}
-                contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24, gap: 12 }}
+                contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 4, paddingBottom: 24, gap: 12 }}
               >
-                <Text
-                  style={{
-                    color: mutedText,
-                    ...fonts.sansRegular,
-                    fontSize: 13.5,
-                    lineHeight: 19,
-                  }}
-                >
-                  {isAdmin
-                    ? t.churchYouCanPasteCoordinatesOrA
-                    : t.churchSubmitAnIddvElBuenPastor}
-                </Text>
-
                 {/* 1 · Name */}
                 {renderFormField({
                   label: t.churchChurchName,
@@ -2840,126 +2822,153 @@ export default function ChurchesScreen() {
                   set: setFormName,
                   placeholder: t.churchEGIddvElBuenPastor,
                   max: 100,
+                  returnKeyType: addressVisible ? "next" : "done",
+                  onSubmitEditing: addressVisible
+                    ? () => formAddressRef.current?.focus()
+                    : undefined,
                 })}
 
-                {/* 2 · Location: pick it on the map and the address fills itself in */}
+                {/* 2 · Compact Location Card */}
                 <View
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    backgroundColor: cardBg,
-                    borderWidth: 1,
-                    borderColor: parsedFormCoords ? theme.primary : cardBorder,
-                    gap: 10,
-                  }}
+                  style={[
+                    styles.compactLocationCard,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: parsedFormCoords
+                        ? isDarkMode
+                          ? "rgba(255,255,255,0.20)"
+                          : theme.primary + "45"
+                        : cardBorder,
+                    },
+                  ]}
                 >
-                  <Text
-                    style={{
-                      color: theme.onSurface,
-                      ...fonts.sansSemiBold,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t.churchLocationRequired}
-                  </Text>
-
-                  {Platform.OS !== "web" && (
-                    <Pressable
-                      onPress={handleStartPinPicker}
-                      disabled={submitting}
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.locationCta,
-                        {
-                          backgroundColor: parsedFormCoords
-                            ? theme.primary + "18"
-                            : theme.primary,
-                          opacity: pressed ? 0.85 : 1,
-                        },
-                      ]}
-                    >
+                  <View style={styles.compactLocationRow}>
+                    <View style={styles.compactLocationLeft}>
                       <AppMenuIcon
-                        ios="mappin.and.ellipse"
-                        android="add-location-alt"
-                        color={parsedFormCoords ? theme.primary : theme.onPrimary}
-                        size={17}
+                        ios={parsedFormCoords ? "checkmark.circle.fill" : "mappin.and.ellipse"}
+                        android={parsedFormCoords ? "check-circle" : "add-location-alt"}
+                        color={parsedFormCoords ? "#34C759" : theme.primary}
+                        size={19}
                       />
-                      <Text
-                        style={{
-                          color: parsedFormCoords ? theme.primary : theme.onPrimary,
-                          ...fonts.sansSemiBold,
-                          fontSize: 15,
-                        }}
-                      >
-                        {parsedFormCoords
-                          ? t.churchChangeLocationOnMap
-                          : t.churchPickOnMap}
-                      </Text>
-                    </Pressable>
-                  )}
-
-                  {parsedFormCoords ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <AppMenuIcon
-                        ios="checkmark.circle.fill"
-                        android="check-circle"
-                        color="#34C759"
-                        size={17}
-                      />
-                      <Text
-                        numberOfLines={2}
-                        style={{
-                          flex: 1,
-                          color: theme.onSurface,
-                          ...fonts.sansMedium,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {[formAddress.trim(), formCity.trim(), formState.trim()]
-                          .filter(Boolean)
-                          .join(", ") || t.churchLocationSet}
-                      </Text>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text
+                          numberOfLines={2}
+                          style={{
+                            color: theme.onSurface,
+                            ...(parsedFormCoords ? fonts.sansMedium : fonts.sansSemiBold),
+                            fontSize: 14,
+                            lineHeight: 19,
+                          }}
+                        >
+                          {parsedFormCoords
+                            ? [formAddress.trim(), formCity.trim(), formState.trim()]
+                                .filter(Boolean)
+                                .join(", ") || t.churchLocationSet
+                            : t.churchLocationRequired}
+                        </Text>
+                        {!parsedFormCoords && (
+                          <Text
+                            numberOfLines={2}
+                            style={{
+                              color: mutedText,
+                              ...fonts.sansRegular,
+                              fontSize: 12.5,
+                              lineHeight: 17,
+                            }}
+                          >
+                            {t.churchLocationHint}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  ) : (
-                    <Text
-                      style={{
-                        color: mutedText,
-                        ...fonts.sansRegular,
-                        fontSize: 12.5,
-                        lineHeight: 17,
-                      }}
-                    >
-                      {t.churchLocationHint}
-                    </Text>
-                  )}
 
-                  {/* Coordinates / Maps link: administrator only */}
+                    {Platform.OS !== "web" && (
+                      <Pressable
+                        onPress={handleStartPinPicker}
+                        disabled={submitting}
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          parsedFormCoords
+                            ? t.churchChangeLocationOnMap
+                            : t.churchPickOnMap
+                        }
+                        style={({ pressed }) => [
+                          styles.compactLocationBtn,
+                          {
+                            backgroundColor: parsedFormCoords
+                              ? isDarkMode
+                                ? "rgba(255,255,255,0.12)"
+                                : theme.primary + "16"
+                              : theme.primary,
+                            opacity: pressed ? 0.82 : 1,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: parsedFormCoords ? theme.primary : theme.onPrimary,
+                            ...fonts.sansSemiBold,
+                            fontSize: 13.5,
+                          }}
+                        >
+                          {parsedFormCoords
+                            ? t.churchChangeLocationShort
+                            : t.churchPickLocationShort}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+
+                  {/* Admin-only collapsible coordinates / Maps link paste field */}
                   {isAdmin && (
-                  <TextInput
-                    value={formCoordsInput}
-                    onChangeText={(txt) => {
-                      setFormCoordsInput(txt);
-                      const parsed = parseCoordsOrMapsInput(txt);
-                      if (parsed) {
-                        void autofillAddressFromCoords(parsed.lat, parsed.lng);
-                      }
-                    }}
-                    placeholder={
-                      t.churchEG3738121218975
-                    }
-                    placeholderTextColor={mutedText}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!submitting}
-                    style={[
-                      styles.formInput,
-                      {
-                        backgroundColor: bgSurface,
-                        borderColor: cardBorder,
-                        color: theme.onSurface,
-                      },
-                    ]}
-                  />
+                    <View style={{ gap: 8 }}>
+                      <Pressable
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: showCoordsInput }}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setShowCoordsInput((v) => !v);
+                        }}
+                        style={styles.coordsToggleBtn}
+                      >
+                        <Text
+                          style={{
+                            color: mutedText,
+                            ...fonts.sansMedium,
+                            fontSize: 12.5,
+                          }}
+                        >
+                          {t.churchPasteCoordsToggle}
+                        </Text>
+                        <AppMenuIcon
+                          ios={showCoordsInput ? "chevron.up" : "chevron.down"}
+                          android={showCoordsInput ? "expand-less" : "expand-more"}
+                          color={mutedText}
+                          size={12}
+                          weight="semibold"
+                        />
+                      </Pressable>
+
+                      {showCoordsInput && (
+                        <AnimatedField
+                          label={t.churchExactLocationCoordinatesOrMapsLink}
+                          value={formCoordsInput}
+                          onChangeText={(txt) => {
+                            setFormCoordsInput(txt);
+                            const parsed = parseCoordsOrMapsInput(txt);
+                            if (parsed) {
+                              void autofillAddressFromCoords(parsed.lat, parsed.lng);
+                            }
+                          }}
+                          placeholder={t.churchEG3738121218975}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          editable={!submitting}
+                          surfaceColor={bgSurface}
+                        />
+                      )}
+                    </View>
                   )}
 
                   {!addressVisible && (
@@ -2984,47 +2993,125 @@ export default function ChurchesScreen() {
                   )}
                 </View>
 
-                {/* 3 · Address (auto-filled from the pin, still editable) */}
+                {/* 3 · iOS Contacts-Style Grouped Address Card */}
                 {addressVisible && (
-                  <>
-                    {[
+                  <View
+                    style={[
+                      styles.addressGroupCard,
                       {
-                        label: t.churchStreetAddress,
-                        val: formAddress,
-                        set: setFormAddress,
-                        placeholder: "1234 Main St",
-                        max: 140,
+                        backgroundColor: cardBg,
+                        borderColor: cardBorder,
                       },
-                      {
-                        label: t.churchCity,
-                        val: formCity,
-                        set: setFormCity,
-                        placeholder: t.churchEGLosAngeles,
-                        max: 80,
-                      },
-                      {
-                        label: t.churchStateProvince,
-                        val: formState,
-                        set: setFormState,
-                        placeholder: t.churchEGCaliforniaTexas,
-                        max: 60,
-                      },
-                      {
-                        label: t.churchCountry,
-                        val: formCountry,
-                        set: setFormCountry,
-                        placeholder: t.churchUnitedStatesMexico,
-                        max: 60,
-                      },
-                      {
-                        label: t.churchZipPostalCodeOptional,
-                        val: formPostal,
-                        set: setFormPostal,
-                        placeholder: "95112",
-                        max: 24,
-                      },
-                    ].map(renderFormField)}
-                  </>
+                    ]}
+                  >
+                    <AnimatedField
+                      ref={formAddressRef}
+                      grouped
+                      label={t.churchStreetAddress}
+                      value={formAddress}
+                      onChangeText={setFormAddress}
+                      placeholder="1234 Main St"
+                      maxLength={140}
+                      editable={!submitting}
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => formCityRef.current?.focus()}
+                    />
+
+                    <View style={styles.addressTwoColRow}>
+                      <AnimatedField
+                        ref={formCityRef}
+                        grouped
+                        isLast
+                        containerStyle={{ flex: 1.15 }}
+                        label={t.churchCity}
+                        value={formCity}
+                        onChangeText={setFormCity}
+                        placeholder={t.churchEGLosAngeles}
+                        maxLength={80}
+                        editable={!submitting}
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => formStateRef.current?.focus()}
+                      />
+                      <View
+                        style={[
+                          styles.addressColDivider,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.10)"
+                              : theme.outlineVariant + "48",
+                          },
+                        ]}
+                      />
+                      <AnimatedField
+                        ref={formStateRef}
+                        grouped
+                        isLast
+                        containerStyle={{ flex: 0.85 }}
+                        label={t.churchStateProvince}
+                        value={formState}
+                        onChangeText={setFormState}
+                        placeholder={t.churchEGCaliforniaTexas}
+                        maxLength={60}
+                        editable={!submitting}
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => formCountryRef.current?.focus()}
+                      />
+                    </View>
+                    <View
+                      style={[
+                        styles.addressRowDivider,
+                        {
+                          backgroundColor: isDarkMode
+                            ? "rgba(255,255,255,0.10)"
+                            : theme.outlineVariant + "48",
+                        },
+                      ]}
+                    />
+
+                    <View style={styles.addressTwoColRow}>
+                      <AnimatedField
+                        ref={formCountryRef}
+                        grouped
+                        isLast
+                        containerStyle={{ flex: 1.15 }}
+                        label={t.churchCountry}
+                        value={formCountry}
+                        onChangeText={setFormCountry}
+                        placeholder={t.churchUnitedStatesMexico}
+                        maxLength={60}
+                        editable={!submitting}
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => formPostalRef.current?.focus()}
+                      />
+                      <View
+                        style={[
+                          styles.addressColDivider,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.10)"
+                              : theme.outlineVariant + "48",
+                          },
+                        ]}
+                      />
+                      <AnimatedField
+                        ref={formPostalRef}
+                        grouped
+                        isLast
+                        containerStyle={{ flex: 0.85 }}
+                        label={t.churchZipPostalCodeOptional}
+                        value={formPostal}
+                        onChangeText={setFormPostal}
+                        placeholder="95112"
+                        maxLength={24}
+                        editable={!submitting}
+                        returnKeyType="done"
+                      />
+                    </View>
+                  </View>
                 )}
 
                 {/* 4 · Everything optional lives behind one row */}
@@ -4061,6 +4148,54 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     ...fonts.sansRegular,
     fontSize: 15.5,
+  },
+  compactLocationCard: {
+    padding: 13,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+  },
+  compactLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  compactLocationLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  compactLocationBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coordsToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    paddingTop: 2,
+  },
+  addressGroupCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  addressTwoColRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  addressColDivider: {
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 10,
+  },
+  addressRowDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 14,
   },
   submitPrimaryBtn: {
     marginTop: 6,

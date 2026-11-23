@@ -37,11 +37,11 @@
         <fieldset id="account-fields" disabled>
           <legend class="sr-only" data-text="formLegend">Confirmar la acción de tu cuenta</legend>
           <div id="password-fields" hidden>
-            <p id="password-help" class="hint" data-text="passwordHelp">Usa entre 12 y 128 caracteres. Elige una contraseña que no uses en otros servicios.</p>
+            <p id="password-help" class="hint" data-text="passwordHelp">Usa entre 8 y 128 caracteres. Elige una contraseña que no uses en otros servicios.</p>
             <label for="new-password" data-text="newPassword">Nueva contraseña</label>
-            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
+            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
             <label for="confirm-password" data-text="confirmPassword">Confirmar nueva contraseña</label>
-            <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
+            <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="password-help" autocapitalize="none" spellcheck="false">
             <button id="password-visibility" class="visibility" type="button" aria-controls="new-password confirm-password" aria-pressed="false" data-text="showPasswords">Mostrar contraseñas</button>
           </div>
           <button id="account-submit" class="primary" type="submit">Confirmar correo</button>

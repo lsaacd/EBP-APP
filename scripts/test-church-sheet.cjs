@@ -458,3 +458,17 @@ test('notification payloads and deep-link destinations parse safely', () => {
   );
   assert.equal(parseNotificationDestination({ type: 'invalid' }), null);
 });
+
+test('password strength helper scores empty, short (<8), good (8+), and strong passwords', () => {
+  const { getPasswordStrength } = load('himnario/utils/passwordStrength.ts');
+  assert.equal(getPasswordStrength(''), 0);
+  assert.equal(getPasswordStrength('1234567'), 1);
+  assert.equal(getPasswordStrength('abc'), 1);
+  assert.equal(getPasswordStrength('12345678'), 2);
+  assert.equal(getPasswordStrength('password'), 2);
+  assert.equal(getPasswordStrength('Test1234'), 2);
+  assert.equal(getPasswordStrength('MyChurch2026'), 3);
+  assert.equal(getPasswordStrength('Abcdef123!'), 3);
+  assert.equal(getPasswordStrength('Ab1!5678'), 3);
+  assert.equal(getPasswordStrength('longpassphrase'), 3);
+});
