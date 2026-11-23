@@ -118,7 +118,7 @@
   $('alphabet').hidden=route!=='indice'||!!q;$('alphabet').replaceChildren();
   if(route==='indice'&&!q){
    const available=new Set(filtered.map(initial));
-   ['#',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].forEach(l=>{const b=make('button','',l);b.disabled=l!=='#'&&!available.has(l);b.setAttribute('aria-label',l==='#'?'Volver al título del índice':`Ir a la letra ${l}`);if(l==='#'){b.setAttribute('aria-controls','index-section-title');b.title=collection==='choruses'?'Volver al título de estribillos y coritos':'Volver al título de himnos';}b.onclick=()=>{const heading=l==='#'?$('results').querySelector('.index-section-title'):[...$('results').querySelectorAll('.letter-heading')].find(e=>e.textContent===l);if(heading){jumpTo(heading);if(l==='#')heading.focus({preventScroll:true});syncScroll();}};$('alphabet').append(b);});
+   ['#',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].forEach(l=>{const b=make('button','',l);b.disabled=l!=='#'&&!available.has(l);b.setAttribute('aria-label',l==='#'?'Volver al título del índice':`Ir a la letra ${l}`);if(l==='#'){b.setAttribute('aria-controls','index-section-title');b.title=collection==='choruses'?'Volver al título de estribillos':'Volver al título de himnos';}b.onclick=()=>{const heading=l==='#'?$('results').querySelector('.index-section-title'):[...$('results').querySelectorAll('.letter-heading')].find(e=>e.textContent===l);if(heading){jumpTo(heading);if(l==='#')heading.focus({preventScroll:true});syncScroll();}};$('alphabet').append(b);});
   }
   page=Math.max(0,Math.min(page,Math.ceil(filtered.length/35)-1));
   $('count').textContent=`${filtered.length} ${filtered.length===1?'alabanza':'alabanzas'}`;
@@ -126,7 +126,7 @@
   searchHint.hidden=!q;
   document.querySelectorAll('[data-collection]').forEach(b=>b.setAttribute('aria-pressed',String(collection===b.dataset.collection)));
   $('results').replaceChildren();
-  if(route==='indice'){const indexTitle=make('h2','index-section-title',collection==='choruses'?'Índice alfabético de estribillos y coritos':'Índice alfabético de himnos');indexTitle.id='index-section-title';indexTitle.tabIndex=-1;$('results').append(indexTitle);$('alphabet').setAttribute('aria-label',collection==='choruses'?'Letras del índice de estribillos y coritos':'Letras del índice de himnos');}
+  if(route==='indice'){const indexTitle=make('h2','index-section-title',collection==='choruses'?'Índice alfabético de estribillos':'Índice alfabético de himnos');indexTitle.id='index-section-title';indexTitle.tabIndex=-1;$('results').append(indexTitle);$('alphabet').setAttribute('aria-label',collection==='choruses'?'Letras del índice de estribillos':'Letras del índice de himnos');}
   if(!filtered.length)$('results').append(make('p','empty',route==='favoritos'&&!favorites.length?'Tu colección empieza con una alabanza. Guarda tus himnos con el marcador y encuéntralos aquí.':'No encontramos alabanzas con estos filtros. Prueba otro título, número o frase.'));
   shell.classList.toggle('index-layout',route==='indice'&&!q);scrubber.hidden=(route==='indice'&&!q)||filtered.length<2;
   let lastLetter='';filtered.forEach(h=>{
@@ -150,7 +150,7 @@
   $('home-view').hidden=route!=='inicio';$('library').hidden=route==='inicio';
   const titles={himnos:['EL HIMNARIO','Himnos y alabanzas','Un canto para cada momento de nuestra fe.'],indice:['DE LA A A LA Z','Índice alfabético','Encuentra por su título las alabanzas de siempre.'],favoritos:['TU COLECCIÓN','Alabanzas del corazón','Tus himnos favoritos, siempre a mano en este navegador.']};
   const t=titles[route]||titles.himnos;$('section-label').textContent=t[0];$('catalog-title').textContent=t[1];$('catalog-description').textContent=t[2];
-  const tabs=document.querySelector('.catalog-tabs'),hymnsTab=tabs.querySelector('[data-collection="hymns"]'),chorusesTab=tabs.querySelector('[data-collection="choruses"]');chorusesTab.textContent=route==='indice'?'Estribillos y coritos':'Estribillos';tabs.append(hymnsTab,chorusesTab);
+  const tabs=document.querySelector('.catalog-tabs'),hymnsTab=tabs.querySelector('[data-collection="hymns"]'),chorusesTab=tabs.querySelector('[data-collection="choruses"]');chorusesTab.textContent='Estribillos';tabs.append(hymnsTab,chorusesTab);
   document.querySelectorAll('[data-page]').forEach(a=>{a.classList.toggle('active',a.dataset.page===route);if(a.dataset.page===route)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   document.title=`${route==='inicio'?'Himnario digital':t[1]} — El Buen Pastor`;chips();render();
  }

@@ -414,7 +414,7 @@ export default function HymnListScreen() {
       type: 'main_header',
       title:
         indiceSection === 'estribillos'
-          ? t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS Y CORITOS'
+          ? t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS'
           : t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS',
       marginTop: 4,
     });
@@ -1631,7 +1631,7 @@ export default function HymnListScreen() {
                     <>
                       {renderSearchResultSection(
                         globalSearchResults.estribillos,
-                        t.sectionEstribillos || 'Estribillos y Coritos',
+                        t.sectionEstribillos || 'Estribillos',
                         'queue-music',
                         'estribillo'
                       )}
@@ -1652,7 +1652,7 @@ export default function HymnListScreen() {
                       )}
                       {renderSearchResultSection(
                         globalSearchResults.estribillos,
-                        t.sectionEstribillos || 'Estribillos y Coritos',
+                        t.sectionEstribillos || 'Estribillos',
                         'queue-music',
                         'estribillo'
                       )}

@@ -50,6 +50,7 @@ import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
 import AnimatedField from "../components/AnimatedField";
+import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
 import { parseServiceTimes } from "../utils/churchSchedule";
@@ -220,11 +221,33 @@ export default function ChurchesScreen() {
   const [showAddressFields, setShowAddressFields] = useState(false);
   const [showCoordsInput, setShowCoordsInput] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [locationChanged, setLocationChanged] = useState(false);
+  const [formToast, setFormToast] = useState<ActionToastMessage | null>(null);
+  const formToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPastedCoordsRef = useRef("");
   const formAddressRef = useRef<TextInput>(null);
   const formCityRef = useRef<TextInput>(null);
   const formStateRef = useRef<TextInput>(null);
   const formCountryRef = useRef<TextInput>(null);
   const formPostalRef = useRef<TextInput>(null);
+
+  const showFormToast = useCallback(
+    (title: string, subtitle?: string, icon: ActionToastMessage["icon"] = "check") => {
+      if (formToastTimerRef.current) clearTimeout(formToastTimerRef.current);
+      setFormToast({ id: Date.now(), title, subtitle, icon });
+      formToastTimerRef.current = setTimeout(() => {
+        setFormToast(null);
+        formToastTimerRef.current = null;
+      }, 2600);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (formToastTimerRef.current) clearTimeout(formToastTimerRef.current);
+    };
+  }, []);
   // Legacy schedules the picker cannot represent stay editable as plain text.
   const [scheduleAsText, setScheduleAsText] = useState(false);
   const parsedFormCoords = useMemo(
@@ -804,6 +827,9 @@ export default function ChurchesScreen() {
     setShowAddressFields(false);
     setShowCoordsInput(false);
     setShowMoreDetails(false);
+    setLocationChanged(false);
+    setFormToast(null);
+    lastPastedCoordsRef.current = "";
     setScheduleAsText(false);
   }, [t]);
 
@@ -844,6 +870,9 @@ export default function ChurchesScreen() {
     setShowAddressFields(true);
     setShowCoordsInput(false);
     setShowMoreDetails(true);
+    setLocationChanged(false);
+    setFormToast(null);
+    lastPastedCoordsRef.current = `${church.lat.toFixed(6)}, ${church.lng.toFixed(6)}`;
     setScheduleAsText(!canEditSchedule(church.serviceTimes || ""));
     setSubmitOpen(true);
   }, [t]);
@@ -885,6 +914,11 @@ export default function ChurchesScreen() {
             }
             return merged;
           });
+          const msg =
+            urls.length === 1
+              ? t.churchPhotoAddedToast
+              : t.churchPhotosAddedToast.replace("{count}", String(urls.length));
+          showFormToast(msg, undefined, "photo");
         }
       } catch (e: any) {
         setFormError(e?.message || communityError(e, es));
@@ -892,7 +926,7 @@ export default function ChurchesScreen() {
         setUploadingPhotos(false);
       }
     },
-    [t, api, es, formPhotos.length, maxPhotos, submitting, uploadingPhotos],
+    [t, api, es, formPhotos.length, maxPhotos, showFormToast, submitting, uploadingPhotos],
   );
 
   const handleDeleteChurch = useCallback(
@@ -982,11 +1016,19 @@ export default function ChurchesScreen() {
   const handleConfirmPinPicker = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const { lat, lng } = pinPickerCenter;
-    setFormCoordsInput(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    const formatted = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    lastPastedCoordsRef.current = formatted;
+    setFormCoordsInput(formatted);
+    setLocationChanged(true);
     setPinPickerOpen(false);
     setSubmitOpen(true);
+    showFormToast(
+      t.churchLocationUpdatedToast,
+      `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      "pin",
+    );
     void autofillAddressFromCoords(lat, lng, true);
-  }, [autofillAddressFromCoords, pinPickerCenter]);
+  }, [autofillAddressFromCoords, pinPickerCenter, showFormToast, t.churchLocationUpdatedToast]);
 
   const handleSubmitChurch = async () => {
     if (submitting) return;
@@ -2834,11 +2876,13 @@ export default function ChurchesScreen() {
                     styles.compactLocationCard,
                     {
                       backgroundColor: cardBg,
-                      borderColor: parsedFormCoords
-                        ? isDarkMode
-                          ? "rgba(255,255,255,0.20)"
-                          : theme.primary + "45"
-                        : cardBorder,
+                      borderColor: locationChanged
+                        ? "#34C75970"
+                        : parsedFormCoords
+                          ? isDarkMode
+                            ? "rgba(255,255,255,0.20)"
+                            : theme.primary + "45"
+                          : cardBorder,
                     },
                   ]}
                 >
@@ -2850,7 +2894,7 @@ export default function ChurchesScreen() {
                         color={parsedFormCoords ? "#34C759" : theme.primary}
                         size={19}
                       />
-                      <View style={{ flex: 1, gap: 2 }}>
+                      <View style={{ flex: 1, gap: 3 }}>
                         <Text
                           numberOfLines={2}
                           style={{
@@ -2866,6 +2910,13 @@ export default function ChurchesScreen() {
                                 .join(", ") || t.churchLocationSet
                             : t.churchLocationRequired}
                         </Text>
+                        {parsedFormCoords && locationChanged && (
+                          <View style={styles.updatedBadgePill}>
+                            <Text style={styles.updatedBadgeText}>
+                              {t.churchLocationUpdatedBadge}
+                            </Text>
+                          </View>
+                        )}
                         {!parsedFormCoords && (
                           <Text
                             numberOfLines={2}
@@ -2958,6 +3009,17 @@ export default function ChurchesScreen() {
                             setFormCoordsInput(txt);
                             const parsed = parseCoordsOrMapsInput(txt);
                             if (parsed) {
+                              const key = `${parsed.lat.toFixed(6)}, ${parsed.lng.toFixed(6)}`;
+                              if (key !== lastPastedCoordsRef.current) {
+                                lastPastedCoordsRef.current = key;
+                                setLocationChanged(true);
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                showFormToast(
+                                  t.churchLocationUpdatedToast,
+                                  `${parsed.lat.toFixed(5)}, ${parsed.lng.toFixed(5)}`,
+                                  "pin",
+                                );
+                              }
                               void autofillAddressFromCoords(parsed.lat, parsed.lng);
                             }
                           }}
@@ -3212,21 +3274,58 @@ export default function ChurchesScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      gap: 8,
                     }}
                   >
-                    <Text
-                      style={{
-                        color: theme.onSurface,
-                        ...fonts.sansSemiBold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {es
-                        ? `Fotos de la iglesia (${formPhotos.length}/${maxPhotos})`
-                        : `Church Photos (${formPhotos.length}/${maxPhotos})`}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text
+                        style={{
+                          color: theme.onSurface,
+                          ...fonts.sansSemiBold,
+                          fontSize: 13.5,
+                        }}
+                      >
+                        {t.churchPhotosLabel}
+                      </Text>
+                      <View
+                        style={[
+                          styles.photoCountBadge,
+                          {
+                            backgroundColor:
+                              formPhotos.length > 0
+                                ? "rgba(52, 199, 89, 0.16)"
+                                : isDarkMode
+                                  ? "rgba(255,255,255,0.10)"
+                                  : theme.surfaceVariants.containerHighest,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.photoCountBadgeText,
+                            {
+                              color:
+                                formPhotos.length > 0 ? "#2E9E56" : mutedText,
+                            },
+                          ]}
+                        >
+                          {formPhotos.length}/{maxPhotos}
+                        </Text>
+                      </View>
+                    </View>
                     {uploadingPhotos && (
-                      <ActivityIndicator size="small" color={theme.primary} />
+                      <View style={styles.uploadingBadge}>
+                        <ActivityIndicator size="small" color={theme.primary} />
+                        <Text
+                          style={{
+                            color: theme.primary,
+                            ...fonts.sansSemiBold,
+                            fontSize: 12,
+                          }}
+                        >
+                          {t.churchUploadingPhoto}
+                        </Text>
+                      </View>
                     )}
                   </View>
 
@@ -3354,6 +3453,7 @@ export default function ChurchesScreen() {
                                 next.unshift(picked);
                                 return next;
                               });
+                              showFormToast(t.churchCoverUpdatedToast, undefined, "photo");
                             }}
                             style={{
                               position: "absolute",
@@ -3451,7 +3551,7 @@ export default function ChurchesScreen() {
                               );
                               return;
                             }
-                            Haptics.selectionAsync();
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             setFormPhotos((prev) =>
                               prev.includes(clean) || prev.length >= maxPhotos
                                 ? prev
@@ -3459,6 +3559,7 @@ export default function ChurchesScreen() {
                             );
                             setFormPhotoUrl("");
                             setFormError("");
+                            showFormToast(t.churchPhotoAddedToast, undefined, "photo");
                           }}
                           style={{
                             paddingHorizontal: 13,
@@ -3533,6 +3634,10 @@ export default function ChurchesScreen() {
               </ScrollView>
             </Animated.View>
           </KeyboardAvoidingView>
+          <ActionToast
+            toast={formToast}
+            topOffset={Math.max(insets.top, 14) + 6}
+          />
         </GestureHandlerRootView>
       </Modal>
 
@@ -4179,6 +4284,32 @@ const styles = StyleSheet.create({
     gap: 5,
     alignSelf: "flex-start",
     paddingTop: 2,
+  },
+  updatedBadgePill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: "rgba(52, 199, 89, 0.16)",
+  },
+  updatedBadgeText: {
+    color: "#2E9E56",
+    ...fonts.sansSemiBold,
+    fontSize: 11,
+  },
+  photoCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  photoCountBadgeText: {
+    ...fonts.sansSemiBold,
+    fontSize: 11.5,
+  },
+  uploadingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   addressGroupCard: {
     borderRadius: 16,

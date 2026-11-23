@@ -9341,7 +9341,7 @@ export const estribillosData = [
     id: 'E73',
     number: 73,
     title: 'Amémonos De Corazón',
-    categories: 'Corito Clásico',
+    categories: 'Estribillo Clásico',
     author: '',
     reference: '',
     lyrics: _letra('E73'),

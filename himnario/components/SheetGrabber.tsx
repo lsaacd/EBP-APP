@@ -10,7 +10,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-export const SHEET_GRABBER_CLEARANCE = 16;
+export const SHEET_GRABBER_CLEARANCE = 22;
 
 export default function SheetGrabber({ inline = false }: { inline?: boolean }) {
   return (
@@ -38,14 +38,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pill: {
-    width: 46,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    width: 64,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.10)',
     shadowColor: '#000000',
-    shadowOpacity: 0.28,
-    shadowRadius: 3,
+    shadowOpacity: 0.34,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    elevation: 3,
   },
 });
