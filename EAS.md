@@ -11,12 +11,13 @@ Current release record. The Build #30 entry below describes the morning of the s
   - **Native change:** `himnario/modules/apple-look-around/ios/AppleLookAroundModule.swift` now presents `MKLookAroundViewController` directly and requests the scene by map item. No new native modules; JavaScript interface unchanged.
   - **Apple warning ITMS-90725:** built with the iOS 26.0 SDK (EAS image `macos-sequoia-15.6-xcode-26.0`, the `sdk-54` default). From April 2027 uploads need Xcode 27. This requires the Expo SDK upgrade in [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md); do **not** set an Xcode 27 `image` on SDK 54.
 - **iOS OTAs on branch `production`, runtime `2.0.0-media-3` (newest first):**
-  - [`d351bb27-fd01-46bb-b304-393d7258d8a6`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/d351bb27-fd01-46bb-b304-393d7258d8a6) — current. Church form keyboard dismissal, QR scan from Account returns on cancel, top Liquid Glass controls, `SDD` title, native system fonts, location-first church form with schedule picker.
+  - [`b58d065d-b081-4161-9d7f-67ab1695cc1d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/b58d065d-b081-4161-9d7f-67ab1695cc1d) — **current**. Church QR code restored on the card, with Share and Print; the code is encoded on the device (`himnario/utils/qrPath.ts`) instead of fetched from `api.qrserver.com`, and prints as inline SVG. Adds the pure-JS `qrcode` encoder (no native code; bundle +0.05 MB).
+  - [`d351bb27-fd01-46bb-b304-393d7258d8a6`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/d351bb27-fd01-46bb-b304-393d7258d8a6) — Church form keyboard dismissal, QR scan from Account returns on cancel, top Liquid Glass controls, `SDD` title, native system fonts, location-first church form with schedule picker.
   - `78f9b043-d4a3-4337-b59f-6a299003ac05` — Liquid Glass sheet, "Cerca de mí" pill, unlink church, city-only church names, "Mirar alrededor".
   - `4cb9ae0d-49bc-4385-85ce-f11e02914322` — churches map + bottom sheet redesign, merged "Mi iglesia" row, floating sheet grabber, stacked-map fix; also carried the cleanup and string-table commits.
   - Roll back the newest with `eas update:rollback --branch production`.
 - **Android:** unchanged. Last APK (`45c31c43`) is on runtime `2.0.0-securestore-1` and received none of this.
-- **Backend:** Worker and Pages unchanged. One D1 data edit: `church-riverbank-ca.pastor_name` set to `Hno Azael Tapia`.
+- **Backend:** Worker unchanged. One D1 data edit: `church-riverbank-ca.pastor_name` set to `Hno Azael Tapia`. Cloudflare Pages redeployed on November 22 (`afdbd124`, from commit `285e83e`) after the internal guides were moved out of `docs/`; the edge cache held the old copies for a while afterwards.
 - **Validation at publish time:** type check clean, 11 Node suites / 151 tests pass, `expo lint` 0 errors / 50 warnings, iOS and Android bundle exports succeed. None of the UI was run on a simulator; only the owner's device has seen it.
 
 ---
