@@ -38,6 +38,8 @@ export interface AuthUser {
   shareFavoritesWithFriends: boolean;
   /** Suggested to others who linked the same verified church. */
   suggestToChurchMembers: boolean;
+  /** Explicit consent to appear to signed-in visitors from other churches. */
+  directoryVisibleToAll: boolean;
   notifyCommentLikes: boolean;
   notifyCommentReplies: boolean;
   notifyFriends: boolean;
@@ -82,6 +84,7 @@ function normalizeUser(raw: any): AuthUser {
       typeof raw?.suggestToChurchMembers === 'boolean'
         ? raw.suggestToChurchMembers
         : raw?.showChurchLocation === true,
+    directoryVisibleToAll: raw?.directoryVisibleToAll === true,
     notifyCommentLikes: raw?.notifyCommentLikes !== false,
     notifyCommentReplies: raw?.notifyCommentReplies !== false,
     notifyFriends: raw?.notifyFriends !== false,
@@ -135,6 +138,7 @@ interface AuthContextType {
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
     suggestToChurchMembers?: boolean;
+    directoryVisibleToAll?: boolean;
     notifyCommentLikes?: boolean;
     notifyCommentReplies?: boolean;
     notifyFriends?: boolean;
@@ -686,6 +690,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
     suggestToChurchMembers?: boolean;
+    directoryVisibleToAll?: boolean;
     notifyCommentLikes?: boolean;
     notifyCommentReplies?: boolean;
     notifyFriends?: boolean;

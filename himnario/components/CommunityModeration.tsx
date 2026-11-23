@@ -86,6 +86,7 @@ export default function CommunityModeration({
     [people, setPeople] = useState<Person[]>([]),
     [churches, setChurches] = useState<ModChurch[]>([]),
     [modChoirs, setModChoirs] = useState<ModChoir[]>([]),
+    [editingChoirSlug, setEditingChoirSlug] = useState<string | null>(null),
     [choirDraftNames, setChoirDraftNames] = useState<Record<string, { nameEs: string; nameEn: string }>>({}),
     [modToast, setModToast] = useState<string | null>(null),
     [query, setQuery] = useState(""),
@@ -638,6 +639,8 @@ export default function CommunityModeration({
                 ).map((item, idx) => {
                   const label = es ? item.nameEs : item.nameEn;
                   const isBuiltin = BUILTIN_CHOIRS.has(item.slug);
+                  const editing = editingChoirSlug === item.slug;
+                  const draft = choirDraftNames[item.slug] || { nameEs: item.nameEs, nameEn: item.nameEn };
                   return (
                     <React.Fragment key={item.slug}>
                       {idx > 0 && (
@@ -672,6 +675,19 @@ export default function CommunityModeration({
                         >
                           {label}
                         </Text>
+                        <Pressable
+                          disabled={busy}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${t.choirEditAction} ${label}`}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setChoirDraftNames((prev) => ({ ...prev, [item.slug]: { nameEs: item.nameEs, nameEn: item.nameEn } }));
+                            setEditingChoirSlug(editing ? null : item.slug);
+                          }}
+                          style={({ pressed }) => ({ paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10, opacity: pressed ? 0.7 : 1 })}
+                        >
+                          <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: theme.primary }}>{t.choirEditAction}</Text>
+                        </Pressable>
                         {isBuiltin ? (
                           <View
                             style={{
@@ -759,6 +775,44 @@ export default function CommunityModeration({
                           </Pressable>
                         )}
                       </View>
+                      {editing && (
+                        <View style={{ paddingHorizontal: 14, paddingBottom: 12, gap: 9 }}>
+                          <View style={[styles.groupedFieldsCard, { backgroundColor: theme.surfaceVariants.containerLowest, borderColor: theme.outlineVariant + '60' }]}>
+                            <AnimatedField
+                              grouped
+                              label={t.choirNameLabel}
+                              value={draft.nameEs}
+                              onChangeText={(nameEs) => setChoirDraftNames((prev) => ({ ...prev, [item.slug]: { ...draft, nameEs } }))}
+                              maxLength={60}
+                              editable={!busy}
+                            />
+                            <AnimatedField
+                              grouped
+                              isLast
+                              label={t.choirNameEnLabel}
+                              value={draft.nameEn}
+                              onChangeText={(nameEn) => setChoirDraftNames((prev) => ({ ...prev, [item.slug]: { ...draft, nameEn } }))}
+                              maxLength={60}
+                              editable={!busy}
+                            />
+                          </View>
+                          <View style={styles.row}>
+                            {button(t.choirSaveAction, async () => {
+                              await api(`/mod/choirs/${encodeURIComponent(item.slug)}`, 'PUT', {
+                                nameEs: draft.nameEs.trim(),
+                                nameEn: draft.nameEn.trim(),
+                              });
+                              await Promise.all([loadChoirs(), refreshApprovedChoirs()]);
+                              setEditingChoirSlug(null);
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                              flashToast(t.choirSavedToast);
+                            })}
+                            <Pressable accessibilityRole="button" onPress={() => setEditingChoirSlug(null)} style={{ paddingHorizontal: 12, paddingVertical: 10 }}>
+                              <Text style={{ ...fonts.sansMedium, color: theme.onSurfaceVariant }}>{t.cancel}</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      )}
                     </React.Fragment>
                   );
                 })}

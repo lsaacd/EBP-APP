@@ -1,5 +1,14 @@
 # App editing
 
+## November 23, 2026 — Friendships, cross-church directory, choir editing (local, unpublished)
+
+- **People UI:** The account profile shows a tappable accepted-friend count; public comment profiles show the same count. The friends panel now groups Amistades/Friends, Solicitudes/Requests, and De mi iglesia/From my church in a compact segmented control. The iOS control uses the existing native glass surface; Android keeps a tonal surface. Spanish friendship labels are inclusive.
+- **Church card:** Any signed-in account can open the visible member list for an approved, verified church, including a church other than their own. The card shows a viewer-specific visible count. Guests see a sign-in prompt. Existing same-church suggestions still work. Blocked, suspended, unverified, and opted-out accounts are filtered.
+- **Fresh consent for visitors:** D1 migration `0016_public_church_directory.sql` adds `directory_visible_to_all` defaulting to off. The old «Sugerirme a mi iglesia» setting still controls same-church visibility; the new «Visible para otras iglesias» switch is required before a member appears to signed-in visitors from another church. Do not broaden the old switch implicitly. `docs/privacy.html` was updated in Spanish and English to describe this and the visible friendship count.
+- **Grabber and moderation:** The shared `SheetGrabber` pill is now `60×12`. Admins can edit Spanish and English names of approved custom and built-in coros through `PUT /mod/choirs/:slug`; the slug, assignments, and repertoire stay stable. The moderation list has inline edit fields, save/cancel, and a success toast.
+- **Verification:** `npx tsc --noEmit` passes; `npx expo lint` has 0 errors and 49 existing warnings; all 11 Node test suites pass, including new directory consent, count, block, and coro edit assertions. `npx expo export --platform ios` bundled 2,114 modules successfully. `git -c core.whitespace=cr-at-eol diff --check` passes. Physical iOS/Android UI and live Cloudflare behavior are not yet verified.
+- **Release order when authorized:** apply D1 migration `0016`, deploy the Worker, deploy the updated privacy page, then publish the compatible iOS OTA. Do not publish an OTA before the Worker and migration. No deployment, OTA, database mutation, or store release has been performed for this entry.
+
 ## November 23, 2026 — Hermanos church directories and legacy links
 
 - The Worker repairs a missing church ID when the saved name matches exactly one approved, verified church. Unrelated profile saves preserve the ID. Ambiguous names go through the map selection flow.

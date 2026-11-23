@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pill: {
-    width: 47,
+    width: 60,
     height: 12,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.92)',

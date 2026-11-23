@@ -61,6 +61,7 @@ import { APPLE_AVATAR_GRADIENT } from './HomeHeaderActions';
 import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
 import { MINISTRIES, choirDisplayName } from '../data/communityRules';
 import { useApprovedChoirs } from '../utils/choirsStore';
+import { useFriends } from '../utils/friendsStore';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
@@ -117,6 +118,7 @@ export function AuthSheet({
   const { favoriteIds } = useFavorites();
   const { playlists } = usePlaylists();
   const { bySlug: choirsBySlug } = useApprovedChoirs();
+  const { lists: friendsLists, refreshIfStale: refreshFriendsIfStale } = useFriends();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -124,6 +126,10 @@ export function AuthSheet({
   const pendingHymnIdRef = useRef<string | null>(null);
 
   const visible = propVisible !== undefined ? propVisible : authSheetVisible;
+  const signedInUserId = user?.id;
+  useEffect(() => {
+    if (visible && signedInUserId) void refreshFriendsIfStale();
+  }, [visible, signedInUserId, refreshFriendsIfStale]);
   const onClose = propOnClose || closeAuthSheet;
   const isIOS = Platform.OS === 'ios';
   const es = language !== 'en';
@@ -912,6 +918,16 @@ export function AuthSheet({
               />
             )}
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${friendsLists.friends.length} ${t.friendsCountLabel}`}
+            onPress={() => goSubPage('friends')}
+            style={({ pressed }) => ({ marginTop: 7, paddingHorizontal: 17, paddingVertical: 9, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.09)' : theme.surfaceVariants.containerLow, borderWidth: StyleSheet.hairlineWidth, borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : theme.outlineVariant, opacity: pressed ? 0.72 : 1 })}
+          >
+            <Text style={{ ...fonts.sansBold, fontSize: 15, color: theme.onSurface }}>{friendsLists.friends.length}</Text>
+            <Text style={{ ...fonts.sansMedium, fontSize: 13.5, color: mutedText }}>{t.friendsCountLabel}</Text>
+            <AppMenuIcon ios="chevron.right" android="chevron-right" color={mutedText} size={11} />
+          </Pressable>
         </View>
 
         {/* Name Edit Card */}

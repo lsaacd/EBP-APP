@@ -1,12 +1,12 @@
 /**
- * FriendsPanel — the "Hermanos" page inside the account sheet: requests you
+ * FriendsPanel — the friendships page inside the account sheet: requests you
  * received, your friends (with their favourite hymns), people from your
  * church, requests you sent, and what you share. Tapping a person opens their
  * details in place (the sheet is already a modal; a second one would freeze
  * UIKit on iOS).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,7 @@ import {
 } from '../utils/friends';
 import { useFriends } from '../utils/friendsStore';
 import AppMenuIcon from './AppMenuIcon';
+import GlassSurface from './GlassSurface';
 import FriendButton from './FriendButton';
 
 type Table = Record<string, [string, string]>;
@@ -59,6 +60,7 @@ export default function FriendsPanel({
     deleteSharedPlaylist,
   } = useFriends();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'church'>('friends');
   const [openSharedId, setOpenSharedId] = useState<string | null>(null);
   const [savedSharedIds, setSavedSharedIds] = useState<Record<string, boolean>>({});
   const [deletingSharedId, setDeletingSharedId] = useState<string | null>(null);
@@ -271,7 +273,7 @@ export default function FriendsPanel({
     );
   };
 
-  const saveSwitch = (key: 'shareFavoritesWithFriends' | 'suggestToChurchMembers', value: boolean) => {
+  const saveSwitch = (key: 'shareFavoritesWithFriends' | 'suggestToChurchMembers' | 'directoryVisibleToAll', value: boolean) => {
     if (savingSwitch) return;
     Haptics.selectionAsync();
     setSavingSwitch(key);
@@ -284,7 +286,7 @@ export default function FriendsPanel({
   };
 
   const switchRow = (
-    key: 'shareFavoritesWithFriends' | 'suggestToChurchMembers',
+    key: 'shareFavoritesWithFriends' | 'suggestToChurchMembers' | 'directoryVisibleToAll',
     title: string,
     subtitle: string,
     value: boolean,
@@ -522,15 +524,6 @@ export default function FriendsPanel({
   const directoryMatchesChurch = !user?.churchId || user.churchId === suggestions.churchId;
   const churchMembers = directoryMatchesChurch ? suggestions.churchMembers : [];
 
-  const nobody =
-    lists.friends.length +
-      lists.incoming.length +
-      lists.outgoing.length +
-      suggestions.users.length +
-      churchMembers.length +
-      sharedPlaylists.length ===
-    0;
-
   const renderMyChurchMembersSection = () => {
     if (!hasLinkedChurch) return null;
     const headerTitle = myChurchLabel
@@ -695,15 +688,37 @@ export default function FriendsPanel({
 
   return (
     <View style={{ gap: 18 }}>
-      {section(t.friendsRequests, lists.incoming, 'incoming')}
-      {renderSharedPlaylistsSection()}
-      {section(t.friendsMine, lists.friends, 'friends')}
-      {hasLinkedChurch
+      <View style={{ flexDirection: 'row', padding: 4, borderRadius: 18, overflow: 'hidden', backgroundColor: Platform.OS === 'ios' ? 'transparent' : isDarkMode ? 'rgba(255,255,255,0.08)' : theme.surfaceVariants.containerLow, borderWidth: StyleSheet.hairlineWidth, borderColor: cardBorder }}>
+        {Platform.OS === 'ios' && <GlassSurface intensity={58} glassEffectStyle="regular" style={StyleSheet.absoluteFill} />}
+        {([
+          ['friends', t.friendsMine, lists.friends.length],
+          ['requests', t.friendsRequests, lists.incoming.length],
+          ['church', t.friendsFromMyChurch, null],
+        ] as const).map(([tab, label, count]) => (
+          <Pressable
+            key={tab}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab }}
+            onPress={() => { Haptics.selectionAsync(); setActiveTab(tab); setOpenId(null); }}
+            style={({ pressed }) => ({ flex: 1, minHeight: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === tab ? cardBg : 'transparent', opacity: pressed ? 0.75 : 1 })}
+          >
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: activeTab === tab ? theme.primary : mutedText }}>
+              {label}{count !== null ? ` ${count}` : ''}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {activeTab === 'requests' && <>
+        {section(t.friendsRequests, lists.incoming, 'incoming')}
+        {renderSharedPlaylistsSection()}
+        {section(t.friendsSent, lists.outgoing, 'outgoing')}
+      </>}
+      {activeTab === 'friends' && section(t.friendsMine, lists.friends, 'friends')}
+      {activeTab === 'church' && (hasLinkedChurch
         ? renderMyChurchMembersSection()
-        : section(t.friendsFromMyChurch, suggestions.users, 'none')}
-      {section(t.friendsSent, lists.outgoing, 'outgoing')}
+        : section(t.friendsFromMyChurch, suggestions.users, 'none'))}
 
-      {nobody && !hasLinkedChurch && (
+      {activeTab === 'friends' && lists.friends.length === 0 && (
         <View style={[styles.card, styles.emptyCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           {loading ? (
             <ActivityIndicator color={theme.primary} />
@@ -722,7 +737,7 @@ export default function FriendsPanel({
       )}
 
       {/* Without a linked church there is nobody to suggest: offer the way to link one. */}
-      {!hasLinkedChurch && onOpenChurchesMap ? (
+      {activeTab === 'church' && !hasLinkedChurch && onOpenChurchesMap ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => {
@@ -760,6 +775,13 @@ export default function FriendsPanel({
               t.friendsSuggestMe,
               t.friendsSuggestMeSub,
               user.suggestToChurchMembers,
+            )}
+            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+            {switchRow(
+              'directoryVisibleToAll',
+              t.friendsDirectoryAll,
+              t.friendsDirectoryAllSub,
+              user.directoryVisibleToAll,
             )}
           </View>
         </View>

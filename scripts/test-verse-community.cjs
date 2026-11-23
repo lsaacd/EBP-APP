@@ -1034,6 +1034,7 @@ test("a friend request must be accepted, and only the person who received it can
     a = await f.account({ name: "Ana Ruiz" }),
     b = await f.account({ name: "Beto Luna" });
   assert.equal(await statusOf(f, a, b), "none");
+  assert.equal((await f.call(`/users/${b.id}/public-profile`, "GET")).data.user.friendCount, 0);
   assert.equal(await statusOf(f, null, b), null); // guests get no status
   assert.equal(await statusOf(f, a, a), "self");
 
@@ -1063,6 +1064,7 @@ test("a friend request must be accepted, and only the person who received it can
   assert.equal(accepted.data.friendStatus, "friends");
   assert.equal(await statusOf(f, a, b), "friends");
   assert.equal(await statusOf(f, b, a), "friends");
+  assert.equal((await f.call(`/users/${b.id}/public-profile`, "GET")).data.user.friendCount, 1);
   // Accepting again, or asking again, is harmless.
   assert.equal(
     (await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token)).data.friendStatus,
@@ -1818,6 +1820,15 @@ test("Coro Filadelfia is built in, members can suggest choirs, and admin approva
   assert.equal(pickBetel.status, 200);
   assert.equal(pickBetel.data.user.choir, "betel");
 
+  // Admin can edit approved names without changing the stable slug or member assignments.
+  assert.equal((await f.call("/mod/choirs/betel", "PUT", { nameEs: "Coro Betel Nuevo", nameEn: "New Bethel Choir" }, member.token)).status, 403);
+  assert.equal((await f.call("/mod/choirs/betel", "PUT", { nameEs: "<script>", nameEn: "Name" }, admin.token)).status, 400);
+  const edited = await f.call("/mod/choirs/betel", "PUT", { nameEs: "Coro Betel Nuevo", nameEn: "New Bethel Choir" }, admin.token);
+  assert.equal(edited.status, 200);
+  assert.equal((await f.call("/choirs", "GET")).data.choirs.find(c => c.slug === "betel").nameEs, "Coro Betel Nuevo");
+  assert.equal(f.sql.prepare("SELECT choir FROM users WHERE id=?1").get(member.id).choir, "betel");
+  assert.equal((await f.call("/mod/choirs/filadelfia", "PUT", { nameEs: "Coro Filadelfia Unido", nameEn: "United Philadelphia Choir" }, admin.token)).status, 200);
+
   const repSave = await f.call(
     "/mod/choirs/repertoire",
     "PUT",
@@ -1876,7 +1887,7 @@ test("church members directory self-heals missing church_id and lists opt-in mem
   // Confirm church_id was persisted in D1
   assert.equal(f.sql.prepare("SELECT church_id FROM users WHERE id=?1").get(me.id).church_id, "church-riverbank-ca");
 
-  // GET /churches/:id/members works for linked members, rejects outsiders (403) and guests (401)
+  // Signed-in visitors can browse opted-in members, even when they belong to another church.
   const dir = await f.call("/churches/church-riverbank-ca/members", "GET", undefined, me.token);
   assert.equal(dir.status, 200);
   assert.deepEqual(
@@ -1886,9 +1897,23 @@ test("church members directory self-heals missing church_id and lists opt-in mem
       ["Marta Lopez", "none"],
     ],
   );
-  assert.equal((await f.call("/churches/church-riverbank-ca/members", "GET", undefined, outsider.token)).status, 403);
+  assert.equal(dir.data.total, 2);
+  const visitorBeforeConsent = await f.call("/churches/church-riverbank-ca/members", "GET", undefined, outsider.token);
+  assert.equal(visitorBeforeConsent.data.total, 0);
+  await saveProfile(f, friend, { directoryVisibleToAll: true });
+  const visitorDir = await f.call("/churches/church-riverbank-ca/members", "GET", undefined, outsider.token);
+  assert.equal(visitorDir.status, 200);
+  assert.deepEqual(visitorDir.data.members.map(u => u.name), ["Isaac V2"]);
+  assert.equal(visitorDir.data.total, 1);
+  await f.call(`/users/${friend.id}/block`, "POST", {}, outsider.token);
+  assert.equal((await f.call("/churches/church-riverbank-ca/members", "GET", undefined, outsider.token)).data.total, 0);
   assert.equal((await f.call("/churches/church-riverbank-ca/members", "GET")).status, 401);
+  assert.equal((await f.call("/churches/not-an-approved-church/members", "GET", undefined, outsider.token)).status, 404);
   assert.deepEqual((await f.call("/churches/church-riverbank-ca/members?offset=1", "GET", undefined, me.token)).data.members.map(u => u.name), ["Marta Lopez"]);
+  await saveProfile(f, me, { suggestToChurchMembers: true });
+  const withSelf = await f.call("/churches/church-riverbank-ca/members", "GET", undefined, me.token);
+  assert.equal(withSelf.data.total, 3);
+  assert.equal(withSelf.data.members.find(u => u.id === me.id)?.friendStatus, "self");
 
   f.sql.prepare(
     "INSERT INTO churches (id,name,address,city,country,lat,lng,status,verified,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",

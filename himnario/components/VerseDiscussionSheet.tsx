@@ -172,6 +172,7 @@ export default function VerseDiscussionSheet({
     churchName: string | null;
     location: string | null;
     memberSince: string | null;
+    friendCount: number | null;
     friendStatus: FriendStatus | null;
     loading: boolean;
   } | null>(null);
@@ -235,6 +236,7 @@ export default function VerseDiscussionSheet({
         churchName: isSelf && user?.showChurchLocation ? user.churchName : null,
         location: isSelf && user?.showChurchLocation ? user.location : null,
         memberSince: null,
+        friendCount: null,
         friendStatus: null,
         loading: true,
       });
@@ -249,6 +251,7 @@ export default function VerseDiscussionSheet({
           churchName: string | null;
           location: string | null;
           memberSince?: string | null;
+          friendCount?: number;
           friendStatus?: string | null;
         };
       }>(`/users/${uid}/public-profile`)
@@ -264,6 +267,7 @@ export default function VerseDiscussionSheet({
             churchName: res.user.churchName ?? null,
             location: res.user.location ?? null,
             memberSince: res.user.memberSince ?? null,
+            friendCount: typeof res.user.friendCount === 'number' ? res.user.friendCount : null,
             friendStatus: parseFriendStatus(res.user.friendStatus),
             loading: false,
           });
@@ -1908,6 +1912,12 @@ export default function VerseDiscussionSheet({
                   </Text>
                 </View>
               </View>
+
+              {!selectedAuthor.loading && selectedAuthor.friendCount !== null && (
+                <Text style={{ ...fonts.sansSemiBold, fontSize: 13.5, color: theme.onSurfaceVariant, alignSelf: 'center' }}>
+                  {selectedAuthor.friendCount} {t.friendsCountLabel}
+                </Text>
+              )}
 
               {selectedAuthor.loading ? (
                 <ActivityIndicator

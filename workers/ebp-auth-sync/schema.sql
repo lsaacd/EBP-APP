@@ -262,3 +262,6 @@ VALUES
   ('esmirna', 'Coro Esmirna', 'Esmirna Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000),
   ('maranatha', 'Coro Maranatha', 'Maranatha Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000),
   ('filadelfia', 'Coro Filadelfia', 'Filadelfia Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000);
+
+-- Visibility to signed-in visitors from other churches requires fresh consent.
+ALTER TABLE users ADD COLUMN directory_visible_to_all INTEGER NOT NULL DEFAULT 0 CHECK(directory_visible_to_all IN (0,1));

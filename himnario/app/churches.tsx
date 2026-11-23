@@ -212,10 +212,12 @@ export default function ChurchesScreen() {
   const { bySlug: choirsBySlug } = useApprovedChoirs();
   const [churchMembersOpen, setChurchMembersOpen] = useState(false);
   const [churchMembers, setChurchMembers] = useState<ChurchMemberProfile[]>([]);
+  const [churchMembersTotal, setChurchMembersTotal] = useState<number | null>(null);
   const [churchMembersLoading, setChurchMembersLoading] = useState(false);
   const [churchMembersFailed, setChurchMembersFailed] = useState(false);
   const [churchMembersNextOffset, setChurchMembersNextOffset] = useState<number | null>(null);
   const churchMembersRequest = useRef(0);
+  const churchRepairAttemptRef = useRef<string | null>(null);
 
   // Submit / Add / Edit Church Modal State
   const [submitOpen, setSubmitOpen] = useState(false);
@@ -883,24 +885,32 @@ export default function ChurchesScreen() {
     [t],
   );
 
+  const churchViewerId = user?.id;
+  const linkedChurchId = user?.churchId;
+  const linkedChurchName = user?.churchName;
   const loadChurchMembers = useCallback(
     async (churchId: string, offset = 0) => {
-      if (!user) return;
+      if (!churchViewerId) return;
       const request = ++churchMembersRequest.current;
       setChurchMembersLoading(true);
       setChurchMembersFailed(false);
       try {
-        const res = await api<{ members?: unknown; nextOffset?: unknown }>(
+        const res = await api<{ members?: unknown; nextOffset?: unknown; total?: unknown }>(
           `/churches/${encodeURIComponent(churchId)}/members?offset=${offset}`,
         );
         if (request !== churchMembersRequest.current) return;
         const members = parseChurchMembers(res?.members);
         setChurchMembers(current => offset ? mergeChurchMembers(current, members) : members);
+        setChurchMembersTotal(typeof res?.total === 'number' && Number.isFinite(res.total) ? res.total : members.length);
         setChurchMembersNextOffset(parseChurchMembersOffset(res?.nextOffset));
-        if (!user.churchId) void refreshUser().catch(() => {});
+        if (!linkedChurchId && linkedChurchName && churchRepairAttemptRef.current !== churchViewerId) {
+          churchRepairAttemptRef.current = churchViewerId;
+          void refreshUser().catch(() => {});
+        }
       } catch {
         if (request === churchMembersRequest.current) {
           setChurchMembers([]);
+          setChurchMembersTotal(null);
           setChurchMembersNextOffset(null);
           setChurchMembersFailed(true);
         }
@@ -908,17 +918,22 @@ export default function ChurchesScreen() {
         if (request === churchMembersRequest.current) setChurchMembersLoading(false);
       }
     },
-    [api, refreshUser, user],
+    [api, refreshUser, churchViewerId, linkedChurchId, linkedChurchName],
   );
 
   useEffect(() => {
     setChurchMembersOpen(false);
     setChurchMembers([]);
+    setChurchMembersTotal(null);
     setChurchMembersNextOffset(null);
     setChurchMembersLoading(false);
     setChurchMembersFailed(false);
     return () => { churchMembersRequest.current += 1; };
   }, [selectedChurch?.id, user?.id]);
+
+  useEffect(() => {
+    if (selectedChurch?.id && churchViewerId) void loadChurchMembers(selectedChurch.id);
+  }, [selectedChurch?.id, churchViewerId, loadChurchMembers]);
 
   const handleSetMyChurch = useCallback(
     async (church: VerifiedChurch) => {
@@ -2596,11 +2611,6 @@ export default function ChurchesScreen() {
                     </View>
 
               {(() => {
-                const isMyLinkedChurch =
-                  Boolean(user) &&
-                  (user?.churchId === selectedChurch.id ||
-                    (!user?.churchId && user?.churchName === selectedChurch.name));
-                if (!isMyLinkedChurch) return null;
                 return (
                   <View
                     style={{
@@ -2623,7 +2633,8 @@ export default function ChurchesScreen() {
                         Haptics.selectionAsync();
                         const next = !churchMembersOpen;
                         setChurchMembersOpen(next);
-                        if (next) void loadChurchMembers(selectedChurch.id);
+                        if (next && user && (churchMembersFailed || churchMembersTotal === null)) void loadChurchMembers(selectedChurch.id);
+                        if (next && !user) openAuthSheet();
                       }}
                       style={({ pressed }) => ({
                         flexDirection: "row",
@@ -2670,7 +2681,9 @@ export default function ChurchesScreen() {
                             fontSize: 12,
                           }}
                         >
-                          {t.churchMembersRowSub}
+                          {user && churchMembersTotal !== null
+                            ? t.churchMembersCount.replace('{n}', String(churchMembersTotal))
+                            : t.churchMembersRowSub}
                         </Text>
                       </View>
                       <AppMenuIcon
@@ -2694,7 +2707,9 @@ export default function ChurchesScreen() {
                           gap: 10,
                         }}
                       >
-                        {churchMembersLoading ? (
+                        {!user ? (
+                          <Text style={{ ...fonts.sansRegular, color: theme.onSurfaceVariant }}>{t.churchMembersSignIn}</Text>
+                        ) : churchMembersLoading ? (
                           <View style={{ paddingVertical: 10, alignItems: "center" }}>
                             <ActivityIndicator size="small" color={theme.primary} />
                           </View>

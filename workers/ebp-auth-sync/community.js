@@ -68,6 +68,7 @@ function profile(body, user) {
           "showChurchLocation",
           "shareFavoritesWithFriends",
           "suggestToChurchMembers",
+          "directoryVisibleToAll",
           "notifyCommentLikes",
           "notifyCommentReplies",
           "notifyFriends",
@@ -126,6 +127,7 @@ function profile(body, user) {
   for (const key of [
     "shareFavoritesWithFriends",
     "suggestToChurchMembers",
+    "directoryVisibleToAll",
     "notifyCommentLikes",
     "notifyCommentReplies",
     "notifyFriends",
@@ -153,6 +155,10 @@ function profile(body, user) {
         : body.suggestToChurchMembers
           ? 1
           : 0,
+    directory_visible_to_all:
+      body.directoryVisibleToAll === undefined
+        ? Number(user.directory_visible_to_all ?? 0)
+        : body.directoryVisibleToAll ? 1 : 0,
     notify_comment_likes:
       body.notifyCommentLikes === undefined
         ? Number(user.notify_comment_likes ?? 1)
@@ -474,7 +480,7 @@ export async function handleCommunity(
       if (!approvedChoir) fail(400, "invalid_choir");
     }
     const saved = await env.DB.prepare(
-      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=CASE WHEN ?14=1 THEN ?8 ELSE church_id END,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1 RETURNING church_id",
+      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=CASE WHEN ?14=1 THEN ?8 ELSE church_id END,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,directory_visible_to_all=?15,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1 RETURNING church_id",
     )
       .bind(
         user.id,
@@ -491,6 +497,7 @@ export async function handleCommunity(
         p.notify_comment_replies,
         p.notify_friends,
         body.churchId === undefined ? 0 : 1,
+        p.directory_visible_to_all,
       )
       .first();
     return json({
@@ -917,9 +924,15 @@ export async function handleCommunity(
       target.show_church_location === 1 ||
       friendStatus === "friends" ||
       friendStatus === "self";
+    const friendCountRow = await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM friendships f JOIN users u
+       ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
+       WHERE f.status='accepted' AND (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL`,
+    ).bind(target.id).first();
     return json({
       user: {
         memberSince: memberSince(target.created_at),
+        friendCount: Number(friendCountRow?.total ?? 0),
         friendStatus,
         id: target.id,
         name: target.name,
@@ -1045,24 +1058,33 @@ export async function handleCommunity(
     ).bind(user.id, matches[0].id, user.church_name).first();
     return repaired?.church_id ?? null;
   };
-  const listChurchMembers = async (churchId, offset) => {
-    const rows = await all(
+  const listChurchMembers = async (churchId, offset, sameChurch) => {
+    const visibilityCondition = sameChurch
+      ? "(COALESCE(u.suggest_to_church_members,u.show_church_location)=1 OR u.directory_visible_to_all=1)"
+      : "u.directory_visible_to_all=1";
+    const visibleMembers = `FROM users u
+       WHERE u.church_id=?2 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
+         AND ${visibilityCondition}
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))`;
+    const [rows, countRow] = await Promise.all([all(
       `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
               f.status AS f_status, f.requested_by AS f_requested_by
        FROM users u
        LEFT JOIN friendships f
          ON (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id)
-       WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
-         AND COALESCE(u.suggest_to_church_members,u.show_church_location)=1
+       WHERE u.church_id=?2 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
+         AND ${visibilityCondition}
          AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
        ORDER BY u.name COLLATE NOCASE ASC, u.id ASC LIMIT 51 OFFSET ?3`,
       user.id,
       churchId,
       offset,
-    );
+    ), env.DB.prepare(`SELECT COUNT(*) AS total ${visibleMembers}`).bind(user.id, churchId).first()]);
     const members = rows.slice(0, 50).map((row) => {
       const friendStatus =
-        row.f_status === "accepted"
+        row.id === user.id
+          ? "self"
+          : row.f_status === "accepted"
           ? "friends"
           : row.f_status === "pending"
             ? row.f_requested_by === user.id
@@ -1070,11 +1092,11 @@ export async function handleCommunity(
               : "incoming"
             : "none";
       return {
-        ...friendSummary(row, friendStatus === "friends"),
+        ...friendSummary(row, friendStatus === "friends" || friendStatus === "self"),
         friendStatus,
       };
     });
-    return { members, nextOffset: rows.length > 50 ? offset + 50 : null };
+    return { members, total: Number(countRow?.total ?? 0), nextOffset: rows.length > 50 ? offset + 50 : null };
   };
   const churchMembersOffset = () => {
     const offset = Number(url.searchParams.get("offset") ?? 0);
@@ -1091,14 +1113,14 @@ export async function handleCommunity(
         `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
          FROM users u
          WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
-           AND COALESCE(u.suggest_to_church_members,u.show_church_location)=1
+           AND (COALESCE(u.suggest_to_church_members,u.show_church_location)=1 OR u.directory_visible_to_all=1)
            AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
            AND NOT EXISTS(SELECT 1 FROM friendships f WHERE (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id))
          ORDER BY u.name COLLATE NOCASE ASC LIMIT 20`,
         user.id,
         resolvedChurchId,
       ),
-      listChurchMembers(resolvedChurchId, churchMembersOffset()),
+      listChurchMembers(resolvedChurchId, churchMembersOffset(), true),
       env.DB.prepare("SELECT name FROM churches WHERE id=?1 LIMIT 1")
         .bind(resolvedChurchId)
         .first(),
@@ -1120,19 +1142,15 @@ export async function handleCommunity(
   if (churchMembersMatch && method === "GET") {
     if (!user) fail(401, "unauthorized");
     const churchId = churchMembersMatch[1];
-    const resolvedChurchId = await resolveUserChurchId();
-    if (!resolvedChurchId || resolvedChurchId !== churchId)
-      fail(403, "not_church_member");
-    const [directory, churchRow] = await Promise.all([
-      listChurchMembers(churchId, churchMembersOffset()),
-      env.DB.prepare("SELECT name FROM churches WHERE id=?1 LIMIT 1")
-        .bind(churchId)
-        .first(),
-    ]);
+    const churchRow = await env.DB.prepare("SELECT name FROM churches WHERE id=?1 AND status='approved' AND verified=1 LIMIT 1")
+      .bind(churchId).first();
+    if (!churchRow) fail(404, "church_not_found");
+    const ownChurchId = await resolveUserChurchId();
+    const directory = await listChurchMembers(churchId, churchMembersOffset(), ownChurchId === churchId);
     return json(
       {
         churchId,
-        churchName: churchRow?.name || user.church_name || null,
+        churchName: churchRow.name,
         ...directory,
       },
       200,
@@ -1771,6 +1789,29 @@ export async function handleCommunity(
     return json({ ok: true });
   }
   const modChoirDel = path.match(/^\/mod\/choirs\/([a-z0-9_-]{2,40})$/);
+  if (modChoirDel && modChoirDel[1] !== "repertoire" && method === "PUT") {
+    const slug = modChoirDel[1];
+    const existing = await env.DB.prepare(
+      "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
+    ).bind(slug).first();
+    if (!existing) fail(404, "not_found");
+    const body = await bodyOf(request);
+    if (!body || Object.keys(body).some((key) => !["nameEs", "nameEn"].includes(key)))
+      fail(400, "invalid_choir");
+    const cleanName = (value) => {
+      if (typeof value !== "string") fail(400, "invalid_choir");
+      const clean = value.replace(/\s+/g, " ").trim();
+      if (clean.length < 2 || clean.length > 60 || /[<>\u0000-\u001f]/u.test(clean))
+        fail(400, "invalid_choir");
+      return clean;
+    };
+    const nameEs = cleanName(body.nameEs);
+    const nameEn = cleanName(body.nameEn);
+    await quota(env, `choir-edit:${user.id}`, 30, 3600000);
+    await env.DB.prepare("UPDATE choirs SET name_es=?2,name_en=?3 WHERE slug=?1")
+      .bind(slug, nameEs, nameEn).run();
+    return json({ ok: true, choir: { slug, nameEs, nameEn, status: "approved" } });
+  }
   if (modChoirDel && method === "DELETE") {
     const slug = modChoirDel[1];
     if (BUILTIN_CHOIR_SLUGS.has(slug)) fail(400, "invalid_choir");
