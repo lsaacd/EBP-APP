@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 23, 2026 (after iOS Production Build #34 `d1f054c9` / auto-submission `ba24a1c2` + iOS OTA `54f32fc2` on `2.0.0-release-5`, Pages `94eaed5a`, Worker `d0008031`, and D1 `0015_choirs`).
+> **Last updated:** November 23, 2026 (iOS Build #34 `d1f054c9`; latest OTA `d8d19cab` on `2.0.0-release-5`; Pages `d13b5c7d`; Worker `1329687d`; D1 `0016_public_church_directory`).
 
 ## Before you start
 
