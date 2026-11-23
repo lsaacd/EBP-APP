@@ -120,6 +120,14 @@ export function communityError(error: unknown, es: boolean) {
       "Solo puedes compartir con hermanos que hayas aceptado.",
       "You can only share with accepted friends.",
     ],
+    choir_exists: [
+      "Ese coro ya existe o está pendiente de aprobación.",
+      "That choir already exists or is awaiting approval.",
+    ],
+    invalid_choir: [
+      "Ingresa un nombre de coro válido (2–60 caracteres).",
+      "Enter a valid choir name (2–60 characters).",
+    ],
     invalid_playlist: [
       "La lista no es válida o tiene demasiadas alabanzas.",
       "This playlist is invalid or has too many hymns.",

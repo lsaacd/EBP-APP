@@ -82,9 +82,6 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
 
   const content = (
     <View style={styles.inner}>
-      {/* Grabber */}
-      <View style={[styles.grabber, isIOS && { backgroundColor: theme.outlineVariant }]} />
-
       {/* Top Row: Label, Direct Number Input, Reset */}
       <View style={styles.headerRow}>
         <Text style={[styles.title, { color: theme.onSurface }]}>

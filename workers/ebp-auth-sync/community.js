@@ -93,7 +93,10 @@ function profile(body, user) {
   const choir = body.choir === undefined ? user.choir : body.choir;
   if (ministry != null && !Object.hasOwn(MINISTRIES, ministry))
     fail(400, "invalid_ministry");
-  if (choir != null && !Object.hasOwn(CHOIRS, choir))
+  if (
+    choir != null &&
+    (typeof choir !== "string" || !/^[a-z0-9_-]{2,40}$/.test(choir))
+  )
     fail(400, "invalid_choir");
   const church_id =
     body.churchId === undefined
@@ -461,6 +464,14 @@ export async function handleCommunity(
     if (!user) fail(401, "unauthorized");
     await quota(env, `profile:${user.id}`, 20, 60000);
     const p = profile(await bodyOf(request), user);
+    if (p.choir != null && !Object.hasOwn(CHOIRS, p.choir)) {
+      const approvedChoir = await env.DB.prepare(
+        "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
+      )
+        .bind(p.choir)
+        .first();
+      if (!approvedChoir) fail(400, "invalid_choir");
+    }
     await env.DB.prepare(
       "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
     )
@@ -1447,9 +1458,242 @@ export async function handleCommunity(
     }
     return json({ ok: true });
   }
+  const BUILTIN_CHOIR_SLUGS = new Set(["esmirna", "maranatha", "filadelfia"]);
+  const isApprovedRepertoireChoir = async (slug) => {
+    if (typeof slug !== "string" || !/^[a-z0-9_-]{2,40}$/.test(slug) || slug === "otro") {
+      return false;
+    }
+    if (BUILTIN_CHOIR_SLUGS.has(slug)) return true;
+    const row = await env.DB.prepare(
+      "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
+    )
+      .bind(slug)
+      .first();
+    return Boolean(row);
+  };
+  const parseChoirInput = (rawName, rawNameEn, rawChurchContext) => {
+    if (typeof rawName !== "string") fail(400, "invalid_choir");
+    const cleaned = rawName.replace(/\s+/g, " ").trim();
+    if (
+      cleaned.length < 2 ||
+      cleaned.length > 60 ||
+      /[<>\u0000-\u001f]/u.test(cleaned)
+    ) {
+      fail(400, "invalid_choir");
+    }
+    const bare = cleaned
+      .replace(/^coro\s+/i, "")
+      .replace(/\s+choir$/i, "")
+      .trim();
+    const slugSource = bare.length >= 2 ? bare : cleaned;
+    const slug = slugSource
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40);
+    if (!slug || slug.length < 2 || slug === "otro" || slug === "other") {
+      fail(400, "invalid_choir");
+    }
+    const nameEs = /^coro\s+/i.test(cleaned)
+      ? cleaned
+      : `Coro ${bare || cleaned}`.slice(0, 60);
+    let nameEn = "";
+    if (typeof rawNameEn === "string" && rawNameEn.trim()) {
+      const cleanedEn = rawNameEn.replace(/\s+/g, " ").trim();
+      if (
+        cleanedEn.length < 2 ||
+        cleanedEn.length > 60 ||
+        /[<>\u0000-\u001f]/u.test(cleanedEn)
+      ) {
+        fail(400, "invalid_choir");
+      }
+      nameEn = cleanedEn;
+    } else {
+      nameEn = `${bare || cleaned} Choir`.slice(0, 60);
+    }
+    let churchContext = null;
+    if (rawChurchContext != null && rawChurchContext !== "") {
+      if (typeof rawChurchContext !== "string") fail(400, "invalid_choir");
+      const cc = rawChurchContext.replace(/\s+/g, " ").trim();
+      if (cc.length > 100 || /[<>\u0000-\u001f]/u.test(cc)) {
+        fail(400, "invalid_choir");
+      }
+      churchContext = cc || null;
+    }
+    return { slug, nameEs, nameEn, churchContext };
+  };
+  const serializeChoir = (r) => ({
+    slug: r.slug,
+    nameEs: r.name_es,
+    nameEn: r.name_en,
+    churchContext: r.church_context || null,
+    status: r.status || "approved",
+    submittedByName: r.submitted_by_name || null,
+    createdAt: Number(r.created_at || 0),
+    approvedAt: r.approved_at != null ? Number(r.approved_at) : null,
+  });
+
+  if (path === "/choirs" && method === "GET") {
+    const rows = await all(
+      `SELECT slug, name_es, name_en, status, created_at, approved_at
+       FROM choirs
+       WHERE status='approved'
+       ORDER BY CASE slug WHEN 'esmirna' THEN 0 WHEN 'maranatha' THEN 1 WHEN 'filadelfia' THEN 2 ELSE 3 END, name_es COLLATE NOCASE ASC`,
+    );
+    return json(
+      {
+        choirs: rows.map((r) => ({
+          slug: r.slug,
+          nameEs: r.name_es,
+          nameEn: r.name_en,
+        })),
+      },
+      200,
+      { "Cache-Control": "public, max-age=120" },
+    );
+  }
+  if (path === "/choirs/submit" && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    if (!admin && user.email_verified_at == null) {
+      fail(403, "email_verification_required");
+    }
+    if (user.suspended_at != null) fail(403, "account_suspended");
+    await quota(env, `choir-submit-user:${user.id}`, admin ? 30 : 3, 86400000);
+    await quota(env, `choir-submit-ip:${ip}`, 10, 3600000);
+    const b = await bodyOf(request);
+    const parsed = parseChoirInput(b.name, b.nameEn, b.churchContext);
+    const existing = await env.DB.prepare(
+      "SELECT slug, status FROM choirs WHERE slug=?1",
+    )
+      .bind(parsed.slug)
+      .first();
+    if (existing && (existing.status === "approved" || existing.status === "pending")) {
+      fail(409, "choir_exists");
+    }
+    const nextStatus = admin ? "approved" : "pending";
+    const approvedAt = admin ? now : null;
+    if (existing) {
+      await env.DB.prepare(
+        "UPDATE choirs SET name_es=?2,name_en=?3,church_context=?4,status=?5,submitted_by=?6,created_at=?7,approved_at=?8 WHERE slug=?1",
+      )
+        .bind(
+          parsed.slug,
+          parsed.nameEs,
+          parsed.nameEn,
+          parsed.churchContext,
+          nextStatus,
+          user.id,
+          now,
+          approvedAt,
+        )
+        .run();
+    } else {
+      await env.DB.prepare(
+        "INSERT INTO choirs(slug,name_es,name_en,church_context,status,submitted_by,created_at,approved_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
+      )
+        .bind(
+          parsed.slug,
+          parsed.nameEs,
+          parsed.nameEn,
+          parsed.churchContext,
+          nextStatus,
+          user.id,
+          now,
+          approvedAt,
+        )
+        .run();
+    }
+    return json({
+      ok: true,
+      status: nextStatus,
+      choir: {
+        slug: parsed.slug,
+        nameEs: parsed.nameEs,
+        nameEn: parsed.nameEn,
+        churchContext: parsed.churchContext,
+        status: nextStatus,
+      },
+    });
+  }
+  if (path === "/mod/choirs" && method === "GET") {
+    const rows = await all(
+      `SELECT c.slug, c.name_es, c.name_en, c.church_context, c.status, c.created_at, c.approved_at, u.name AS submitted_by_name
+       FROM choirs c
+       LEFT JOIN users u ON u.id = c.submitted_by
+       WHERE c.status IN ('pending', 'approved')
+       ORDER BY CASE c.status WHEN 'pending' THEN 0 ELSE 1 END, c.created_at DESC`,
+    );
+    return json({ choirs: rows.map(serializeChoir) });
+  }
+  const modChoirAct = path.match(/^\/mod\/choirs\/([a-z0-9_-]{2,40})\/(approve|reject)$/);
+  if (modChoirAct && method === "POST") {
+    const slug = modChoirAct[1];
+    const act = modChoirAct[2];
+    const existing = await env.DB.prepare(
+      "SELECT slug, name_es, name_en, church_context, status FROM choirs WHERE slug=?1",
+    )
+      .bind(slug)
+      .first();
+    if (!existing) fail(404, "not_found");
+    if (act === "approve") {
+      const b = await bodyOf(request).catch(() => ({}));
+      let nameEs = existing.name_es;
+      let nameEn = existing.name_en;
+      if (typeof b.nameEs === "string" && b.nameEs.trim()) {
+        const cleanEs = b.nameEs.replace(/\s+/g, " ").trim();
+        if (cleanEs.length < 2 || cleanEs.length > 60 || /[<>\u0000-\u001f]/u.test(cleanEs)) {
+          fail(400, "invalid_choir");
+        }
+        nameEs = cleanEs;
+      }
+      if (typeof b.nameEn === "string" && b.nameEn.trim()) {
+        const cleanEn = b.nameEn.replace(/\s+/g, " ").trim();
+        if (cleanEn.length < 2 || cleanEn.length > 60 || /[<>\u0000-\u001f]/u.test(cleanEn)) {
+          fail(400, "invalid_choir");
+        }
+        nameEn = cleanEn;
+      }
+      await env.DB.prepare(
+        "UPDATE choirs SET name_es=?2,name_en=?3,status='approved',approved_at=COALESCE(approved_at,?4) WHERE slug=?1",
+      )
+        .bind(slug, nameEs, nameEn, now)
+        .run();
+      return json({
+        ok: true,
+        choir: { slug, nameEs, nameEn, status: "approved" },
+      });
+    }
+    if (BUILTIN_CHOIR_SLUGS.has(slug)) fail(400, "invalid_choir");
+    await env.DB.prepare("UPDATE choirs SET status='rejected' WHERE slug=?1")
+      .bind(slug)
+      .run();
+    await env.DB.prepare("UPDATE users SET choir=NULL WHERE choir=?1")
+      .bind(slug)
+      .run();
+    return json({ ok: true });
+  }
+  const modChoirDel = path.match(/^\/mod\/choirs\/([a-z0-9_-]{2,40})$/);
+  if (modChoirDel && method === "DELETE") {
+    const slug = modChoirDel[1];
+    if (BUILTIN_CHOIR_SLUGS.has(slug)) fail(400, "invalid_choir");
+    const existing = await env.DB.prepare("SELECT slug FROM choirs WHERE slug=?1")
+      .bind(slug)
+      .first();
+    if (!existing) fail(404, "not_found");
+    await env.DB.prepare("DELETE FROM choirs WHERE slug=?1").bind(slug).run();
+    await env.DB.prepare("DELETE FROM choir_repertoires WHERE choir=?1")
+      .bind(slug)
+      .run();
+    await env.DB.prepare("UPDATE users SET choir=NULL WHERE choir=?1")
+      .bind(slug)
+      .run();
+    return json({ ok: true });
+  }
   if (path === "/choirs/repertoire" && method === "GET") {
     const choir = url.searchParams.get("choir");
-    if (!["esmirna", "maranatha"].includes(choir)) fail(400, "invalid_choir");
+    if (!(await isApprovedRepertoireChoir(choir))) fail(400, "invalid_choir");
     const rows = await all(
       "SELECT id,choir,title,notes,hymn_ids_json,updated_at FROM choir_repertoires WHERE choir=?1 ORDER BY updated_at DESC LIMIT 10",
       choir,
@@ -1465,7 +1709,7 @@ export async function handleCommunity(
   if (path === "/mod/choirs/repertoire" && method === "PUT") {
     const b = await bodyOf(request);
     if (
-      !["esmirna", "maranatha"].includes(b.choir) ||
+      !(await isApprovedRepertoireChoir(b.choir)) ||
       typeof b.title !== "string" ||
       !b.title.trim() ||
       b.title.length > 100 ||

@@ -243,6 +243,9 @@ function fixture(saved = new Map()) {
     "../context/AuthContext": { useAuth: () => auth },
     "../theme/theme": { fonts },
     "../data/communityRules": rules,
+    "../utils/choirsStore": {
+      useApprovedChoirs: () => ({ choirs: [], bySlug: {}, loading: false, refresh: async () => {} }),
+    },
     "../utils/communityApi": {
       useCommunityApi: () => api,
       communityError: (e) => e.message,

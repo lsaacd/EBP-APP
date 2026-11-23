@@ -20,8 +20,30 @@ export const MINISTRIES = {
 export const CHOIRS = {
   esmirna: ["Coro Esmirna", "Esmirna Choir"],
   maranatha: ["Coro Maranatha", "Maranatha Choir"],
+  filadelfia: ["Coro Filadelfia", "Filadelfia Choir"],
   otro: ["Otro coro", "Other choir"],
 };
+export function choirDisplayName(slug, es = true, dynamicBySlug = null) {
+  if (!slug || typeof slug !== "string") return "";
+  if (dynamicBySlug && Object.prototype.hasOwnProperty.call(dynamicBySlug, slug)) {
+    const entry = dynamicBySlug[slug];
+    if (Array.isArray(entry)) return entry[es ? 0 : 1] || entry[0] || "";
+    if (entry && typeof entry === "object") {
+      return (es ? entry.nameEs : entry.nameEn) || entry.nameEs || entry.nameEn || "";
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(CHOIRS, slug)) {
+    return CHOIRS[slug][es ? 0 : 1];
+  }
+  const pretty = slug
+    .replace(/^coro[_-]+/i, "")
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  if (!pretty) return "";
+  return es ? `Coro ${pretty}` : `${pretty} Choir`;
+}
 export const wordCount = (text) =>
   text.trim().split(/\s+/u).filter(Boolean).length;
 export function normalizeComment(text) {

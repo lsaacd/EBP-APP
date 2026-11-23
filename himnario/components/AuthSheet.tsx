@@ -59,7 +59,8 @@ import OfflineAudioCard from './OfflineAudioCard';
 import AboutHymnalContent from './AboutHymnalContent';
 import { APPLE_AVATAR_GRADIENT } from './HomeHeaderActions';
 import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
-import { MINISTRIES, CHOIRS } from '../data/communityRules';
+import { MINISTRIES, choirDisplayName } from '../data/communityRules';
+import { useApprovedChoirs } from '../utils/choirsStore';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import AnimatedField from './AnimatedField';
@@ -115,6 +116,7 @@ export function AuthSheet({
   } = useAuth();
   const { favoriteIds } = useFavorites();
   const { playlists } = usePlaylists();
+  const { bySlug: choirsBySlug } = useApprovedChoirs();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -801,8 +803,7 @@ export function AuthSheet({
         (MINISTRIES as Record<string, [string, string]>)[user.ministry]?.[es ? 0 : 1]) ||
       (t.accountNotSet);
     const choirLabel =
-      (user.choir &&
-        (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
+      (user.choir && choirDisplayName(user.choir, es, choirsBySlug)) ||
       (t.accountNotSet);
     const churchLabel = (user.churchName ? churchDisplayName(user.churchName) : '') || (t.accountNotSet);
     const locationLabel = user.location || (t.accountNotSet);

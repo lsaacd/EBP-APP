@@ -63,6 +63,7 @@ import {
   type MapViewportRegion,
 } from "../utils/churchMapUtils";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
+import { hasUnsavedChurchDraft, type ChurchFormSnapshot } from "../utils/churchDraft";
 import { presentAppleLookAround } from "../modules/apple-look-around";
 
 const CHURCH_PIN_IMG = require("../assets/images/church-pin.png");
@@ -225,6 +226,7 @@ export default function ChurchesScreen() {
   const [formToast, setFormToast] = useState<ActionToastMessage | null>(null);
   const formToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPastedCoordsRef = useRef("");
+  const initialEditSnapshotRef = useRef<ChurchFormSnapshot | null>(null);
   const formAddressRef = useRef<TextInput>(null);
   const formCityRef = useRef<TextInput>(null);
   const formStateRef = useRef<TextInput>(null);
@@ -309,6 +311,116 @@ export default function ChurchesScreen() {
     );
   }, [finishCloseSubmit, submitProgress]);
 
+  const isFormDirty = useCallback(() => {
+    return hasUnsavedChurchDraft(
+      {
+        name: formName,
+        pastor: formPastor,
+        address: formAddress,
+        city: formCity,
+        state: formState,
+        country: formCountry,
+        postal: formPostal,
+        coordsInput: formCoordsInput,
+        photos: formPhotos,
+        photoUrl: formPhotoUrl,
+        schedule: formSchedule,
+        contact: formContact,
+      },
+      initialEditSnapshotRef.current,
+      t.churchUnitedStates,
+    );
+  }, [
+    formAddress,
+    formCity,
+    formContact,
+    formCoordsInput,
+    formCountry,
+    formName,
+    formPastor,
+    formPhotoUrl,
+    formPhotos,
+    formPostal,
+    formSchedule,
+    formState,
+    t.churchUnitedStates,
+  ]);
+
+  const clearDraftAndClose = useCallback(() => {
+    initialEditSnapshotRef.current = null;
+    setEditingChurch(null);
+    setFormName("");
+    setFormPastor("");
+    setFormAddress("");
+    setFormCity("");
+    setFormState("");
+    setFormCountry(t.churchUnitedStates);
+    setFormPostal("");
+    setFormCoordsInput("");
+    setFormPhotos([]);
+    setFormPhotoUrl("");
+    setFormSchedule("");
+    setFormContact("");
+    setFormError("");
+    setLocationChanged(false);
+    setFormToast(null);
+    lastPastedCoordsRef.current = "";
+    closeSubmitAnimated();
+  }, [closeSubmitAnimated, t.churchUnitedStates]);
+
+  const requestCloseSubmit = useCallback(() => {
+    if (submitting) return;
+    if (!isFormDirty()) {
+      closeSubmitAnimated();
+      return;
+    }
+    Keyboard.dismiss();
+    submitProgress.value = withSpring(0, sheetSpring);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(t.churchDiscardDraftTitle, t.churchDiscardDraftBody, [
+      { text: t.churchKeepEditing, style: "cancel" },
+      {
+        text: t.churchDiscardAction,
+        style: "destructive",
+        onPress: clearDraftAndClose,
+      },
+    ]);
+  }, [
+    clearDraftAndClose,
+    closeSubmitAnimated,
+    isFormDirty,
+    submitProgress,
+    submitting,
+    t.churchDiscardAction,
+    t.churchDiscardDraftBody,
+    t.churchDiscardDraftTitle,
+    t.churchKeepEditing,
+  ]);
+
+  const handleSubmitSwipeDismiss = useCallback(
+    (progressAtEnd: number) => {
+      if (submitting) {
+        submitProgress.value = withSpring(0, sheetSpring);
+        return;
+      }
+      if (isFormDirty()) {
+        requestCloseSubmit();
+        return;
+      }
+      Keyboard.dismiss();
+      const remaining = Math.max(0.05, 1 - progressAtEnd);
+      const duration = Math.max(110, Math.min(240, Math.round(remaining * 240)));
+      submitProgress.value = withTiming(
+        1,
+        { duration, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) runOnJS(finishCloseSubmit)();
+        },
+      );
+    },
+    [finishCloseSubmit, isFormDirty, requestCloseSubmit, submitProgress, submitting],
+  );
+
   const submitPan = Gesture.Pan()
     .activeOffsetY(8)
     .failOffsetX([-20, 20])
@@ -332,18 +444,7 @@ export default function ChurchesScreen() {
           travel * 0.42,
         );
       if (collapse) {
-        const remaining = Math.max(0.05, 1 - submitProgress.value);
-        const duration = Math.max(
-          110,
-          Math.min(240, Math.round(remaining * 240)),
-        );
-        submitProgress.value = withTiming(
-          1,
-          { duration, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) runOnJS(finishCloseSubmit)();
-          },
-        );
+        runOnJS(handleSubmitSwipeDismiss)(submitProgress.value);
       } else {
         submitProgress.value = withSpring(0, {
           ...sheetSpring,
@@ -810,6 +911,7 @@ export default function ChurchesScreen() {
   }, [t]);
 
   const resetFormFields = useCallback(() => {
+    initialEditSnapshotRef.current = null;
     setEditingChurch(null);
     setFormName("");
     setFormPastor("");
@@ -852,17 +954,35 @@ export default function ChurchesScreen() {
 
   const openEditChurchModal = useCallback((church: VerifiedChurch) => {
     Haptics.selectionAsync();
+    const initialCoords = `${church.lat.toFixed(6)}, ${church.lng.toFixed(6)}`;
+    const initialPhotos = getChurchPhotos(church);
+    const initialPastor = servantBareName(church.pastorName);
+    const initialCountry = church.country || t.churchUnitedStates;
+    initialEditSnapshotRef.current = {
+      name: church.name || "",
+      pastor: initialPastor,
+      address: church.address || "",
+      city: church.city || "",
+      state: church.state || "",
+      country: initialCountry,
+      postal: church.postalCode || "",
+      coordsInput: initialCoords,
+      photos: initialPhotos,
+      photoUrl: "",
+      schedule: church.serviceTimes || "",
+      contact: church.contactInfo || "",
+    };
     setEditingChurch(church);
     setFormName(church.name || "");
     // The field holds only the name; "SDD Hno" is added when it is shown.
-    setFormPastor(servantBareName(church.pastorName));
+    setFormPastor(initialPastor);
     setFormAddress(church.address || "");
     setFormCity(church.city || "");
     setFormState(church.state || "");
-    setFormCountry(church.country || (t.churchUnitedStates));
+    setFormCountry(initialCountry);
     setFormPostal(church.postalCode || "");
-    setFormCoordsInput(`${church.lat.toFixed(6)}, ${church.lng.toFixed(6)}`);
-    setFormPhotos(getChurchPhotos(church));
+    setFormCoordsInput(initialCoords);
+    setFormPhotos(initialPhotos);
     setFormPhotoUrl("");
     setFormSchedule(church.serviceTimes || "");
     setFormContact(church.contactInfo || "");
@@ -872,7 +992,7 @@ export default function ChurchesScreen() {
     setShowMoreDetails(true);
     setLocationChanged(false);
     setFormToast(null);
-    lastPastedCoordsRef.current = `${church.lat.toFixed(6)}, ${church.lng.toFixed(6)}`;
+    lastPastedCoordsRef.current = initialCoords;
     setScheduleAsText(!canEditSchedule(church.serviceTimes || ""));
     setSubmitOpen(true);
   }, [t]);
@@ -2772,7 +2892,7 @@ export default function ChurchesScreen() {
         presentationStyle="overFullScreen"
         statusBarTranslucent
         navigationBarTranslucent
-        onRequestClose={closeSubmitAnimated}
+        onRequestClose={requestCloseSubmit}
         onDismiss={flushPendingSubmitAlert}
       >
         <GestureHandlerRootView style={{ flex: 1, justifyContent: "flex-end" }}>
@@ -2789,7 +2909,7 @@ export default function ChurchesScreen() {
             >
               <Pressable
                 style={StyleSheet.absoluteFill}
-                onPress={closeSubmitAnimated}
+                onPress={requestCloseSubmit}
               />
             </Animated.View>
 
@@ -2834,7 +2954,7 @@ export default function ChurchesScreen() {
                       style={styles.circleBtn}
                     >
                       <Pressable
-                        onPress={closeSubmitAnimated}
+                        onPress={requestCloseSubmit}
                         style={styles.circleBtnHit}
                         accessibilityLabel={t.close}
                       >

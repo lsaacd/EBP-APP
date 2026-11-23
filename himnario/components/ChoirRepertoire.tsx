@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../theme/ThemeContext";
 import { useCommunityApi } from "../utils/communityApi";
-import { CHOIRS } from "../data/communityRules";
+import { choirDisplayName } from "../data/communityRules";
+import { useApprovedChoirs } from "../utils/choirsStore";
 import { fonts } from "../theme/theme";
 export type Repertoire = {
   id: string;
@@ -21,13 +22,14 @@ export default function ChoirRepertoire() {
     { theme } = useTheme(),
     api = useCommunityApi(),
     router = useRouter();
+  const { bySlug: choirsBySlug } = useApprovedChoirs();
   const [items, setItems] = useState<Repertoire[]>([]);
   useEffect(() => {
     let cancelled = false;
     setItems([]);
-    if (user?.choir === "esmirna" || user?.choir === "maranatha")
+    if (user?.choir && user.choir !== "otro")
       void api<{ repertoires: Repertoire[] }>(
-        `/choirs/repertoire?choir=${user.choir}`,
+        `/choirs/repertoire?choir=${encodeURIComponent(user.choir)}`,
       )
         .then((r) => {
           if (!cancelled) setItems(r.repertoires);
@@ -56,7 +58,7 @@ export default function ChoirRepertoire() {
               ...fonts.sansSemiBold,
             }}
           >
-            {CHOIRS[item.choir]?.[language === "es" ? 0 : 1]}
+            {choirDisplayName(item.choir, language === "es", choirsBySlug)}
           </Text>
           <Text style={[styles.title, { color: theme.onSurface }]}>
             {item.title}

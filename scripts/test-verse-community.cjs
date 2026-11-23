@@ -1727,3 +1727,108 @@ test("notifications fire for comment likes, replies, friend requests/accepts, an
   await f.call(`/users/${b.id}/block`, "POST", {}, a.token);
   assert.equal((await f.call("/notifications", "GET", undefined, a.token)).data.notifications.length, 0);
 });
+
+test("Coro Filadelfia is built in, members can suggest choirs, and admin approval enables profile & repertoire", async () => {
+  const f = fixture(),
+    admin = await f.account({ email: "isaacduran167@gmail.com", role: "admin", name: "Admin" }),
+    member = await f.account({ name: "Hermano Luis" });
+
+  // Built-in choirs include Esmirna, Maranatha, and Filadelfia.
+  const initial = await f.call("/choirs", "GET");
+  assert.equal(initial.status, 200);
+  assert.deepEqual(
+    initial.data.choirs.map((c) => c.slug),
+    ["esmirna", "maranatha", "filadelfia"],
+  );
+
+  // Member can immediately pick Coro Filadelfia.
+  const pickFiladelfia = await f.call(
+    "/auth/profile",
+    "PUT",
+    { name: "Hermano Luis", choir: "filadelfia" },
+    member.token,
+  );
+  assert.equal(pickFiladelfia.status, 200);
+  assert.equal(pickFiladelfia.data.user.choir, "filadelfia");
+
+  // Member suggests a new choir -> pending & hidden from public list until approved.
+  const submit = await f.call(
+    "/choirs/submit",
+    "POST",
+    { name: "Betel", churchContext: "Riverbank, CA" },
+    member.token,
+  );
+  assert.equal(submit.status, 200);
+  assert.equal(submit.data.status, "pending");
+  assert.equal(submit.data.choir.slug, "betel");
+  assert.equal(submit.data.choir.nameEs, "Coro Betel");
+  assert.equal(submit.data.choir.nameEn, "Betel Choir");
+
+  // Duplicate submission is rejected cleanly.
+  const dup = await f.call(
+    "/choirs/submit",
+    "POST",
+    { name: "Coro Betel" },
+    member.token,
+  );
+  assert.equal(dup.status, 409);
+  assert.equal(dup.data.error, "choir_exists");
+
+  // Pending choir cannot be selected on profile yet.
+  const beforeApprove = await f.call(
+    "/auth/profile",
+    "PUT",
+    { name: "Hermano Luis", choir: "betel" },
+    member.token,
+  );
+  assert.equal(beforeApprove.status, 400);
+  assert.equal(beforeApprove.data.error, "invalid_choir");
+
+  // Non-admin cannot access /mod/choirs.
+  assert.equal((await f.call("/mod/choirs", "GET", undefined, member.token)).status, 403);
+
+  // Admin inspects & approves with polished name.
+  const modList = await f.call("/mod/choirs", "GET", undefined, admin.token);
+  assert.equal(modList.status, 200);
+  assert.equal(modList.data.choirs[0].slug, "betel");
+  assert.equal(modList.data.choirs[0].status, "pending");
+
+  const approve = await f.call(
+    "/mod/choirs/betel/approve",
+    "POST",
+    { nameEs: "Coro Betel Central", nameEn: "Betel Central Choir" },
+    admin.token,
+  );
+  assert.equal(approve.status, 200);
+  assert.equal(approve.data.choir.nameEs, "Coro Betel Central");
+
+  // Approved choir now appears on GET /choirs, can be picked on profile, and supports repertoire.
+  const afterApprove = await f.call("/choirs", "GET");
+  assert.ok(afterApprove.data.choirs.some((c) => c.slug === "betel" && c.nameEs === "Coro Betel Central"));
+
+  const pickBetel = await f.call(
+    "/auth/profile",
+    "PUT",
+    { name: "Hermano Luis", choir: "betel" },
+    member.token,
+  );
+  assert.equal(pickBetel.status, 200);
+  assert.equal(pickBetel.data.user.choir, "betel");
+
+  const repSave = await f.call(
+    "/mod/choirs/repertoire",
+    "PUT",
+    { choir: "filadelfia", title: "Culto Domingo", notes: "Tono Sol", hymnIds: ["1", "E12"] },
+    admin.token,
+  );
+  assert.equal(repSave.status, 200);
+  const repRead = await f.call("/choirs/repertoire?choir=filadelfia", "GET");
+  assert.equal(repRead.status, 200);
+  assert.equal(repRead.data.repertoires[0].title, "Culto Domingo");
+
+  // Built-in choir cannot be deleted; custom choir delete clears users.choir.
+  assert.equal((await f.call("/mod/choirs/filadelfia", "DELETE", undefined, admin.token)).status, 400);
+  assert.equal((await f.call("/mod/choirs/betel", "DELETE", undefined, admin.token)).status, 200);
+  const memberRow = f.sql.prepare("SELECT choir FROM users WHERE id=?1").get(member.id);
+  assert.equal(memberRow.choir, null);
+});

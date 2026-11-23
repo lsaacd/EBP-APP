@@ -472,3 +472,44 @@ test('password strength helper scores empty, short (<8), good (8+), and strong p
   assert.equal(getPasswordStrength('Ab1!5678'), 3);
   assert.equal(getPasswordStrength('longpassphrase'), 3);
 });
+
+test('church unsaved draft helper detects dirty new & edited forms without false positives', () => {
+  const { hasUnsavedChurchDraft } = load('himnario/utils/churchDraft.ts');
+  const empty = {
+    name: '',
+    pastor: '',
+    address: '',
+    city: '',
+    state: '',
+    country: 'Estados Unidos',
+    postal: '',
+    coordsInput: '',
+    photos: [],
+    photoUrl: '',
+    schedule: '',
+    contact: '',
+  };
+  assert.equal(hasUnsavedChurchDraft(empty, null, 'Estados Unidos'), false);
+  assert.equal(hasUnsavedChurchDraft({ ...empty, name: 'Riverbank' }, null, 'Estados Unidos'), true);
+  assert.equal(hasUnsavedChurchDraft({ ...empty, photos: ['https://example.com/a.jpg'] }, null, 'Estados Unidos'), true);
+  assert.equal(hasUnsavedChurchDraft({ ...empty, country: 'México' }, null, 'Estados Unidos'), true);
+
+  const initial = { ...empty, name: 'Riverbank', address: '3109 Santa Fe St', photos: ['a', 'b'] };
+  assert.equal(hasUnsavedChurchDraft({ ...initial }, initial, 'Estados Unidos'), false);
+  assert.equal(hasUnsavedChurchDraft({ ...initial, address: '3111 Santa Fe St' }, initial, 'Estados Unidos'), true);
+  assert.equal(hasUnsavedChurchDraft({ ...initial, photos: ['b', 'a'] }, initial, 'Estados Unidos'), true);
+});
+
+test('choir display helper supports Filadelfia, dynamic approved choirs, and slug fallbacks', () => {
+  const { CHOIRS, choirDisplayName } = load('himnario/data/communityRules.js');
+  assert.deepEqual(CHOIRS.filadelfia, ['Coro Filadelfia', 'Filadelfia Choir']);
+  assert.equal(choirDisplayName('filadelfia', true), 'Coro Filadelfia');
+  assert.equal(choirDisplayName('filadelfia', false), 'Filadelfia Choir');
+  assert.equal(
+    choirDisplayName('sion', true, { sion: { nameEs: 'Coro Sión', nameEn: 'Sion Choir' } }),
+    'Coro Sión',
+  );
+  assert.equal(choirDisplayName('monte_betel', true), 'Coro Monte Betel');
+  assert.equal(choirDisplayName('monte_betel', false), 'Monte Betel Choir');
+  assert.equal(choirDisplayName(null, true), '');
+});

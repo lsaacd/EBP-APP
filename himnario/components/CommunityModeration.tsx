@@ -16,6 +16,10 @@ import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../theme/ThemeContext";
 import { useCommunityApi, communityError } from "../utils/communityApi";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
+import { useApprovedChoirs } from "../utils/choirsStore";
+import * as Haptics from "../utils/haptics";
+import AnimatedField from "./AnimatedField";
+import AppMenuIcon from "./AppMenuIcon";
 import { fonts } from "../theme/theme";
 type Report = {
   id: string;
@@ -53,28 +57,57 @@ type ModChurch = {
   verified: boolean;
   status: "pending" | "approved" | "rejected";
 };
+type ModChoir = {
+  slug: string;
+  nameEs: string;
+  nameEn: string;
+  churchContext: string | null;
+  status: "pending" | "approved" | "rejected";
+  submittedByName: string | null;
+  createdAt: number;
+  approvedAt: number | null;
+};
+const BUILTIN_CHOIRS = new Set(["esmirna", "maranatha", "filadelfia"]);
 export default function CommunityModeration({
   alwaysExpanded = false,
 }: {
   alwaysExpanded?: boolean;
 }) {
   const { user } = useAuth(),
-    { language } = useLanguage(),
+    { language, t } = useLanguage(),
     es = language === "es",
-    { theme } = useTheme(),
+    { theme, isDarkMode } = useTheme(),
     api = useCommunityApi();
+  const { refresh: refreshApprovedChoirs } = useApprovedChoirs();
   const [expanded, setExpanded] = useState(alwaysExpanded),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [reports, setReports] = useState<Report[]>([]),
     [people, setPeople] = useState<Person[]>([]),
     [churches, setChurches] = useState<ModChurch[]>([]),
+    [modChoirs, setModChoirs] = useState<ModChoir[]>([]),
+    [choirDraftNames, setChoirDraftNames] = useState<Record<string, { nameEs: string; nameEn: string }>>({}),
+    [modToast, setModToast] = useState<string | null>(null),
     [query, setQuery] = useState(""),
     [tab, setTab] = useState<"reports" | "members" | "choirs" | "churches">("reports");
   const [choir, setChoir] = useState("esmirna"),
     [title, setTitle] = useState(""),
     [notes, setNotes] = useState(""),
     [hymns, setHymns] = useState("");
+  const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashToast = (msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setModToast(msg);
+    toastTimerRef.current = setTimeout(() => {
+      setModToast(null);
+      toastTimerRef.current = null;
+    }, 2600);
+  };
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
   const isAdmin =
     user?.role === "admin" &&
     user.email.toLowerCase() === "isaacduran167@gmail.com";
@@ -102,12 +135,26 @@ export default function CommunityModeration({
     const r = await api<{ churches: ModChurch[] }>("/mod/churches");
     setChurches(r.churches || []);
   };
+  const loadChoirs = async () => {
+    const r = await api<{ choirs: ModChoir[] }>("/mod/choirs");
+    const list = r.choirs || [];
+    setModChoirs(list);
+    setChoirDraftNames((prev) => {
+      const next = { ...prev };
+      for (const item of list) {
+        if (!next[item.slug]) {
+          next[item.slug] = { nameEs: item.nameEs, nameEn: item.nameEn };
+        }
+      }
+      return next;
+    });
+  };
   useEffect(() => {
     if (!isAdmin) return;
     if (alwaysExpanded) {
       setExpanded(true);
       void run(async () => {
-        await Promise.all([load(), loadChurches()]);
+        await Promise.all([load(), loadChurches(), loadChoirs()]);
       });
     }
   }, [alwaysExpanded, isAdmin]);
@@ -201,7 +248,13 @@ export default function CommunityModeration({
                 ["reports", l(`Reports (${reports.length})`, `Reportes (${reports.length})`)],
                 ["churches", l(`Churches (${churches.filter((c) => c.status === "pending").length})`, `Iglesias (${churches.filter((c) => c.status === "pending").length})`)],
                 ["members", l("Members", "Miembros")],
-                ["choirs", l("Choirs", "Coros")],
+                [
+                  "choirs",
+                  (() => {
+                    const n = modChoirs.filter((c) => c.status === "pending").length;
+                    return n > 0 ? l(`Choirs (${n})`, `Coros (${n})`) : l("Choirs", "Coros");
+                  })(),
+                ],
               ] as const
             ).map(([key, labelText]) => {
               const active = tab === key;
@@ -212,6 +265,9 @@ export default function CommunityModeration({
                     setTab(key);
                     if (key === "churches" && churches.length === 0) {
                       void run(() => loadChurches());
+                    }
+                    if (key === "choirs" && modChoirs.length === 0) {
+                      void run(() => loadChoirs());
                     }
                   }}
                   style={{
@@ -392,74 +448,299 @@ export default function CommunityModeration({
           )}
           {tab === "choirs" && (
             <>
-          <Text style={[styles.heading, { color: theme.onSurface }]}>
-            {l("Pinned choir repertoire", "Repertorio del coro")}
-          </Text>
-          <View style={styles.row}>
-            {["esmirna", "maranatha"].map((c) => (
-              <Pressable
-                key={c}
-                disabled={busy}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: choir === c }}
-                onPress={() => setChoir(c)}
+              {!!modToast && (
+                <View
+                  style={[
+                    styles.modToastBanner,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "rgba(46, 158, 86, 0.22)"
+                        : "rgba(46, 158, 86, 0.12)",
+                      borderColor: "rgba(46, 158, 86, 0.35)",
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="checkmark.circle.fill"
+                    android="check-circle"
+                    color="#2E9E56"
+                    size={17}
+                  />
+                  <Text
+                    style={{
+                      color: theme.onSurface,
+                      ...fonts.sansSemiBold,
+                      fontSize: 13.5,
+                    }}
+                  >
+                    {modToast}
+                  </Text>
+                </View>
+              )}
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text style={[styles.heading, { color: theme.onSurface }]}>
+                  {t.choirPendingRequests}
+                </Text>
+                {button(l("Refresh", "Actualizar"), () => loadChoirs())}
+              </View>
+
+              {modChoirs.filter((c) => c.status === "pending").length === 0 ? (
+                <Text style={{ color: theme.onSurfaceVariant, fontSize: 13 }}>
+                  {t.choirNoPendingRequests}
+                </Text>
+              ) : (
+                modChoirs
+                  .filter((c) => c.status === "pending")
+                  .map((pending) => {
+                    const draft = choirDraftNames[pending.slug] || {
+                      nameEs: pending.nameEs,
+                      nameEn: pending.nameEn,
+                    };
+                    return (
+                      <View
+                        key={pending.slug}
+                        style={[
+                          styles.card,
+                          {
+                            borderColor: theme.outlineVariant,
+                            backgroundColor: theme.surfaceVariants.containerLow,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: theme.onSurfaceVariant,
+                            ...fonts.sansMedium,
+                            fontSize: 12,
+                          }}
+                        >
+                          {[
+                            pending.submittedByName
+                              ? `${l("Submitted by", "Enviado por")} ${pending.submittedByName}`
+                              : null,
+                            pending.churchContext,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || pending.slug}
+                        </Text>
+
+                        <View
+                          style={[
+                            styles.groupedFieldsCard,
+                            {
+                              backgroundColor: theme.surfaceVariants.containerLowest,
+                              borderColor: isDarkMode
+                                ? "rgba(255,255,255,0.12)"
+                                : theme.outlineVariant + "60",
+                            },
+                          ]}
+                        >
+                          <AnimatedField
+                            grouped
+                            label={t.choirNameLabel}
+                            value={draft.nameEs}
+                            onChangeText={(val) =>
+                              setChoirDraftNames((prev) => ({
+                                ...prev,
+                                [pending.slug]: { ...draft, nameEs: val },
+                              }))
+                            }
+                            maxLength={60}
+                            editable={!busy}
+                          />
+                          <AnimatedField
+                            grouped
+                            isLast
+                            label={t.choirNameEnLabel}
+                            value={draft.nameEn}
+                            onChangeText={(val) =>
+                              setChoirDraftNames((prev) => ({
+                                ...prev,
+                                [pending.slug]: { ...draft, nameEn: val },
+                              }))
+                            }
+                            maxLength={60}
+                            editable={!busy}
+                          />
+                        </View>
+
+                        <View style={styles.row}>
+                          {button(t.choirApprove, async () => {
+                            await api(
+                              `/mod/choirs/${encodeURIComponent(pending.slug)}/approve`,
+                              "POST",
+                              {
+                                nameEs: draft.nameEs.trim(),
+                                nameEn: draft.nameEn.trim(),
+                              },
+                            );
+                            Haptics.notificationAsync(
+                              Haptics.NotificationFeedbackType.Success,
+                            );
+                            await Promise.all([loadChoirs(), refreshApprovedChoirs()]);
+                            flashToast(t.choirApprovedToast);
+                          })}
+                          {button(
+                            t.choirReject,
+                            async () => {
+                              await api(
+                                `/mod/choirs/${encodeURIComponent(pending.slug)}/reject`,
+                                "POST",
+                                {},
+                              );
+                              await loadChoirs();
+                              flashToast(t.choirRejectedToast);
+                            },
+                            true,
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })
+              )}
+
+              <View
+                style={{
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: theme.outlineVariant,
+                  marginVertical: 4,
+                }}
+              />
+
+              <Text style={[styles.heading, { color: theme.onSurface }]}>
+                {l("Pinned choir repertoire", "Repertorio del coro")}
+              </Text>
+              <View style={styles.row}>
+                {(modChoirs.filter((c) => c.status === "approved").length > 0
+                  ? modChoirs.filter((c) => c.status === "approved")
+                  : [
+                      { slug: "esmirna", nameEs: "Coro Esmirna", nameEn: "Esmirna Choir" },
+                      { slug: "maranatha", nameEs: "Coro Maranatha", nameEn: "Maranatha Choir" },
+                      { slug: "filadelfia", nameEs: "Coro Filadelfia", nameEn: "Filadelfia Choir" },
+                    ]
+                ).map((item) => (
+                  <Pressable
+                    key={item.slug}
+                    disabled={busy}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: choir === item.slug }}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setChoir(item.slug);
+                    }}
+                    style={[
+                      styles.button,
+                      {
+                        backgroundColor:
+                          choir === item.slug
+                            ? theme.primary
+                            : theme.surfaceVariants.containerHigh,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          choir === item.slug ? theme.onPrimary : theme.onSurface,
+                        ...fonts.sansSemiBold,
+                        fontSize: 13,
+                      }}
+                    >
+                      {es ? item.nameEs : item.nameEn}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={styles.row}>
+                {button(
+                  l("Load current repertoire", "Cargar repertorio actual"),
+                  async () => {
+                    const r = await api<{
+                      repertoires: {
+                        title: string;
+                        notes: string;
+                        hymnIds: string[];
+                      }[];
+                    }>(`/choirs/repertoire?choir=${encodeURIComponent(choir)}`);
+                    const v = r.repertoires[0];
+                    setTitle(v?.title || "");
+                    setNotes(v?.notes || "");
+                    setHymns(v?.hymnIds.join(", ") || "");
+                  },
+                )}
+                {!BUILTIN_CHOIRS.has(choir) &&
+                  button(
+                    l("Delete choir", "Eliminar coro"),
+                    async () => {
+                      await api(`/mod/choirs/${encodeURIComponent(choir)}`, "DELETE");
+                      setChoir("esmirna");
+                      await Promise.all([loadChoirs(), refreshApprovedChoirs()]);
+                    },
+                    true,
+                  )}
+              </View>
+
+              <View
                 style={[
-                  styles.button,
+                  styles.groupedFieldsCard,
                   {
-                    backgroundColor:
-                      choir === c
-                        ? theme.surfaceVariants.containerHighest
-                        : "transparent",
+                    backgroundColor: theme.surfaceVariants.containerLowest,
+                    borderColor: isDarkMode
+                      ? "rgba(255,255,255,0.12)"
+                      : theme.outlineVariant + "60",
                   },
                 ]}
               >
-                <Text style={{ color: theme.primary }}>
-                  {c === "esmirna" ? "Coro Esmirna" : "Coro Maranatha"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {button(
-            l("Load current repertoire", "Cargar repertorio actual"),
-            async () => {
-              const r = await api<{
-                repertoires: {
-                  title: string;
-                  notes: string;
-                  hymnIds: string[];
-                }[];
-              }>(`/choirs/repertoire?choir=${choir}`);
-              const v = r.repertoires[0];
-              setTitle(v?.title || "");
-              setNotes(v?.notes || "");
-              setHymns(v?.hymnIds.join(", ") || "");
-            },
-          )}
-          {input(title, setTitle, l("Rehearsal title", "Título del ensayo"))}
-          {input(
-            notes,
-            setNotes,
-            l("Rehearsal notes", "Notas del ensayo"),
-            true,
-          )}
-          {input(
-            hymns,
-            setHymns,
-            l("Hymn IDs: 1, 14, E123", "IDs de alabanzas: 1, 14, E123"),
-            true,
-          )}
-          {button(l("Save repertoire", "Guardar repertorio"), async () => {
-            await api("/mod/choirs/repertoire", "PUT", {
-              choir,
-              title,
-              notes,
-              hymnIds: hymns
-                .split(",")
-                .map((x) => x.trim())
-                .filter(Boolean),
-            });
-            Alert.alert(l("Saved", "Guardado"));
-          })}
+                <AnimatedField
+                  grouped
+                  label={l("Rehearsal title", "Título del ensayo")}
+                  value={title}
+                  onChangeText={setTitle}
+                  maxLength={100}
+                  editable={!busy}
+                />
+                <AnimatedField
+                  grouped
+                  label={l("Rehearsal notes", "Notas del ensayo")}
+                  value={notes}
+                  onChangeText={setNotes}
+                  maxLength={1000}
+                  multiline
+                  editable={!busy}
+                />
+                <AnimatedField
+                  grouped
+                  isLast
+                  label={l("Hymn IDs: 1, 14, E123", "IDs de alabanzas: 1, 14, E123")}
+                  value={hymns}
+                  onChangeText={setHymns}
+                  maxLength={1000}
+                  multiline
+                  editable={!busy}
+                />
+              </View>
+
+              {button(l("Save repertoire", "Guardar repertorio"), async () => {
+                await api("/mod/choirs/repertoire", "PUT", {
+                  choir,
+                  title,
+                  notes,
+                  hymnIds: hymns
+                    .split(",")
+                    .map((x) => x.trim())
+                    .filter(Boolean),
+                });
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                flashToast(l("Saved", "Guardado"));
+              })}
             </>
           )}
           {tab === "churches" && (
@@ -756,6 +1037,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     gap: 8,
+  },
+  groupedFieldsCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  modToastBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });

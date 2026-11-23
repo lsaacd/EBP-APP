@@ -78,7 +78,7 @@ CREATE TABLE verse_comment_reports (
 );
 CREATE INDEX idx_verse_reports_status ON verse_comment_reports(status,created_at DESC);
 CREATE TABLE user_blocks (blocker_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, blocked_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at INTEGER NOT NULL, PRIMARY KEY(blocker_user_id,blocked_user_id));
-CREATE TABLE choir_repertoires (id TEXT PRIMARY KEY, choir TEXT NOT NULL CHECK(choir IN ('esmirna','maranatha')), title TEXT NOT NULL, notes TEXT, hymn_ids_json TEXT NOT NULL DEFAULT '[]', updated_by TEXT, updated_at INTEGER NOT NULL);
+CREATE TABLE choir_repertoires (id TEXT PRIMARY KEY, choir TEXT NOT NULL, title TEXT NOT NULL, notes TEXT, hymn_ids_json TEXT NOT NULL DEFAULT '[]', updated_by TEXT, updated_at INTEGER NOT NULL);
 
 -- Counters remain correct under concurrent requests, cascades, deletion and retries.
 CREATE TRIGGER verse_like_insert AFTER INSERT ON verse_likes BEGIN
@@ -244,3 +244,21 @@ CREATE TABLE IF NOT EXISTS push_tokens (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
+
+-- Dynamic choir directory & member submissions with admin approval.
+CREATE TABLE IF NOT EXISTS choirs (
+  slug TEXT PRIMARY KEY,
+  name_es TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  church_context TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+  submitted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  approved_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_choirs_status ON choirs(status, created_at DESC);
+INSERT OR IGNORE INTO choirs (slug, name_es, name_en, church_context, status, submitted_by, created_at, approved_at)
+VALUES
+  ('esmirna', 'Coro Esmirna', 'Esmirna Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000),
+  ('maranatha', 'Coro Maranatha', 'Maranatha Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000),
+  ('filadelfia', 'Coro Filadelfia', 'Filadelfia Choir', NULL, 'approved', NULL, 1763820000000, 1763820000000);

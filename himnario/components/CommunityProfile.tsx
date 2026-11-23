@@ -1,11 +1,26 @@
 import { churchDisplayName } from "../utils/churchName";
-import React, { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, TextInput, Switch } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "../utils/haptics";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
-import { MINISTRIES, CHOIRS } from "../data/communityRules";
+import { MINISTRIES, CHOIRS, choirDisplayName } from "../data/communityRules";
+import { useApprovedChoirs } from "../utils/choirsStore";
 import FriendsPanel from "./FriendsPanel";
 import NotificationsPanel from "./NotificationsPanel";
 import { useFriends } from "../utils/friendsStore";
@@ -15,6 +30,10 @@ import { communityError, useCommunityApi } from "../utils/communityApi";
 import { fonts } from "../theme/theme";
 import CommunityModeration from "./CommunityModeration";
 import AppMenuIcon from "./AppMenuIcon";
+import AnimatedField from "./AnimatedField";
+import ActionToast, { type ActionToastMessage } from "./ActionToast";
+import SheetGrabber from "./SheetGrabber";
+import GlassSurface from "./GlassSurface";
 
 const COUNTRY_OPTIONS: Array<{ id: string; es: string; en: string }> = [
   { id: "us", es: "Estados Unidos", en: "United States" },
@@ -72,6 +91,143 @@ export default function CommunityProfile({
     api = useCommunityApi();
   const { lists: friendLists, badgeCount: friendsBadge, refresh: refreshFriends } = useFriends();
   const { unreadCount: notificationsUnread, refresh: refreshNotifications } = useNotifications();
+  const { choirs: approvedChoirs, bySlug: choirsBySlug, refresh: refreshApprovedChoirs } = useApprovedChoirs();
+  const insets = useSafeAreaInsets();
+  const isAdminUser =
+    user?.role === "admin" &&
+    user.email.toLowerCase() === "isaacduran167@gmail.com";
+  const [choirModalOpen, setChoirModalOpen] = useState(false);
+  const [choirNameDraft, setChoirNameDraft] = useState("");
+  const [choirNameEnDraft, setChoirNameEnDraft] = useState("");
+  const [choirContextDraft, setChoirContextDraft] = useState("");
+  const [choirSubmitError, setChoirSubmitError] = useState("");
+  const [choirSubmitting, setChoirSubmitting] = useState(false);
+  const [choirToast, setChoirToast] = useState<ActionToastMessage | null>(null);
+  const choirToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const choirNameEnRef = useRef<TextInput>(null);
+  const choirContextRef = useRef<TextInput>(null);
+
+  const showChoirToast = useCallback(
+    (title: string, subtitle?: string) => {
+      if (choirToastTimerRef.current) clearTimeout(choirToastTimerRef.current);
+      setChoirToast({ id: Date.now(), title, subtitle, icon: "check" });
+      choirToastTimerRef.current = setTimeout(() => {
+        setChoirToast(null);
+        choirToastTimerRef.current = null;
+      }, 2600);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (choirToastTimerRef.current) clearTimeout(choirToastTimerRef.current);
+    };
+  }, []);
+
+  const resetChoirForm = useCallback(() => {
+    setChoirNameDraft("");
+    setChoirNameEnDraft("");
+    setChoirContextDraft("");
+    setChoirSubmitError("");
+  }, []);
+
+  const requestCloseChoirModal = useCallback(() => {
+    if (choirSubmitting) return;
+    const dirty =
+      choirNameDraft.trim().length > 0 ||
+      choirNameEnDraft.trim().length > 0 ||
+      choirContextDraft.trim().length > 0;
+    if (!dirty) {
+      Keyboard.dismiss();
+      setChoirModalOpen(false);
+      return;
+    }
+    Keyboard.dismiss();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(t.churchDiscardDraftTitle, t.choirDiscardDraftBody, [
+      { text: t.churchKeepEditing, style: "cancel" },
+      {
+        text: t.churchDiscardAction,
+        style: "destructive",
+        onPress: () => {
+          resetChoirForm();
+          setChoirModalOpen(false);
+        },
+      },
+    ]);
+  }, [
+    choirContextDraft,
+    choirNameDraft,
+    choirNameEnDraft,
+    choirSubmitting,
+    resetChoirForm,
+    t.choirDiscardDraftBody,
+    t.churchDiscardAction,
+    t.churchDiscardDraftTitle,
+    t.churchKeepEditing,
+  ]);
+
+  const handleOpenChoirModal = useCallback(() => {
+    Haptics.selectionAsync();
+    if (!user) return;
+    if (!isAdminUser && !user.emailVerified) {
+      Alert.alert(t.churchVerifyYourEmail, t.choirVerifyEmailNote);
+      return;
+    }
+    resetChoirForm();
+    setChoirModalOpen(true);
+  }, [isAdminUser, resetChoirForm, t.choirVerifyEmailNote, t.churchVerifyYourEmail, user]);
+
+  const handleSubmitChoir = useCallback(async () => {
+    if (choirSubmitting) return;
+    const cleanName = choirNameDraft.trim();
+    if (cleanName.length < 2) {
+      setChoirSubmitError(communityError(new Error("invalid_choir"), es));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    setChoirSubmitting(true);
+    setChoirSubmitError("");
+    try {
+      const res = await api<{
+        ok: boolean;
+        status: "approved" | "pending";
+        choir: { slug: string; nameEs: string; nameEn: string };
+      }>("/choirs/submit", "POST", {
+        name: cleanName,
+        nameEn: choirNameEnDraft.trim() || undefined,
+        churchContext: choirContextDraft.trim() || undefined,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const displayName = es ? res.choir.nameEs : res.choir.nameEn;
+      resetChoirForm();
+      setChoirModalOpen(false);
+      if (res.status === "approved") {
+        await refreshApprovedChoirs();
+        showChoirToast(t.choirPublishedToast, displayName);
+      } else {
+        showChoirToast(t.choirSubmittedToast, displayName);
+      }
+    } catch (e) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setChoirSubmitError(communityError(e, es));
+    } finally {
+      setChoirSubmitting(false);
+    }
+  }, [
+    api,
+    choirContextDraft,
+    choirNameDraft,
+    choirNameEnDraft,
+    choirSubmitting,
+    es,
+    refreshApprovedChoirs,
+    resetChoirForm,
+    showChoirToast,
+    t.choirPublishedToast,
+    t.choirSubmittedToast,
+  ]);
   // One fetch when the signed-in account's profile mounts keeps the badges current.
   useEffect(() => {
     if (user?.id && !subPage) {
@@ -178,11 +334,69 @@ export default function CommunityProfile({
 
   if (subPage === "ministry" || subPage === "choir") {
     const field = subPage;
-    const values = (
-      field === "ministry" ? MINISTRIES : CHOIRS
-    ) as Record<string, [string, string]>;
+    const items: Array<{ key: string | null; label: string }> =
+      field === "ministry"
+        ? [
+            { key: null, label: t.profilePreferNotToShow },
+            ...Object.entries(MINISTRIES).map(([k, pair]) => ({
+              key: k,
+              label: pair[es ? 0 : 1],
+            })),
+          ]
+        : [
+            { key: null, label: t.profilePreferNotToShow },
+            ...approvedChoirs.map((c) => ({
+              key: c.slug,
+              label: es ? c.nameEs : c.nameEn,
+            })),
+            { key: "otro", label: CHOIRS.otro[es ? 0 : 1] },
+          ];
+
     return (
       <View style={{ gap: 12 }}>
+        {choirToast && field === "choir" && (
+          <View
+            style={[
+              styles.inlineToastPill,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(46, 158, 86, 0.22)"
+                  : "rgba(46, 158, 86, 0.12)",
+                borderColor: "rgba(46, 158, 86, 0.35)",
+              },
+            ]}
+          >
+            <AppMenuIcon
+              ios="checkmark.circle.fill"
+              android="check-circle"
+              color="#2E9E56"
+              size={18}
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: theme.onSurface,
+                  ...fonts.sansSemiBold,
+                  fontSize: 13.5,
+                }}
+              >
+                {choirToast.title}
+              </Text>
+              {!!choirToast.subtitle && (
+                <Text
+                  style={{
+                    color: mutedText,
+                    ...fonts.sansRegular,
+                    fontSize: 12,
+                  }}
+                >
+                  {choirToast.subtitle}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
         <Text
           style={{
             color: mutedText,
@@ -205,7 +419,8 @@ export default function CommunityProfile({
             },
           ]}
         >
-          {[null, ...Object.keys(values)].map((key, i) => {
+          {items.map((item, i) => {
+            const key = item.key;
             const activeValue =
               field in optimistic
                 ? optimistic[field] ?? null
@@ -279,9 +494,7 @@ export default function CommunityProfile({
                       flex: 1,
                     }}
                   >
-                    {key
-                      ? values[key][es ? 0 : 1]
-                      : t.profilePreferNotToShow}
+                    {item.label}
                   </Text>
                   {checked && (
                     <AppMenuIcon
@@ -297,10 +510,247 @@ export default function CommunityProfile({
             );
           })}
         </View>
+
+        {field === "choir" && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleOpenChoirModal}
+            style={({ pressed }) => [
+              styles.suggestChoirCard,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                opacity: pressed ? 0.86 : 1,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.suggestChoirIconWell,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(255,255,255,0.10)"
+                    : theme.primary + "14",
+                },
+              ]}
+            >
+              <AppMenuIcon
+                ios="plus.circle.fill"
+                android="add-circle"
+                color={theme.primary}
+                size={20}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text
+                style={{
+                  color: theme.onSurface,
+                  ...fonts.sansSemiBold,
+                  fontSize: 15,
+                }}
+              >
+                {isAdminUser ? t.choirAdminAddTitle : t.choirSuggestTitle}
+              </Text>
+              <Text
+                style={{
+                  color: mutedText,
+                  ...fonts.sansRegular,
+                  fontSize: 12.5,
+                  lineHeight: 17,
+                }}
+              >
+                {isAdminUser ? t.choirAdminAddSubtitle : t.choirSuggestSubtitle}
+              </Text>
+            </View>
+            <AppMenuIcon
+              ios="chevron.right"
+              android="chevron-right"
+              color={mutedText}
+              size={14}
+              weight="semibold"
+            />
+          </Pressable>
+        )}
+
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: theme.primary }}>
             {error}
           </Text>
+        )}
+
+        {field === "choir" && (
+          <Modal
+            visible={choirModalOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={requestCloseChoirModal}
+          >
+            <KeyboardAvoidingView
+              style={{ flex: 1, justifyContent: "flex-end" }}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+              <Pressable
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: "rgba(0,0,0,0.48)" },
+                ]}
+                onPress={requestCloseChoirModal}
+              />
+              <View>
+                <SheetGrabber inline />
+                <View
+                  style={[
+                    styles.choirModalSheet,
+                    {
+                      backgroundColor: isDarkMode ? "#121212" : theme.surface,
+                      paddingBottom: Math.max(insets.bottom, 22),
+                    },
+                  ]}
+                >
+                  <View style={styles.choirModalHeader}>
+                    <View style={{ width: 38 }} />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.choirModalTitle,
+                        { color: theme.onSurface },
+                      ]}
+                    >
+                      {isAdminUser ? t.choirAdminAddTitle : t.choirSuggestTitle}
+                    </Text>
+                    <GlassSurface
+                      isInteractive
+                      glassEffectStyle="regular"
+                      intensity={56}
+                      style={styles.choirCloseBtn}
+                    >
+                      <Pressable
+                        onPress={requestCloseChoirModal}
+                        accessibilityRole="button"
+                        accessibilityLabel={t.close}
+                        style={styles.choirCloseHit}
+                      >
+                        <AppMenuIcon
+                          ios="xmark"
+                          android="close"
+                          color={theme.onSurface}
+                          size={16}
+                          weight="semibold"
+                        />
+                      </Pressable>
+                    </GlassSurface>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.cardGroup,
+                      {
+                        backgroundColor: cardBg,
+                        borderColor: cardBorder,
+                      },
+                    ]}
+                  >
+                    <AnimatedField
+                      grouped
+                      label={t.choirNameLabel}
+                      value={choirNameDraft}
+                      onChangeText={setChoirNameDraft}
+                      placeholder={t.choirNamePlaceholder}
+                      maxLength={60}
+                      autoCapitalize="words"
+                      editable={!choirSubmitting}
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() =>
+                        (isAdminUser
+                          ? choirNameEnRef.current
+                          : choirContextRef.current
+                        )?.focus()
+                      }
+                    />
+                    {isAdminUser && (
+                      <AnimatedField
+                        ref={choirNameEnRef}
+                        grouped
+                        label={t.choirNameEnLabel}
+                        value={choirNameEnDraft}
+                        onChangeText={setChoirNameEnDraft}
+                        placeholder={t.choirNameEnPlaceholder}
+                        maxLength={60}
+                        autoCapitalize="words"
+                        editable={!choirSubmitting}
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => choirContextRef.current?.focus()}
+                      />
+                    )}
+                    <AnimatedField
+                      ref={choirContextRef}
+                      grouped
+                      isLast
+                      label={t.choirChurchContextLabel}
+                      value={choirContextDraft}
+                      onChangeText={setChoirContextDraft}
+                      placeholder={t.choirChurchContextPlaceholder}
+                      maxLength={100}
+                      autoCapitalize="words"
+                      editable={!choirSubmitting}
+                      returnKeyType="done"
+                      onSubmitEditing={() => void handleSubmitChoir()}
+                    />
+                  </View>
+
+                  {!!choirSubmitError && (
+                    <Text
+                      accessibilityRole="alert"
+                      style={{
+                        color: "#D64545",
+                        ...fonts.sansSemiBold,
+                        fontSize: 13,
+                        textAlign: "center",
+                      }}
+                    >
+                      {choirSubmitError}
+                    </Text>
+                  )}
+
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={choirSubmitting}
+                    onPress={() => void handleSubmitChoir()}
+                    style={({ pressed }) => [
+                      styles.choirSubmitBtn,
+                      {
+                        backgroundColor: theme.primary,
+                        opacity: choirSubmitting ? 0.6 : pressed ? 0.88 : 1,
+                      },
+                    ]}
+                  >
+                    {choirSubmitting ? (
+                      <ActivityIndicator size="small" color={theme.onPrimary} />
+                    ) : (
+                      <Text
+                        style={{
+                          color: theme.onPrimary,
+                          ...fonts.sansBold,
+                          fontSize: 15.5,
+                        }}
+                      >
+                        {isAdminUser ? t.choirPublishBtn : t.choirSubmitBtn}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+              <ActionToast
+                toast={choirToast}
+                topOffset={Math.max(insets.top, 14) + 6}
+              />
+            </KeyboardAvoidingView>
+          </Modal>
         )}
       </View>
     );
@@ -847,8 +1297,7 @@ export default function CommunityProfile({
       ]) ||
     (t.profileNone2);
   const choirText =
-    (user.choir &&
-      (CHOIRS as Record<string, [string, string]>)[user.choir]?.[es ? 0 : 1]) ||
+    (user.choir && choirDisplayName(user.choir, es, choirsBySlug)) ||
     (t.profileNone2);
   const churchLocationText =
     (user.churchName ? churchDisplayName(user.churchName) : "") ||
@@ -1327,5 +1776,64 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
+  },
+  inlineToastPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  suggestChoirCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  suggestChoirIconWell: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  choirModalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    gap: 14,
+  },
+  choirModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  choirModalTitle: {
+    flex: 1,
+    textAlign: "center",
+    ...fonts.bold,
+    fontSize: 19,
+  },
+  choirCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: "hidden",
+  },
+  choirCloseHit: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  choirSubmitBtn: {
+    minHeight: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -43,10 +43,11 @@ import { useAuth } from "../context/AuthContext";
 import { fonts } from "../theme/theme";
 import {
   MINISTRIES,
-  CHOIRS,
+  choirDisplayName,
   normalizeComment,
   wordCount,
 } from "../data/communityRules";
+import { useApprovedChoirs } from "../utils/choirsStore";
 import {
   useCommunityApi,
   communityError,
@@ -105,6 +106,7 @@ export default function VerseDiscussionSheet({
     useAuth();
   const api = useCommunityApi(),
     insets = useSafeAreaInsets();
+  const { bySlug: choirsBySlug } = useApprovedChoirs();
   const { height: windowHeight } = useWindowDimensions();
   const [comments, writeComments] = useState<VerseComment[]>([]),
     [cursor, setCursor] = useState<string | null>(null);
@@ -991,7 +993,7 @@ export default function VerseDiscussionSheet({
               <Text style={[styles.meta, { color: theme.onSurfaceVariant }]}>
                 {[
                   c.ministry ? MINISTRIES[c.ministry]?.[es ? 0 : 1] : null,
-                  c.choir ? CHOIRS[c.choir]?.[es ? 0 : 1] : null,
+                  c.choir ? choirDisplayName(c.choir, es, choirsBySlug) : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -1801,7 +1803,7 @@ export default function VerseDiscussionSheet({
                         ? MINISTRIES[selectedAuthor.ministry]?.[es ? 0 : 1]
                         : null,
                       selectedAuthor.choir
-                        ? CHOIRS[selectedAuthor.choir]?.[es ? 0 : 1]
+                        ? choirDisplayName(selectedAuthor.choir, es, choirsBySlug)
                         : null,
                     ]
                       .filter(Boolean)

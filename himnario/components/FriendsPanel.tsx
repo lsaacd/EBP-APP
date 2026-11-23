@@ -12,7 +12,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { usePlaylists } from '../context/PlaylistsContext';
 import { fonts } from '../theme/theme';
-import { MINISTRIES, CHOIRS } from '../data/communityRules';
+import { MINISTRIES, choirDisplayName } from '../data/communityRules';
+import { useApprovedChoirs } from '../utils/choirsStore';
 import { hymnsData, estribillosData } from '../data/alabanzasPaginas';
 import { getLocalizedHymn } from '../data/alabanzasEnglish';
 import * as Haptics from '../utils/haptics';
@@ -85,10 +86,11 @@ export default function FriendsPanel({
   const mutedText = isDarkMode ? 'rgba(235,235,245,0.58)' : theme.onSurfaceVariant;
   const divider = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant;
 
+  const { bySlug: choirsBySlug } = useApprovedChoirs();
   const roleLine = (person: FriendProfile) =>
     [
       person.ministry ? (MINISTRIES as Table)[person.ministry]?.[es ? 0 : 1] : null,
-      person.choir ? (CHOIRS as Table)[person.choir]?.[es ? 0 : 1] : null,
+      person.choir ? choirDisplayName(person.choir, es, choirsBySlug) : null,
     ]
       .filter(Boolean)
       .join(' · ');
