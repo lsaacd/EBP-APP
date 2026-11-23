@@ -1,7 +1,10 @@
 # Friends ("Hermanos") — build plan
 
-> **Status (November 23, 2026):** **phase 1 is live** — migration `0009_friends.sql` applied, Worker `3689b22f`, Pages deploy `6c4da9bc` (privacy and terms), iOS OTA `3dc3d29a`. It has not been exercised with two real accounts on devices yet. **Phases 2 (favourites) and 4 (church suggestions) are live too** — migration `0010_friend_sharing.sql`, Worker `8fe80fe4`, Pages deploy `6ea0b88b`, iOS OTA `327e2203`; see "Phases 2 and 4 as built". Phase 3 (shared playlists) is not started.
-> Any agent may build it, one phase at a time, with the owner's go-ahead before each live step.
+> **Status (November 23, 2026):** **All 4 phases are live!**
+> - **Phase 1 (requests & profiles):** migration `0009_friends.sql`, Worker `3689b22f`, Pages `6c4da9bc`, iOS OTA `3dc3d29a`.
+> - **Phases 2 (favourites) & 4 (church suggestions):** migration `0010_friend_sharing.sql`, Worker `8fe80fe4`, Pages `6ea0b88b`, iOS OTA `327e2203`.
+> - **Phase 3 (shared playlists):** migration `0011_shared_playlists.sql` (alongside `0012_comment_likes.sql`), Worker `5c474ce7`, Pages `a6f62e3a`, iOS OTA `369019dc`.
+> Two-account device verification is still pending.
 
 ## What the owner decided
 

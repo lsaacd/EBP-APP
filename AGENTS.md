@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 22, 2026 (after iOS Build 31 and OTA `d351bb27`).
+> **Last updated:** November 23, 2026 (after iOS Build 31 and OTA `369019dc`).
 
 ## Before you start
 
@@ -28,7 +28,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 | Task | Where to read | Notes |
 | --- | --- | --- |
 | **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Deferred by the owner. Deadline April 2027. Must be done on its own branch with a new `runtimeVersion`. |
-| **Friends ("Hermanos")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Phases 1, 2 and 4 are live (requests, a friend's favourites, church suggestions). Phase 3 (sending a playlist to a friend) is not started. Migration before Worker before app, every time. |
+| **Friends ("Hermanos")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | All 4 phases are live (requests/profiles, favourites, shared playlists, church suggestions). Needs live two-account device verification. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |
 | Device check of the churches redesign | CLAUDE.md section 5 | Built without a simulator; only the owner's phone has seen it. |
 | Remaining inline strings | `git grep -n "es$" himnario/app himnario/components` | A few dozen strings with interpolated values are still inline `es ? … : …` pairs. |

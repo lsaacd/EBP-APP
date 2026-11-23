@@ -1,5 +1,35 @@
 # App editing
 
+## November 23, 2026 — Verse comment fixes, comment liking & Friends Phase 3 shared playlists (OTA `369019dc`)
+
+Completed everything left in progress after Claude hit its limit, verified end-to-end, and deployed in strict order (D1 → Worker → Pages → iOS OTA).
+
+### What changed (all live in commit `2aaa2fe` and iOS OTA `369019dc-4640-4979-a539-7295465e3e38`)
+1. **Verse Card Commenting Fixes (`himnario/components/VerseDiscussionSheet.tsx`, `himnario/utils/communityApi.ts`):**
+   - Separated `loadFailed` from send `error` so a failed post (e.g., `rate_limited`, `duplicate_comment`, `invalid_parent`) no longer flips an empty comment list into saying *"Comentarios disponibles con conexión"*.
+   - Auto-recovers from `invalid_parent` (drops stale deleted parent while keeping text), `idempotency_conflict` / `invalid_request_id` (regenerates `requestId` so retry works), and missing `editId` (`not_found` drops edit mode and keeps text).
+   - Replaced `new URLSearchParams()` in `load()` with plain query-string assembly and mapped `idempotency_conflict`, `not_found`, `not_friends`, and `invalid_playlist` in `communityError()`.
+2. **Comment Liking (`migrations/0012_comment_likes.sql`, `workers/ebp-auth-sync/community.js`, `VerseDiscussionSheet.tsx`):**
+   - Added `verse_comment_likes` table, `POST /verse-comments/:id/like`, per-comment `likesCount` / `likedByMe` on `GET /verses/:id/comments`, and updated `sort=top` ("Destacados") to rank by `likes + replies`.
+   - Added optimistic heart toggle + count beside Reply on every comment and reply (with rollback on error and account-deletion cleanup).
+3. **Friends ("Hermanos") Phase 3 — Shared Playlists (`migrations/0011_shared_playlists.sql`, `community.js`, `utils/friends.ts`, `utils/friendsStore.ts`, `FriendsPanel.tsx`, `CommunityProfile.tsx`, `HomeHeaderActions.tsx`, `PlaylistsContext.tsx`, `app/playlist/[id].tsx`):**
+   - Added `shared_playlists` table and routes `POST /friends/:userId/playlists`, `GET /playlists/shared`, `POST /playlists/shared/:id/seen`, and `DELETE /playlists/shared/:id` (rate-limited, accepted friends only, cleaned up on block and account deletion).
+   - Added **"Compartir con un hermano" / "Share with a Friend"** picker modal inside `app/playlist/[id].tsx`, **"Listas compartidas" / "Shared Playlists"** inbox inside `FriendsPanel.tsx` with **"Guardar en mis listas" / "Save to My Playlists"** (`importPlaylist()`), combined badge count (`incoming + unseen shared playlists`) on `CommunityProfile` + subtle header avatar dot with foreground refresh.
+4. **Bilingual Privacy & Terms (`docs/privacy.html`, `docs/terms.html`):**
+   - Documented comment likes and shared playlists in both Spanish and English while keeping the administrator anonymous.
+
+### Published live IDs
+- **D1 (`ebp-himnario-db`):** `0011_shared_playlists.sql` and `0012_comment_likes.sql` applied remotely.
+- **Worker (`ebp-himnario-sync`):** Version `5c474ce7-4a59-40cf-a72f-cbb11a0428c7`.
+- **Pages (`ebp-himnario`):** Deploy `a6f62e3a` (`https://a6f62e3a.ebp-himnario.pages.dev`).
+- **iOS OTA (`production`, runtime `2.0.0-media-3`):** Group `369019dc-4640-4979-a539-7295465e3e38`, iOS update `01a206e7-8cd7-7146-affc-1d2255b46af5`.
+
+### Verification & not verified
+- Verified: `tsc --noEmit` clean, all Node test suites pass (`test-verse-community.cjs` 33/33, `test-verse-discussion.cjs` 18/18, `test-church-sheet.cjs` 19/19, plus playback/auth/sharing/search), `audit-secrets.py` 0 findings, live Worker smoke checks (`200`/`200`/`401`).
+- Not verified on physical hardware: UI layout and two-account friend playlist sharing / comment liking should be checked on the owner's iPhone after pulling OTA `369019dc`.
+
+---
+
 ## November 22, 2026 (evening) — Handoff for Claude, Codex & Antigravity (iOS Build 31, OTA `d351bb27`)
 
 This entry is the current state. The entry below it describes the morning of the same day (Build 30) and is kept for its rules and commands.
