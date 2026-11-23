@@ -67,7 +67,7 @@ const WHATSAPP_ICON = require('../assets/images/whatsapp-brand.png');
 const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html?form=audio';
 
 type AuthMode = 'login' | 'register' | 'recovery';
-type SheetPage = 'account' | 'profile-details' | 'ministry' | 'choir' | 'church-location' | 'blocks' | 'moderation' | 'share-app' | 'help';
+type SheetPage = 'account' | 'profile-details' | 'ministry' | 'choir' | 'church-location' | 'blocks' | 'friends' | 'moderation' | 'share-app' | 'help';
 
 interface AuthSheetProps {
   visible?: boolean;
@@ -175,7 +175,7 @@ export function AuthSheet({
     setShowPassword(false);
     if (!user) {
       setPage((prev) =>
-        ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'moderation'].includes(prev)
+        ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'friends', 'moderation'].includes(prev)
           ? 'account'
           : prev
       );
@@ -580,6 +580,7 @@ export function AuthSheet({
     choir: t.profileChoir,
     'church-location': t.profileMyChurch,
     blocks: t.profileBlocked,
+    friends: t.friendsTitle,
     moderation: t.profileModeration,
     'share-app': t.accountShareApp,
     help: t.accountHelp,
@@ -1618,6 +1619,7 @@ export function AuthSheet({
       case 'choir':
       case 'church-location':
       case 'blocks':
+      case 'friends':
       case 'moderation':
         return (
           <CommunityProfile

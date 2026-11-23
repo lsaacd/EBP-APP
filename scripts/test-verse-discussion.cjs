@@ -252,6 +252,11 @@ function fixture(saved = new Map()) {
     "./GlassSurface": { default: "GlassSurface" },
     "./AppMenuIcon": { default: "AppMenuIcon" },
     "./SheetGrabber": { default: "SheetGrabber" },
+    "./FriendButton": { default: "FriendButton" },
+    "../utils/friends": {
+      memberSinceLabel: () => "",
+      parseFriendStatus: (v) => v ?? null,
+    },
     "../utils/haptics": {
       impactAsync: () => {},
       selectionAsync: () => {},

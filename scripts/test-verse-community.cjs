@@ -1021,3 +1021,195 @@ test("photo uploads, 5/10 photo caps, R2 cleanup on reject/edit, churchId profil
   assert.equal(topList.status, 200);
   assert.equal(topList.data.comments[0].id, c2.data.id);
 });
+
+// ── Friends ("Hermanos"), phase 1 ───────────────────────────────────────────
+const statusOf = async (f, viewer, target) =>
+  (await f.call(`/users/${target.id}/public-profile`, "GET", undefined, viewer?.token)).data.user
+    .friendStatus;
+const ask = (f, from, to) =>
+  f.call("/friends/requests", "POST", { userId: to.id }, from.token);
+
+test("a friend request must be accepted, and only the person who received it can accept", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" }),
+    b = await f.account({ name: "Beto Luna" });
+  assert.equal(await statusOf(f, a, b), "none");
+  assert.equal(await statusOf(f, null, b), null); // guests get no status
+  assert.equal(await statusOf(f, a, a), "self");
+
+  const asked = await ask(f, a, b);
+  assert.equal(asked.status, 200);
+  assert.equal(asked.data.friendStatus, "outgoing");
+  assert.equal((await ask(f, a, b)).data.friendStatus, "outgoing"); // asking twice changes nothing
+  assert.equal(await statusOf(f, a, b), "outgoing");
+  assert.equal(await statusOf(f, b, a), "incoming");
+
+  // The requester cannot accept their own request.
+  assert.equal(
+    (await f.call(`/friends/requests/${b.id}/accept`, "POST", {}, a.token)).status,
+    404,
+  );
+  assert.equal(await statusOf(f, a, b), "outgoing");
+
+  const listsBefore = (await f.call("/friends", "GET", undefined, b.token)).data;
+  assert.deepEqual(listsBefore.incoming.map((u) => u.name), ["Ana Ruiz"]);
+  assert.equal(listsBefore.friends.length, 0);
+  assert.deepEqual(
+    (await f.call("/friends", "GET", undefined, a.token)).data.outgoing.map((u) => u.name),
+    ["Beto Luna"],
+  );
+
+  const accepted = await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+  assert.equal(accepted.data.friendStatus, "friends");
+  assert.equal(await statusOf(f, a, b), "friends");
+  assert.equal(await statusOf(f, b, a), "friends");
+  // Accepting again, or asking again, is harmless.
+  assert.equal(
+    (await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token)).data.friendStatus,
+    "friends",
+  );
+  assert.equal((await ask(f, a, b)).data.friendStatus, "friends");
+  const lists = (await f.call("/friends", "GET", undefined, a.token)).data;
+  assert.deepEqual(lists.friends.map((u) => u.name), ["Beto Luna"]);
+  assert.equal(lists.incoming.length + lists.outgoing.length, 0);
+});
+
+test("asking someone who already asked you makes you friends at once", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account();
+  await ask(f, a, b);
+  assert.equal((await ask(f, b, a)).data.friendStatus, "friends");
+  assert.equal(await statusOf(f, a, b), "friends");
+});
+
+test("friend requests reject guests, unverified accounts, self, bad ids and unknown people", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account(),
+    unverified = await f.account({ verified: false });
+  assert.equal((await f.call("/friends/requests", "POST", { userId: b.id })).status, 401);
+  assert.equal((await f.call("/friends", "GET")).status, 401);
+  assert.equal((await ask(f, unverified, b)).status, 403);
+  assert.equal((await ask(f, a, a)).status, 400);
+  assert.equal(
+    (await f.call("/friends/requests", "POST", { userId: "../../etc" }, a.token)).status,
+    400,
+  );
+  assert.equal(
+    (await f.call("/friends/requests", "POST", { userId: crypto.randomUUID() }, a.token)).status,
+    404,
+  );
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM friendships").get().n, 0);
+});
+
+test("only an accepted friend sees a hidden church; strangers and pending requests see what they saw before", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" }),
+    b = await f.account(),
+    stranger = await f.account();
+  await f.call(
+    "/auth/profile",
+    "PUT",
+    { churchName: "IDDV El Buen Pastor — Central", location: "México · Puebla", showChurchLocation: false },
+    a.token,
+  );
+  const see = async (viewer) =>
+    (await f.call(`/users/${a.id}/public-profile`, "GET", undefined, viewer?.token)).data.user;
+
+  await ask(f, b, a);
+  for (const viewer of [null, stranger, b]) {
+    const profile = await see(viewer);
+    assert.equal(profile.churchName, null);
+    assert.equal(profile.location, null);
+  }
+  // A pending request in the list does not reveal it either.
+  const pending = (await f.call("/friends", "GET", undefined, b.token)).data.outgoing[0];
+  assert.equal(pending.churchName, null);
+
+  await f.call(`/friends/requests/${b.id}/accept`, "POST", {}, a.token);
+  const asFriend = await see(b);
+  assert.equal(asFriend.churchName, "IDDV El Buen Pastor — Central");
+  assert.equal(asFriend.location, "México · Puebla");
+  assert.equal((await see(stranger)).churchName, null);
+  assert.equal((await see(null)).churchName, null);
+  assert.equal(
+    (await f.call("/friends", "GET", undefined, b.token)).data.friends[0].churchName,
+    "IDDV El Buen Pastor — Central",
+  );
+  // Member since: month and year only.
+  f.sql.prepare("UPDATE users SET created_at=?1 WHERE id=?2").run(Date.UTC(2026, 10, 22, 18, 30), a.id);
+  assert.equal((await see(stranger)).memberSince, "2026-11");
+});
+
+test("declining, cancelling and unfriending all remove the link", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account();
+  const remove = (who, other) => f.call(`/friends/${other.id}`, "DELETE", undefined, who.token);
+
+  await ask(f, a, b);
+  assert.equal((await remove(b, a)).data.friendStatus, "none"); // decline
+  assert.equal(await statusOf(f, a, b), "none");
+
+  await ask(f, a, b);
+  await remove(a, b); // cancel
+  assert.equal(await statusOf(f, b, a), "none");
+
+  await ask(f, a, b);
+  await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+  await remove(a, b); // unfriend
+  assert.equal(await statusOf(f, a, b), "none");
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM friendships").get().n, 0);
+  assert.equal((await f.call(`/friends/${b.id}`, "DELETE")).status, 401);
+});
+
+test("blocking ends a friendship and prevents new requests in both directions", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account();
+  await ask(f, a, b);
+  await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+  assert.equal(await statusOf(f, a, b), "friends");
+
+  assert.equal((await f.call(`/users/${b.id}/block`, "POST", {}, a.token)).status, 200);
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM friendships").get().n, 0);
+  assert.equal(await statusOf(f, a, b), "none");
+  assert.equal(await statusOf(f, b, a), "none");
+  // Same answer as an account that does not exist, for both people.
+  assert.equal((await ask(f, a, b)).status, 404);
+  assert.equal((await ask(f, b, a)).status, 404);
+  assert.equal((await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token)).status, 404);
+  assert.equal((await f.call("/friends", "GET", undefined, b.token)).data.friends.length, 0);
+
+  // A request that was pending when the block happened disappears too.
+  const c = await f.account();
+  await ask(f, c, a);
+  await f.call(`/users/${c.id}/block`, "POST", {}, a.token);
+  assert.equal((await f.call("/friends", "GET", undefined, a.token)).data.incoming.length, 0);
+});
+
+test("suspended and deleted accounts drop out of friend lists and cannot be asked", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account(),
+    c = await f.account();
+  await ask(f, a, b);
+  await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+  await ask(f, c, a);
+
+  f.sql.prepare("UPDATE users SET suspended_at=1 WHERE id=?1").run(b.id);
+  const lists = (await f.call("/friends", "GET", undefined, a.token)).data;
+  assert.equal(lists.friends.length, 0);
+  assert.equal(lists.incoming.length, 1);
+  assert.equal((await ask(f, c, b)).status, 404);
+
+  // Deleting an account removes its friendships (foreign keys cascade).
+  f.sql.prepare("DELETE FROM sessions WHERE user_id=?1").run(c.id);
+  f.sql.prepare("DELETE FROM users WHERE id=?1").run(c.id);
+  assert.equal(
+    f.sql.prepare("SELECT count(*) AS n FROM friendships WHERE requested_by=?1").get(c.id).n,
+    0,
+  );
+  assert.equal((await f.call("/friends", "GET", undefined, a.token)).data.incoming.length, 0);
+});

@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { MINISTRIES, CHOIRS } from "../data/communityRules";
+import FriendsPanel from "./FriendsPanel";
+import { useFriends } from "../utils/friendsStore";
 import { communityError, useCommunityApi } from "../utils/communityApi";
 import { fonts } from "../theme/theme";
 import CommunityModeration from "./CommunityModeration";
@@ -42,7 +44,7 @@ function parseStoredLocation(loc: string | null | undefined): { countryId: strin
   return { countryId: null, region: raw };
 }
 
-export type CommunitySubPage = "ministry" | "choir" | "church-location" | "blocks" | "moderation";
+export type CommunitySubPage = "ministry" | "choir" | "church-location" | "blocks" | "moderation" | "friends";
 
 export default function CommunityProfile({
   subPage = null,
@@ -60,6 +62,11 @@ export default function CommunityProfile({
     { language, t } = useLanguage(),
     es = language === "es",
     api = useCommunityApi();
+  const { lists: friendLists, refresh: refreshFriends } = useFriends();
+  // One fetch when the signed-in account's profile mounts keeps the badge current.
+  useEffect(() => {
+    if (user?.id && !subPage) void refreshFriends();
+  }, [refreshFriends, subPage, user?.id]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<{
@@ -285,6 +292,10 @@ export default function CommunityProfile({
         )}
       </View>
     );
+  }
+
+  if (subPage === "friends") {
+    return <FriendsPanel />;
   }
 
   if (subPage === "blocks") {
@@ -1020,6 +1031,74 @@ export default function CommunityProfile({
             />
           </Pressable>
 
+
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(255,255,255,0.09)"
+                  : theme.outlineVariant,
+              },
+            ]}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onOpenSubPage?.("friends")}
+            style={({ pressed }) => [
+              styles.navRow,
+              pressed && {
+                backgroundColor: isDarkMode
+                  ? "rgba(255,255,255,0.06)"
+                  : theme.primary + "0D",
+              },
+            ]}
+          >
+            <AppMenuIcon
+              ios="person.2"
+              android="group"
+              color={iconTint}
+              size={21}
+              containerSize={24}
+              weight="medium"
+            />
+            <Text
+              numberOfLines={1}
+              style={[styles.label, { color: theme.onSurface, flex: 1 }]}
+            >
+              {t.friendsTitle}
+            </Text>
+            {friendLists.incoming.length > 0 ? (
+              <View
+                accessibilityLabel={`${friendLists.incoming.length} ${t.friendsRequests}`}
+                style={{
+                  minWidth: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  paddingHorizontal: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#D64545",
+                }}
+              >
+                <Text style={{ ...fonts.sansBold, fontSize: 12.5, color: "#FFFFFF" }}>
+                  {friendLists.incoming.length}
+                </Text>
+              </View>
+            ) : friendLists.friends.length > 0 ? (
+              <Text style={{ ...fonts.sansRegular, fontSize: 15, color: mutedText }}>
+                {friendLists.friends.length}
+              </Text>
+            ) : null}
+            <AppMenuIcon
+              ios="chevron.right"
+              android="chevron-right"
+              color={mutedText}
+              size={13}
+              weight="semibold"
+            />
+          </Pressable>
 
           <View
             style={[

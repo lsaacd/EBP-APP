@@ -64,6 +64,8 @@ import {
 import type { DailyVerse } from "../data/dailyVerses";
 import GlassSurface from "./GlassSurface";
 import AppMenuIcon from "./AppMenuIcon";
+import FriendButton from "./FriendButton";
+import { memberSinceLabel, parseFriendStatus, type FriendStatus } from "../utils/friends";
 import * as Haptics from "../utils/haptics";
 
 type Draft = {
@@ -165,6 +167,8 @@ export default function VerseDiscussionSheet({
     badgeVerified: boolean;
     churchName: string | null;
     location: string | null;
+    memberSince: string | null;
+    friendStatus: FriendStatus | null;
     loading: boolean;
   } | null>(null);
   const authorFetchSeq = useRef(0);
@@ -223,6 +227,8 @@ export default function VerseDiscussionSheet({
         badgeVerified: c.badgeVerified,
         churchName: isSelf && user?.showChurchLocation ? user.churchName : null,
         location: isSelf && user?.showChurchLocation ? user.location : null,
+        memberSince: null,
+        friendStatus: null,
         loading: true,
       });
       void api<{
@@ -235,6 +241,8 @@ export default function VerseDiscussionSheet({
           badgeVerified: boolean;
           churchName: string | null;
           location: string | null;
+          memberSince?: string | null;
+          friendStatus?: string | null;
         };
       }>(`/users/${uid}/public-profile`)
         .then((res) => {
@@ -248,6 +256,8 @@ export default function VerseDiscussionSheet({
             badgeVerified: Boolean(res.user.badgeVerified),
             churchName: res.user.churchName ?? null,
             location: res.user.location ?? null,
+            memberSince: res.user.memberSince ?? null,
+            friendStatus: parseFriendStatus(res.user.friendStatus),
             loading: false,
           });
         })
@@ -1752,6 +1762,34 @@ export default function VerseDiscussionSheet({
                     </View>
                   ) : null}
                 </View>
+              ) : null}
+
+              {!selectedAuthor.loading &&
+              memberSinceLabel(selectedAuthor.memberSince, es) ? (
+                <Text
+                  style={{
+                    color: theme.onSurfaceVariant,
+                    ...fonts.sansRegular,
+                    fontSize: 13.5,
+                    textAlign: "center",
+                  }}
+                >
+                  {memberSinceLabel(selectedAuthor.memberSince, es)}
+                </Text>
+              ) : null}
+
+              {/* Add / accept / remove. Hidden for guests and for your own profile. */}
+              {!selectedAuthor.loading ? (
+                <FriendButton
+                  userId={selectedAuthor.id}
+                  name={selectedAuthor.name}
+                  status={selectedAuthor.friendStatus}
+                  onStatusChange={(next) =>
+                    setSelectedAuthor((prev) =>
+                      prev ? { ...prev, friendStatus: next } : prev,
+                    )
+                  }
+                />
               ) : null}
             </View>
           </View>

@@ -1,6 +1,6 @@
 # Friends ("Hermanos") — build plan
 
-> **Status (November 23, 2026):** design agreed with the owner, not built. Nothing here is deployed.
+> **Status (November 23, 2026):** phase 1 is built and tested in the repository but **not deployed**: migration `0009_friends.sql` has not been applied to the live database, the Worker with the friends routes is not deployed, the privacy/terms text is not published, and no OTA carries the screens. Phases 2–4 are not started.
 > Any agent may build it, one phase at a time, with the owner's go-ahead before each live step.
 
 ## What the owner decided
@@ -98,6 +98,20 @@ Suggested quotas: 20 requests per user per hour and 60 per IP; 10 shared playlis
 4. **Church suggestions.** The suggestions route, the switch, the *De mi iglesia* section.
 
 Per phase, in this order: tests → D1 migration (if any) → Worker deploy → Cloudflare Pages deploy (if the privacy text changed) → OTA. The server always ships before the app that calls it, and the app must treat a missing route as "feature not available yet" rather than an error.
+
+## Phase 1 as built (differences from the plan above)
+
+- The migration creates only `friendships`. The two sharing switches and `shared_playlists` belong to phases 2–4 and are added then.
+- The profile card was not lifted into a separate `MemberProfileSheet`. The existing card in `VerseDiscussionSheet.tsx` gained "Miembro desde …" and `components/FriendButton.tsx`, which is the one control for a friendship wherever a person is shown.
+- The friends page is `components/FriendsPanel.tsx`, shown as the `friends` sub-page of the account sheet; shared state is `utils/friendsStore.ts`, pure helpers are `utils/friends.ts`.
+- For now a person can only be found through the comments (tap their name). Suggestions arrive in phase 4.
+- Server tests: seven cases at the end of `scripts/test-verse-community.cjs`.
+
+**To take phase 1 live, in this order, each with the owner's go-ahead:**
+1. `npx wrangler d1 execute ebp-himnario-db --remote --file "migrations/0009_friends.sql"` (from `workers/ebp-auth-sync`).
+2. `npx wrangler deploy`.
+3. `scripts/deploy-cloudflare.ps1 -AudioBaseUrl "https://audio.himnarioebp.com" -SkipAudioUpload` for the privacy and terms text.
+4. `eas update --branch production --platform ios`.
 
 ## Not in scope
 

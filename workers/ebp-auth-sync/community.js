@@ -29,6 +29,14 @@ async function quota(env, key, max, ms) {
     throw e;
   }
 }
+// Friendships are stored once per pair, smaller id first.
+const pairOf = (a, b) => (a < b ? [a, b] : [b, a]);
+// "2026-11": month and year only. The exact moment someone joined is more
+// than a profile needs to show.
+const memberSince = (createdAt) =>
+  Number.isFinite(createdAt) && createdAt > 0
+    ? new Date(createdAt).toISOString().slice(0, 7)
+    : null;
 function participant(user) {
   if (!user) fail(401, "unauthorized");
   if (user.suspended_at != null) fail(403, "account_suspended");
@@ -163,6 +171,9 @@ export async function deleteCommunityAccount(env, id) {
     env.DB.prepare(
       "DELETE FROM verse_comment_reports WHERE reporter_user_id=?1",
     ).bind(id),
+    env.DB.prepare(
+      "DELETE FROM friendships WHERE user_low=?1 OR user_high=?1",
+    ).bind(id),
     ...["user_data", "sessions", "email_tokens", "hymn_reactions"].map((t) =>
       env.DB.prepare(`DELETE FROM ${t} WHERE user_id=?1`).bind(id),
     ),
@@ -177,7 +188,7 @@ export async function handleCommunity(
   { path, authenticate, serializeUser, json },
 ) {
   if (
-    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns)(\/|$)/.test(path) &&
+    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends)(\/|$)/.test(path) &&
     !["/auth/profile", "/auth/ugc-terms/accept"].includes(path)
   )
     return null;
@@ -195,6 +206,14 @@ export async function handleCommunity(
         .bind(...args)
         .all()
     ).results;
+  const blockedEitherWay = async (a, b) =>
+    Boolean(
+      await env.DB.prepare(
+        "SELECT 1 FROM user_blocks WHERE (blocker_user_id=?1 AND blocked_user_id=?2) OR (blocker_user_id=?2 AND blocked_user_id=?1)",
+      )
+        .bind(a, b)
+        .first(),
+    );
   if (path.startsWith("/mod/") && !admin) fail(403, "forbidden");
   await quota(env, `community-read:${ip}`, 180, 60000);
 
@@ -511,11 +530,15 @@ export async function handleCommunity(
           .first())
       )
         fail(404, "not_found");
-      await env.DB.prepare(
-        "INSERT INTO user_blocks VALUES(?1,?2,?3) ON CONFLICT DO NOTHING",
-      )
-        .bind(user.id, id, now)
-        .run();
+      const [blockLow, blockHigh] = pairOf(user.id, id);
+      await env.DB.batch([
+        env.DB.prepare(
+          "INSERT INTO user_blocks VALUES(?1,?2,?3) ON CONFLICT DO NOTHING",
+        ).bind(user.id, id, now),
+        env.DB.prepare(
+          "DELETE FROM friendships WHERE user_low=?1 AND user_high=?2",
+        ).bind(blockLow, blockHigh),
+      ]);
       return json({ ok: true });
     }
     if (method === "DELETE") {
@@ -533,14 +556,38 @@ export async function handleCommunity(
   if (publicProfileRoute && method === "GET") {
     const targetId = publicProfileRoute[1];
     const target = await env.DB.prepare(
-      "SELECT id,name,ministry,choir,church_id,church_name,location,show_church_location,badge_verified,suspended_at FROM users WHERE id=?1",
+      "SELECT id,name,ministry,choir,church_id,church_name,location,show_church_location,badge_verified,suspended_at,created_at FROM users WHERE id=?1",
     )
       .bind(targetId)
       .first();
     if (!target || target.suspended_at != null) fail(404, "not_found");
-    const showExtra = target.show_church_location === 1;
+    // none | self | outgoing (I asked) | incoming (they asked) | friends.
+    // Only a signed-in caller gets a status; a block reads as "none".
+    let friendStatus = null;
+    if (user) {
+      friendStatus = "none";
+      if (user.id === target.id) friendStatus = "self";
+      else if (!(await blockedEitherWay(user.id, target.id))) {
+        const [low, high] = pairOf(user.id, target.id);
+        const row = await env.DB.prepare(
+          "SELECT status,requested_by FROM friendships WHERE user_low=?1 AND user_high=?2",
+        )
+          .bind(low, high)
+          .first();
+        if (row?.status === "accepted") friendStatus = "friends";
+        else if (row) friendStatus = row.requested_by === user.id ? "outgoing" : "incoming";
+      }
+    }
+    // An accepted friend sees church and location even when they are hidden
+    // from everyone else. Nobody else sees more than before.
+    const showExtra =
+      target.show_church_location === 1 ||
+      friendStatus === "friends" ||
+      friendStatus === "self";
     return json({
       user: {
+        memberSince: memberSince(target.created_at),
+        friendStatus,
         id: target.id,
         name: target.name,
         initials: initials(target.name),
@@ -553,6 +600,118 @@ export async function handleCommunity(
         location: showExtra ? (target.location ?? null) : null,
       },
     });
+  }
+  // ── Friends ("Hermanos"), phase 1 ────────────────────────────────────────
+  const friendSummary = (row, full) => ({
+    id: row.id,
+    name: row.name,
+    initials: initials(row.name),
+    ministry: row.ministry ?? null,
+    choir: row.choir ?? null,
+    badgeVerified: row.ministry === "obispo" && row.badge_verified === 1,
+    memberSince: memberSince(row.created_at),
+    churchId: full || row.show_church_location === 1 ? (row.church_id ?? null) : null,
+    churchName: full || row.show_church_location === 1 ? (row.church_name ?? null) : null,
+    location: full || row.show_church_location === 1 ? (row.location ?? null) : null,
+  });
+  if (path === "/friends" && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    // The other person of each pair, leaving out suspended accounts and
+    // anyone blocked in either direction.
+    const rows = await all(
+      `SELECT f.status,f.requested_by,f.created_at AS requested_at,u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+       FROM friendships f JOIN users u ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
+       WHERE (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
+       ORDER BY f.created_at DESC LIMIT 500`,
+      user.id,
+    );
+    const out = { friends: [], incoming: [], outgoing: [] };
+    for (const row of rows) {
+      if (row.status === "accepted") out.friends.push(friendSummary(row, true));
+      else if (row.requested_by === user.id) out.outgoing.push(friendSummary(row, false));
+      else out.incoming.push(friendSummary(row, false));
+    }
+    out.friends.sort((a, b) => a.name.localeCompare(b.name));
+    return json(out, 200, { "Cache-Control": "private, no-store" });
+  }
+  if (path === "/friends/requests" && method === "POST") {
+    participant(user);
+    await quota(env, `friend-request:${user.id}`, 20, 3600000);
+    await quota(env, `friend-request-ip:${ip}`, 60, 3600000);
+    const targetId = (await bodyOf(request)).userId;
+    if (!validId(targetId) || targetId === user.id) fail(400, "invalid_friend");
+    const target = await env.DB.prepare(
+      "SELECT id,suspended_at FROM users WHERE id=?1",
+    )
+      .bind(targetId)
+      .first();
+    // A blocked person gets the same answer as a missing one.
+    if (!target || target.suspended_at != null || (await blockedEitherWay(user.id, targetId)))
+      fail(404, "not_found");
+    const [low, high] = pairOf(user.id, targetId);
+    const existing = await env.DB.prepare(
+      "SELECT status,requested_by FROM friendships WHERE user_low=?1 AND user_high=?2",
+    )
+      .bind(low, high)
+      .first();
+    if (existing?.status === "accepted") return json({ friendStatus: "friends" });
+    if (existing && existing.requested_by === user.id)
+      return json({ friendStatus: "outgoing" });
+    if (existing) {
+      // They had already asked: asking back is the same as accepting.
+      await env.DB.prepare(
+        "UPDATE friendships SET status='accepted',responded_at=?3 WHERE user_low=?1 AND user_high=?2 AND status='pending'",
+      )
+        .bind(low, high, now)
+        .run();
+      return json({ friendStatus: "friends" });
+    }
+    await env.DB.prepare(
+      "INSERT INTO friendships(user_low,user_high,requested_by,status,created_at) VALUES(?1,?2,?3,'pending',?4) ON CONFLICT DO NOTHING",
+    )
+      .bind(low, high, user.id, now)
+      .run();
+    return json({ friendStatus: "outgoing" });
+  }
+  const friendAccept = path.match(/^\/friends\/requests\/([a-z0-9-]+)\/accept$/);
+  if (friendAccept && method === "POST") {
+    participant(user);
+    await quota(env, `friend-accept:${user.id}`, 60, 3600000);
+    const otherId = friendAccept[1];
+    if (!validId(otherId) || otherId === user.id) fail(400, "invalid_friend");
+    if (await blockedEitherWay(user.id, otherId)) fail(404, "not_found");
+    const [low, high] = pairOf(user.id, otherId);
+    // Only the person who received the request can accept it.
+    const result = await env.DB.prepare(
+      "UPDATE friendships SET status='accepted',responded_at=?4 WHERE user_low=?1 AND user_high=?2 AND status='pending' AND requested_by=?3",
+    )
+      .bind(low, high, otherId, now)
+      .run();
+    if (!result.meta?.changes) {
+      const row = await env.DB.prepare(
+        "SELECT status FROM friendships WHERE user_low=?1 AND user_high=?2",
+      )
+        .bind(low, high)
+        .first();
+      if (row?.status !== "accepted") fail(404, "not_found");
+    }
+    return json({ friendStatus: "friends" });
+  }
+  const friendItem = path.match(/^\/friends\/([a-z0-9-]+)$/);
+  if (friendItem && method === "DELETE") {
+    // Decline, cancel or unfriend: each simply removes the pair's row.
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `friend-remove:${user.id}`, 60, 3600000);
+    const otherId = friendItem[1];
+    if (!validId(otherId) || otherId === user.id) fail(400, "invalid_friend");
+    const [low, high] = pairOf(user.id, otherId);
+    await env.DB.prepare(
+      "DELETE FROM friendships WHERE user_low=?1 AND user_high=?2",
+    )
+      .bind(low, high)
+      .run();
+    return json({ friendStatus: "none" });
   }
   if (path === "/users/blocks" && method === "GET") {
     if (!user) fail(401, "unauthorized");

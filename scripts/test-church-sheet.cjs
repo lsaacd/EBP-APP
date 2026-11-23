@@ -277,3 +277,29 @@ test('"Más gustados" keeps only liked hymns, most-liked first, ties in hymnal o
   assert.deepEqual(ranked.map((r) => [r.hymn.id, r.likes]), [['315 A', 5], [2, 3], [7, 3]]);
   assert.deepEqual(rankByLikes(results, {}), []);
 });
+
+test('"member since" shows month and year in the app language, and nothing for bad input', () => {
+  const { memberSinceLabel, parseFriendStatus, parseFriendLists } = load('himnario/utils/friends.ts');
+  assert.equal(memberSinceLabel('2026-11', true), 'Miembro desde noviembre de 2026');
+  assert.equal(memberSinceLabel('2026-11', false), 'Member since November 2026');
+  assert.equal(memberSinceLabel('2027-01', true), 'Miembro desde enero de 2027');
+  for (const bad of [null, undefined, '', '2026', '2026-13', '2026-00', '2026-11-22', 'nov 2026']) {
+    assert.equal(memberSinceLabel(bad, true), '');
+  }
+
+  assert.equal(parseFriendStatus('friends'), 'friends');
+  assert.equal(parseFriendStatus('incoming'), 'incoming');
+  assert.equal(parseFriendStatus('admin'), null);
+  assert.equal(parseFriendStatus(undefined), null);
+
+  // A server without the feature, or a malformed reply, reads as empty lists.
+  assert.deepEqual(parseFriendLists(null), { friends: [], incoming: [], outgoing: [] });
+  assert.deepEqual(parseFriendLists({ friends: 'x', incoming: [{ id: 1 }] }), { friends: [], incoming: [], outgoing: [] });
+  const parsed = parseFriendLists({
+    friends: [{ id: 'u1', name: 'Ana', initials: 'A', memberSince: '2026-11', churchName: 'IDDV El Buen Pastor — Riverbank', badgeVerified: 1 }],
+  });
+  assert.equal(parsed.friends[0].name, 'Ana');
+  assert.equal(parsed.friends[0].churchName, 'IDDV El Buen Pastor — Riverbank');
+  assert.equal(parsed.friends[0].badgeVerified, false); // only a real boolean counts
+  assert.equal(parsed.friends[0].ministry, null);
+});
