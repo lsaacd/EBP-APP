@@ -62,6 +62,8 @@ function parseStoredLocation(loc: string | null | undefined): { countryId: strin
 
 export type CommunitySubPage = "ministry" | "choir" | "church-location" | "blocks" | "moderation" | "friends" | "notifications";
 
+const BUILTIN_CHOIR_SLUGS = new Set(["esmirna", "maranatha", "filadelfia"]);
+
 export default function CommunityProfile({
   subPage = null,
   onOpenSubPage,
@@ -78,7 +80,7 @@ export default function CommunityProfile({
   onOpenHymn?: (hymnId: string) => void;
   onNotificationNavigate?: (destination: NotificationDestination) => void;
 }) {
-  const { user, updateProfile } = useAuth(),
+  const { user, updateProfile, refreshUser } = useAuth(),
     { theme, isDarkMode } = useTheme(),
     { language, t } = useLanguage(),
     es = language === "es",
@@ -95,6 +97,7 @@ export default function CommunityProfile({
   const [choirContextDraft, setChoirContextDraft] = useState("");
   const [choirSubmitError, setChoirSubmitError] = useState("");
   const [choirSubmitting, setChoirSubmitting] = useState(false);
+  const [deletingChoirSlug, setDeletingChoirSlug] = useState<string | null>(null);
   const [choirToast, setChoirToast] = useState<ActionToastMessage | null>(null);
   const choirToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const choirNameEnRef = useRef<TextInput>(null);
@@ -221,6 +224,67 @@ export default function CommunityProfile({
     t.choirPublishedToast,
     t.choirSubmittedToast,
   ]);
+  const handleDeleteChoir = useCallback(
+    (slug: string, label: string) => {
+      if (!isAdminUser || deletingChoirSlug || BUILTIN_CHOIR_SLUGS.has(slug)) {
+        return;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        t.choirRemoveTitle,
+        t.choirRemoveBody.replace("{name}", label),
+        [
+          { text: t.cancel, style: "cancel" },
+          {
+            text: t.choirRemoveAction,
+            style: "destructive",
+            onPress: () => {
+              void (async () => {
+                setDeletingChoirSlug(slug);
+                setError("");
+                try {
+                  await api(`/mod/choirs/${encodeURIComponent(slug)}`, "DELETE");
+                  if (user?.choir === slug) {
+                    setOptimistic((prev) => {
+                      const next = { ...prev };
+                      delete next.choir;
+                      return next;
+                    });
+                    await Promise.all([refreshApprovedChoirs(), refreshUser()]);
+                  } else {
+                    await refreshApprovedChoirs();
+                  }
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  showChoirToast(t.choirRemovedToast, label);
+                } catch (e) {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                  setError(communityError(e, es));
+                } finally {
+                  setDeletingChoirSlug(null);
+                }
+              })();
+            },
+          },
+        ],
+      );
+    },
+    [
+      api,
+      deletingChoirSlug,
+      es,
+      isAdminUser,
+      refreshApprovedChoirs,
+      refreshUser,
+      showChoirToast,
+      t.cancel,
+      t.choirRemoveAction,
+      t.choirRemoveBody,
+      t.choirRemovedToast,
+      t.choirRemoveTitle,
+      user?.choir,
+    ],
+  );
+
   // One fetch when the signed-in account's profile mounts keeps the badges current.
   useEffect(() => {
     if (user?.id && !subPage) {
@@ -466,39 +530,120 @@ export default function CommunityProfile({
                     </Text>
                   </View>
                 )}
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked }}
-                  onPress={() => void save(field, key)}
-                  style={({ pressed }) => [
-                    styles.optionRow,
-                    pressed && {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.08)"
-                        : theme.surfaceVariants.containerHigh,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: theme.onSurface,
-                      ...(checked ? fonts.sansSemiBold : fonts.sansMedium),
-                      fontSize: 16.5,
-                      flex: 1,
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                  {checked && (
-                    <AppMenuIcon
-                      ios="checkmark"
-                      android="check"
-                      color={theme.primary}
-                      size={19}
-                      weight="semibold"
-                    />
-                  )}
-                </Pressable>
+                {(() => {
+                  const canRemoveChoir =
+                    field === "choir" &&
+                    isAdminUser &&
+                    typeof key === "string" &&
+                    key !== "otro" &&
+                    !BUILTIN_CHOIR_SLUGS.has(key);
+                  const isDeletingThis = deletingChoirSlug === key;
+                  if (!canRemoveChoir) {
+                    return (
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked }}
+                        onPress={() => void save(field, key)}
+                        style={({ pressed }) => [
+                          styles.optionRow,
+                          pressed && {
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.08)"
+                              : theme.surfaceVariants.containerHigh,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: theme.onSurface,
+                            ...(checked ? fonts.sansSemiBold : fonts.sansMedium),
+                            fontSize: 16.5,
+                            flex: 1,
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                        {checked && (
+                          <AppMenuIcon
+                            ios="checkmark"
+                            android="check"
+                            color={theme.primary}
+                            size={19}
+                            weight="semibold"
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  }
+                  return (
+                    <View style={styles.optionRowWithAction}>
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked }}
+                        disabled={Boolean(deletingChoirSlug)}
+                        onPress={() => void save(field, key)}
+                        style={({ pressed }) => [
+                          styles.optionRowMain,
+                          pressed && {
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.08)"
+                              : theme.surfaceVariants.containerHigh,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: theme.onSurface,
+                            ...(checked ? fonts.sansSemiBold : fonts.sansMedium),
+                            fontSize: 16.5,
+                            flex: 1,
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                        {checked && (
+                          <AppMenuIcon
+                            ios="checkmark"
+                            android="check"
+                            color={theme.primary}
+                            size={19}
+                            weight="semibold"
+                          />
+                        )}
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${t.choirRemoveAction} ${item.label}`}
+                        disabled={Boolean(deletingChoirSlug)}
+                        hitSlop={6}
+                        onPress={() => handleDeleteChoir(key, item.label)}
+                        style={({ pressed }) => [
+                          styles.choirRemoveBtn,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(255, 85, 85, 0.16)"
+                              : "rgba(214, 69, 69, 0.10)",
+                            opacity: pressed ? 0.72 : deletingChoirSlug && !isDeletingThis ? 0.45 : 1,
+                          },
+                        ]}
+                      >
+                        {isDeletingThis ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={isDarkMode ? "#FF6B6B" : "#D64545"}
+                          />
+                        ) : (
+                          <AppMenuIcon
+                            ios="trash"
+                            android="delete-outline"
+                            color={isDarkMode ? "#FF6B6B" : "#D64545"}
+                            size={16}
+                          />
+                        )}
+                      </Pressable>
+                    </View>
+                  );
+                })()}
               </React.Fragment>
             );
           })}
@@ -1740,6 +1885,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
+  },
+  optionRowWithAction: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 12,
+  },
+  optionRowMain: {
+    flex: 1,
+    minHeight: 52,
+    paddingLeft: 18,
+    paddingRight: 10,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  choirRemoveBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   inlineToastPill: {
     flexDirection: "row",

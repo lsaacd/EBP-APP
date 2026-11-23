@@ -615,6 +615,164 @@ export default function CommunityModeration({
               />
 
               <Text style={[styles.heading, { color: theme.onSurface }]}>
+                {t.choirPublishedListTitle}
+              </Text>
+              <View
+                style={[
+                  styles.groupedFieldsCard,
+                  {
+                    backgroundColor: theme.surfaceVariants.containerLowest,
+                    borderColor: isDarkMode
+                      ? "rgba(255,255,255,0.12)"
+                      : theme.outlineVariant + "60",
+                  },
+                ]}
+              >
+                {(modChoirs.filter((c) => c.status === "approved").length > 0
+                  ? modChoirs.filter((c) => c.status === "approved")
+                  : [
+                      { slug: "esmirna", nameEs: "Coro Esmirna", nameEn: "Esmirna Choir" },
+                      { slug: "maranatha", nameEs: "Coro Maranatha", nameEn: "Maranatha Choir" },
+                      { slug: "filadelfia", nameEs: "Coro Filadelfia", nameEn: "Filadelfia Choir" },
+                    ]
+                ).map((item, idx) => {
+                  const label = es ? item.nameEs : item.nameEn;
+                  const isBuiltin = BUILTIN_CHOIRS.has(item.slug);
+                  return (
+                    <React.Fragment key={item.slug}>
+                      {idx > 0 && (
+                        <View
+                          style={{
+                            height: StyleSheet.hairlineWidth,
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.10)"
+                              : theme.outlineVariant + "55",
+                            marginLeft: 14,
+                          }}
+                        />
+                      )}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingHorizontal: 14,
+                          paddingVertical: 11,
+                          gap: 10,
+                        }}
+                      >
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            color: theme.onSurface,
+                            ...fonts.sansMedium,
+                            fontSize: 15,
+                            flex: 1,
+                          }}
+                        >
+                          {label}
+                        </Text>
+                        {isBuiltin ? (
+                          <View
+                            style={{
+                              paddingHorizontal: 9,
+                              paddingVertical: 4,
+                              borderRadius: 999,
+                              backgroundColor: theme.surfaceVariants.containerHigh,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: theme.onSurfaceVariant,
+                                ...fonts.sansMedium,
+                                fontSize: 11.5,
+                              }}
+                            >
+                              {t.choirBuiltinBadge}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Pressable
+                            disabled={busy}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${t.choirRemoveAction} ${label}`}
+                            onPress={() => {
+                              Haptics.notificationAsync(
+                                Haptics.NotificationFeedbackType.Warning,
+                              );
+                              Alert.alert(
+                                t.choirRemoveTitle,
+                                t.choirRemoveBody.replace("{name}", label),
+                                [
+                                  { text: t.cancel, style: "cancel" },
+                                  {
+                                    text: t.choirRemoveAction,
+                                    style: "destructive",
+                                    onPress: () =>
+                                      void run(async () => {
+                                        await api(
+                                          `/mod/choirs/${encodeURIComponent(item.slug)}`,
+                                          "DELETE",
+                                        );
+                                        if (choir === item.slug) setChoir("esmirna");
+                                        await Promise.all([
+                                          loadChoirs(),
+                                          refreshApprovedChoirs(),
+                                        ]);
+                                        Haptics.notificationAsync(
+                                          Haptics.NotificationFeedbackType.Success,
+                                        );
+                                        flashToast(t.choirRemovedToast);
+                                      }),
+                                  },
+                                ],
+                              );
+                            }}
+                            style={({ pressed }) => ({
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 5,
+                              paddingHorizontal: 10,
+                              paddingVertical: 6,
+                              borderRadius: 10,
+                              backgroundColor: isDarkMode
+                                ? "rgba(255, 85, 85, 0.16)"
+                                : "rgba(214, 69, 69, 0.10)",
+                              opacity: busy ? 0.5 : pressed ? 0.72 : 1,
+                            })}
+                          >
+                            <AppMenuIcon
+                              ios="trash"
+                              android="delete-outline"
+                              color={isDarkMode ? "#FF6B6B" : "#D64545"}
+                              size={14}
+                            />
+                            <Text
+                              style={{
+                                color: isDarkMode ? "#FF6B6B" : "#D64545",
+                                ...fonts.sansSemiBold,
+                                fontSize: 12.5,
+                              }}
+                            >
+                              {t.choirRemoveAction}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </React.Fragment>
+                  );
+                })}
+              </View>
+
+              <View
+                style={{
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: theme.outlineVariant,
+                  marginVertical: 4,
+                }}
+              />
+
+              <Text style={[styles.heading, { color: theme.onSurface }]}>
                 {l("Pinned choir repertoire", "Repertorio del coro")}
               </Text>
               <View style={styles.row}>
@@ -683,6 +841,8 @@ export default function CommunityModeration({
                       await api(`/mod/choirs/${encodeURIComponent(choir)}`, "DELETE");
                       setChoir("esmirna");
                       await Promise.all([loadChoirs(), refreshApprovedChoirs()]);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      flashToast(t.choirRemovedToast);
                     },
                     true,
                   )}
