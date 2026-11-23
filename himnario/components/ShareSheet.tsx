@@ -42,6 +42,7 @@ import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
 import { MaterialIcons } from '@expo/vector-icons';
+import HymnQrPanel from './HymnQrPanel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -81,7 +82,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
   const travel = Math.max(420, Math.round(windowHeight * 0.82));
   const pdfHeight = Math.round(windowHeight * 0.92);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [mode, setMode] = useState<'menu' | 'pdf'>('menu');
+  const [mode, setMode] = useState<'menu' | 'pdf' | 'qr'>('menu');
 
   const progress = useSharedValue(1);
   const dragOrigin = useSharedValue(0);
@@ -240,6 +241,19 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       onPress: handleOpenPdf,
     },
     {
+      key: 'qr',
+      icon: 'qr-code-2' as const,
+      iconBg: theme.primary + '18',
+      iconColor: theme.primary,
+      title: t.hymnQrOption,
+      subtitle: t.hymnQrOptionSub,
+      onPress: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setStatusMessage(null);
+        setMode('qr');
+      },
+    },
+    {
       key: 'copy-lyrics',
       icon: 'content-copy' as const,
       iconBg: theme.primary + '18',
@@ -364,6 +378,16 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       <View style={[styles.grabber, { marginBottom: 10 }]} />
       <PdfEditor hymn={hymn} onBack={() => setMode('menu')} onClose={onClose} />
     </View>
+  ) : mode === 'qr' ? (
+    <View style={styles.inner}>
+      <View style={styles.grabber} />
+      <HymnQrPanel
+        url={publicUrl}
+        label={label}
+        title={hymn.title}
+        onBack={() => setMode('menu')}
+      />
+    </View>
   ) : (
     menuBody
   );
@@ -376,7 +400,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
       presentationStyle="overFullScreen"
       statusBarTranslucent
       navigationBarTranslucent
-      onRequestClose={() => (isPdf ? setMode('menu') : animateClose())}
+      onRequestClose={() => (mode !== 'menu' ? setMode('menu') : animateClose())}
     >
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View

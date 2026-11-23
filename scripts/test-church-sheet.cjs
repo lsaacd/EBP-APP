@@ -188,3 +188,33 @@ test('encoding is deterministic and distinguishes churches', () => {
   assert.equal(a.path, b.path);
   assert.notEqual(a.path, c.path);
 });
+
+test('the printed QR page escapes its text and carries the code as vector', () => {
+  const { buildQrPath } = load('himnario/utils/qrPath.ts');
+  const { qrPrintHtml } = load('himnario/utils/qrPrint.ts');
+  const qr = buildQrPath('https://himnarioebp.com/hymn/315%20A/');
+  const html = qrPrintHtml({
+    title: 'Roca <de> la Eternidad & "más"',
+    subtitle: 'Himno 315 A',
+    hint: 'Escanea este código',
+    brand: 'Himnario El Buen Pastor',
+    qr,
+  });
+  assert.ok(html.includes('Roca &lt;de&gt; la Eternidad &amp; &quot;más&quot;'));
+  assert.ok(!html.includes('<de>'));
+  assert.ok(html.includes(`viewBox="0 0 ${qr.extent} ${qr.extent}"`));
+  assert.ok(html.includes(`<path d="${qr.path}"`));
+  assert.ok(!html.includes('<img'), 'the code must be inline SVG, not a fetched image');
+});
+
+test("a hymn's web QR link is also one the app's scanner opens as that hymn", () => {
+  // Same address ShareSheet builds, and the same match app/churches.tsx applies.
+  const hymnUrl = (id) => `https://himnarioebp.com/hymn/${encodeURIComponent(String(id))}/`;
+  const scanHymn = (raw) => {
+    const m = raw.match(/\/hymn\/([a-zA-Z0-9%_-]+)/i);
+    return m ? decodeURIComponent(m[1]) : null;
+  };
+  assert.equal(scanHymn(hymnUrl(243)), '243');
+  assert.equal(scanHymn(hymnUrl('315 A')), '315 A');
+  assert.equal(scanHymn(hymnUrl('E12')), 'E12');
+});

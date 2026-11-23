@@ -195,6 +195,16 @@ export default function HymnDetail() {
     toggleFavorite(String(h.id));
   };
 
+  // "HIMNO N.º 243" / "HYMN NO. 243" above the title (choruses say ESTRIBILLO / CHORUS).
+  const numberLabel = useCallback(
+    (h: { id: string | number; number: string | number }) =>
+      (String(h.id).startsWith('E') ? t.chorusNumberLabel : t.hymnNumberLabel).replace(
+        '{n}',
+        String(h.number),
+      ),
+    [t],
+  );
+
   const handleShare = (_h: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShareSheetVisible(true);
@@ -250,8 +260,8 @@ export default function HymnDetail() {
           scrollEnabled={false}
         >
           <View style={styles.hymnHeader}>
-            <Text style={[styles.hymnNumber, { color: theme.primary, opacity: 0.6 }]}>
-              {localizedPreview.number}
+            <Text style={[styles.hymnNumber, { color: theme.onSurfaceVariant }]}>
+              {numberLabel(localizedPreview)}
             </Text>
             <Text style={[styles.hymnTitle, { color: theme.primary }]}>
               {localizedPreview.title}
@@ -283,7 +293,7 @@ export default function HymnDetail() {
         </ScrollView>
       </View>
     );
-  }, [theme, lyricFontSize, CORO_COLOR, hymnLanguage]);
+  }, [theme, lyricFontSize, CORO_COLOR, hymnLanguage, numberLabel]);
 
   if (!hymn) {
     return (
@@ -491,8 +501,8 @@ export default function HymnDetail() {
           >
             {/* ─── Hymn Title Section ────────────────────── */}
             <View style={styles.hymnHeader}>
-              <Text style={[styles.hymnNumber, { color: theme.primary, opacity: 0.8 }]}>
-                {hymn.number}
+              <Text style={[styles.hymnNumber, { color: theme.onSurfaceVariant }]}>
+                {numberLabel(hymn)}
               </Text>
               <Text style={[styles.hymnTitle, { color: theme.primary }]}>
                 {hymn.title}
@@ -814,9 +824,10 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   hymnNumber: {
-    ...fonts.regular,
-    fontSize: 22,
-    marginBottom: 8,
+    ...fonts.sansMedium,
+    fontSize: 13,
+    letterSpacing: 2.6,
+    marginBottom: 12,
   },
   hymnTitle: {
     ...fonts.bold,

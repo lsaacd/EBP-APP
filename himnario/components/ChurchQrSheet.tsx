@@ -27,16 +27,10 @@ import * as Haptics from '../utils/haptics';
 import { churchShareUrl } from '../utils/churchMapUtils';
 import { churchDisplayName } from '../utils/churchName';
 import { buildQrPath } from '../utils/qrPath';
+import { QR_INK, qrPrintHtml } from '../utils/qrPrint';
 import AppMenuIcon from './AppMenuIcon';
 
 const QR_SIZE = 212;
-const QR_INK = '#1A1412';
-
-/** Escapes text placed into the printed HTML. */
-const escapeHtml = (value: string) =>
-  value.replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
-  );
 
 export type QrChurch = {
   id: string;
@@ -95,28 +89,13 @@ export default function ChurchQrSheet({
     Haptics.selectionAsync();
     setPrinting(true);
     try {
-      const html = `<!doctype html>
-<html><head><meta charset="utf-8" />
-<style>
-  @page { margin: 28px; }
-  body { font-family: -apple-system, "Helvetica Neue", Roboto, sans-serif;
-         text-align: center; color: #1A1412; padding: 24px 16px; }
-  h1 { font-size: 30px; margin: 0 0 6px; }
-  .address { font-size: 15px; color: #5A5048; margin: 0 0 26px; }
-  svg { width: 340px; height: 340px; }
-  .hint { font-size: 16px; margin: 24px auto 4px; max-width: 420px; line-height: 1.45; }
-  .brand { font-size: 13px; color: #6e1619; margin-top: 18px; letter-spacing: 0.4px; }
-</style></head>
-<body>
-  <h1>${escapeHtml(title)}</h1>
-  <p class="address">${escapeHtml(address)}</p>
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${qr.extent} ${qr.extent}" shape-rendering="crispEdges">
-    <rect width="${qr.extent}" height="${qr.extent}" fill="#FFFFFF"/>
-    <path d="${qr.path}" fill="${QR_INK}"/>
-  </svg>
-  <p class="hint">${escapeHtml(t.churchQrPrintHint)}</p>
-  <p class="brand">${escapeHtml(t.appName)}</p>
-</body></html>`;
+      const html = qrPrintHtml({
+        title,
+        subtitle: address,
+        hint: t.churchQrPrintHint,
+        brand: t.appName,
+        qr,
+      });
       await Print.printAsync({ html });
     } catch {
       // A cancelled print dialog rejects too, so stay quiet rather than
