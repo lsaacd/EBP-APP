@@ -1564,3 +1564,166 @@ test("only accepted friends can send playlist copies, recipient can list, mark s
     0,
   );
 });
+
+// ── Notifications (Phase 1 inbox + Phase 2 Expo Push tokens) ────────────────
+test("notifications fire for comment likes, replies, friend requests/accepts, and shared playlists; dedupe, preferences, Expo Push, and cleanup work", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" }),
+    b = await f.account({ name: "Beto Luna" });
+  const pushes = [];
+  let failDeadToken = false;
+  f.env.PUSH_SEND = async (messages) => {
+    pushes.push(...messages);
+    return {
+      data: messages.map((m) =>
+        failDeadToken && m.to.includes("deadToken")
+          ? { status: "error", details: { error: "DeviceNotRegistered" } }
+          : { status: "ok", id: "ticket-1" },
+      ),
+    };
+  };
+
+  // Guests cannot read notifications or register push tokens.
+  assert.equal((await f.call("/notifications", "GET")).status, 401);
+  assert.equal(
+    (
+      await f.call("/notifications/push-token", "POST", {
+        token: "ExponentPushToken[validToken12345]",
+        platform: "ios",
+        language: "es",
+      })
+    ).status,
+    401,
+  );
+
+  // Invalid push tokens are rejected.
+  assert.equal(
+    (
+      await f.call(
+        "/notifications/push-token",
+        "POST",
+        { token: "not-a-valid-token", platform: "ios" },
+        a.token,
+      )
+    ).status,
+    400,
+  );
+
+  // Register valid push tokens for Ana (es) and Beto (en) + a dead token on Ana.
+  assert.equal(
+    (
+      await f.call(
+        "/notifications/push-token",
+        "POST",
+        { token: "ExponentPushToken[anaPhone123456]", platform: "ios", language: "es" },
+        a.token,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await f.call(
+        "/notifications/push-token",
+        "POST",
+        { token: "ExponentPushToken[deadToken12345]", platform: "ios", language: "es" },
+        a.token,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await f.call(
+        "/notifications/push-token",
+        "POST",
+        { token: "ExponentPushToken[betoPhone12345]", platform: "android", language: "en" },
+        b.token,
+      )
+    ).status,
+    200,
+  );
+
+  // 1. Self-like and self-reply do NOT notify.
+  const c1 = await f.post(a, "Dios es fiel siempre");
+  await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: true }, a.token);
+  await f.post(a, "Respuesta propia", c1.data.id);
+  assert.equal((await f.call("/notifications", "GET", undefined, a.token)).data.notifications.length, 0);
+  assert.equal(pushes.length, 0);
+
+  // 2. Beto likes Ana's comment -> 1 notification + Spanish push (deadToken gets pruned).
+  failDeadToken = true;
+  await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: true }, b.token);
+  assert.equal(pushes.length, 2); // sent to both of Ana's tokens
+  assert.equal(pushes[0].title, "Nuevo me gusta");
+  assert.equal(pushes[0].data.type, "comment_like");
+  // Dead token pruned from push_tokens.
+  assert.equal(
+    f.sql.prepare("SELECT count(*) AS n FROM push_tokens WHERE user_id=?1").get(a.id).n,
+    1,
+  );
+
+  // Unlike + re-like does NOT create a duplicate notification or second push!
+  await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: false }, b.token);
+  await f.call(`/verse-comments/${c1.data.id}/like`, "POST", { liked: true }, b.token);
+  assert.equal(pushes.length, 2);
+
+  // 3. Beto replies to Ana's comment -> comment_reply notification.
+  await f.post(b, "Amén hermana", c1.data.id);
+  // 4. Beto sends friend request -> friend_request notification; Ana accepts -> friend_accepted to Beto (in English!).
+  await ask(f, b, a);
+  await f.call(`/friends/requests/${b.id}/accept`, "POST", {}, a.token);
+  // 5. Beto shares a playlist -> shared_playlist notification to Ana.
+  await f.call(
+    `/friends/${a.id}/playlists`,
+    "POST",
+    { name: "Culto especial", hymnIds: ["1", "23"] },
+    b.token,
+  );
+
+  const anaInbox = (await f.call("/notifications", "GET", undefined, a.token)).data;
+  assert.equal(anaInbox.unreadCount, 4);
+  assert.deepEqual(
+    anaInbox.notifications.map((n) => n.type).sort(),
+    ["comment_like", "comment_reply", "friend_request", "shared_playlist"],
+  );
+
+  const betoInbox = (await f.call("/notifications", "GET", undefined, b.token)).data;
+  assert.equal(betoInbox.unreadCount, 1);
+  assert.equal(betoInbox.notifications[0].type, "friend_accepted");
+  const betoPush = pushes.find((p) => p.to === "ExponentPushToken[betoPhone12345]");
+  assert.ok(betoPush);
+  assert.equal(betoPush.title, "New Friend");
+
+  // Mark one read, then mark all read.
+  const firstId = anaInbox.notifications[0].id;
+  await f.call("/notifications/read", "POST", { id: firstId }, a.token);
+  assert.equal((await f.call("/notifications", "GET", undefined, a.token)).data.unreadCount, 3);
+  await f.call("/notifications/read", "POST", { all: true }, a.token);
+  assert.equal((await f.call("/notifications", "GET", undefined, a.token)).data.unreadCount, 0);
+
+  // Preference toggle suppresses future comment likes.
+  const prefRes = await saveProfile(f, b, { notifyCommentLikes: false });
+  assert.equal(prefRes.status, 200);
+  assert.equal(prefRes.data.user.notifyCommentLikes, false);
+  const c2 = await f.post(b, "Alabado sea Dios");
+  await f.call(`/verse-comments/${c2.data.id}/like`, "POST", { liked: true }, a.token);
+  const betoAfter = (await f.call("/notifications", "GET", undefined, b.token)).data;
+  assert.equal(betoAfter.notifications.some((n) => n.type === "comment_like"), false);
+
+  // Logout removes the device push token.
+  await f.call(
+    "/auth/logout",
+    "POST",
+    { pushToken: "ExponentPushToken[betoPhone12345]" },
+    b.token,
+  );
+  assert.equal(
+    f.sql.prepare("SELECT count(*) AS n FROM push_tokens WHERE user_id=?1").get(b.id).n,
+    0,
+  );
+
+  // Blocking cleans up notifications between the pair.
+  await f.call(`/users/${b.id}/block`, "POST", {}, a.token);
+  assert.equal((await f.call("/notifications", "GET", undefined, a.token)).data.notifications.length, 0);
+});

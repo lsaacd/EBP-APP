@@ -7,7 +7,10 @@ import { useTheme } from "../theme/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { MINISTRIES, CHOIRS } from "../data/communityRules";
 import FriendsPanel from "./FriendsPanel";
+import NotificationsPanel from "./NotificationsPanel";
 import { useFriends } from "../utils/friendsStore";
+import { useNotifications } from "../utils/notificationsStore";
+import type { NotificationDestination } from "../utils/notifications";
 import { communityError, useCommunityApi } from "../utils/communityApi";
 import { fonts } from "../theme/theme";
 import CommunityModeration from "./CommunityModeration";
@@ -44,7 +47,7 @@ function parseStoredLocation(loc: string | null | undefined): { countryId: strin
   return { countryId: null, region: raw };
 }
 
-export type CommunitySubPage = "ministry" | "choir" | "church-location" | "blocks" | "moderation" | "friends";
+export type CommunitySubPage = "ministry" | "choir" | "church-location" | "blocks" | "moderation" | "friends" | "notifications";
 
 export default function CommunityProfile({
   subPage = null,
@@ -52,6 +55,7 @@ export default function CommunityProfile({
   onBack,
   onOpenChurchesMap,
   onOpenHymn,
+  onNotificationNavigate,
 }: {
   subPage?: CommunitySubPage | null;
   onOpenSubPage?: (page: CommunitySubPage) => void;
@@ -59,6 +63,7 @@ export default function CommunityProfile({
   onOpenChurchesMap?: () => void;
   /** Close the sheet and open a hymn (from a friend's favourites). */
   onOpenHymn?: (hymnId: string) => void;
+  onNotificationNavigate?: (destination: NotificationDestination) => void;
 }) {
   const { user, updateProfile } = useAuth(),
     { theme, isDarkMode } = useTheme(),
@@ -66,10 +71,14 @@ export default function CommunityProfile({
     es = language === "es",
     api = useCommunityApi();
   const { lists: friendLists, badgeCount: friendsBadge, refresh: refreshFriends } = useFriends();
-  // One fetch when the signed-in account's profile mounts keeps the badge current.
+  const { unreadCount: notificationsUnread, refresh: refreshNotifications } = useNotifications();
+  // One fetch when the signed-in account's profile mounts keeps the badges current.
   useEffect(() => {
-    if (user?.id && !subPage) void refreshFriends();
-  }, [refreshFriends, subPage, user?.id]);
+    if (user?.id && !subPage) {
+      void refreshFriends();
+      void refreshNotifications();
+    }
+  }, [refreshFriends, refreshNotifications, subPage, user?.id]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<{
@@ -299,6 +308,10 @@ export default function CommunityProfile({
 
   if (subPage === "friends") {
     return <FriendsPanel onOpenHymn={onOpenHymn} onOpenChurchesMap={onOpenChurchesMap} />;
+  }
+
+  if (subPage === "notifications") {
+    return <NotificationsPanel onNavigate={onNotificationNavigate} />;
   }
 
   if (subPage === "blocks") {
@@ -1034,6 +1047,70 @@ export default function CommunityProfile({
             />
           </Pressable>
 
+
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(255,255,255,0.09)"
+                  : theme.outlineVariant,
+              },
+            ]}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onOpenSubPage?.("notifications")}
+            style={({ pressed }) => [
+              styles.navRow,
+              pressed && {
+                backgroundColor: isDarkMode
+                  ? "rgba(255,255,255,0.06)"
+                  : theme.primary + "0D",
+              },
+            ]}
+          >
+            <AppMenuIcon
+              ios="bell"
+              android="notifications-none"
+              color={iconTint}
+              size={21}
+              containerSize={24}
+              weight="medium"
+            />
+            <Text
+              numberOfLines={1}
+              style={[styles.label, { color: theme.onSurface, flex: 1 }]}
+            >
+              {t.notificationsTitle}
+            </Text>
+            {notificationsUnread > 0 ? (
+              <View
+                accessibilityLabel={`${notificationsUnread} ${t.friendsNotificationsLabel}`}
+                style={{
+                  minWidth: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  paddingHorizontal: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#D64545",
+                }}
+              >
+                <Text style={{ ...fonts.sansBold, fontSize: 12.5, color: "#FFFFFF" }}>
+                  {notificationsUnread}
+                </Text>
+              </View>
+            ) : null}
+            <AppMenuIcon
+              ios="chevron.right"
+              android="chevron-right"
+              color={mutedText}
+              size={13}
+              weight="semibold"
+            />
+          </Pressable>
 
           <View
             style={[

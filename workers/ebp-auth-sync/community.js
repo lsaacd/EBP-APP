@@ -68,6 +68,9 @@ function profile(body, user) {
           "showChurchLocation",
           "shareFavoritesWithFriends",
           "suggestToChurchMembers",
+          "notifyCommentLikes",
+          "notifyCommentReplies",
+          "notifyFriends",
         ].includes(k),
     )
   )
@@ -117,7 +120,13 @@ function profile(body, user) {
       : body.showChurchLocation
         ? 1
         : 0;
-  for (const key of ["shareFavoritesWithFriends", "suggestToChurchMembers"])
+  for (const key of [
+    "shareFavoritesWithFriends",
+    "suggestToChurchMembers",
+    "notifyCommentLikes",
+    "notifyCommentReplies",
+    "notifyFriends",
+  ])
     if (body[key] !== undefined && typeof body[key] !== "boolean")
       fail(400, "invalid_profile");
   return {
@@ -139,6 +148,24 @@ function profile(body, user) {
       body.suggestToChurchMembers === undefined
         ? (user.suggest_to_church_members ?? null)
         : body.suggestToChurchMembers
+          ? 1
+          : 0,
+    notify_comment_likes:
+      body.notifyCommentLikes === undefined
+        ? Number(user.notify_comment_likes ?? 1)
+        : body.notifyCommentLikes
+          ? 1
+          : 0,
+    notify_comment_replies:
+      body.notifyCommentReplies === undefined
+        ? Number(user.notify_comment_replies ?? 1)
+        : body.notifyCommentReplies
+          ? 1
+          : 0,
+    notify_friends:
+      body.notifyFriends === undefined
+        ? Number(user.notify_friends ?? 1)
+        : body.notifyFriends
           ? 1
           : 0,
   };
@@ -198,11 +225,128 @@ export async function deleteCommunityAccount(env, id) {
     env.DB.prepare(
       "DELETE FROM shared_playlists WHERE from_user=?1 OR to_user=?1",
     ).bind(id),
+    env.DB.prepare(
+      "DELETE FROM notifications WHERE user_id=?1 OR actor_id=?1",
+    ).bind(id),
+    env.DB.prepare("DELETE FROM push_tokens WHERE user_id=?1").bind(id),
     ...["user_data", "sessions", "email_tokens", "hymn_reactions"].map((t) =>
       env.DB.prepare(`DELETE FROM ${t} WHERE user_id=?1`).bind(id),
     ),
     env.DB.prepare("DELETE FROM users WHERE id=?1").bind(id),
   ]);
+}
+
+const VALID_EXPO_PUSH_TOKEN = /^ExponentPushToken\[[A-Za-z0-9_-]{10,64}\]$/;
+
+function formatPushCopy(type, actorName, preview, lang) {
+  const es = lang !== "en";
+  const who = actorName || (es ? "Alguien" : "Someone");
+  const snip = preview ? preview.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+  if (type === "comment_like") {
+    return es
+      ? {
+          title: "Nuevo me gusta",
+          body: snip
+            ? `A ${who} le gustó tu comentario: «${snip}»`
+            : `A ${who} le gustó tu comentario.`,
+        }
+      : {
+          title: "New Like",
+          body: snip
+            ? `${who} liked your comment: "${snip}"`
+            : `${who} liked your comment.`,
+        };
+  }
+  if (type === "comment_reply") {
+    return es
+      ? {
+          title: "Nueva respuesta",
+          body: snip
+            ? `${who} respondió: «${snip}»`
+            : `${who} respondió a tu comentario.`,
+        }
+      : {
+          title: "New Reply",
+          body: snip
+            ? `${who} replied: "${snip}"`
+            : `${who} replied to your comment.`,
+        };
+  }
+  if (type === "friend_request") {
+    return es
+      ? {
+          title: "Solicitud de hermano",
+          body: `${who} te envió una solicitud de hermano.`,
+        }
+      : {
+          title: "Friend Request",
+          body: `${who} sent you a friend request.`,
+        };
+  }
+  if (type === "friend_accepted") {
+    return es
+      ? {
+          title: "Nuevo hermano",
+          body: `${who} aceptó tu solicitud de hermano.`,
+        }
+      : {
+          title: "New Friend",
+          body: `${who} accepted your friend request.`,
+        };
+  }
+  return es
+    ? {
+        title: "Lista compartida",
+        body: snip
+          ? `${who} te compartió la lista «${snip}».`
+          : `${who} te compartió una lista de reproducción.`,
+      }
+    : {
+        title: "Shared Playlist",
+        body: snip
+          ? `${who} shared the playlist "${snip}" with you.`
+          : `${who} shared a playlist with you.`,
+      };
+}
+
+async function sendExpoPushMessages(env, messages) {
+  if (!messages.length) return;
+  try {
+    let payload;
+    if (typeof env.PUSH_SEND === "function") {
+      payload = await env.PUSH_SEND(messages);
+    } else {
+      const res = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messages),
+      });
+      if (!res.ok) return;
+      payload = await res.json().catch(() => null);
+    }
+    const tickets = Array.isArray(payload?.data) ? payload.data : [];
+    const deadTokens = [];
+    for (let i = 0; i < tickets.length && i < messages.length; i++) {
+      if (
+        tickets[i]?.status === "error" &&
+        tickets[i]?.details?.error === "DeviceNotRegistered"
+      ) {
+        deadTokens.push(messages[i].to);
+      }
+    }
+    for (const dead of deadTokens) {
+      await env.DB.prepare("DELETE FROM push_tokens WHERE token=?1")
+        .bind(dead)
+        .run()
+        .catch(() => {});
+    }
+  } catch {
+    /* Push delivery is best-effort and must never break the triggering API call. */
+  }
 }
 
 export async function handleCommunity(
@@ -212,7 +356,9 @@ export async function handleCommunity(
   { path, authenticate, serializeUser, json },
 ) {
   if (
-    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends|playlists)(\/|$)/.test(path) &&
+    !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends|playlists|notifications)(\/|$)/.test(
+      path,
+    ) &&
     !["/auth/profile", "/auth/ugc-terms/accept"].includes(path)
   )
     return null;
@@ -238,6 +384,76 @@ export async function handleCommunity(
         .bind(a, b)
         .first(),
     );
+  const notifyUser = async ({
+    userId: targetUserId,
+    actor,
+    type,
+    targetId,
+    contextId = null,
+    preview = null,
+  }) => {
+    if (!targetUserId || !actor?.id || targetUserId === actor.id) return;
+    const [targetRow, blocked] = await Promise.all([
+      env.DB.prepare(
+        "SELECT suspended_at,notify_comment_likes,notify_comment_replies,notify_friends FROM users WHERE id=?1",
+      )
+        .bind(targetUserId)
+        .first(),
+      blockedEitherWay(targetUserId, actor.id),
+    ]);
+    if (!targetRow || targetRow.suspended_at != null || blocked) return;
+    if (type === "comment_like" && targetRow.notify_comment_likes === 0) return;
+    if (type === "comment_reply" && targetRow.notify_comment_replies === 0)
+      return;
+    if (
+      (type === "friend_request" ||
+        type === "friend_accepted" ||
+        type === "shared_playlist") &&
+      targetRow.notify_friends === 0
+    )
+      return;
+    const cleanPreview =
+      typeof preview === "string"
+        ? preview.replace(/\s+/g, " ").trim().slice(0, 80) || null
+        : null;
+    const res = await env.DB.prepare(
+      "INSERT INTO notifications(id,user_id,actor_id,type,target_id,context_id,preview,created_at,read_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,NULL) ON CONFLICT DO NOTHING",
+    )
+      .bind(
+        uuid(),
+        targetUserId,
+        actor.id,
+        type,
+        String(targetId),
+        contextId ? String(contextId) : null,
+        cleanPreview,
+        now,
+      )
+      .run();
+    if (!res.meta?.changes) return;
+    const tokens = await all(
+      "SELECT token,language FROM push_tokens WHERE user_id=?1 LIMIT 20",
+      targetUserId,
+    );
+    if (!tokens.length) return;
+    const messages = tokens.map((t) => {
+      const copy = formatPushCopy(type, actor.name, cleanPreview, t.language);
+      return {
+        to: t.token,
+        sound: "default",
+        title: copy.title,
+        body: copy.body,
+        data: {
+          type,
+          targetId: String(targetId),
+          contextId: contextId ? String(contextId) : null,
+        },
+      };
+    });
+    const work = sendExpoPushMessages(env, messages);
+    if (ctx?.waitUntil) ctx.waitUntil(work);
+    else await work;
+  };
   if (path.startsWith("/mod/") && !admin) fail(403, "forbidden");
   await quota(env, `community-read:${ip}`, 180, 60000);
 
@@ -246,7 +462,7 @@ export async function handleCommunity(
     await quota(env, `profile:${user.id}`, 20, 60000);
     const p = profile(await bodyOf(request), user);
     await env.DB.prepare(
-      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,share_favorites_with_friends=?9,suggest_to_church_members=?10,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
+      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
     )
       .bind(
         user.id,
@@ -259,6 +475,9 @@ export async function handleCommunity(
         p.church_id,
         p.share_favorites_with_friends,
         p.suggest_to_church_members,
+        p.notify_comment_likes,
+        p.notify_comment_replies,
+        p.notify_friends,
       )
       .run();
     return json({
@@ -426,13 +645,15 @@ export async function handleCommunity(
       }
       await quota(env, `comment:${user.id}`, 5, 600000);
       await quota(env, `comment-ip:${ip}`, 20, 3600000);
+      let parentOwnerId = null;
       if (parent) {
         const p = await env.DB.prepare(
-          `SELECT c.id FROM verse_comments c WHERE c.id=?3 AND c.verse_id=?1 AND c.parent_id IS NULL AND ${visibility}`,
+          `SELECT c.id,c.user_id FROM verse_comments c WHERE c.id=?3 AND c.verse_id=?1 AND c.parent_id IS NULL AND ${visibility}`,
         )
           .bind(verseId, user.id, parent)
           .first();
         if (!p) fail(400, "invalid_parent");
+        parentOwnerId = p.user_id ?? null;
       }
       const duplicate = await env.DB.prepare(
         "SELECT id FROM verse_comments WHERE user_id=?1 AND body=?2 AND created_at>?3 AND IFNULL(parent_id,'')=IFNULL(?4,'')",
@@ -474,6 +695,16 @@ export async function handleCommunity(
         saved.verse_id !== verseId
       )
         fail(409, "idempotency_conflict");
+      if (parent && parentOwnerId) {
+        await notifyUser({
+          userId: parentOwnerId,
+          actor: user,
+          type: "comment_reply",
+          targetId: saved.id,
+          contextId: verseId,
+          preview: text,
+        });
+      }
       return json({ id: saved.id }, 201);
     }
   }
@@ -515,6 +746,16 @@ export async function handleCommunity(
         )
           .bind(user.id, id, now)
           .run();
+        if (row.user_id) {
+          await notifyUser({
+            userId: row.user_id,
+            actor: user,
+            type: "comment_like",
+            targetId: id,
+            contextId: row.verse_id,
+            preview: row.body,
+          });
+        }
       } else {
         await env.DB.prepare(
           "DELETE FROM verse_comment_likes WHERE user_id=?1 AND comment_id=?2",
@@ -612,6 +853,9 @@ export async function handleCommunity(
         ).bind(blockLow, blockHigh),
         env.DB.prepare(
           "DELETE FROM shared_playlists WHERE (from_user=?1 AND to_user=?2) OR (from_user=?2 AND to_user=?1)",
+        ).bind(user.id, id),
+        env.DB.prepare(
+          "DELETE FROM notifications WHERE (user_id=?1 AND actor_id=?2) OR (user_id=?2 AND actor_id=?1)",
         ).bind(user.id, id),
       ]);
       return json({ ok: true });
@@ -735,18 +979,34 @@ export async function handleCommunity(
       return json({ friendStatus: "outgoing" });
     if (existing) {
       // They had already asked: asking back is the same as accepting.
-      await env.DB.prepare(
+      const accepted = await env.DB.prepare(
         "UPDATE friendships SET status='accepted',responded_at=?3 WHERE user_low=?1 AND user_high=?2 AND status='pending'",
       )
         .bind(low, high, now)
         .run();
+      if (accepted.meta?.changes) {
+        await notifyUser({
+          userId: targetId,
+          actor: user,
+          type: "friend_accepted",
+          targetId: user.id,
+        });
+      }
       return json({ friendStatus: "friends" });
     }
-    await env.DB.prepare(
+    const inserted = await env.DB.prepare(
       "INSERT INTO friendships(user_low,user_high,requested_by,status,created_at) VALUES(?1,?2,?3,'pending',?4) ON CONFLICT DO NOTHING",
     )
       .bind(low, high, user.id, now)
       .run();
+    if (inserted.meta?.changes) {
+      await notifyUser({
+        userId: targetId,
+        actor: user,
+        type: "friend_request",
+        targetId: user.id,
+      });
+    }
     return json({ friendStatus: "outgoing" });
   }
   // Phase 4: people who linked the same verified church. Only those who chose
@@ -867,6 +1127,13 @@ export async function handleCommunity(
     )
       .bind(id, user.id, otherId, cleanName, JSON.stringify(deduped), now)
       .run();
+    await notifyUser({
+      userId: otherId,
+      actor: user,
+      type: "shared_playlist",
+      targetId: id,
+      preview: cleanName,
+    });
     return json({ ok: true, id }, 201);
   }
   if (path === "/playlists/shared" && method === "GET") {
@@ -952,8 +1219,127 @@ export async function handleCommunity(
         .bind(low, high)
         .first();
       if (row?.status !== "accepted") fail(404, "not_found");
+    } else {
+      await notifyUser({
+        userId: otherId,
+        actor: user,
+        type: "friend_accepted",
+        targetId: user.id,
+      });
     }
     return json({ friendStatus: "friends" });
+  }
+  // ── Notifications (Phase 1 inbox + Phase 2 Expo push tokens) ─────────────
+  if (path === "/notifications" && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const [rows, unreadRow] = await Promise.all([
+      all(
+        `SELECT n.id,n.actor_id,n.type,n.target_id,n.context_id,n.preview,n.created_at,n.read_at,u.name AS actor_name
+         FROM notifications n
+         LEFT JOIN users u ON u.id=n.actor_id
+         WHERE n.user_id=?1
+           AND (n.actor_id IS NULL OR (u.id IS NOT NULL AND u.suspended_at IS NULL
+             AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))))
+         ORDER BY n.created_at DESC, n.id DESC LIMIT 50`,
+        user.id,
+      ),
+      env.DB.prepare(
+        `SELECT count(*) AS n FROM notifications n
+         LEFT JOIN users u ON u.id=n.actor_id
+         WHERE n.user_id=?1 AND n.read_at IS NULL
+           AND (n.actor_id IS NULL OR (u.id IS NOT NULL AND u.suspended_at IS NULL
+             AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))))`,
+      )
+        .bind(user.id)
+        .first(),
+    ]);
+    return json(
+      {
+        notifications: rows.map((r) => ({
+          id: r.id,
+          actorId: r.actor_id ?? null,
+          actorName: r.actor_name || "Miembro",
+          actorInitials: r.actor_name ? initials(r.actor_name) : "—",
+          type: r.type,
+          targetId: r.target_id,
+          contextId: r.context_id ?? null,
+          preview: r.preview ?? null,
+          createdAt: r.created_at,
+          read: r.read_at != null,
+        })),
+        unreadCount: Number(unreadRow?.n || 0),
+      },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
+  if (path === "/notifications/read" && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `notif-act:${user.id}`, 120, 3600000);
+    const body = await bodyOf(request);
+    if (body.all === true) {
+      await env.DB.prepare(
+        "UPDATE notifications SET read_at=COALESCE(read_at,?2) WHERE user_id=?1 AND read_at IS NULL",
+      )
+        .bind(user.id, now)
+        .run();
+      return json({ ok: true });
+    }
+    if (!validId(body.id)) fail(400, "invalid_notification");
+    await env.DB.prepare(
+      "UPDATE notifications SET read_at=COALESCE(read_at,?3) WHERE id=?1 AND user_id=?2",
+    )
+      .bind(body.id, user.id, now)
+      .run();
+    return json({ ok: true });
+  }
+  if (path === "/notifications/push-token" && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `push-token:${user.id}`, 30, 3600000);
+    await quota(env, `push-token-ip:${ip}`, 60, 3600000);
+    const body = await bodyOf(request);
+    if (
+      typeof body.token !== "string" ||
+      !VALID_EXPO_PUSH_TOKEN.test(body.token) ||
+      !["ios", "android"].includes(body.platform)
+    )
+      fail(400, "invalid_push_token");
+    const lang = body.language === "en" ? "en" : "es";
+    await env.DB.prepare(
+      "INSERT INTO push_tokens(token,user_id,platform,language,updated_at) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(token) DO UPDATE SET user_id=?2,platform=?3,language=?4,updated_at=?5",
+    )
+      .bind(body.token, user.id, body.platform, lang, now)
+      .run();
+    return json({ ok: true });
+  }
+  if (path === "/notifications/push-token" && method === "DELETE") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `push-token:${user.id}`, 30, 3600000);
+    let tokenStr = url.searchParams.get("token");
+    if (!tokenStr) {
+      try {
+        tokenStr = (await bodyOf(request)).token;
+      } catch {}
+    }
+    if (typeof tokenStr !== "string" || !VALID_EXPO_PUSH_TOKEN.test(tokenStr))
+      fail(400, "invalid_push_token");
+    await env.DB.prepare(
+      "DELETE FROM push_tokens WHERE token=?1 AND user_id=?2",
+    )
+      .bind(tokenStr, user.id)
+      .run();
+    return json({ ok: true });
+  }
+  const notifItem = path.match(/^\/notifications\/([a-z0-9-]+)$/);
+  if (notifItem && method === "DELETE") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `notif-act:${user.id}`, 120, 3600000);
+    const notifId = notifItem[1];
+    if (!validId(notifId)) fail(400, "invalid_notification");
+    await env.DB.prepare("DELETE FROM notifications WHERE id=?1 AND user_id=?2")
+      .bind(notifId, user.id)
+      .run();
+    return json({ ok: true });
   }
   const friendItem = path.match(/^\/friends\/([a-z0-9-]+)$/);
   if (friendItem && method === "DELETE") {
@@ -1607,5 +1993,8 @@ async function hideComment(env, id, actor, now) {
     env.DB.prepare(
       "UPDATE verse_comment_reports SET status='resolved',resolved_by=?2,resolved_at=?3 WHERE (comment_id=?1 OR comment_id IN (SELECT id FROM verse_comments WHERE parent_id=?1)) AND status='open'",
     ).bind(id, actor, now),
+    env.DB.prepare(
+      "DELETE FROM notifications WHERE target_id=?1 OR target_id IN (SELECT id FROM verse_comments WHERE parent_id=?1)",
+    ).bind(id),
   ]);
 }

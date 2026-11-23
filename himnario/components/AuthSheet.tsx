@@ -67,7 +67,7 @@ const WHATSAPP_ICON = require('../assets/images/whatsapp-brand.png');
 const FEEDBACK_URL = 'https://himnarioebp.com/feedback.html?form=audio';
 
 type AuthMode = 'login' | 'register' | 'recovery';
-type SheetPage = 'account' | 'profile-details' | 'ministry' | 'choir' | 'church-location' | 'blocks' | 'friends' | 'moderation' | 'share-app' | 'help';
+type SheetPage = 'account' | 'profile-details' | 'ministry' | 'choir' | 'church-location' | 'blocks' | 'friends' | 'notifications' | 'moderation' | 'share-app' | 'help';
 
 interface AuthSheetProps {
   visible?: boolean;
@@ -93,6 +93,8 @@ export function AuthSheet({
     user,
     isSyncing,
     authSheetVisible,
+    pendingAuthSheetPage,
+    clearPendingAuthSheetPage,
     closeAuthSheet,
     signIn,
     register,
@@ -112,7 +114,7 @@ export function AuthSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | null>(null);
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'home' | null>(null);
   const pendingHymnIdRef = useRef<string | null>(null);
 
   const visible = propVisible !== undefined ? propVisible : authSheetVisible;
@@ -169,6 +171,13 @@ export function AuthSheet({
   }, [visible]);
 
   useEffect(() => {
+    if (visible && user && pendingAuthSheetPage) {
+      setPage(pendingAuthSheetPage);
+      clearPendingAuthSheetPage();
+    }
+  }, [visible, user, pendingAuthSheetPage, clearPendingAuthSheetPage]);
+
+  useEffect(() => {
     ++accountActionRef.current;
     setEmailAction(null);
     setErrorMessage(null);
@@ -176,7 +185,7 @@ export function AuthSheet({
     setShowPassword(false);
     if (!user) {
       setPage((prev) =>
-        ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'friends', 'moderation'].includes(prev)
+        ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'friends', 'notifications', 'moderation'].includes(prev)
           ? 'account'
           : prev
       );
@@ -234,6 +243,8 @@ export function AuthSheet({
       const hymnId = pendingHymnIdRef.current;
       pendingHymnIdRef.current = null;
       router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+    } else if (nextAction === 'home') {
+      router.navigate('/(tabs)' as any);
     }
   }, [onChurchesScreen, onClose, onOpenShareApp, router, user?.churchId]);
 
@@ -586,6 +597,7 @@ export function AuthSheet({
     'church-location': t.profileMyChurch,
     blocks: t.profileBlocked,
     friends: t.friendsTitle,
+    notifications: t.notificationsTitle,
     moderation: t.profileModeration,
     'share-app': t.accountShareApp,
     help: t.accountHelp,
@@ -1625,6 +1637,7 @@ export function AuthSheet({
       case 'church-location':
       case 'blocks':
       case 'friends':
+      case 'notifications':
       case 'moderation':
         return (
           <CommunityProfile
@@ -1638,6 +1651,18 @@ export function AuthSheet({
             onOpenChurchesMap={() => {
               pendingPostCloseRef.current = 'churches';
               animateClose();
+            }}
+            onNotificationNavigate={(destination) => {
+              if (destination.kind === 'friends') {
+                goSubPage('friends');
+              } else if (destination.kind === 'hymn') {
+                pendingHymnIdRef.current = destination.hymnId;
+                pendingPostCloseRef.current = 'hymn';
+                animateClose();
+              } else {
+                pendingPostCloseRef.current = 'home';
+                animateClose();
+              }
             }}
           />
         );

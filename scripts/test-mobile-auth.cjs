@@ -45,6 +45,7 @@ function fixture(raw=null, readGate=null) {
       writeAuthSession:raw=>{writes.push(JSON.parse(raw));return serialize(async()=>{if(writeGate)await writeGate.promise;stored=raw;});},
       clearAuthSession:()=>serialize(async()=>{stored=null;}),
     },
+    '../utils/pushNotifications':{getStoredPushToken:async()=>null,clearStoredPushToken:async()=>{}},
     './FavoritesContext':{useFavorites:()=>({favoriteIds:local.favorites,setAllFavorites})},
     './PlaylistsContext':{usePlaylists:()=>({playlists:local.playlists,setAllPlaylists})},
     './RecentHymnsContext':{useRecentHymns:()=>({recentIds:local.recents,setAllRecents})},

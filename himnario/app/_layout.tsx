@@ -40,10 +40,16 @@ import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { PlaylistsProvider } from '../context/PlaylistsContext';
 import { RecentHymnsProvider } from '../context/RecentHymnsContext';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { NowPlayingProvider, useNowPlaying } from '../context/NowPlayingContext';
 import { HymnFilterProvider } from '../context/HymnFilterContext';
-import { LanguageProvider } from '../context/LanguageContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
+import { parseNotificationDestination } from '../utils/notifications';
+import { useNotifications } from '../utils/notificationsStore';
+import {
+  ensureNotificationHandlerConfigured,
+  subscribeNotificationResponses,
+} from '../utils/pushNotifications';
 import { AuthSheet } from '../components/AuthSheet';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -95,6 +101,9 @@ function isIOS26OrLater(): boolean {
 // dark/light mode colour (#1a1a16 dark, #fcf9f2 light) with no flash.
 function ThemedStack() {
   const { isDarkMode } = useTheme();
+  const { language } = useLanguage();
+  const { user, openAuthSheetToPage } = useAuth();
+  const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
   const { showFullPlayer, closeFullPlayer, currentHymnId, isPlaying } = useNowPlaying();
@@ -102,6 +111,36 @@ function ThemedStack() {
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
   const checkingUpdateRef = useRef(false);
+
+  // Configure foreground banner handling and route tapped lock-screen notifications.
+  useEffect(() => {
+    ensureNotificationHandlerConfigured();
+    return subscribeNotificationResponses((data) => {
+      const dest = parseNotificationDestination(data);
+      if (!dest) return;
+      if (dest.kind === 'friends') {
+        openAuthSheetToPage('friends');
+      } else if (dest.kind === 'hymn') {
+        router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
+      } else {
+        router.navigate('/(tabs)' as any);
+      }
+    });
+  }, [openAuthSheetToPage, router]);
+
+  // Silently refresh Expo push token & language for signed-in users who already granted OS permission.
+  useEffect(() => {
+    if (!user?.id) return;
+    const lang = language === 'en' ? 'en' : 'es';
+    void syncPushToken(lang, false);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void syncPushToken(lang, false);
+        void refreshNotifications(15000);
+      }
+    });
+    return () => sub.remove();
+  }, [language, refreshNotifications, syncPushToken, user?.id]);
 
   const [miniPlayerHeight, setMiniPlayerHeight] = useState(Platform.OS === 'android' ? 74 : 57);
   const isIOS = Platform.OS === 'ios';

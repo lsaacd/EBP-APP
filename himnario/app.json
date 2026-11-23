@@ -104,6 +104,13 @@
           "photosPermission": "Permite adjuntar fotos existentes del templo desde tu galería al sugerir o actualizar una iglesia en el directorio.",
           "cameraPermission": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-monochrome-app-logo.png",
+          "color": "#7B1E26"
+        }
       ]
     ],
     "experiments": {
@@ -117,7 +124,7 @@
       }
     },
     "owner": "isaacduran",
-    "runtimeVersion": "2.0.0-media-3",
+    "runtimeVersion": "2.0.0-notif-4",
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

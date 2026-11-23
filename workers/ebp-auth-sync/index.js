@@ -133,6 +133,9 @@ function serializeUser(user) {
     // Not chosen yet (NULL) follows whether the church is shown publicly.
     suggestToChurchMembers:
       (user.suggest_to_church_members ?? user.show_church_location) === 1,
+    notifyCommentLikes: user.notify_comment_likes !== 0,
+    notifyCommentReplies: user.notify_comment_replies !== 0,
+    notifyFriends: user.notify_friends !== 0,
     role: user.role === 'admin' && user.email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
     badgeVerified: user.ministry === 'obispo' && user.badge_verified === 1,
     ugcTermsAccepted: user.ugc_terms_accepted_at != null,
@@ -157,7 +160,7 @@ async function authenticateRequest(request, env) {
   const tokenHash = await sha256Hex(match[1]);
   const now = Date.now();
   const row = await env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.created_at, u.email_verified_at, u.role, u.suspended_at, u.ministry, u.choir, u.church_id, u.church_name, u.location, u.show_church_location, u.share_favorites_with_friends, u.suggest_to_church_members, u.badge_verified, u.ugc_terms_accepted_at, s.token_hash
+    `SELECT u.id, u.email, u.name, u.created_at, u.email_verified_at, u.role, u.suspended_at, u.ministry, u.choir, u.church_id, u.church_name, u.location, u.show_church_location, u.share_favorites_with_friends, u.suggest_to_church_members, u.notify_comment_likes, u.notify_comment_replies, u.notify_friends, u.badge_verified, u.ugc_terms_accepted_at, s.token_hash
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ?1 AND s.expires_at > ?2`,
@@ -491,9 +494,25 @@ const handler = {
       if (path === '/auth/logout' && request.method === 'POST') {
         const authUser = await authenticateRequest(request, env);
         if (authUser) {
-          await env.DB.prepare(`DELETE FROM sessions WHERE token_hash = ?1`)
-            .bind(authUser.token_hash)
-            .run();
+          let pushToken = null;
+          try {
+            const parsed = await parseJsonBody(request);
+            if (typeof parsed.body?.pushToken === 'string' && parsed.body.pushToken.length <= 120) {
+              pushToken = parsed.body.pushToken;
+            }
+          } catch {}
+          const stmts = [
+            env.DB.prepare(`DELETE FROM sessions WHERE token_hash = ?1`).bind(authUser.token_hash),
+          ];
+          if (pushToken) {
+            stmts.push(
+              env.DB.prepare(`DELETE FROM push_tokens WHERE token = ?1 AND user_id = ?2`).bind(
+                pushToken,
+                authUser.id,
+              ),
+            );
+          }
+          await env.DB.batch(stmts);
         }
         return jsonResponse({ ok: true });
       }

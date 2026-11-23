@@ -15,6 +15,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth, computeUserInitials } from '../context/AuthContext';
 import { useFriends } from '../utils/friendsStore';
+import { useNotifications } from '../utils/notificationsStore';
 import GlassSurface from './GlassSurface';
 import AppMenuIcon from './AppMenuIcon';
 import * as Haptics from '../utils/haptics';
@@ -70,6 +71,7 @@ export default function HomeHeaderActions({
   const { t } = useLanguage();
   const { user, openAuthSheet } = useAuth();
   const { badgeCount: friendsBadge, refreshIfStale: refreshFriendsIfStale } = useFriends();
+  const { unreadCount: notificationsUnread, refreshIfStale: refreshNotificationsIfStale } = useNotifications();
   const isIOS = Platform.OS === 'ios';
   const navigation = useContext(NavigationContext);
   const wasBlurredRef = useRef(false);
@@ -78,13 +80,15 @@ export default function HomeHeaderActions({
   useEffect(() => {
     if (!user?.id) return;
     void refreshFriendsIfStale(15000);
+    void refreshNotificationsIfStale(15000);
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         void refreshFriendsIfStale(15000);
+        void refreshNotificationsIfStale(15000);
       }
     });
     return () => sub.remove();
-  }, [refreshFriendsIfStale, user?.id]);
+  }, [refreshFriendsIfStale, refreshNotificationsIfStale, user?.id]);
 
   const searchTranslateX = useSharedValue(0);
   const searchTranslateY = useSharedValue(0);
@@ -241,7 +245,7 @@ export default function HomeHeaderActions({
           color={theme.primary}
         />
       )}
-      {user && friendsBadge > 0 ? (
+      {user && (friendsBadge > 0 || notificationsUnread > 0) ? (
         <View
           pointerEvents="none"
           style={styles.badgeDot}

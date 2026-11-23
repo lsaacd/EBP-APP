@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from 'react';
 import { readAuthSession, writeAuthSession, clearAuthSession } from '../utils/authSessionStorage';
+import { clearStoredPushToken, getStoredPushToken } from '../utils/pushNotifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFavorites } from './FavoritesContext';
 import { usePlaylists, Playlist } from './PlaylistsContext';
@@ -37,6 +38,9 @@ export interface AuthUser {
   shareFavoritesWithFriends: boolean;
   /** Suggested to others who linked the same verified church. */
   suggestToChurchMembers: boolean;
+  notifyCommentLikes: boolean;
+  notifyCommentReplies: boolean;
+  notifyFriends: boolean;
   role: 'member' | 'admin';
   badgeVerified: boolean;
   ugcTermsAccepted: boolean;
@@ -78,6 +82,9 @@ function normalizeUser(raw: any): AuthUser {
       typeof raw?.suggestToChurchMembers === 'boolean'
         ? raw.suggestToChurchMembers
         : raw?.showChurchLocation === true,
+    notifyCommentLikes: raw?.notifyCommentLikes !== false,
+    notifyCommentReplies: raw?.notifyCommentReplies !== false,
+    notifyFriends: raw?.notifyFriends !== false,
     role: raw?.role === 'admin' && email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
     badgeVerified: raw?.badgeVerified === true && raw?.ministry === 'obispo',
     ugcTermsAccepted: raw?.ugcTermsAccepted === true,
@@ -96,6 +103,8 @@ interface StoredSession {
   syncBlocked?: boolean;
 }
 
+export type AuthSheetInitialPage = 'account' | 'friends' | 'notifications';
+
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
@@ -104,7 +113,10 @@ interface AuthContextType {
   syncBlocked: boolean;
   lastSyncedAt: string | null;
   authSheetVisible: boolean;
+  pendingAuthSheetPage: AuthSheetInitialPage | null;
+  clearPendingAuthSheetPage: () => void;
   openAuthSheet: () => void;
+  openAuthSheetToPage: (initialPage: AuthSheetInitialPage) => void;
   closeAuthSheet: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -123,6 +135,9 @@ interface AuthContextType {
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
     suggestToChurchMembers?: boolean;
+    notifyCommentLikes?: boolean;
+    notifyCommentReplies?: boolean;
+    notifyFriends?: boolean;
   }) => Promise<void>;
   acceptUgcTerms: () => Promise<void>;
   syncNow: () => Promise<void>;
@@ -139,7 +154,10 @@ const AuthContext = createContext<AuthContextType>({
   syncBlocked: true,
   lastSyncedAt: null,
   authSheetVisible: false,
+  pendingAuthSheetPage: null,
+  clearPendingAuthSheetPage: () => {},
   openAuthSheet: () => {},
+  openAuthSheetToPage: () => {},
   closeAuthSheet: () => {},
   signIn: async () => {},
   register: async () => {},
@@ -183,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [syncBlocked, setSyncBlocked] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [authSheetVisible, setAuthSheetVisible] = useState(false);
+  const [pendingAuthSheetPage, setPendingAuthSheetPage] = useState<AuthSheetInitialPage | null>(null);
 
   const mountedRef = useRef(true);
   const sessionEpochRef = useRef(0);
@@ -667,6 +686,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
     suggestToChurchMembers?: boolean;
+    notifyCommentLikes?: boolean;
+    notifyCommentReplies?: boolean;
+    notifyFriends?: boolean;
   }) => updateAccount(profile), [updateAccount]);
   const updateProfileName = useCallback((name: string) => updateProfile({name: name.trim()}), [updateProfile]);
   const acceptUgcTerms = useCallback(() => updateAccount({version:'2026-11-17'}, '/auth/ugc-terms/accept'), [updateAccount]);
@@ -797,11 +819,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     const activeToken = tokenRef.current;
+    const pushToken = await getStoredPushToken();
+    await clearStoredPushToken();
     const clearing = clearSession();
     if (activeToken) {
       void fetch(`${AUTH_SYNC_API_URL}/auth/logout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${activeToken}`, 'X-EBP-Client': 'himnario-v2' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activeToken}`,
+          'X-EBP-Client': 'himnario-v2',
+        },
+        body: JSON.stringify(pushToken ? { pushToken } : {}),
       }).catch(() => {});
     }
     await clearing;
@@ -842,8 +871,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [assertCurrent, clearSession, invalidateRequests, isCurrent]);
 
-  const openAuthSheet = useCallback(() => setAuthSheetVisible(true), []);
-  const closeAuthSheet = useCallback(() => setAuthSheetVisible(false), []);
+  const openAuthSheet = useCallback(() => {
+    setAuthSheetVisible(true);
+  }, []);
+  const openAuthSheetToPage = useCallback((initialPage: AuthSheetInitialPage) => {
+    setPendingAuthSheetPage(initialPage);
+    setAuthSheetVisible(true);
+  }, []);
+  const closeAuthSheet = useCallback(() => {
+    setPendingAuthSheetPage(null);
+    setAuthSheetVisible(false);
+  }, []);
+  const clearPendingAuthSheetPage = useCallback(() => setPendingAuthSheetPage(null), []);
 
   return (
     <AuthContext.Provider
@@ -855,7 +894,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         syncBlocked,
         lastSyncedAt,
         authSheetVisible,
+        pendingAuthSheetPage,
+        clearPendingAuthSheetPage,
         openAuthSheet,
+        openAuthSheetToPage,
         closeAuthSheet,
         signIn,
         register,

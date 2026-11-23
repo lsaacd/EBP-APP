@@ -410,3 +410,51 @@ test('daily verses have unique valid IDs, preserve original 27 slugs, and advanc
   }
   assert.equal(seen.size, DAILY_VERSES.length);
 });
+
+test('notification payloads and deep-link destinations parse safely', () => {
+  const {
+    parseNotificationsPayload,
+    hymnIdFromContext,
+    parseNotificationDestination,
+  } = load('himnario/utils/notifications.ts');
+
+  assert.deepEqual(parseNotificationsPayload(null), { notifications: [], unreadCount: 0 });
+  const parsed = parseNotificationsPayload({
+    unreadCount: 1,
+    notifications: [
+      {
+        id: 'n1',
+        actorId: 'u1',
+        actorName: 'Ana Ruiz',
+        actorInitials: 'AR',
+        type: 'comment_reply',
+        targetId: 'c2',
+        contextId: 'hymn-315-a',
+        preview: 'Amén',
+        createdAt: 1700000000000,
+        read: false,
+      },
+      { id: 'bad', type: 'unknown', targetId: 'x' },
+    ],
+  });
+  assert.equal(parsed.notifications.length, 1);
+  assert.equal(parsed.unreadCount, 1);
+  assert.equal(parsed.notifications[0].read, false);
+
+  assert.equal(hymnIdFromContext('hymn-315-a'), '315 A');
+  assert.equal(hymnIdFromContext('hymn-e12'), 'E12');
+  assert.equal(hymnIdFromContext('hymn-7'), '7');
+  assert.equal(hymnIdFromContext('salmo-23-1'), null);
+
+  assert.deepEqual(parseNotificationDestination({ type: 'friend_request' }), { kind: 'friends' });
+  assert.deepEqual(parseNotificationDestination({ type: 'shared_playlist' }), { kind: 'friends' });
+  assert.deepEqual(
+    parseNotificationDestination({ type: 'comment_like', contextId: 'hymn-315-a' }),
+    { kind: 'hymn', hymnId: '315 A' },
+  );
+  assert.deepEqual(
+    parseNotificationDestination({ type: 'comment_reply', contextId: 'salmo-23-1' }),
+    { kind: 'home' },
+  );
+  assert.equal(parseNotificationDestination({ type: 'invalid' }), null);
+});
