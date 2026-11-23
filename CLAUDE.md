@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 23, 2026 (after iOS Build #34 `d1f054c9` / auto-submission `ba24a1c2` on `2.0.0-release-5`, Pages `94eaed5a`, Worker `d0008031`, and D1 `0015_choirs`)
+> **Last Updated:** November 23, 2026 (after iOS Build #34 `d1f054c9` / auto-submission `ba24a1c2` + iOS OTA `54f32fc2` on `2.0.0-release-5`, Pages `94eaed5a`, Worker `d0008031`, and D1 `0015_choirs`)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-release-5"` (iOS Build #34 finished & auto-submitted to App Store Connect; Build #33 remains on `2.0.0-notif-4` with OTA `dc4ca9aa`; Builds #30 and #31 remain on `2.0.0-media-3`)
+> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-release-5"` (iOS Build #34 finished & auto-submitted to App Store Connect, latest OTA `54f32fc2`; Build #33 remains on `2.0.0-notif-4` with OTA `dc4ca9aa`; Builds #30 and #31 remain on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
@@ -26,6 +26,7 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 - **iOS Native Production Build #34 (`2.0.0`, runtime `2.0.0-release-5`) — App Store Release Candidate:**
   - EAS Build: `d1f054c9-2609-46c8-8b90-c92ea369d04c` · Auto-Submission: `ba24a1c2-cb7a-4d3c-8b96-e3c14a5f1f31` (commit `63c7307`, finished & uploaded to App Store Connect / TestFlight — do **not** run manual `eas submit`).
   - Adds native Apple MapKit `MKDirections.calculateETA()` driving distance & travel time in `AppleLookAroundModule.swift`, standardized `40×12` `SheetGrabber`, pinned `expo-file-system` + SDK 54 patches, cleaned `Info.plist` (Camera, Photo Library, and Location When In Use only), explicit `ios.privacyManifests` & `CFBundleLocalizations`, Guideline 1.2 explicit UGC acceptance gate, inline Choir suggestion card (no nested iOS `<Modal>`), dark-mode `outlineVariant` hex fix, and notification/QR stability fixes.
+  - Latest iOS OTA on `2.0.0-release-5`: Group `54f32fc2-2b66-4974-b86b-51732df0cd3c` (iOS update `01a207e5-4611-7908-9477-d98a9a7f4a4a`, commit `5a58f5b`) — Admin remove-choir controls in **Account → Coro** and **Moderation → Coros**.
   - Previous Build #33 (`1f834da7`, runtime `2.0.0-notif-4`, latest OTA `dc4ca9aa`) and Builds #30–#31 (`b6501dac`, `2105a538`, runtime `2.0.0-media-3`, latest OTA `369019dc`) remain live on their prior runtimes.
   - Apple warning **ITMS-90725** (built with iOS 26 SDK; Xcode 27 required from April 2027) still applies until the SDK 58 upgrade.
 - **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`), plus Firebase FCM v1 credentials for Android lock-screen pushes.

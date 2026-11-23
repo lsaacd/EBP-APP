@@ -1,5 +1,21 @@
 # App editing
 
+## November 23, 2026 (late night 4) — Admin Choir Removal UI (OTA `54f32fc2` on `2.0.0-release-5`)
+
+### What changed (commit `5a58f5b`, iOS OTA `54f32fc2-2b66-4974-b86b-51732df0cd3c`)
+- **Account → Coro (`CommunityProfile.tsx`):** Added an Admin-only destructive trash button on every custom approved choir row (separate sibling `Pressable` beside the selection row, confirmation `Alert`, calls `DELETE /mod/choirs/:slug`, refreshes `approvedChoirs` + clears/refreshes user profile if they had that choir selected, and shows the inline confirmation toast).
+- **Moderation → Coros (`CommunityModeration.tsx`):** Added a dedicated **Coros publicados / Published choirs** list showing all approved choirs with a `"Base"` / `"Built-in"` badge on the 3 server-protected built-ins (`esmirna`, `maranatha`, `filadelfia`) and a destructive **Eliminar / Remove** button on custom choirs (plus toast feedback on the repertoire delete button).
+- **Bilingual strings (`LanguageContext.tsx`):** Added `choirRemoveTitle`, `choirRemoveBody`, `choirRemoveAction`, `choirRemovedToast`, `choirPublishedListTitle`, and `choirBuiltinBadge` (`es` & `en`).
+
+### Published live IDs
+- **iOS OTA (`production`, runtime `2.0.0-release-5`):** Group `54f32fc2-2b66-4974-b86b-51732df0cd3c`, iOS update `01a207e5-4611-7908-9477-d98a9a7f4a4a`.
+
+### Verification & not verified
+- Verified: `tsc --noEmit` 0 errors, `npx expo lint` 0 errors / 49 warnings, all 11 Node test suites pass, `test-web-search.js` passes, `audit-secrets.py` clean.
+- Not verified on physical hardware: test removing a custom choir from **Cuenta → Coro** and **Moderación → Coros** on TestFlight Build #34 after pulling OTA `54f32fc2`.
+
+---
+
 ## November 23, 2026 (late night 3) — Native MapKit Driving ETA, `40×12` SheetGrabber & Pre-App-Store Audit (iOS Build #34 `d1f054c9`, `2.0.0-release-5`)
 
 ### What changed (commit `63c7307`, Pages `94eaed5a`, iOS Build #34 `d1f054c9-2609-46c8-8b90-c92ea369d04c`)
