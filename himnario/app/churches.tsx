@@ -49,7 +49,7 @@ import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
-import AnimatedField from "../components/AnimatedField";
+import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
@@ -59,12 +59,24 @@ import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
   formatDistance,
+  formatDrivingEstimate,
   nearestIndex,
   type MapViewportRegion,
 } from "../utils/churchMapUtils";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
 import { hasUnsavedChurchDraft, type ChurchFormSnapshot } from "../utils/churchDraft";
-import { presentAppleLookAround } from "../modules/apple-look-around";
+import {
+  getAppleDrivingEstimate,
+  presentAppleLookAround,
+  type AppleDrivingEstimate,
+} from "../modules/apple-look-around";
+
+const SUBMIT_SHEET_SPRING = {
+  damping: 28,
+  stiffness: 240,
+  mass: 1,
+  overshootClamping: true,
+};
 
 const CHURCH_PIN_IMG = require("../assets/images/church-pin.png");
 const CHURCH_PIN_SELECTED_IMG = require("../assets/images/church-pin-selected.png");
@@ -258,12 +270,7 @@ export default function ChurchesScreen() {
   );
 
   const travel = Math.max(windowHeight, 600) + 40;
-  const sheetSpring = {
-    damping: 28,
-    stiffness: 240,
-    mass: 1,
-    overshootClamping: true,
-  };
+  const sheetSpring = SUBMIT_SHEET_SPRING;
   const submitProgress = useSharedValue(1);
   const submitDragOrigin = useSharedValue(0);
   const submitBackdropStyle = useAnimatedStyle(() => ({
@@ -454,6 +461,39 @@ export default function ChurchesScreen() {
     });
 
   const hasCenteredInitialRef = useRef(false);
+  const userCoordsRef = useRef(userCoords);
+  userCoordsRef.current = userCoords;
+  const drivingEstimateCacheRef = useRef<Map<string, AppleDrivingEstimate>>(new Map());
+  const [selectedDrivingEstimate, setSelectedDrivingEstimate] =
+    useState<AppleDrivingEstimate | null>(null);
+
+  useEffect(() => {
+    if (!selectedChurch || !userCoords || Platform.OS !== "ios") {
+      setSelectedDrivingEstimate(null);
+      return;
+    }
+    const cacheKey = `${selectedChurch.id}:${Math.round(userCoords.lat * 500)}:${Math.round(userCoords.lng * 500)}`;
+    const cached = drivingEstimateCacheRef.current.get(cacheKey);
+    if (cached) {
+      setSelectedDrivingEstimate(cached);
+      return;
+    }
+    setSelectedDrivingEstimate(null);
+    let cancelled = false;
+    void getAppleDrivingEstimate(
+      userCoords.lat,
+      userCoords.lng,
+      selectedChurch.lat,
+      selectedChurch.lng,
+    ).then((est) => {
+      if (cancelled || !est) return;
+      drivingEstimateCacheRef.current.set(cacheKey, est);
+      setSelectedDrivingEstimate(est);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedChurch, userCoords]);
 
   const loadChurches = useCallback(
     async (isRefresh = false) => {
@@ -483,7 +523,7 @@ export default function ChurchesScreen() {
         }
         if (res.viewerCoords) {
           setViewerCoords(res.viewerCoords);
-          if (!hasCenteredInitialRef.current && !userCoords && approved.length === 0) {
+          if (!hasCenteredInitialRef.current && !userCoordsRef.current && approved.length === 0) {
             hasCenteredInitialRef.current = true;
             const region: Region = {
               latitude: res.viewerCoords.lat,
@@ -502,7 +542,7 @@ export default function ChurchesScreen() {
         setRefreshing(false);
       }
     },
-    [api, es, isAdmin, userCoords],
+    [api, es, isAdmin],
   );
 
   useEffect(() => {
@@ -723,13 +763,21 @@ export default function ChurchesScreen() {
       const scannerOnlyVisit = scannerOnlyVisitRef.current;
       scannerOnlyVisitRef.current = false;
 
+      const safeDecode = (val: string) => {
+        try {
+          return decodeURIComponent(val);
+        } catch {
+          return val;
+        }
+      };
+
       // 1. Check for church QR link
       const churchMatch =
         raw.match(/[?&]id=([a-zA-Z0-9_-]+)/i) ||
         raw.match(/\/churches\/([a-zA-Z0-9_-]+)/i) ||
         raw.match(/^church:([a-zA-Z0-9_-]+)$/i);
       if (churchMatch && (raw.includes("church") || raw.startsWith("church:"))) {
-        const targetId = decodeURIComponent(churchMatch[1]);
+        const targetId = safeDecode(churchMatch[1]);
         const found = churches.find((c) => c.id === targetId);
         if (found) {
           focusChurchOnMap(found);
@@ -743,7 +791,7 @@ export default function ChurchesScreen() {
         raw.match(/[?&]hymn=([a-zA-Z0-9%_-]+)/i) ||
         raw.match(/^hymn:([a-zA-Z0-9%_-]+)$/i);
       if (hymnMatch) {
-        const hymnId = decodeURIComponent(hymnMatch[1]);
+        const hymnId = safeDecode(hymnMatch[1]);
         // Opened just to scan: the hymn takes the map's place in the stack.
         if (scannerOnlyVisit) router.replace(`/hymn/${encodeURIComponent(hymnId)}` as any);
         else router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
@@ -804,7 +852,7 @@ export default function ChurchesScreen() {
       if (Platform.OS === "ios") {
         Alert.alert(
           t.churchGetDirections,
-          `${church.name}\n${church.address}, ${church.city}`,
+          `${churchDisplayName(church.name, church.city)}\n${church.address}, ${church.city}`,
           [
             {
               text: "Apple Maps",
@@ -1532,11 +1580,18 @@ export default function ChurchesScreen() {
                       styles.clusterBubble,
                       {
                         backgroundColor: theme.primary,
-                        borderColor: "#FAF5EE",
+                        borderColor: isDarkMode ? "#1C1C1E" : "#FAF5EE",
                       },
                     ]}
                   >
-                    <Text style={styles.clusterBubbleText}>{pin.count}</Text>
+                    <Text
+                      style={[
+                        styles.clusterBubbleText,
+                        { color: theme.onPrimary },
+                      ]}
+                    >
+                      {pin.count}
+                    </Text>
                   </View>
                 </Marker>
               );
@@ -1999,16 +2054,31 @@ export default function ChurchesScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {selectedDistance !== null && (
-                      <Text
-                        style={{
-                          color: theme.primary,
-                          ...fonts.sansSemiBold,
-                          fontSize: 12.5,
-                        }}
-                      >
-                        {formatDistance(selectedDistance)}
-                      </Text>
+                    {(selectedDrivingEstimate !== null || selectedDistance !== null) && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        {selectedDrivingEstimate !== null && (
+                          <AppMenuIcon
+                            ios="car.fill"
+                            android="directions-car"
+                            color={theme.primary}
+                            size={12}
+                          />
+                        )}
+                        <Text
+                          style={{
+                            color: theme.primary,
+                            ...fonts.sansSemiBold,
+                            fontSize: 12.5,
+                          }}
+                        >
+                          {selectedDrivingEstimate
+                            ? formatDrivingEstimate(
+                                selectedDrivingEstimate.distanceMeters,
+                                selectedDrivingEstimate.expectedTravelTimeSeconds,
+                              )
+                            : `~${formatDistance(selectedDistance!)}`}
+                        </Text>
+                      </View>
                     )}
                     {!!selectedChurch.pastorName && (
                       <Text
@@ -3590,7 +3660,7 @@ export default function ChurchesScreen() {
                           >
                             <Text
                               style={{
-                                color: "#FFFFFF",
+                                color: idx === 0 ? theme.onPrimary : "#FFFFFF",
                                 ...fonts.sansSemiBold,
                                 fontSize: 10,
                               }}

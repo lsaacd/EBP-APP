@@ -141,6 +141,8 @@ export async function clearStoredPushToken(): Promise<void> {
   } catch {}
 }
 
+const handledNotificationResponseIds = new Set<string>();
+
 export function subscribeNotificationResponses(
   onData: (data: Record<string, unknown>) => void,
 ): () => void {
@@ -149,23 +151,25 @@ export function subscribeNotificationResponses(
   ensureNotificationHandlerConfigured();
 
   let active = true;
-  // Handle cold launch from a tapped lock-screen notification.
-  void Notifications.getLastNotificationResponseAsync()
-    .then((response) => {
-      if (!active || !response) return;
-      const data = response.notification?.request?.content?.data;
-      if (data && typeof data === 'object') {
-        onData(data as Record<string, unknown>);
-      }
-    })
-    .catch(() => {});
-
-  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+  const dispatchOnce = (response: any) => {
+    if (!active || !response) return;
+    const reqId = response.notification?.request?.identifier;
+    if (typeof reqId === 'string' && reqId) {
+      if (handledNotificationResponseIds.has(reqId)) return;
+      handledNotificationResponseIds.add(reqId);
+    }
     const data = response.notification?.request?.content?.data;
     if (data && typeof data === 'object') {
       onData(data as Record<string, unknown>);
     }
-  });
+  };
+
+  // Handle cold launch from a tapped lock-screen notification.
+  void Notifications.getLastNotificationResponseAsync()
+    .then(dispatchOnce)
+    .catch(() => {});
+
+  const sub = Notifications.addNotificationResponseReceivedListener(dispatchOnce);
 
   return () => {
     active = false;

@@ -48,6 +48,7 @@ import {
   wordCount,
 } from "../data/communityRules";
 import { useApprovedChoirs } from "../utils/choirsStore";
+import { churchDisplayName } from "../utils/churchName";
 import {
   useCommunityApi,
   communityError,
@@ -102,7 +103,7 @@ export default function VerseDiscussionSheet({
   const { theme, isDarkMode } = useTheme(),
     { language, t } = useLanguage(),
     es = language === "es";
-  const { user, token, openAuthSheet, requestEmailVerification, refreshUser } =
+  const { user, token, openAuthSheet, requestEmailVerification, refreshUser, acceptUgcTerms } =
     useAuth();
   const api = useCommunityApi(),
     insets = useSafeAreaInsets();
@@ -516,6 +517,19 @@ export default function VerseDiscussionSheet({
           "Verifica tu correo para participar.",
         ),
       );
+      return false;
+    }
+    if (!user.ugcTermsAccepted) {
+      Alert.alert(t.ugcAcceptTitle, t.ugcAcceptBody, [
+        { text: t.ugcViewRules, onPress: openCommunityGuidelines },
+        { text: t.cancel, style: "cancel" },
+        {
+          text: t.ugcAcceptButton,
+          onPress: () => {
+            void act(() => acceptUgcTerms(), false);
+          },
+        },
+      ]);
       return false;
     }
     return true;
@@ -1340,6 +1354,32 @@ export default function VerseDiscussionSheet({
                     {t.discussionLearnMore}
                   </Text>
                 </Text>
+                {user && user.emailVerified && !user.ugcTermsAccepted && (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={acting}
+                    onPress={() => void act(() => acceptUgcTerms(), false)}
+                    style={({ pressed }) => ({
+                      marginTop: 8,
+                      alignSelf: "flex-start",
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 999,
+                      backgroundColor: theme.primary,
+                      opacity: acting ? 0.6 : pressed ? 0.85 : 1,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        color: theme.onPrimary,
+                        ...fonts.sansSemiBold,
+                        fontSize: 12.5,
+                      }}
+                    >
+                      {t.ugcAcceptButton}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           </GestureDetector>
@@ -1487,6 +1527,62 @@ export default function VerseDiscussionSheet({
                   >
                     <Text style={{ color: theme.primary }}>
                       {label("I verified my email", "Ya verifiqué mi correo")}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : !user.ugcTermsAccepted ? (
+              <View style={{ paddingBottom: Math.max(insets.bottom, 8), gap: 8 }}>
+                <Text style={{ color, ...fonts.sansSemiBold, fontSize: 14 }}>
+                  {t.ugcAcceptTitle}
+                </Text>
+                <Text
+                  style={{
+                    color: theme.onSurfaceVariant,
+                    ...fonts.sansRegular,
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {t.ugcAcceptBody}
+                </Text>
+                <View style={[styles.rowHead, { gap: 12, marginTop: 2 }]}>
+                  <Pressable
+                    style={[
+                      styles.reply,
+                      {
+                        backgroundColor: theme.primary,
+                        paddingHorizontal: 14,
+                        paddingVertical: 9,
+                        borderRadius: 999,
+                      },
+                    ]}
+                    disabled={acting}
+                    onPress={() => void act(() => acceptUgcTerms(), false)}
+                  >
+                    <Text
+                      style={{
+                        color: theme.onPrimary,
+                        ...fonts.sansSemiBold,
+                        fontSize: 13.5,
+                      }}
+                    >
+                      {t.ugcAcceptButton}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.reply}
+                    disabled={acting}
+                    onPress={openCommunityGuidelines}
+                  >
+                    <Text
+                      style={{
+                        color: theme.primary,
+                        ...fonts.sansMedium,
+                        fontSize: 13.5,
+                      }}
+                    >
+                      {t.ugcViewRules}
                     </Text>
                   </Pressable>
                 </View>
@@ -1862,7 +1958,7 @@ export default function VerseDiscussionSheet({
                             fontSize: 15,
                           }}
                         >
-                          {selectedAuthor.churchName}
+                          {churchDisplayName(selectedAuthor.churchName)}
                         </Text>
                       </View>
                     </View>

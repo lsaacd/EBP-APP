@@ -60,6 +60,26 @@ export function formatDistance(miles: number): string {
   return `${one(miles)} mi (${one(km)} km)`;
 }
 
+/**
+ * Formats driving duration cleanly like Apple Maps ("12 min", "1 hr 4 min", "2 hr").
+ */
+export function formatDriveTime(seconds: number): string {
+  const totalMins = Math.max(1, Math.round(seconds / 60));
+  if (totalMins < 60) return `${totalMins} min`;
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  return mins === 0 ? `${hours} hr` : `${hours} hr ${mins} min`;
+}
+
+/**
+ * Formats a real road-route distance + travel time from MapKit MKDirections.
+ * Example: "44 mi (71 km) · 56 min".
+ */
+export function formatDrivingEstimate(distanceMeters: number, travelSeconds: number): string {
+  const miles = distanceMeters / 1609.344;
+  return `${formatDistance(miles)} · ${formatDriveTime(travelSeconds)}`;
+}
+
 /** Index of the point nearest to `from`, or -1 for an empty list. */
 export function nearestIndex(from: LatLngPoint, points: LatLngPoint[]): number {
   let best = -1;

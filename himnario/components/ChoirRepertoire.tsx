@@ -28,11 +28,11 @@ export default function ChoirRepertoire() {
     let cancelled = false;
     setItems([]);
     if (user?.choir && user.choir !== "otro")
-      void api<{ repertoires: Repertoire[] }>(
+      void api<{ repertoires?: Repertoire[] }>(
         `/choirs/repertoire?choir=${encodeURIComponent(user.choir)}`,
       )
         .then((r) => {
-          if (!cancelled) setItems(r.repertoires);
+          if (!cancelled) setItems(Array.isArray(r?.repertoires) ? r.repertoires : []);
         })
         .catch(() => {});
     return () => {
@@ -67,7 +67,7 @@ export default function ChoirRepertoire() {
             <Text style={{ color: theme.onSurface }}>{item.notes}</Text>
           )}
           <View style={styles.ids}>
-            {item.hymnIds.map((id) => (
+            {(Array.isArray(item.hymnIds) ? item.hymnIds : []).map((id) => (
               <Pressable
                 accessibilityLabel={`${t.choirOpenHymn} ${id}`}
                 key={id}

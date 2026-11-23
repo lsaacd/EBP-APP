@@ -406,7 +406,7 @@ interface MusicPlayerProps {
 // ─────────────────────────────────────────────────────────────
 function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBottom, miniPlayerHeight }: MusicPlayerProps) {
   const { isDarkMode } = useTheme();
-  const { t, hymnLanguage } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -778,7 +778,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
             {!audioAvailable && (
               <View style={styles.noAudioOverlay}>
                 <MaterialIcons name="music-off" size={40} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.noAudioText}>Audio no disponible</Text>
+                <Text style={styles.noAudioText}>{t.audioUnavailable}</Text>
               </View>
             )}
           </View>
@@ -1233,7 +1233,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
           es: 'Comentarios del himno',
           en: 'Hymn comments',
         }}
-        subtitleOverride={`${String(currentId).startsWith('E') ? 'Coro' : 'Himno'} ${hymn.number} · ${hymn.title}`}
+        subtitleOverride={`${String(currentId).startsWith('E') ? (language === 'en' ? 'Chorus' : 'Estribillo') : (language === 'en' ? 'Hymn' : 'Himno')} ${hymn.number} · ${hymn.title}`}
         onChanged={() => {
           void refreshHymnCommunity();
         }}

@@ -138,9 +138,9 @@ export const darkTheme = {
   onTertiaryFixed: '#010101',
   onTertiaryFixedVariant: '#373737',
 
-  // Outline
+  // Outline (6-digit hex so hex-alpha suffixes like outlineVariant + '44' stay valid in dark mode)
   outline: '#ffffff',             // borders, dividers
-  outlineVariant: 'rgba(255, 255, 255, 0.12)', // subtle ghost borders
+  outlineVariant: '#38383A',      // iOS Dark Mode separator grey
 
   // Inverse (for snackbars / toasts that invert the scheme)
   inverseSurface: '#fdf9f2',

@@ -371,7 +371,7 @@ export default function VerseCard() {
     return () => cancelAnimation(fullProgress);
   }, [fullScreenOpen, fullProgress]);
 
-  const pendingModalAfterFullRef = useRef<"discussion" | "auth" | null>(null);
+  const pendingModalAfterFullRef = useRef<"discussion" | "auth" | "picker" | null>(null);
 
   const flushPendingModalAfterFull = useCallback(() => {
     const next = pendingModalAfterFullRef.current;
@@ -379,10 +379,11 @@ export default function VerseCard() {
     pendingModalAfterFullRef.current = null;
     if (next === "auth") openAuthSheet();
     else if (next === "discussion") setDiscussion(true);
+    else if (next === "picker") setPickerOpen(true);
   }, [openAuthSheet]);
 
   const openModalFromFull = useCallback(
-    (target: "discussion" | "auth") => {
+    (target: "discussion" | "auth" | "picker") => {
       pendingModalAfterFullRef.current = target;
       setFullScreenOpen(false);
       if (Platform.OS !== "ios") {
@@ -955,8 +956,7 @@ export default function VerseCard() {
   const more = (id: string) => {
     if (id === "customize") {
       if (fullScreenOpen) {
-        setFullScreenOpen(false);
-        setTimeout(() => setPickerOpen(true), 220);
+        openModalFromFull("picker");
       } else {
         setPickerOpen(true);
       }
@@ -1305,10 +1305,7 @@ export default function VerseCard() {
                     accessibilityLabel={
                       t.shareSystemMore
                     }
-                    onPress={() => {
-                      setFullScreenOpen(false);
-                      setTimeout(() => setPickerOpen(true), 220);
-                    }}
+                    onPress={() => openModalFromFull("picker")}
                     style={styles.fullCircleBtn}
                   >
                     <AppMenuIcon

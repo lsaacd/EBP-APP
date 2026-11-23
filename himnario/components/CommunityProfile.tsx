@@ -4,9 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Switch,
@@ -14,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "../utils/haptics";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme/ThemeContext";
@@ -30,12 +26,10 @@ import { communityError, useCommunityApi } from "../utils/communityApi";
 import { fonts } from "../theme/theme";
 import CommunityModeration from "./CommunityModeration";
 import AppMenuIcon from "./AppMenuIcon";
-import AnimatedField from "./AnimatedField";
-import ActionToast, { type ActionToastMessage } from "./ActionToast";
-import SheetGrabber from "./SheetGrabber";
-import GlassSurface from "./GlassSurface";
+import { AnimatedField } from "./AnimatedField";
+import type { ActionToastMessage } from "./ActionToast";
 
-const COUNTRY_OPTIONS: Array<{ id: string; es: string; en: string }> = [
+const COUNTRY_OPTIONS: { id: string; es: string; en: string }[] = [
   { id: "us", es: "Estados Unidos", en: "United States" },
   { id: "mx", es: "México", en: "Mexico" },
   { id: "gt", es: "Guatemala", en: "Guatemala" },
@@ -92,7 +86,6 @@ export default function CommunityProfile({
   const { lists: friendLists, badgeCount: friendsBadge, refresh: refreshFriends } = useFriends();
   const { unreadCount: notificationsUnread, refresh: refreshNotifications } = useNotifications();
   const { choirs: approvedChoirs, bySlug: choirsBySlug, refresh: refreshApprovedChoirs } = useApprovedChoirs();
-  const insets = useSafeAreaInsets();
   const isAdminUser =
     user?.role === "admin" &&
     user.email.toLowerCase() === "isaacduran167@gmail.com";
@@ -334,7 +327,7 @@ export default function CommunityProfile({
 
   if (subPage === "ministry" || subPage === "choir") {
     const field = subPage;
-    const items: Array<{ key: string | null; label: string }> =
+    const items: { key: string | null; label: string }[] =
       field === "ministry"
         ? [
             { key: null, label: t.profilePreferNotToShow },
@@ -511,7 +504,7 @@ export default function CommunityProfile({
           })}
         </View>
 
-        {field === "choir" && (
+        {field === "choir" && !choirModalOpen && (
           <Pressable
             accessibilityRole="button"
             onPress={handleOpenChoirModal}
@@ -572,185 +565,156 @@ export default function CommunityProfile({
           </Pressable>
         )}
 
+        {/* Inline Suggest / Add Choir card (avoids nested iOS UIKit Modal inside AuthSheet) */}
+        {field === "choir" && choirModalOpen && (
+          <View
+            style={[
+              styles.choirInlineCard,
+              {
+                backgroundColor: isDarkMode
+                  ? "#1A1A1D"
+                  : theme.surfaceVariants.containerLow,
+                borderColor: cardBorder,
+              },
+            ]}
+          >
+            <View style={styles.choirModalHeader}>
+              <Text
+                numberOfLines={1}
+                style={[styles.choirInlineTitle, { color: theme.onSurface }]}
+              >
+                {isAdminUser ? t.choirAdminAddTitle : t.choirSuggestTitle}
+              </Text>
+              <Pressable
+                onPress={requestCloseChoirModal}
+                accessibilityRole="button"
+                accessibilityLabel={t.close}
+                hitSlop={10}
+                style={[
+                  styles.choirCloseBtn,
+                  {
+                    backgroundColor: isDarkMode
+                      ? "rgba(255,255,255,0.10)"
+                      : "rgba(0,0,0,0.06)",
+                  },
+                ]}
+              >
+                <AppMenuIcon
+                  ios="xmark"
+                  android="close"
+                  color={theme.onSurface}
+                  size={14}
+                  weight="semibold"
+                />
+              </Pressable>
+            </View>
+
+            <View
+              style={[
+                styles.cardGroup,
+                {
+                  backgroundColor: cardBg,
+                  borderColor: cardBorder,
+                },
+              ]}
+            >
+              <AnimatedField
+                grouped
+                label={t.choirNameLabel}
+                value={choirNameDraft}
+                onChangeText={setChoirNameDraft}
+                placeholder={t.choirNamePlaceholder}
+                maxLength={60}
+                autoCapitalize="words"
+                editable={!choirSubmitting}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() =>
+                  (isAdminUser
+                    ? choirNameEnRef.current
+                    : choirContextRef.current
+                  )?.focus()
+                }
+              />
+              {isAdminUser && (
+                <AnimatedField
+                  ref={choirNameEnRef}
+                  grouped
+                  label={t.choirNameEnLabel}
+                  value={choirNameEnDraft}
+                  onChangeText={setChoirNameEnDraft}
+                  placeholder={t.choirNameEnPlaceholder}
+                  maxLength={60}
+                  autoCapitalize="words"
+                  editable={!choirSubmitting}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => choirContextRef.current?.focus()}
+                />
+              )}
+              <AnimatedField
+                ref={choirContextRef}
+                grouped
+                isLast
+                label={t.choirChurchContextLabel}
+                value={choirContextDraft}
+                onChangeText={setChoirContextDraft}
+                placeholder={t.choirChurchContextPlaceholder}
+                maxLength={100}
+                autoCapitalize="words"
+                editable={!choirSubmitting}
+                returnKeyType="done"
+                onSubmitEditing={() => void handleSubmitChoir()}
+              />
+            </View>
+
+            {!!choirSubmitError && (
+              <Text
+                accessibilityRole="alert"
+                style={{
+                  color: "#D64545",
+                  ...fonts.sansSemiBold,
+                  fontSize: 13,
+                  textAlign: "center",
+                }}
+              >
+                {choirSubmitError}
+              </Text>
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={choirSubmitting}
+              onPress={() => void handleSubmitChoir()}
+              style={({ pressed }) => [
+                styles.choirSubmitBtn,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: choirSubmitting ? 0.6 : pressed ? 0.88 : 1,
+                },
+              ]}
+            >
+              {choirSubmitting ? (
+                <ActivityIndicator size="small" color={theme.onPrimary} />
+              ) : (
+                <Text
+                  style={{
+                    color: theme.onPrimary,
+                    ...fonts.sansBold,
+                    fontSize: 15.5,
+                  }}
+                >
+                  {isAdminUser ? t.choirPublishBtn : t.choirSubmitBtn}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: theme.primary }}>
             {error}
           </Text>
-        )}
-
-        {field === "choir" && (
-          <Modal
-            visible={choirModalOpen}
-            transparent
-            animationType="slide"
-            presentationStyle="overFullScreen"
-            statusBarTranslucent
-            navigationBarTranslucent
-            onRequestClose={requestCloseChoirModal}
-          >
-            <KeyboardAvoidingView
-              style={{ flex: 1, justifyContent: "flex-end" }}
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-            >
-              <Pressable
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: "rgba(0,0,0,0.48)" },
-                ]}
-                onPress={requestCloseChoirModal}
-              />
-              <View>
-                <SheetGrabber inline />
-                <View
-                  style={[
-                    styles.choirModalSheet,
-                    {
-                      backgroundColor: isDarkMode ? "#121212" : theme.surface,
-                      paddingBottom: Math.max(insets.bottom, 22),
-                    },
-                  ]}
-                >
-                  <View style={styles.choirModalHeader}>
-                    <View style={{ width: 38 }} />
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.choirModalTitle,
-                        { color: theme.onSurface },
-                      ]}
-                    >
-                      {isAdminUser ? t.choirAdminAddTitle : t.choirSuggestTitle}
-                    </Text>
-                    <GlassSurface
-                      isInteractive
-                      glassEffectStyle="regular"
-                      intensity={56}
-                      style={styles.choirCloseBtn}
-                    >
-                      <Pressable
-                        onPress={requestCloseChoirModal}
-                        accessibilityRole="button"
-                        accessibilityLabel={t.close}
-                        style={styles.choirCloseHit}
-                      >
-                        <AppMenuIcon
-                          ios="xmark"
-                          android="close"
-                          color={theme.onSurface}
-                          size={16}
-                          weight="semibold"
-                        />
-                      </Pressable>
-                    </GlassSurface>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.cardGroup,
-                      {
-                        backgroundColor: cardBg,
-                        borderColor: cardBorder,
-                      },
-                    ]}
-                  >
-                    <AnimatedField
-                      grouped
-                      label={t.choirNameLabel}
-                      value={choirNameDraft}
-                      onChangeText={setChoirNameDraft}
-                      placeholder={t.choirNamePlaceholder}
-                      maxLength={60}
-                      autoCapitalize="words"
-                      editable={!choirSubmitting}
-                      returnKeyType="next"
-                      blurOnSubmit={false}
-                      onSubmitEditing={() =>
-                        (isAdminUser
-                          ? choirNameEnRef.current
-                          : choirContextRef.current
-                        )?.focus()
-                      }
-                    />
-                    {isAdminUser && (
-                      <AnimatedField
-                        ref={choirNameEnRef}
-                        grouped
-                        label={t.choirNameEnLabel}
-                        value={choirNameEnDraft}
-                        onChangeText={setChoirNameEnDraft}
-                        placeholder={t.choirNameEnPlaceholder}
-                        maxLength={60}
-                        autoCapitalize="words"
-                        editable={!choirSubmitting}
-                        returnKeyType="next"
-                        blurOnSubmit={false}
-                        onSubmitEditing={() => choirContextRef.current?.focus()}
-                      />
-                    )}
-                    <AnimatedField
-                      ref={choirContextRef}
-                      grouped
-                      isLast
-                      label={t.choirChurchContextLabel}
-                      value={choirContextDraft}
-                      onChangeText={setChoirContextDraft}
-                      placeholder={t.choirChurchContextPlaceholder}
-                      maxLength={100}
-                      autoCapitalize="words"
-                      editable={!choirSubmitting}
-                      returnKeyType="done"
-                      onSubmitEditing={() => void handleSubmitChoir()}
-                    />
-                  </View>
-
-                  {!!choirSubmitError && (
-                    <Text
-                      accessibilityRole="alert"
-                      style={{
-                        color: "#D64545",
-                        ...fonts.sansSemiBold,
-                        fontSize: 13,
-                        textAlign: "center",
-                      }}
-                    >
-                      {choirSubmitError}
-                    </Text>
-                  )}
-
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={choirSubmitting}
-                    onPress={() => void handleSubmitChoir()}
-                    style={({ pressed }) => [
-                      styles.choirSubmitBtn,
-                      {
-                        backgroundColor: theme.primary,
-                        opacity: choirSubmitting ? 0.6 : pressed ? 0.88 : 1,
-                      },
-                    ]}
-                  >
-                    {choirSubmitting ? (
-                      <ActivityIndicator size="small" color={theme.onPrimary} />
-                    ) : (
-                      <Text
-                        style={{
-                          color: theme.onPrimary,
-                          ...fonts.sansBold,
-                          fontSize: 15.5,
-                        }}
-                      >
-                        {isAdminUser ? t.choirPublishBtn : t.choirSubmitBtn}
-                      </Text>
-                    )}
-                  </Pressable>
-                </View>
-              </View>
-              <ActionToast
-                toast={choirToast}
-                topOffset={Math.max(insets.top, 14) + 6}
-              />
-            </KeyboardAvoidingView>
-          </Modal>
         )}
       </View>
     );
@@ -1801,32 +1765,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  choirModalSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    gap: 14,
+  choirInlineCard: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    gap: 12,
   },
   choirModalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
-  choirModalTitle: {
+  choirInlineTitle: {
     flex: 1,
-    textAlign: "center",
-    ...fonts.bold,
-    fontSize: 19,
+    ...fonts.sansSemiBold,
+    fontSize: 16,
   },
   choirCloseBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    overflow: "hidden",
-  },
-  choirCloseHit: {
-    flex: 1,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -123,7 +123,7 @@ function ThemedStack() {
       } else if (dest.kind === 'hymn') {
         router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
       } else {
-        router.navigate('/(tabs)' as any);
+        router.navigate('/(tabs)/home' as any);
       }
     });
   }, [openAuthSheetToPage, router]);

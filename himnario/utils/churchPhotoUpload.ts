@@ -12,8 +12,8 @@ export async function pickAndUploadChurchPhotos(options: {
   if (!requireOptionalNativeModule('ExponentImagePicker') || !requireOptionalNativeModule('ExpoImageManipulator')) {
     throw new Error(
       es
-        ? 'Actualiza la aplicación a la última compilación nativa de TestFlight para usar la cámara y fototeca.'
-        : 'Please update the app to the latest native TestFlight build to use the camera and photo library.',
+        ? 'Actualiza la aplicación a la última versión para usar la cámara y fototeca.'
+        : 'Please update to the latest version of the app to use the camera and photo library.',
     );
   }
 

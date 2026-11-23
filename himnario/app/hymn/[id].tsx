@@ -744,7 +744,7 @@ export default function HymnDetail() {
           es: 'Comentarios del himno',
           en: 'Hymn comments',
         }}
-        subtitleOverride={`${String(id).startsWith('E') ? 'Coro' : 'Himno'} ${hymn.number} · ${hymn.title}`}
+        subtitleOverride={`${String(id).startsWith('E') ? (language === 'en' ? 'Chorus' : 'Estribillo') : (language === 'en' ? 'Hymn' : 'Himno')} ${hymn.number} · ${hymn.title}`}
         onChanged={() => {
           void refreshHymnCommunity();
         }}

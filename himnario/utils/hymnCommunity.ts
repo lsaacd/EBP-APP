@@ -43,7 +43,7 @@ function setCachedSummary(key: string, summary: HymnSummary) {
 
 export function useHymnCommunity(rawHymnId: string | number | undefined) {
   const slug = slugifyHymnId(rawHymnId ?? "");
-  const { user, token, openAuthSheet, acceptUgcTerms } = useAuth();
+  const { user, token, openAuthSheet } = useAuth();
   const { language } = useLanguage();
   const es = language === "es";
   const api = useCommunityApi();
@@ -189,10 +189,6 @@ export function useHymnCommunity(rawHymnId: string | number | undefined) {
       const op = {};
       inFlightOpRef.current = op;
       try {
-        if (userRef.current && !userRef.current.ugcTermsAccepted) {
-          await acceptUgcTerms();
-          if (scopeEpoch !== scopeEpochRef.current) return;
-        }
         while (desiredReactionRef.current !== null) {
           const target = desiredReactionRef.current;
           desiredReactionRef.current = null;
@@ -214,7 +210,7 @@ export function useHymnCommunity(rawHymnId: string | number | undefined) {
         }
       }
     },
-    [acceptUgcTerms, api, applyDelta, cacheKey, es, slug],
+    [api, applyDelta, cacheKey, es, slug],
   );
 
   const react = useCallback(

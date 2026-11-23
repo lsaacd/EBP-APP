@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#0000001A',
+    borderColor: 'rgba(128,128,128,0.22)',
   },
   subTabItem: {
     flex: 1,

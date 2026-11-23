@@ -513,3 +513,13 @@ test('choir display helper supports Filadelfia, dynamic approved choirs, and slu
   assert.equal(choirDisplayName('monte_betel', false), 'Monte Betel Choir');
   assert.equal(choirDisplayName(null, true), '');
 });
+
+test('driving distance and travel time formatting matches Apple Maps style', () => {
+  const { formatDriveTime, formatDrivingEstimate } = load('himnario/utils/churchMapUtils.ts');
+  assert.equal(formatDriveTime(25), '1 min');
+  assert.equal(formatDriveTime(56 * 60), '56 min');
+  assert.equal(formatDriveTime(64 * 60), '1 hr 4 min');
+  assert.equal(formatDriveTime(120 * 60), '2 hr');
+  assert.equal(formatDrivingEstimate(44 * 1609.344, 56 * 60), '44 mi (71 km) · 56 min');
+  assert.equal(formatDrivingEstimate(3.2 * 1609.344, 8 * 60), '3.2 mi (5.1 km) · 8 min');
+});

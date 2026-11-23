@@ -18,7 +18,7 @@ import { useCommunityApi, communityError } from "../utils/communityApi";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
 import { useApprovedChoirs } from "../utils/choirsStore";
 import * as Haptics from "../utils/haptics";
-import AnimatedField from "./AnimatedField";
+import { AnimatedField } from "./AnimatedField";
 import AppMenuIcon from "./AppMenuIcon";
 import { fonts } from "../theme/theme";
 type Report = {

@@ -56,10 +56,11 @@ const comment = (id, body = "Original", parentId = null) => ({
   replies: [],
   repliesCursor: null,
 });
-function fixture(saved = new Map()) {
+function fixture(saved = new Map(), opts = {}) {
   const slots = [],
     effects = [],
     requests = [],
+    alerts = [],
     storage = saved;
   let cursor = 0,
     scheduled = false,
@@ -68,7 +69,8 @@ function fixture(saved = new Map()) {
     seq = 0,
     focus = 0,
     closes = 0,
-    changes = 0;
+    changes = 0,
+    acceptCalls = 0;
   let storageFailure = false;
   let auth = {
     user: {
@@ -77,6 +79,7 @@ function fixture(saved = new Map()) {
       email: "one@example.test",
       initials: "TP",
       emailVerified: true,
+      ugcTermsAccepted: opts.ugcTermsAccepted ?? true,
       ministry: null,
       choir: null,
       role: "member",
@@ -85,6 +88,14 @@ function fixture(saved = new Map()) {
     openAuthSheet: () => {},
     requestEmailVerification: async () => {},
     refreshUser: async () => {},
+    acceptUgcTerms: async () => {
+      acceptCalls++;
+      auth = {
+        ...auth,
+        user: { ...auth.user, ugcTermsAccepted: true },
+      };
+      render();
+    },
   };
   const props = {
     visible: true,
@@ -184,7 +195,11 @@ function fixture(saved = new Map()) {
     UIManager: { hasViewManagerConfig: () => true },
     Keyboard: { dismiss: () => {} },
     Linking: { openURL: async () => {} },
-    Alert: { alert: () => {} },
+    Alert: {
+      alert: (title, message, buttons) => {
+        alerts.push({ title, message, buttons });
+      },
+    },
     useWindowDimensions: () => ({ height: 850, width: 393 }),
   });
   const fonts = new Proxy({}, { get: (_, key) => String(key) });
@@ -246,6 +261,9 @@ function fixture(saved = new Map()) {
     "../utils/choirsStore": {
       useApprovedChoirs: () => ({ choirs: [], bySlug: {}, loading: false, refresh: async () => {} }),
     },
+    "../utils/churchName": {
+      churchDisplayName: (n) => n || "",
+    },
     "../utils/communityApi": {
       useCommunityApi: () => api,
       communityError: (e) => e.message,
@@ -303,10 +321,14 @@ function fixture(saved = new Map()) {
   render();
   return {
     requests,
+    alerts,
     storage,
     all,
     button,
     texts,
+    get acceptCalls() {
+      return acceptCalls;
+    },
     get tree() {
       return tree;
     },
@@ -789,4 +811,31 @@ test("account change/disposal prevents stale heart responses from touching the n
   next.resolve();
   await flush();
   assert.equal(other.pending(), false);
+});
+
+test("users who have not accepted UGC rules see the explicit acceptance gate and cannot post before accepting", async () => {
+  const f = fixture(new Map(), { ugcTermsAccepted: false });
+  await f.ready([comment("parent")]);
+  assert.equal(f.input(), undefined);
+  const acceptBtn = f.button(strings.es.ugcAcceptButton);
+  assert.ok(acceptBtn, "inline accept button should render");
+  assert.ok(f.button(strings.es.ugcViewRules), "community rules link should render");
+  // Attempting to like a comment while unaccepted must prompt instead of calling POST
+  const likeBtn = f
+    .all("Pressable")
+    .find((n) => n.props.accessibilityLabel === "Me gusta");
+  if (likeBtn) {
+    likeBtn.props.onPress();
+    await flush();
+    assert.equal(f.requests.filter((r) => r.method === "POST").length, 0);
+    assert.equal(f.alerts.length, 1);
+    assert.equal(f.alerts[0].title, strings.es.ugcAcceptTitle);
+  }
+  // Accepting unlocks the composer without posting any stray request
+  acceptBtn.props.onPress();
+  await flush();
+  assert.equal(f.acceptCalls, 1);
+  assert.equal(f.requests.filter((r) => r.method === "POST").length, 0);
+  assert.ok(f.input(), "composer input should unlock after accepting UGC rules");
+  f.unmount();
 });

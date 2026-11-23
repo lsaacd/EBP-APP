@@ -1,3 +1,4 @@
+import CoreLocation
 import ExpoModulesCore
 import MapKit
 import UIKit
@@ -54,6 +55,41 @@ public class AppleLookAroundModule: Module {
         }
       } else {
         promise.resolve(false)
+      }
+    }
+
+    // Computes real road driving distance (meters) and traffic-aware travel time
+    // (seconds) via Apple MapKit MKDirections, matching Apple Maps exactly.
+    AsyncFunction("getDrivingEstimate") { (fromLat: Double, fromLng: Double, toLat: Double, toLng: Double, promise: Promise) in
+      let sourceCoord = CLLocationCoordinate2D(latitude: fromLat, longitude: fromLng)
+      let destCoord = CLLocationCoordinate2D(latitude: toLat, longitude: toLng)
+      guard CLLocationCoordinate2DIsValid(sourceCoord), CLLocationCoordinate2DIsValid(destCoord) else {
+        promise.resolve(nil)
+        return
+      }
+      let request = MKDirections.Request()
+      request.source = MKMapItem(placemark: MKPlacemark(coordinate: sourceCoord))
+      request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destCoord))
+      request.transportType = .automobile
+      let directions = MKDirections(request: request)
+      directions.calculateETA { response, _ in
+        if let eta = response, eta.distance > 0, eta.expectedTravelTime > 0 {
+          promise.resolve([
+            "distanceMeters": eta.distance,
+            "expectedTravelTimeSeconds": eta.expectedTravelTime
+          ])
+          return
+        }
+        MKDirections(request: request).calculate { routeResponse, _ in
+          if let route = routeResponse?.routes.first, route.distance > 0 {
+            promise.resolve([
+              "distanceMeters": route.distance,
+              "expectedTravelTimeSeconds": route.expectedTravelTime
+            ])
+          } else {
+            promise.resolve(nil)
+          }
+        }
       }
     }
   }

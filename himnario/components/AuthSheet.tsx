@@ -63,7 +63,7 @@ import { MINISTRIES, choirDisplayName } from '../data/communityRules';
 import { useApprovedChoirs } from '../utils/choirsStore';
 import { shouldCollapsePlayer } from '../utils/gestureMotion';
 import { getPasswordStrength } from '../utils/passwordStrength';
-import AnimatedField from './AnimatedField';
+import { AnimatedField } from './AnimatedField';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -201,13 +201,14 @@ export function AuthSheet({
     }
   }, [visible, user, pendingAuthSheetPage, clearPendingAuthSheetPage]);
 
+  const userIdKey = user?.id ?? null;
   useEffect(() => {
     ++accountActionRef.current;
     setEmailAction(null);
     setErrorMessage(null);
     setInfoMessage(null);
     setShowPassword(false);
-    if (!user) {
+    if (!userIdKey) {
       setPage((prev) =>
         ['profile-details', 'ministry', 'choir', 'church-location', 'blocks', 'friends', 'notifications', 'moderation'].includes(prev)
           ? 'account'
@@ -216,7 +217,7 @@ export function AuthSheet({
     }
     const actionRef = accountActionRef;
     return () => { ++actionRef.current; };
-  }, [mode, user]);
+  }, [mode, userIdKey]);
 
   useEffect(() => {
     if (!visible) return;
@@ -268,7 +269,7 @@ export function AuthSheet({
       pendingHymnIdRef.current = null;
       router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
     } else if (nextAction === 'home') {
-      router.navigate('/(tabs)' as any);
+      router.navigate('/(tabs)/home' as any);
     }
   }, [onChurchesScreen, onClose, onOpenShareApp, router, user?.churchId]);
 
@@ -1578,6 +1579,26 @@ export function AuthSheet({
               </Text>
             )}
           </Pressable>
+
+          {mode === 'register' && (
+            <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant, paddingTop: 2 }]}>
+              {t.authRegisterLegalPrefix}
+              <Text
+                onPress={() => void openExternalLink('https://himnarioebp.com/terms.html')}
+                style={{ color: theme.primary, ...fonts.sansSemiBold }}
+              >
+                {t.authTermsLink}
+              </Text>
+              {t.authLegalAnd}
+              <Text
+                onPress={() => void openExternalLink('https://himnarioebp.com/privacy.html')}
+                style={{ color: theme.primary, ...fonts.sansSemiBold }}
+              >
+                {t.authPrivacyLink}
+              </Text>
+              .
+            </Text>
+          )}
 
           {(mode === 'login' || mode === 'recovery') && (
             <View style={styles.secondaryLinksRow}>
