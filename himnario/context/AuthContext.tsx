@@ -33,6 +33,10 @@ export interface AuthUser {
   churchName: string | null;
   location: string | null;
   showChurchLocation: boolean;
+  /** Accepted friends may see this person's favourite hymns. */
+  shareFavoritesWithFriends: boolean;
+  /** Suggested to others who linked the same verified church. */
+  suggestToChurchMembers: boolean;
   role: 'member' | 'admin';
   badgeVerified: boolean;
   ugcTermsAccepted: boolean;
@@ -68,6 +72,12 @@ function normalizeUser(raw: any): AuthUser {
     churchName: typeof raw?.churchName === 'string' ? raw.churchName : null,
     location: typeof raw?.location === 'string' ? raw.location : null,
     showChurchLocation: raw?.showChurchLocation === true,
+    // Absent on sessions saved before friends existed: default to the server's defaults.
+    shareFavoritesWithFriends: raw?.shareFavoritesWithFriends !== false,
+    suggestToChurchMembers:
+      typeof raw?.suggestToChurchMembers === 'boolean'
+        ? raw.suggestToChurchMembers
+        : raw?.showChurchLocation === true,
     role: raw?.role === 'admin' && email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
     badgeVerified: raw?.badgeVerified === true && raw?.ministry === 'obispo',
     ugcTermsAccepted: raw?.ugcTermsAccepted === true,
@@ -111,6 +121,8 @@ interface AuthContextType {
     churchName?: string | null;
     location?: string | null;
     showChurchLocation?: boolean;
+    shareFavoritesWithFriends?: boolean;
+    suggestToChurchMembers?: boolean;
   }) => Promise<void>;
   acceptUgcTerms: () => Promise<void>;
   syncNow: () => Promise<void>;
@@ -649,9 +661,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name?: string;
     ministry?: string | null;
     choir?: string | null;
+    churchId?: string | null;
     churchName?: string | null;
     location?: string | null;
     showChurchLocation?: boolean;
+    shareFavoritesWithFriends?: boolean;
+    suggestToChurchMembers?: boolean;
   }) => updateAccount(profile), [updateAccount]);
   const updateProfileName = useCallback((name: string) => updateProfile({name: name.trim()}), [updateProfile]);
   const acceptUgcTerms = useCallback(() => updateAccount({version:'2026-11-17'}, '/auth/ugc-terms/accept'), [updateAccount]);

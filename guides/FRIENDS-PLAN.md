@@ -1,6 +1,6 @@
 # Friends ("Hermanos") — build plan
 
-> **Status (November 23, 2026):** **phase 1 is live** — migration `0009_friends.sql` applied, Worker `3689b22f`, Pages deploy `6c4da9bc` (privacy and terms), iOS OTA `3dc3d29a`. It has not been exercised with two real accounts on devices yet. Phases 2–4 are not started.
+> **Status (November 23, 2026):** **phase 1 is live** — migration `0009_friends.sql` applied, Worker `3689b22f`, Pages deploy `6c4da9bc` (privacy and terms), iOS OTA `3dc3d29a`. It has not been exercised with two real accounts on devices yet. **Phases 2 (favourites) and 4 (church suggestions) are built and tested but not deployed** — see "Phases 2 and 4 as built". Phase 3 (shared playlists) is not started.
 > Any agent may build it, one phase at a time, with the owner's go-ahead before each live step.
 
 ## What the owner decided
@@ -112,6 +112,15 @@ Per phase, in this order: tests → D1 migration (if any) → Worker deploy → 
 2. `npx wrangler deploy`.
 3. `scripts/deploy-cloudflare.ps1 -AudioBaseUrl "https://audio.himnarioebp.com" -SkipAudioUpload` for the privacy and terms text.
 4. `eas update --branch production --platform ios`.
+
+## Phases 2 and 4 as built
+
+- **Migration `0010_friend_sharing.sql`** adds two columns to `users`: `share_favorites_with_friends` (default 1) and `suggest_to_church_members` (nullable).
+- **Suggestions are stricter than the table above.** `suggest_to_church_members` is `NULL` until the person chooses, and `NULL` follows `show_church_location`. So someone who hides their church is *not* revealed to fellow members unless they turn the switch on. This keeps rule 1 ("nothing becomes more public than today").
+- **Routes:** `GET /friends/suggestions` (same `church_id`, verified, not suspended, not blocked, no existing link; `{ users, hasChurch }`) and `GET /friends/:id/favorites` (accepted friends only; `{ shared, favorites }`; `403 not_friends` for everyone else, whatever the reason). `PUT /auth/profile` accepts `shareFavoritesWithFriends` and `suggestToChurchMembers` (booleans only).
+- **Bug fixed on the way:** `authenticateRequest` in `index.js` never selected `u.church_id`, so any profile save that did not resend `churchId` (changing name, ministry, choir or the visibility switch) wrote `NULL` over the linked church. The card kept saying "Tu iglesia" only because of a name-match fallback. The column is now selected and a test covers it. **Any query that feeds `profile()` or `serializeUser()` must select every column they read.**
+- **App:** `components/FriendsPanel.tsx` shows a friend's favourites when their row is opened (tapping a hymn closes the sheet and opens it), a "De mi iglesia" section, a prompt to choose a church when none is linked, and the two switches under "Privacidad".
+- **Deploy order matters more here:** the Worker now reads the two new columns in every authenticated request, so the migration must be applied **before** the Worker is deployed, or every signed-in request fails.
 
 ## Not in scope
 

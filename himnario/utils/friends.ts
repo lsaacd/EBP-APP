@@ -82,3 +82,40 @@ export function parseFriendLists(payload: unknown): FriendLists {
     outgoing: list(data.outgoing),
   };
 }
+
+// ── Phase 2: a friend's favourite hymns ─────────────────────────────────────
+
+export type FriendFavorites = {
+  /** False when the friend has turned sharing off. */
+  shared: boolean;
+  favorites: string[];
+};
+
+export function parseFriendFavorites(payload: unknown): FriendFavorites {
+  const data = (payload ?? {}) as Record<string, unknown>;
+  const favorites = Array.isArray(data.favorites)
+    ? data.favorites
+        .filter((id) => typeof id === 'string' || typeof id === 'number')
+        .map(String)
+        .filter((id) => id.length > 0 && id.length <= 12)
+    : [];
+  return { shared: data.shared !== false, favorites: data.shared === false ? [] : favorites };
+}
+
+// ── Phase 4: people from the same church ────────────────────────────────────
+
+export type FriendSuggestions = {
+  users: FriendProfile[];
+  /** False when the signed-in person has not linked a verified church. */
+  hasChurch: boolean;
+};
+
+export const EMPTY_SUGGESTIONS: FriendSuggestions = { users: [], hasChurch: true };
+
+export function parseSuggestions(payload: unknown): FriendSuggestions {
+  const data = (payload ?? {}) as Record<string, unknown>;
+  return {
+    users: parseFriendLists({ friends: data.users }).friends,
+    hasChurch: data.hasChurch !== false,
+  };
+}

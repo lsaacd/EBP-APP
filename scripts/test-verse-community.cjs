@@ -1213,3 +1213,148 @@ test("suspended and deleted accounts drop out of friend lists and cannot be aske
   );
   assert.equal((await f.call("/friends", "GET", undefined, a.token)).data.incoming.length, 0);
 });
+
+// ── Friends, phases 2 (favourites) and 4 (church suggestions) ───────────────
+const befriend = async (f, a, b) => {
+  await ask(f, a, b);
+  await f.call(`/friends/requests/${a.id}/accept`, "POST", {}, b.token);
+};
+const saveProfile = (f, who, body) => f.call("/auth/profile", "PUT", body, who.token);
+const setFavorites = (f, who, favorites) =>
+  f.sql
+    .prepare(
+      "INSERT INTO user_data(user_id,favorites_json,playlists_json,recents_json,preferences_json,updated_at) VALUES(?1,?2,'[]','[]','{}',1)",
+    )
+    .run(who.id, typeof favorites === "string" ? favorites : JSON.stringify(favorites));
+
+test("saving another profile field keeps the linked church (it used to be wiped)", async () => {
+  const f = fixture(),
+    a = await f.account({ name: "Ana Ruiz" });
+  const linked = await saveProfile(f, a, { churchId: "church-riverbank-ca", churchName: "Riverbank" });
+  assert.equal(linked.data.user.churchId, "church-riverbank-ca");
+  // A later save that does not mention the church must leave it alone.
+  const renamed = await saveProfile(f, a, { name: "Ana R. Ruiz" });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.data.user.churchId, "church-riverbank-ca");
+  assert.equal(
+    f.sql.prepare("SELECT church_id FROM users WHERE id=?1").get(a.id).church_id,
+    "church-riverbank-ca",
+  );
+  // Unlinking on purpose still works.
+  assert.equal((await saveProfile(f, a, { churchId: null })).data.user.churchId, null);
+});
+
+test("the two sharing switches default safely and only accept booleans", async () => {
+  const f = fixture(),
+    a = await f.account();
+  const start = (await saveProfile(f, a, { name: "Test Person" })).data.user;
+  assert.equal(start.shareFavoritesWithFriends, true);
+  assert.equal(start.suggestToChurchMembers, false); // church hidden → not suggested
+  // Showing the church publicly turns suggestions on until the person says otherwise.
+  assert.equal((await saveProfile(f, a, { showChurchLocation: true })).data.user.suggestToChurchMembers, true);
+  assert.equal((await saveProfile(f, a, { suggestToChurchMembers: false })).data.user.suggestToChurchMembers, false);
+  assert.equal((await saveProfile(f, a, { shareFavoritesWithFriends: false })).data.user.shareFavoritesWithFriends, false);
+  // An explicit choice survives unrelated saves.
+  const later = (await saveProfile(f, a, { name: "Test Person 2" })).data.user;
+  assert.equal(later.suggestToChurchMembers, false);
+  assert.equal(later.shareFavoritesWithFriends, false);
+  assert.equal((await saveProfile(f, a, { shareFavoritesWithFriends: "yes" })).status, 400);
+  assert.equal((await saveProfile(f, a, { suggestToChurchMembers: 1 })).status, 400);
+});
+
+test("only an accepted friend can read favourites, and the owner can switch that off", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account(),
+    stranger = await f.account();
+  setFavorites(f, a, ["7", "315 A", "E12", 42, { evil: true }, "x".repeat(40)]);
+  const read = (who) => f.call(`/friends/${a.id}/favorites`, "GET", undefined, who?.token);
+
+  assert.equal((await read(null)).status, 401);
+  assert.equal((await read(stranger)).status, 403);
+  await ask(f, b, a);
+  assert.equal((await read(b)).status, 403); // pending is not enough
+  await f.call(`/friends/requests/${b.id}/accept`, "POST", {}, a.token);
+
+  const shared = await read(b);
+  assert.equal(shared.status, 200);
+  assert.equal(shared.data.shared, true);
+  assert.deepEqual(shared.data.favorites, ["7", "315 A", "E12", "42"]); // junk dropped
+  assert.equal((await read(stranger)).status, 403);
+  assert.equal((await f.call(`/friends/${a.id}/favorites`, "GET", undefined, a.token)).status, 400);
+
+  await saveProfile(f, a, { shareFavoritesWithFriends: false });
+  const hidden = await read(b);
+  assert.equal(hidden.status, 200);
+  assert.deepEqual(hidden.data, { shared: false, favorites: [] });
+
+  await saveProfile(f, a, { shareFavoritesWithFriends: true });
+  await f.call(`/users/${b.id}/block`, "POST", {}, a.token);
+  assert.equal((await read(b)).status, 403);
+});
+
+test("favourites tolerate a friend with nothing saved or a corrupt record", async () => {
+  const f = fixture(),
+    a = await f.account(),
+    b = await f.account(),
+    c = await f.account();
+  await befriend(f, a, b);
+  await befriend(f, c, b);
+  assert.deepEqual(
+    (await f.call(`/friends/${a.id}/favorites`, "GET", undefined, b.token)).data,
+    { shared: true, favorites: [] },
+  );
+  setFavorites(f, c, "{not json");
+  assert.deepEqual(
+    (await f.call(`/friends/${c.id}/favorites`, "GET", undefined, b.token)).data,
+    { shared: true, favorites: [] },
+  );
+});
+
+test("church suggestions list only people who chose to be found, from the same church", async () => {
+  const f = fixture();
+  const me = await f.account({ name: "Yo" });
+  const member = async (name, church, profile = {}, extra = {}) => {
+    const u = await f.account({ name, ...extra });
+    if (extra.verified !== false)
+      assert.equal(
+        (await saveProfile(f, u, { churchId: church, churchName: "Riverbank", ...profile })).status,
+        200,
+      );
+    else f.sql.prepare("UPDATE users SET church_id=?1,show_church_location=1 WHERE id=?2").run(church, u.id);
+    return u;
+  };
+  const suggest = async () => (await f.call("/friends/suggestions", "GET", undefined, me.token)).data;
+
+  // Without a linked church there is nobody to suggest.
+  assert.deepEqual(await suggest(), { users: [], hasChurch: false });
+  await saveProfile(f, me, { churchId: "church-riverbank-ca", churchName: "Riverbank" });
+
+  const visible = await member("Visible Vera", "church-riverbank-ca", { showChurchLocation: true });
+  await member("Hidden Hugo", "church-riverbank-ca"); // church hidden, never chose
+  const optedIn = await member("Opted Olga", "church-riverbank-ca", { suggestToChurchMembers: true });
+  await member("Optout Omar", "church-riverbank-ca", { showChurchLocation: true, suggestToChurchMembers: false });
+  await member("Other Church", "church-modesto-ca", { showChurchLocation: true });
+  await member("Unverified Uri", "church-riverbank-ca", {}, { verified: false });
+  const suspended = await member("Suspended Sam", "church-riverbank-ca", { showChurchLocation: true });
+  f.sql.prepare("UPDATE users SET suspended_at=1 WHERE id=?1").run(suspended.id);
+  const blocked = await member("Blocked Bea", "church-riverbank-ca", { showChurchLocation: true });
+  await f.call(`/users/${blocked.id}/block`, "POST", {}, me.token);
+  const pending = await member("Pending Pia", "church-riverbank-ca", { showChurchLocation: true });
+  await ask(f, me, pending);
+  const friend = await member("Friend Fito", "church-riverbank-ca", { showChurchLocation: true });
+  await befriend(f, me, friend);
+
+  const first = await suggest();
+  assert.equal(first.hasChurch, true);
+  assert.deepEqual(first.users.map((u) => u.name), ["Opted Olga", "Visible Vera"]);
+  // Someone who opted in but hides their church publicly is listed without it.
+  const olga = first.users.find((u) => u.id === optedIn.id);
+  assert.equal(olga.churchName, null);
+  assert.equal(first.users.find((u) => u.id === visible.id).churchName, "Riverbank");
+
+  // Asking a suggested person takes them off the list.
+  await ask(f, me, visible);
+  assert.deepEqual((await suggest()).users.map((u) => u.name), ["Opted Olga"]);
+  assert.equal((await f.call("/friends/suggestions", "GET")).status, 401);
+});

@@ -66,6 +66,8 @@ function profile(body, user) {
           "churchName",
           "location",
           "showChurchLocation",
+          "shareFavoritesWithFriends",
+          "suggestToChurchMembers",
         ].includes(k),
     )
   )
@@ -115,6 +117,9 @@ function profile(body, user) {
       : body.showChurchLocation
         ? 1
         : 0;
+  for (const key of ["shareFavoritesWithFriends", "suggestToChurchMembers"])
+    if (body[key] !== undefined && typeof body[key] !== "boolean")
+      fail(400, "invalid_profile");
   return {
     name: name.trim(),
     ministry: ministry ?? null,
@@ -123,6 +128,19 @@ function profile(body, user) {
     church_name,
     location,
     show_church_location,
+    share_favorites_with_friends:
+      body.shareFavoritesWithFriends === undefined
+        ? Number(user.share_favorites_with_friends ?? 1)
+        : body.shareFavoritesWithFriends
+          ? 1
+          : 0,
+    // Stays NULL ("follow the public church setting") until the person chooses.
+    suggest_to_church_members:
+      body.suggestToChurchMembers === undefined
+        ? (user.suggest_to_church_members ?? null)
+        : body.suggestToChurchMembers
+          ? 1
+          : 0,
   };
 }
 const initials = (name) =>
@@ -222,7 +240,7 @@ export async function handleCommunity(
     await quota(env, `profile:${user.id}`, 20, 60000);
     const p = profile(await bodyOf(request), user);
     await env.DB.prepare(
-      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
+      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=?8,share_favorites_with_friends=?9,suggest_to_church_members=?10,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1",
     )
       .bind(
         user.id,
@@ -233,6 +251,8 @@ export async function handleCommunity(
         p.location,
         p.show_church_location,
         p.church_id,
+        p.share_favorites_with_friends,
+        p.suggest_to_church_members,
       )
       .run();
     return json({
@@ -673,6 +693,72 @@ export async function handleCommunity(
       .bind(low, high, user.id, now)
       .run();
     return json({ friendStatus: "outgoing" });
+  }
+  // Phase 4: people who linked the same verified church. Only those who chose
+  // to be suggested, or who already show their church publicly.
+  if (path === "/friends/suggestions" && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    if (!user.church_id)
+      return json({ users: [], hasChurch: false }, 200, { "Cache-Control": "private, no-store" });
+    const rows = await all(
+      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+       FROM users u
+       WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
+         AND COALESCE(u.suggest_to_church_members,u.show_church_location)=1
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
+         AND NOT EXISTS(SELECT 1 FROM friendships f WHERE (f.user_low=?1 AND f.user_high=u.id) OR (f.user_high=?1 AND f.user_low=u.id))
+       ORDER BY u.name COLLATE NOCASE ASC LIMIT 20`,
+      user.id,
+      user.church_id,
+    );
+    return json(
+      { users: rows.map((row) => friendSummary(row, false)), hasChurch: true },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
+  // Phase 2: an accepted friend's favourite hymns, if they share them.
+  const friendFavorites = path.match(/^\/friends\/([a-z0-9-]+)\/favorites$/);
+  if (friendFavorites && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const otherId = friendFavorites[1];
+    if (!validId(otherId) || otherId === user.id) fail(400, "invalid_friend");
+    const [low, high] = pairOf(user.id, otherId);
+    const [link, target, blocked] = await Promise.all([
+      env.DB.prepare(
+        "SELECT status FROM friendships WHERE user_low=?1 AND user_high=?2",
+      )
+        .bind(low, high)
+        .first(),
+      env.DB.prepare(
+        "SELECT share_favorites_with_friends,suspended_at FROM users WHERE id=?1",
+      )
+        .bind(otherId)
+        .first(),
+      blockedEitherWay(user.id, otherId),
+    ]);
+    // Anyone who is not an accepted friend gets the same answer, whatever the reason.
+    if (!target || target.suspended_at != null || blocked || link?.status !== "accepted")
+      fail(403, "not_friends");
+    if (target.share_favorites_with_friends === 0)
+      return json({ shared: false, favorites: [] }, 200, { "Cache-Control": "private, no-store" });
+    const data = await env.DB.prepare(
+      "SELECT favorites_json FROM user_data WHERE user_id=?1",
+    )
+      .bind(otherId)
+      .first();
+    let favorites = [];
+    try {
+      const parsed = JSON.parse(data?.favorites_json || "[]");
+      if (Array.isArray(parsed))
+        favorites = parsed
+          .filter((id) => (typeof id === "string" || typeof id === "number") && String(id).length <= 12)
+          .map(String)
+          .slice(0, 1000);
+    } catch {
+      favorites = [];
+    }
+    return json({ shared: true, favorites }, 200, { "Cache-Control": "private, no-store" });
   }
   const friendAccept = path.match(/^\/friends\/requests\/([a-z0-9-]+)\/accept$/);
   if (friendAccept && method === "POST") {

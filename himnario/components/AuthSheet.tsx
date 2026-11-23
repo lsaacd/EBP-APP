@@ -112,7 +112,8 @@ export function AuthSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | null>(null);
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | null>(null);
+  const pendingHymnIdRef = useRef<string | null>(null);
 
   const visible = propVisible !== undefined ? propVisible : authSheetVisible;
   const onClose = propOnClose || closeAuthSheet;
@@ -229,6 +230,10 @@ export function AuthSheet({
       else router.push('/churches?scan=1' as any);
     } else if (nextAction === 'share-app' && onOpenShareApp) {
       onOpenShareApp();
+    } else if (nextAction === 'hymn' && pendingHymnIdRef.current) {
+      const hymnId = pendingHymnIdRef.current;
+      pendingHymnIdRef.current = null;
+      router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
     }
   }, [onChurchesScreen, onClose, onOpenShareApp, router, user?.churchId]);
 
@@ -1625,6 +1630,11 @@ export function AuthSheet({
           <CommunityProfile
             subPage={page}
             onBack={handleBackOrClose}
+            onOpenHymn={(hymnId) => {
+              pendingHymnIdRef.current = hymnId;
+              pendingPostCloseRef.current = 'hymn';
+              animateClose();
+            }}
             onOpenChurchesMap={() => {
               pendingPostCloseRef.current = 'churches';
               animateClose();

@@ -51,11 +51,14 @@ export default function CommunityProfile({
   onOpenSubPage,
   onBack,
   onOpenChurchesMap,
+  onOpenHymn,
 }: {
   subPage?: CommunitySubPage | null;
   onOpenSubPage?: (page: CommunitySubPage) => void;
   onBack?: () => void;
   onOpenChurchesMap?: () => void;
+  /** Close the sheet and open a hymn (from a friend's favourites). */
+  onOpenHymn?: (hymnId: string) => void;
 }) {
   const { user, updateProfile } = useAuth(),
     { theme, isDarkMode } = useTheme(),
@@ -295,7 +298,7 @@ export default function CommunityProfile({
   }
 
   if (subPage === "friends") {
-    return <FriendsPanel />;
+    return <FriendsPanel onOpenHymn={onOpenHymn} onOpenChurchesMap={onOpenChurchesMap} />;
   }
 
   if (subPage === "blocks") {

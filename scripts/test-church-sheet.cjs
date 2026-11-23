@@ -303,3 +303,19 @@ test('"member since" shows month and year in the app language, and nothing for b
   assert.equal(parsed.friends[0].badgeVerified, false); // only a real boolean counts
   assert.equal(parsed.friends[0].ministry, null);
 });
+
+test('friend favourites and church suggestions are read defensively', () => {
+  const { parseFriendFavorites, parseSuggestions } = load('himnario/utils/friends.ts');
+  assert.deepEqual(parseFriendFavorites({ shared: true, favorites: ['7', 315, '315 A', {}, '', 'x'.repeat(20)] }), {
+    shared: true,
+    favorites: ['7', '315', '315 A'],
+  });
+  // Sharing switched off never carries hymns, whatever else the reply says.
+  assert.deepEqual(parseFriendFavorites({ shared: false, favorites: ['7'] }), { shared: false, favorites: [] });
+  assert.deepEqual(parseFriendFavorites(null), { shared: true, favorites: [] });
+
+  assert.deepEqual(parseSuggestions({ users: [], hasChurch: false }), { users: [], hasChurch: false });
+  assert.deepEqual(parseSuggestions(undefined), { users: [], hasChurch: true });
+  const some = parseSuggestions({ users: [{ id: 'u1', name: 'Vera' }, { nope: 1 }], hasChurch: true });
+  assert.deepEqual(some.users.map((u) => u.name), ['Vera']);
+});
