@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 23, 2026 (after iOS Build #33 `1f834da7` on `2.0.0-notif-4`, Worker `c21e262a`, Pages `3cc47454`, and iOS OTA `8d7718d5` with larger SheetGrabber, Church form ActionToast, and `"coritos"` → `"estribillos"`).
+> **Last updated:** November 23, 2026 (after iOS Build #33 `1f834da7` on `2.0.0-notif-4`, D1 `0015_choirs`, Worker `d0008031`, Pages `3cc47454`, and iOS OTA `dc4ca9aa` with `33×12` SheetGrabber, church draft guard, Coro Filadelfia, and choir submissions/moderation).
 
 ## Before you start
 

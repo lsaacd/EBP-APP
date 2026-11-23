@@ -1,5 +1,30 @@
 # App editing
 
+## November 23, 2026 (late night 2) — `33×12` SheetGrabber Standard, Church Draft Guard, Coro Filadelfia & Choir Submissions/Moderation (OTA `dc4ca9aa`)
+
+### What changed (commit `6d5e969`, D1 `0015_choirs.sql`, Worker `d0008031`, iOS OTA `dc4ca9aa-232d-465a-a7a6-890babd35f38`)
+1. **Standardized `33×12` `SheetGrabber` Pill (`himnario/components/SheetGrabber.tsx`, `TextSizeSheet.tsx`):**
+   - Set the shared floating pill across all bottom sheets to **`width: 33, height: 12, borderRadius: 999`**, `SHEET_GRABBER_CLEARANCE = 24`, and removed the leftover duplicate inner grabber from `TextSizeSheet.tsx`.
+2. **Unsaved-Draft Confirmation on Church Add/Edit Sheet (`himnario/utils/churchDraft.ts`, `himnario/app/churches.tsx`):**
+   - Added pure `hasUnsavedChurchDraft()` check (detects any non-default input on new church, or any field/photo change vs. initial snapshot when editing an existing church).
+   - Intercepts `X`, backdrop tap, swipe-down, and back press with a native discard dialog (`¿Descartar borrador?` / `Discard draft?`), while allowing clean instant close when empty/unchanged or after successful submission.
+3. **Coro Filadelfia + User Choir Submissions & Admin Moderation (`migrations/0015_choirs.sql`, `workers/ebp-auth-sync/community.js`, `communityRules.js`, `utils/choirsStore.ts`, `CommunityProfile.tsx`, `CommunityModeration.tsx`, `ChoirRepertoire.tsx`, `AuthSheet.tsx`, `FriendsPanel.tsx`, `VerseDiscussionSheet.tsx`):**
+   - Added D1 `choirs` table seeded with **Coro Esmirna**, **Coro Maranatha**, and **Coro Filadelfia**, and relaxed the legacy 2-choir `CHECK` on `choir_repertoires` so Filadelfia and any approved custom choir support pinned repertoires.
+   - Added Worker routes `GET /choirs`, `POST /choirs/submit` (pending for verified members, immediate approval for admin), `GET /mod/choirs`, `POST /mod/choirs/:slug/approve`, `POST /mod/choirs/:slug/reject`, and `DELETE /mod/choirs/:slug`.
+   - Upgraded **Account → Coro** (`CommunityProfile.tsx`) with dynamic approved choirs, a **Suggest / Add Choir** bottom sheet using `33×12` `SheetGrabber`, inset-grouped `AnimatedField` inputs, unsaved-draft guard, and `ActionToast`.
+   - Upgraded **Moderation → Coros** (`CommunityModeration.tsx`) with live pending count badge (`Coros (N)`), editable `AnimatedField` Spanish/English names + Approve/Reject actions, and `AnimatedField` repertoire inputs across all approved choirs.
+
+### Published live IDs
+- **D1 (`ebp-himnario-db`):** Migration `0015_choirs.sql` applied remotely.
+- **Worker (`ebp-himnario-sync`):** Version `d0008031-4669-4541-bd68-55f7e6ee3770` (`/health` = `200`, `/choirs` = `200` with Esmirna, Maranatha, Filadelfia).
+- **iOS OTA (`production`, runtime `2.0.0-notif-4`):** Group `dc4ca9aa-232d-465a-a7a6-890babd35f38`, iOS update `01a207a2-2cc6-7b50-b035-988586dc8596`.
+
+### Verification & not verified
+- Verified: `tsc --noEmit` clean, all 11 Node suites pass (`test-verse-community.cjs` 35/35, `test-church-sheet.cjs` 24/24, `test-verse-discussion.cjs` 18/18), `test-web-search.js`, `audit-secrets.py` (0 findings across 3,341 files), live Worker `/health` and `/choirs` return 200.
+- Not verified on physical hardware: test the `33×12` pill across sheets, Church draft-discard popup, Coro Filadelfia selection, Suggest Choir modal, and Moderation → Coros approval flow on TestFlight Build #33 after pulling OTA `dc4ca9aa`.
+
+---
+
 ## November 23, 2026 (late night) — Bigger SheetGrabber, Church Form ActionToast & “Coritos” → “Estribillos” (OTA `8d7718d5`)
 
 ### What changed (commit `07de4a3`, Pages `3cc47454`, iOS OTA `8d7718d5-7db4-43c2-88db-b7fc0639bc6d`)

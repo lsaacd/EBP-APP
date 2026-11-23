@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 23, 2026 (after iOS Build #33 `1f834da7`, Worker `c21e262a`, Pages `3cc47454`, and iOS OTA `8d7718d5` on `2.0.0-notif-4`)
+> **Last Updated:** November 23, 2026 (after iOS Build #33 `1f834da7`, D1 `0015_choirs`, Worker `d0008031`, Pages `3cc47454`, and iOS OTA `dc4ca9aa` on `2.0.0-notif-4`)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-notif-4"` (iOS Build #33 finished & auto-submitted; latest OTA `8d7718d5`; Builds #30 and #31 remain on `2.0.0-media-3`)
+> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-notif-4"` (iOS Build #33 finished & auto-submitted; latest OTA `dc4ca9aa`; Builds #30 and #31 remain on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
@@ -25,12 +25,12 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 
 - **iOS Native Production Build #33 (`2.0.0`, runtime `2.0.0-notif-4`):**
   - EAS Build: `1f834da7-0481-4481-b29a-8464a531f880` (finished & auto-submitted to TestFlight / App Store Connect with Push Notifications + APNs Push Key synced; Build #32 `448311eb` errored at fastlane with 0 credits charged). Adds `expo-notifications`, `expo-device`, Notifications Phase 1 (in-app inbox) & Phase 2 (Expo Push lock-screen alerts), and 127 consecutive daily verses.
-  - Latest iOS OTA on `2.0.0-notif-4`: Group `8d7718d5-7db4-43c2-88db-b7fc0639bc6d` (iOS update `01a2078d-b263-7a2a-adf3-904d5004df73`, commit `07de4a3`) — bigger `SheetGrabber` pill (`64×7`), auto-dismissing `ActionToast` feedback on Church pin/photo updates, and `"coritos"` → `"estribillos"` rename (builds on `6382c472` animated forms & 8-char password minimum).
+  - Latest iOS OTA on `2.0.0-notif-4`: Group `dc4ca9aa-232d-465a-a7a6-890babd35f38` (iOS update `01a207a2-2cc6-7b50-b035-988586dc8596`, commit `6d5e969`) — standardized `33×12` `SheetGrabber` pill, church unsaved-draft confirmation, built-in **Coro Filadelfia**, and member choir submissions + admin moderation using `AnimatedField` & `ActionToast` (builds on `8d7718d5` and `6382c472`).
   - Builds #30 (`b6501dac`) and #31 (`2105a538`) remain on `2.0.0-media-3` (latest OTA `369019dc-4640-4979-a539-7295465e3e38`).
   - Apple warning **ITMS-90725** (built with iOS 26 SDK; Xcode 27 required from April 2027) still applies until the SDK 58 upgrade.
 - **Android Native Status:** Last built Android APK (`45c31c43`) is still on older runtime `2.0.0-securestore-1` and has none of the November work. It needs a fresh `eas build --platform android --profile preview-arm64` (or `production` `.aab`), plus Firebase FCM v1 credentials for Android lock-screen pushes.
-- **Cloudflare Worker (`ebp-himnario-sync`):** Version `c21e262a-d339-4407-a061-70dec6c94b51` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; lowers minimum password length from 12 to 8 on register and recovery, building on `79656977` Notifications Phase 1 & 2 + Expo Push delivery). **Always deploy migrations before Workers.**
-- **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0014` applied live (November 23: `0009`–`0012` plus `0013_notifications.sql` and `0014_push_tokens.sql`). One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title).
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `d0008031-4669-4541-bd68-55f7e6ee3770` at `https://ebp-himnario-sync.himnario.workers.dev` (deployed November 23; adds `GET /choirs`, `POST /choirs/submit`, `/mod/choirs/*`, Coro Filadelfia, and approved-choir repertoire; builds on `c21e262a` 8-char passwords and `79656977` Notifications Phase 1 & 2). **Always deploy migrations before Workers.**
+- **Cloudflare D1 (`ebp-himnario-db`, ID `ed683396-bfd7-43ff-b69e-f82cf4621c55`):** Migrations `0002`–`0015` applied live (November 23: `0009`–`0015_choirs.sql`). One data edit on November 22: `church-riverbank-ca.pastor_name` changed from `Co-Pastor Azael Tapia` to `Hno Azael Tapia` (the app adds the `SDD` title).
 - **Cloudflare R2 (`ebp-himnario-audio` → `https://audio.himnarioebp.com/`):** Hosts hymn `.m4a` audio, `verse-backgrounds/{1,2}.png`, `hymn-covers/*.png`, and `church-photos/` (`riverbank-ca-{1,2}.jpg` + user uploads under `church-photos/uploads/<uuid>.<ext>`).
 - **Cloudflare Pages (`ebp-himnario` → `https://himnarioebp.com/`):** Deploy `3cc47454.ebp-himnario.pages.dev` (November 23, from commit `07de4a3`: `"coritos"` → `"estribillos"` across website + regenerated hymn pages, building on `1b9a25e1` 8-char account reset page and `466a89e2` privacy notifications update). Stage `docs/` excluding `docs/audio/`, write `js/storage-config.js`, and deploy directly with Wrangler OAuth (`--commit-dirty=true`).
 
