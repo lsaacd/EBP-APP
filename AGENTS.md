@@ -19,6 +19,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 - **Text:** user-facing strings go in `himnario/context/LanguageContext.tsx` (both `es` and `en`) and are read as `t.key`. Do not add inline `es ? '…' : '…'` strings.
 - **Church names** are displayed through `churchDisplayName()` and leaders through `servantDisplayName()` (`himnario/utils/churchName.ts`): "Riverbank", "SDD Hno Azael Tapia". Do not print `church.name` or `pastorName` directly.
 - **Service times** are stored as one text field in the format `utils/churchSchedule.ts` parses. Write them with `serializeSchedule()`; do not invent another format.
+- **`docs/` is the live website, not a documents folder.** Everything in it is served publicly at `himnarioebp.com` (and by a GitHub Pages copy). Internal notes, plans and handoffs belong in `guides/` at the repository root. The repository itself is public, so treat anything committed anywhere as readable by anyone.
 - **Never call `ScreenOrientation.lockAsync` / `unlockAsync` on iOS**, keep all three `patch-package` patches, and never run `eas submit` after `--auto-submit`.
 - **Ask the owner before** `eas update`, any `production` build, any Cloudflare deploy, or any change to the live database. Say what you published afterwards, with its ID, and record it in [EAS.md](EAS.md).
 

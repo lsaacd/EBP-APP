@@ -12,7 +12,8 @@
 | `himnario/` | Expo SDK 54 / React Native 0.81 / Expo Router / TypeScript mobile app (iOS & Android) |
 | `himnario/modules/apple-look-around/` | Local Swift Expo module presenting iOS 16+ `MKLookAroundViewController` directly (autolinked via `himnario/package.json`) |
 | `workers/ebp-auth-sync/` | Cloudflare Worker (`ebp-himnario-sync`) + D1 (`ebp-himnario-db`) + R2 (`env.MEDIA_BUCKET` → `ebp-himnario-audio`) + Email Sending (`env.EMAIL`) |
-| `docs/` | Static companion website (`https://himnarioebp.com/`), deployed to Cloudflare Pages (`ebp-himnario`), including bilingual `privacy.html`, `terms.html`, `account.html`, `feedback.html` |
+| `docs/` | Static companion website (`https://himnarioebp.com/`), deployed to Cloudflare Pages (`ebp-himnario`), including bilingual `privacy.html`, `terms.html`, `account.html`, `feedback.html`. **Everything here is served publicly** — put internal notes in `guides/`, never here |
+| `guides/` | Internal handoff notes and plans (not published). Moved out of `docs/guides/` on November 22, 2026 because the website was serving them |
 | `scripts/` | 11 Node regression test suites (`test-*.cjs` + `test-web-search.js`), hymn page generators (`extract-hymns.js`, `generate-hymn-pages.js`), and Cloudflare Pages deploy script |
 | `.github/workflows/ci.yml` | Runs the type check and all test suites on pushes to `main` / `app-web-parity` and on pull requests |
 
@@ -48,7 +49,8 @@ For deep architecture and release records, see [ARCHITECTURE.md](ARCHITECTURE.md
 9. **Do Not Point SDK 54 at an Xcode 27 Build Image:** Leave `image` unset in `himnario/eas.json`. Apps built with Xcode 27 only launch on iOS 27 with UIKit scene support, which SDK 54 lacks. The fix is the SDK upgrade in [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md), on its own branch with a new `runtimeVersion`.
 10. **Fonts Are Native System Fonts:** Use the tokens in `himnario/theme/fonts.ts` by spreading them (`{ ...fonts.bold, fontSize: 20 }`). Never write a raw `fontFamily` name and never bundle Apple font files (`ITMS-91182`).
 11. **Strings Live in the String Table:** User-facing text goes in `himnario/context/LanguageContext.tsx` in both `es` and `en`, read as `t.key`. Avoid new inline `es ? '…' : '…'` pairs.
-12. **Church Wording:** Show church names with `churchDisplayName()` ("Riverbank", not "IDDV El Buen Pastor — Riverbank") and leaders with `servantDisplayName()` ("SDD Hno Azael Tapia"; no Pastor / Co-Pastor). Say "Esta es mi iglesia", not "Vincular".
+12. **The Repository Is Public:** `https://github.com/lsaacd/EBP-APP` is public, so every committed file and the whole git history can be read by anyone. Never commit a key, token or password (`.gitignore` already excludes `credentials.json`, `token.json`, `.env.cloudflare`). `docs/` is the live website: internal notes go in `guides/` at the repository root, which is not published. Known exposure as of November 22, 2026: the administrator's personal email appears throughout the repository, including `ADMIN_EMAIL` in `workers/ebp-auth-sync/community.js`; see open task 5.
+13. **Church Wording:** Show church names with `churchDisplayName()` ("Riverbank", not "IDDV El Buen Pastor — Riverbank") and leaders with `servantDisplayName()` ("SDD Hno Azael Tapia"; no Pastor / Co-Pastor). Say "Esta es mi iglesia", not "Vincular".
 
 ---
 
