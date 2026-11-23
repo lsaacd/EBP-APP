@@ -218,3 +218,25 @@ test("a hymn's web QR link is also one the app's scanner opens as that hymn", ()
   assert.equal(scanHymn(hymnUrl('315 A')), '315 A');
   assert.equal(scanHymn(hymnUrl('E12')), 'E12');
 });
+
+test('distances show miles and kilometres together', () => {
+  const { formatDistance } = load('himnario/utils/churchMapUtils.ts');
+  assert.equal(formatDistance(38), '38 mi (61 km)');
+  assert.equal(formatDistance(3.2), '3.2 mi (5.1 km)');
+  assert.equal(formatDistance(7), '7.0 mi (11 km)');
+  assert.equal(formatDistance(0.05), '< 0.2 mi (< 0.3 km)');
+});
+
+test('"near me" picks the closest church, including across the date line', () => {
+  const { nearestIndex } = load('himnario/utils/churchMapUtils.ts');
+  const merced = { lat: 37.33, lng: -120.46 };
+  const churches = [
+    { lat: 19.43, lng: -99.13 },   // Mexico City
+    { lat: 37.7361, lng: -120.9387 }, // Riverbank
+    { lat: 34.05, lng: -118.24 },  // Los Angeles
+  ];
+  assert.equal(nearestIndex(merced, churches), 1);
+  assert.equal(nearestIndex(merced, []), -1);
+  assert.equal(nearestIndex(merced, [churches[0]]), 0);
+  assert.equal(nearestIndex({ lat: 0, lng: 179.5 }, [{ lat: 0, lng: 170 }, { lat: 0, lng: -179.5 }]), 1);
+});

@@ -48,6 +48,37 @@ export function churchShareUrl(id: string): string {
   return `https://himnarioebp.com/churches?id=${encodeURIComponent(id)}`;
 }
 
+/**
+ * Distances are shown in both units, miles first: the directory spans the
+ * United States and Latin America, and many members think in one or the other.
+ * "38 mi (61 km)".
+ */
+export function formatDistance(miles: number): string {
+  const km = miles * 1.60934;
+  if (miles < 0.2) return "< 0.2 mi (< 0.3 km)";
+  const one = (value: number) => (value < 10 ? value.toFixed(1) : String(Math.round(value)));
+  return `${one(miles)} mi (${one(km)} km)`;
+}
+
+/** Index of the point nearest to `from`, or -1 for an empty list. */
+export function nearestIndex(from: LatLngPoint, points: LatLngPoint[]): number {
+  let best = -1;
+  let bestScore = Infinity;
+  const cosLat = Math.cos((from.lat * Math.PI) / 180);
+  for (let i = 0; i < points.length; i++) {
+    // Equirectangular approximation: enough to rank by distance.
+    const dLat = points[i].lat - from.lat;
+    let dLng = Math.abs(points[i].lng - from.lng);
+    if (dLng > 180) dLng = 360 - dLng;
+    const score = dLat * dLat + dLng * cosLat * (dLng * cosLat);
+    if (score < bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  }
+  return best;
+}
+
 export function parseCoordsOrMapsInput(raw: string): LatLngPoint | null {
   if (typeof raw !== "string") return null;
   let text = raw.trim();

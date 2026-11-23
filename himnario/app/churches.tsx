@@ -56,6 +56,8 @@ import { churchDisplayName, servantDisplayName } from "../utils/churchName";
 import {
   buildChurchMapPins,
   parseCoordsOrMapsInput,
+  formatDistance,
+  nearestIndex,
   type MapViewportRegion,
 } from "../utils/churchMapUtils";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
@@ -126,16 +128,6 @@ function haversineMiles(
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
-}
-
-function formatDistance(miles: number, es: boolean): string {
-  if (es) {
-    const km = miles * 1.60934;
-    if (km < 1) return "< 1 km";
-    return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
-  }
-  if (miles < 0.2) return "< 0.2 mi";
-  return miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
 }
 
 export default function ChurchesScreen() {
@@ -407,15 +399,35 @@ export default function ChurchesScreen() {
         };
         setUserCoords(coords);
         if (focusMap && mapRef.current) {
-          mapRef.current.animateToRegion(
-            {
-              latitude: coords.lat,
-              longitude: coords.lng,
-              latitudeDelta: 0.35,
-              longitudeDelta: 0.35,
-            },
-            550,
-          );
+          // "Near me" answers "which church is closest?": frame the user and
+          // the nearest church together and open that church's card.
+          const nearest = churches[nearestIndex(coords, churches)];
+          if (nearest) {
+            listSnapBeforeDetailRef.current = 0;
+            setSelectedChurch(nearest);
+            setCarouselIndex(0);
+            setSnapIndex(1);
+            mapRef.current.fitToCoordinates(
+              [
+                { latitude: coords.lat, longitude: coords.lng },
+                { latitude: nearest.lat, longitude: nearest.lng },
+              ],
+              {
+                edgePadding: { top: 70, right: 60, bottom: 70, left: 60 },
+                animated: true,
+              },
+            );
+          } else {
+            mapRef.current.animateToRegion(
+              {
+                latitude: coords.lat,
+                longitude: coords.lng,
+                latitudeDelta: 0.35,
+                longitudeDelta: 0.35,
+              },
+              550,
+            );
+          }
         }
       } catch {
         setLocationDenied(true);
@@ -423,7 +435,7 @@ export default function ChurchesScreen() {
         setLocating(false);
       }
     },
-    [],
+    [churches],
   );
 
   // Silently check existing location permission on mount (without prompting)
@@ -1209,8 +1221,8 @@ export default function ChurchesScreen() {
         : t.churchElBuenPastorDirectory
       : closestChurch && closestChurch.distanceMiles !== null && !search.trim()
         ? es
-          ? `Más cercana: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles, es)}`
-          : `Closest: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles, es)}`
+          ? `Más cercana: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles)}`
+          : `Closest: ${closestChurch.city} · ${formatDistance(closestChurch.distanceMiles)}`
         : es
           ? `${enrichedChurches.length} ${enrichedChurches.length === 1 ? "iglesia verificada" : "iglesias verificadas"}`
           : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
@@ -1837,7 +1849,7 @@ export default function ChurchesScreen() {
                           fontSize: 12.5,
                         }}
                       >
-                        {formatDistance(selectedDistance, es)}
+                        {formatDistance(selectedDistance)}
                       </Text>
                     )}
                     {!!selectedChurch.pastorName && (
@@ -2625,7 +2637,7 @@ export default function ChurchesScreen() {
                               fontSize: 12,
                             }}
                           >
-                            {formatDistance(church.distanceMiles, es)}
+                            {formatDistance(church.distanceMiles)}
                           </Text>
                         )}
                       </View>
