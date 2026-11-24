@@ -1,8 +1,10 @@
-import { Platform, type ImageSourcePropType } from "react-native";
+import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const DEFAULT_HYMNAL_COVER: ImageSourcePropType = require("../assets/images/hymnal-leather-cover.jpg");
+export type HymnCoverImageSource = { uri: string } | number;
+
+export const DEFAULT_HYMNAL_COVER: HymnCoverImageSource = require("../assets/images/hymnal-leather-cover.jpg");
 
 export const HYMN_COVER_BASE_URL =
   "https://audio.himnarioebp.com/hymn-covers/";
@@ -12,7 +14,7 @@ export type HymnCoverPreset = {
   label: { es: string; en: string };
   remoteUrl: string | null;
   approxBytes?: number;
-  bundledSource: ImageSourcePropType | null;
+  bundledSource: HymnCoverImageSource | null;
   is3D?: boolean;
 };
 
@@ -284,7 +286,7 @@ export async function clearAllOfflineHymnCovers(): Promise<void> {
 export function resolveActiveHymnCover(
   coverState: HymnCoverState,
   failedId?: string | null,
-): { preset: HymnCoverPreset; source: ImageSourcePropType } {
+): { preset: HymnCoverPreset; source: HymnCoverImageSource } {
   const preset =
     HYMN_COVERS.find((c) => c.id === coverState.selectedId) ?? HYMN_COVERS[0];
   if (preset.bundledSource) {

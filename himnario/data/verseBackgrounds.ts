@@ -1,5 +1,7 @@
-import { Platform, type ImageSourcePropType } from "react-native";
+import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
+
+export type VerseImageSource = { uri: string } | number;
 
 export type VerseTextTone = "light" | "dark";
 export type VerseTextColorMode = "auto" | "light" | "dark";
@@ -13,7 +15,7 @@ export type VerseBackgroundPreset = {
   /** Approximate size in bytes for download UI badges. */
   approxBytes?: number;
   /** Optional bundled source if ever needed. */
-  source: ImageSourcePropType | null;
+  source: VerseImageSource | null;
   /** Recommended text tone ('dark' = black text for bright photos, 'light' = white text for dark photos/gradients). */
   defaultTextTone: VerseTextTone;
   fallbackColors: [string, string, string];
@@ -296,7 +298,7 @@ export async function clearAllOfflineVerseBackgrounds(): Promise<void> {
 export function resolveVerseBackgroundSource(
   preset: VerseBackgroundPreset,
   offlineSnapshot: VerseBgOfflineState,
-): ImageSourcePropType | null {
+): VerseImageSource | null {
   if (!preset.remoteUrl) return preset.source;
   const localUri = offlineSnapshot.localUris[preset.id];
   if (localUri) return { uri: localUri };

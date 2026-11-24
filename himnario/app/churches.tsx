@@ -253,11 +253,11 @@ export default function ChurchesScreen() {
   const formToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPastedCoordsRef = useRef("");
   const initialEditSnapshotRef = useRef<ChurchFormSnapshot | null>(null);
-  const formAddressRef = useRef<TextInput>(null);
-  const formCityRef = useRef<TextInput>(null);
-  const formStateRef = useRef<TextInput>(null);
-  const formCountryRef = useRef<TextInput>(null);
-  const formPostalRef = useRef<TextInput>(null);
+  const formAddressRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const formCityRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const formStateRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const formCountryRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const formPostalRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const showFormToast = useCallback(
     (title: string, subtitle?: string, icon: ActionToastMessage["icon"] = "check") => {

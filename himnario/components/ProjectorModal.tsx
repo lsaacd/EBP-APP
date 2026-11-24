@@ -101,7 +101,7 @@ export default function ProjectorModal({
 
   // Track window dimension changes when rotating phone
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
+    const sub = Dimensions.addEventListener('change', ({ window }: { window: ReturnType<typeof Dimensions.get> }) => {
       setWindowDims(window);
       // If native OS rotated the window into landscape, clear manual transform fallback
       if (window.width > window.height) {

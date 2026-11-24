@@ -1,22 +1,22 @@
 diff --git a/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm b/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
-index 658ec6b..a066333 100644
+index 41150ac..50be1ff 100644
 --- a/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
 +++ b/node_modules/react-native/React/CoreModules/RCTActionSheetManager.mm
-@@ -235,7 +235,8 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions
+@@ -254,7 +254,8 @@ RCT_EXPORT_MODULE()
    UIColor *tintColor = [RCTConvert UIColor:options.tintColor() ? @(*options.tintColor()) : nil];
  
    dispatch_async(dispatch_get_main_queue(), ^{
--    if (message) {
-+    BOOL urlIsAttachment = URL && (URL.isFileURL || [URL.scheme.lowercaseString isEqualToString:@"data"]);
-+    if (message && !urlIsAttachment) {
+-    if (message != nullptr) {
++    BOOL urlIsAttachment = URL != nullptr && (URL.isFileURL || [URL.scheme.lowercaseString isEqualToString:@"data"]);
++    if (message != nullptr && !urlIsAttachment) {
        [items addObject:message];
      }
-     if (URL) {
-@@ -251,6 +252,9 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions
+     if (URL != nullptr) {
+@@ -270,6 +271,9 @@ RCT_EXPORT_MODULE()
          [items addObject:URL];
        }
      }
-+    if (message && urlIsAttachment) {
++    if (message != nullptr && urlIsAttachment) {
 +      [items addObject:message];
 +    }
      if (items.count == 0) {

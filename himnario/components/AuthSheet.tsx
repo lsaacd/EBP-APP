@@ -153,9 +153,9 @@ export function AuthSheet({
   const [linkError, setLinkError] = useState(false);
 
   // Refs & Reanimated values for AuthSheet fields, sliding pill, and error shake
-  const nameInputRef = useRef<TextInput>(null);
-  const emailInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
+  const nameInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const emailInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const passwordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [segmentTrackWidth, setSegmentTrackWidth] = useState(0);
   const segmentProgress = useSharedValue(0);
   const formShakeX = useSharedValue(0);

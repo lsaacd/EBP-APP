@@ -166,11 +166,11 @@ export default function HymnListScreen() {
 
   const flatListRef = useRef<any>(null);
   const indiceListRef = useRef<any>(null);
-  const searchRef = useRef<TextInput>(null);
-  const chipsScrollRef = useRef<ScrollView>(null);
-  const overlayChipsScrollRef = useRef<ScrollView>(null);
-  const sliderTrackRef = useRef<View>(null);
-  const sidebarTrackRef = useRef<View>(null);
+  const searchRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const chipsScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const overlayChipsScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const sliderTrackRef = useRef<React.ComponentRef<typeof View>>(null);
+  const sidebarTrackRef = useRef<React.ComponentRef<typeof View>>(null);
   const { currentHymnId } = useNowPlaying();
   const [isFocused, setIsFocused] = useState(false);
   const blurAnim = useRef(new Animated.Value(0)).current;

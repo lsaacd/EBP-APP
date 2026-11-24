@@ -42,7 +42,9 @@ export interface AnimatedFieldProps extends Omit<TextInputProps, 'style'> {
 const FLOAT_SPRING = { damping: 22, stiffness: 300, mass: 0.75 };
 const ERROR_COLOR = '#D64545';
 
-export const AnimatedField = forwardRef<TextInput, AnimatedFieldProps>(function AnimatedField(
+type TextInputHandle = React.ComponentRef<typeof TextInput>;
+
+export const AnimatedField = forwardRef<TextInputHandle, AnimatedFieldProps>(function AnimatedField(
   {
     label,
     value,
@@ -62,10 +64,10 @@ export const AnimatedField = forwardRef<TextInput, AnimatedFieldProps>(function 
   forwardedRef,
 ) {
   const { theme, isDarkMode } = useTheme();
-  const innerRef = useRef<TextInput>(null);
+  const innerRef = useRef<TextInputHandle>(null);
   const [focused, setFocused] = useState(false);
 
-  useImperativeHandle(forwardedRef, () => innerRef.current as TextInput);
+  useImperativeHandle(forwardedRef, () => innerRef.current as TextInputHandle);
 
   const hasValue = value.length > 0;
   const shouldFloat = focused || hasValue;

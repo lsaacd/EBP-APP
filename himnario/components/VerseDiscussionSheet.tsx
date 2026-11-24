@@ -186,7 +186,7 @@ export default function VerseDiscussionSheet({
   const [loadFailed, setLoadFailed] = useState(false);
   const authorFetchSeq = useRef(0);
   const router = useRouter();
-  const input = useRef<TextInput>(null);
+  const input = useRef<React.ComponentRef<typeof TextInput>>(null);
   const authAfterDismiss = useRef(false);
   const memberAfterDismiss = useRef<string | null>(null);
   const requestSignIn = () => {

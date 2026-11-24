@@ -126,7 +126,7 @@ export default function FavoritesScreen() {
   const [playlistSort, setPlaylistSort] = useState<PlaylistSort>('recent');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   // Create Playlist sheet state
   const [createOpen, setCreateOpen] = useState(false);

@@ -1,7 +1,7 @@
 /** Main tabs: continuous adjacent-scene paging with platform-specific bar artwork. */
 import { fonts } from '../../theme/theme';
 import React from 'react';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import {
   View,
   Text,

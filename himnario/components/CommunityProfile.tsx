@@ -105,8 +105,8 @@ export default function CommunityProfile({
   const [savingChoirEdit, setSavingChoirEdit] = useState(false);
   const [choirToast, setChoirToast] = useState<ActionToastMessage | null>(null);
   const choirToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const choirNameEnRef = useRef<TextInput>(null);
-  const choirContextRef = useRef<TextInput>(null);
+  const choirNameEnRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const choirContextRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const showChoirToast = useCallback(
     (title: string, subtitle?: string) => {
