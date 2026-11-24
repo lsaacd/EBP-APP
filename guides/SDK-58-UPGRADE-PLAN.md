@@ -1,7 +1,7 @@
 # Expo SDK 58 / Xcode 27 upgrade — deferred task
 
-> **Status (November 22, 2026):** not started. Deferred by the owner. Nothing is broken today.
-> **Deadline:** April 2027. **Suggested window:** January–February 2027, after the churches work has settled.
+> **Status (November 24, 2026):** **iOS SDK 58 / Xcode 27.1 Build `#38` (`4ce09aa6`, `2.1.0-sdk58-1`) FINISHED & auto-submitted to TestFlight** on the `sdk-58` branch (`825db8d`). Physical iPhone TestFlight verification and the matching Android `2.1.0-sdk58-1` rebuild remain before merging `sdk-58` into `main` / `app-web-parity`.
+> **Deadline:** April 2027.
 > Any agent (Claude, Codex, Antigravity) may pick this up. Read this whole file first.
 
 ## Why this exists

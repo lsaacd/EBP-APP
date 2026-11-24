@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 24, 2026 — Expo SDK 58 / Xcode 27.1 iOS TestFlight Build #38 (`sdk-58` branch, `runtimeVersion: "2.1.0-sdk58-1"`)
+
+- **Branch & Source:** `sdk-58` branch (commit `825db8d`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until TestFlight sign-off).
+- **iOS `production`, Build #38 (`2.1.0 (38)`) — FINISHED on Xcode 27.1 and auto-submitted to App Store Connect / TestFlight:**
+  - **EAS Build:** [`4ce09aa6-912c-4a24-ad8f-0d3ea3cceb2f`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/4ce09aa6-912c-4a24-ad8f-0d3ea3cceb2f)
+  - **Build Image:** `macos-tahoe-26.6-xcode-27.1-sdk-58` (**Xcode 27.1 / `27A9275`**, `iPhoneOS27.1.sdk`)
+  - **IPA Artifact:** `https://expo.dev/artifacts/eas/tQT9Ly5nF2J_ASLMnBFP-LccfIXMzlf42XiHqVPoOG4.ipa`
+  - **Auto-Submission:** [`5d21d55f-83d0-44b2-af8b-28c2f5b3a4be`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/5d21d55f-83d0-44b2-af8b-28c2f5b3a4be) *(do **not** run manual `eas submit`)*
+  - **Prior failed SDK 58 attempts on `sdk-58`:** Build `#36` (`15fc7322`, stopped in `npm ci` due to unused `sharp` devDependency compiling against VM `libvips`, fixed in `922407d`) and Build `#37` (`929e2271`, stopped on `@react-native-menu/menu` `#import "RCTBridge.h"`, fixed in `825db8d` with `patches/@react-native-menu+menu+2.0.0.patch`).
+  - **Stack:** Expo SDK 58 (`expo@^58.0.26`), React Native `0.88.1`, React `19.3.0`, Reanimated `4.7.1`, Gesture Handler `~3.3.0`, `react-native-screens@~4.30.1`, `expo-router/native-tabs` (stable), UIKit `SceneDelegate` lifecycle, `AppleLookAround` Swift module, `react-native-track-player@4.1.2` (compiled cleanly on Xcode 27.1).
+  - **Active patches (3):** `@react-native-menu+menu+2.0.0.patch`, `react-native+0.88.1.patch`, `react-native-track-player+4.1.2.patch` (`react-native-screens+4.16.0.patch` retired after upstream `4.30.1` tabs rewrite).
+  - **Verification:** `tsc --noEmit` 0 errors, `196/196` Node tests + `761` search checks passed, `expo lint` 0 errors, iOS (`8.1 MB`) & Android (`8.2 MB`) Hermes exports clean, `expo-doctor` 19/20 (expected directory metadata for `react-native-track-player` & local `apple-look-around`). Physical iPhone TestFlight checklist and Android `2.1.0-sdk58-1` rebuild pending.
+
 ## November 24, 2026 — Swipe-down Home doctrine sheet & editorial cards (released)
 
 Source `b3581eb`. iOS production OTA group [3a5900b7-2500-454a-94a1-f4b5dffd1c8f](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3a5900b7-2500-454a-94a1-f4b5dffd1c8f), iOS update `01a20ede-44ad-7b54-af63-cbfd1fdf7d81`, runtime `2.0.0-release-5` for Build #34. Upgraded the Home **Nombre, Lema, Fundamento y Finalidad** modal in `himnario/app/(tabs)/home.tsx` to a Glorify-style swipe-down Reanimated bottom sheet (draggable from backdrop, floating grabber, or sticky header), redesigned its content into a Scripture callout card + 4 structured icon-badged editorial cards with a Liquid Glass `X` button, and localized Home Recently Viewed hymn titles when App Language is English. TypeScript (`tsc --noEmit`), `expo lint` (0 errors, 0 warnings in `home.tsx`), `git diff --check`, and iOS Hermes export passed. Physical iOS swipe verification pending.
