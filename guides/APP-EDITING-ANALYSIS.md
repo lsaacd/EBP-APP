@@ -1,8 +1,8 @@
 # App editing
 
-## November 24, 2026 — Sign-out navigation (local)
+## November 24, 2026 — Profile navigation and sign-out (released)
 
-Signing out closes the account sheet and returns to Home. The root navigator removes My Profile from history when the session ends. Its spinner appears only while auth is loading. Physical checks pending on iOS include repeated profile visits, opening a profile link while signed out, and offline logout. No OTA published for this fix.
+Source `8ed9f84`. iOS production OTA group [7c22b4d8-75cd-4d1c-9cb0-0ff211130233](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/7c22b4d8-75cd-4d1c-9cb0-0ff211130233), iOS update `01a20ed7-e20b-79a0-82a6-4e60f1dcdbc1`, runtime `2.0.0-release-5` for Build #34. Profile sections use native stack entries. Member browsing replaces the current member, tapping oneself returns to the overview, and returning from a verse author reopens the discussion. Sign-out closes the account sheet and clears profile history. TypeScript, 196 tests, search checks and iOS export passed. Physical iOS swipe, notification and offline sign-out checks pending.
 
 ## November 24, 2026 — Glorify sheet swipe, full member profiles, Liquid Glass Favorites/Playlists, swipeable player artwork, and full Admin coro controls (released)
 

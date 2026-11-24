@@ -1,5 +1,9 @@
 # Native builds and updates
 
+## November 24, 2026 — Profile navigation and sign-out (released)
+
+Source `8ed9f84`. iOS production OTA group [7c22b4d8-75cd-4d1c-9cb0-0ff211130233](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/7c22b4d8-75cd-4d1c-9cb0-0ff211130233), iOS update `01a20ed7-e20b-79a0-82a6-4e60f1dcdbc1`, runtime `2.0.0-release-5` for Build #34. Profile sections use native stack entries. Member browsing replaces the current member, tapping oneself returns to the overview, and returning from a verse author reopens the discussion. Sign-out closes the account sheet and clears profile history. TypeScript, 196 tests, search checks and iOS export passed. Physical iOS swipe, notification and offline sign-out checks pending.
+
 ## November 24, 2026 — Glorify backdrop swipe, full member profiles + offline cache, Liquid Glass Favorites/Playlists, swipeable MusicPlayer artwork, and full Admin coro controls
 
 - **Source:** commit `1787731`, pushed to both `main` and `app-web-parity` before publication. App version remains `2.0.0`; no native code, dependencies, or runtime version changed.
