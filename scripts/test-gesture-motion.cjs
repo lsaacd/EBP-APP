@@ -16,6 +16,8 @@ const {
   miniPlayerFrame,
   clampMiniPlayerDrag,
   miniPlayerSwipeDirection,
+  clampArtworkDrag,
+  artworkSwipeDirection,
 } = loaded.exports;
 
 test('slow partial swipes cancel; completed drags select either neighbor', () => {
@@ -83,4 +85,25 @@ test('mini-player horizontal track swipe respects first/last boundaries and rubb
   assert.equal(clampMiniPlayerDrag(-100, 200, true, false), -25);
   assert.equal(clampMiniPlayerDrag(-250, 200, true, true), -200);
   assert.equal(clampMiniPlayerDrag(250, 200, true, true), 200);
+});
+test('expanded player artwork swipe commits past 25% distance or fast flick and rubber-bands at edges', () => {
+  // Partial drag without flick cancels
+  assert.equal(artworkSwipeDirection(-50, 0, 320, true, true), 0);
+  assert.equal(artworkSwipeDirection(50, 0, 320, true, true), 0);
+  // Long drag commits next (+1) or previous (-1)
+  assert.equal(artworkSwipeDirection(-95, 0, 320, true, true), 1);
+  assert.equal(artworkSwipeDirection(95, 0, 320, true, true), -1);
+  // Deliberate fast flick commits
+  assert.equal(artworkSwipeDirection(-30, -680, 320, true, true), 1);
+  assert.equal(artworkSwipeDirection(30, 680, 320, true, true), -1);
+  // Opposite velocity cancels
+  assert.equal(artworkSwipeDirection(-120, 420, 320, true, true), 0);
+  assert.equal(artworkSwipeDirection(120, -420, 320, true, true), 0);
+  // Respects boundary flags & rubber-bands
+  assert.equal(artworkSwipeDirection(140, 800, 320, false, true), 0);
+  assert.equal(artworkSwipeDirection(-140, -800, 320, true, false), 0);
+  assert.equal(clampArtworkDrag(100, 300, false, true), 22);
+  assert.equal(clampArtworkDrag(-100, 300, true, false), -22);
+  assert.equal(clampArtworkDrag(-400, 300, true, true), -300);
+  assert.equal(clampArtworkDrag(400, 300, true, true), 300);
 });

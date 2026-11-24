@@ -12,9 +12,18 @@ import { StyleSheet, View } from 'react-native';
 
 export const SHEET_GRABBER_CLEARANCE = 24;
 
-export default function SheetGrabber({ inline = false }: { inline?: boolean }) {
+export default function SheetGrabber({
+  inline = false,
+  interactive = false,
+}: {
+  inline?: boolean;
+  interactive?: boolean;
+}) {
   return (
-    <View pointerEvents="none" style={inline ? styles.inline : styles.floating}>
+    <View
+      pointerEvents={interactive ? 'auto' : 'none'}
+      style={inline ? styles.inline : styles.floating}
+    >
       <View style={styles.pill} />
     </View>
   );

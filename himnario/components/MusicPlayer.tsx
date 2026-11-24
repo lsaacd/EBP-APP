@@ -41,7 +41,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import MiniPlayer from './MiniPlayer';
-import { miniPlayerFrame, shouldCollapsePlayer } from '../utils/gestureMotion';
+import {
+  artworkSwipeDirection,
+  clampArtworkDrag,
+  miniPlayerFrame,
+  shouldCollapsePlayer,
+} from '../utils/gestureMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MenuView } from '@react-native-menu/menu';
@@ -417,6 +422,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   const {
     currentHymnId,
     currentQueueIds,
+    queueLabel,
     isPlaying,
     isShuffled,
     repeatMode,
@@ -628,18 +634,83 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   }, [closeFullPlayer, onClose]);
 
   const audioAvailable = hymn ? hasHymnAudio(String(hymn.id)) : false;
-  const { prevHymn, nextHymn } = useMemo(() => {
+  const allHymnsById = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const h of hymnsData) map.set(String(h.id), h);
+    for (const e of estribillosData) map.set(String(e.id), e);
+    return map;
+  }, []);
+
+  const { prevHymn, nextHymn, prevHymnItem, nextHymnItem } = useMemo(() => {
     const idStr = String(currentId);
     const custom = currentQueueIds?.length ? currentQueueIds.map(String).filter(hasHymnAudio) : null;
     const defaultIds = activeData.map((h: any) => String(h.id)).filter(hasHymnAudio);
     const ids = custom?.length ? custom : defaultIds;
     const idx = ids.indexOf(idStr);
-    if (idx < 0 || ids.length <= 1) return { prevHymn: null, nextHymn: null };
+    if (idx < 0 || ids.length <= 1) {
+      return { prevHymn: null, nextHymn: null, prevHymnItem: null, nextHymnItem: null };
+    }
     const wraps = Boolean(custom?.length) || repeatMode === 'all';
     const hasPrev = idx > 0 || wraps;
     const hasNext = idx < ids.length - 1 || wraps || isShuffled;
-    return { prevHymn: hasPrev ? true : null, nextHymn: hasNext ? true : null };
-  }, [currentId, currentQueueIds, activeData, repeatMode, isShuffled]);
+    const prevId = hasPrev ? ids[(idx - 1 + ids.length) % ids.length] : null;
+    const nextId = hasNext && !isShuffled ? ids[(idx + 1) % ids.length] : null;
+    const prevRaw = prevId ? allHymnsById.get(prevId) : null;
+    const nextRaw = nextId ? allHymnsById.get(nextId) : null;
+    return {
+      prevHymn: hasPrev ? true : null,
+      nextHymn: hasNext ? true : null,
+      prevHymnItem: prevRaw ? getLocalizedHymn(prevRaw, hymnLanguage) : null,
+      nextHymnItem: nextRaw ? getLocalizedHymn(nextRaw, hymnLanguage) : null,
+    };
+  }, [currentId, currentQueueIds, activeData, repeatMode, isShuffled, allHymnsById, hymnLanguage]);
+
+  // YouTube Music–style horizontal swipeable artwork state
+  const artGap = 20;
+  const artStride = artSize + artGap;
+  const artDragX = useSharedValue(0);
+
+  useEffect(() => {
+    artDragX.value = 0;
+  }, [currentId, visible, artDragX]);
+
+  const commitArtworkSwipe = useCallback(
+    (direction: -1 | 1) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (direction === 1) skipNext({ silent: true });
+      else skipPrev({ silent: true });
+      artDragX.value = 0;
+    },
+    [skipNext, skipPrev, artDragX],
+  );
+
+  const artworkPan = Gesture.Pan()
+    .enabled(visible && !showShareModal && !playlistModalVisible && !commentsOpen && !projectorVisible)
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-16, 16])
+    .maxPointers(1)
+    .onStart(() => {
+      cancelAnimation(artDragX);
+    })
+    .onUpdate((event) => {
+      artDragX.value = clampArtworkDrag(event.translationX, artStride, Boolean(prevHymn), Boolean(nextHymn));
+    })
+    .onEnd((event, success) => {
+      const dir = success
+        ? artworkSwipeDirection(artDragX.value, event.velocityX, artStride, Boolean(prevHymn), Boolean(nextHymn))
+        : 0;
+      if (dir !== 0) {
+        artDragX.value = withTiming(
+          -dir * artStride,
+          { duration: 190, easing: Easing.out(Easing.cubic) },
+          (finished) => {
+            if (finished) runOnJS(commitArtworkSwipe)(dir);
+          },
+        );
+      } else {
+        artDragX.value = withSpring(0, { damping: 24, stiffness: 260, mass: 0.85 });
+      }
+    });
 
   // One animation owns the sheet, artwork and mini-player endpoint on the UI thread.
   // The persistent overlay avoids native modal teardown during collapse/expand.
@@ -691,15 +762,39 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   const compactStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.65, 1], [0, 1], Extrapolation.CLAMP),
   }));
-  const coverStyle = useAnimatedStyle(() => ({
-    top: interpolate(progress.value, [0, 1], [artwork.y, android ? 13 : 8.5]),
-    left: interpolate(progress.value, [0, 1], [artwork.x, android ? 13 : 10.5]),
-    width: interpolate(progress.value, [0, 1], [artwork.width, android ? 48 : 40]),
-    height: interpolate(progress.value, [0, 1], [artwork.height, android ? 48 : 40]),
-    borderRadius: interpolate(progress.value, [0, 1], [12, android ? 12 : 8]),
-    // Keep the existing loading/error overlays above the expanded cover.
-    opacity: 1,
-  }));
+  const coverStyle = useAnimatedStyle(() => {
+    const expandedFactor = interpolate(progress.value, [0, 0.06], [1, 0], Extrapolation.CLAMP);
+    const dragX = artDragX.value * expandedFactor;
+    const swipeScale = interpolate(Math.abs(dragX), [0, artStride], [1, 0.94], Extrapolation.CLAMP);
+    return {
+      top: interpolate(progress.value, [0, 1], [artwork.y, android ? 13 : 8.5]),
+      left: interpolate(progress.value, [0, 1], [artwork.x, android ? 13 : 10.5]),
+      width: interpolate(progress.value, [0, 1], [artwork.width, android ? 48 : 40]),
+      height: interpolate(progress.value, [0, 1], [artwork.height, android ? 48 : 40]),
+      borderRadius: interpolate(progress.value, [0, 1], [12, android ? 12 : 8]),
+      transform: [{ translateX: dragX }, { scale: swipeScale }],
+      // Keep the existing loading/error overlays above the expanded cover.
+      opacity: 1,
+    };
+  });
+  const peekPrevStyle = useAnimatedStyle(() => {
+    const expandedFactor = interpolate(progress.value, [0, 0.04], [1, 0], Extrapolation.CLAMP);
+    const reveal = interpolate(artDragX.value, [4, 34], [0, 1], Extrapolation.CLAMP);
+    const scale = interpolate(artDragX.value, [0, artStride], [0.92, 1], Extrapolation.CLAMP);
+    return {
+      opacity: reveal * expandedFactor,
+      transform: [{ translateX: -artStride + artDragX.value }, { scale }],
+    };
+  });
+  const peekNextStyle = useAnimatedStyle(() => {
+    const expandedFactor = interpolate(progress.value, [0, 0.04], [1, 0], Extrapolation.CLAMP);
+    const reveal = interpolate(-artDragX.value, [4, 34], [0, 1], Extrapolation.CLAMP);
+    const scale = interpolate(-artDragX.value, [0, artStride], [0.92, 1], Extrapolation.CLAMP);
+    return {
+      opacity: reveal * expandedFactor,
+      transform: [{ translateX: artStride + artDragX.value }, { scale }],
+    };
+  });
   // Decode at expanded size on iOS; layout-resizing a thumbnail can retain a low-resolution decode.
   const coverImageStyle = useAnimatedStyle(() => ({
     transform: [{ scaleX: interpolate(progress.value, [0, 1], [artwork.width, android ? 48 : 40]) / artSize },
@@ -763,25 +858,66 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
             </TouchableOpacity>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={styles.topLabel}>{t.nowPlaying}</Text>
-              <Text style={styles.topSubLabel}>Himnario El Buen Pastor</Text>
+              <Text style={styles.topSubLabel} numberOfLines={1}>
+                {queueLabel || 'Himnario El Buen Pastor'}
+              </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.iconHit} id="music-player-close">
               <MaterialIcons name="keyboard-arrow-down" size={32} color="rgba(255,255,255,0.68)" />
             </TouchableOpacity>
           </View>
 
-          {/* ─── Album Art (pinned at top+83 for seamless cover morph) ────────── */}
-          <View
-            style={[styles.artContainer, { width: artSize, height: artSize }]}
-          >
-            {/* No audio overlay */}
-            {!audioAvailable && (
-              <View style={styles.noAudioOverlay}>
-                <MaterialIcons name="music-off" size={40} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.noAudioText}>{t.audioUnavailable}</Text>
+          {/* ─── Album Art Stage (YouTube Music–style horizontal swipe + seamless morph) ── */}
+          <GestureDetector gesture={artworkPan}>
+            <View style={[styles.artStage, { height: artSize }]}>
+              {/* Peeking Previous Cover Card */}
+              {prevHymn && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.peekCard, { width: artSize, height: artSize }, peekPrevStyle]}
+                >
+                  <Animated.Image source={DEFAULT_COVER} style={styles.albumArt} resizeMode="contain" />
+                  {prevHymnItem && (
+                    <View style={styles.peekCaption}>
+                      <Text style={styles.peekCaptionText} numberOfLines={1}>
+                        #{prevHymnItem.number} · {prevHymnItem.title}
+                      </Text>
+                    </View>
+                  )}
+                </Animated.View>
+              )}
+
+              {/* Peeking Next Cover Card */}
+              {nextHymn && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.peekCard, { width: artSize, height: artSize }, peekNextStyle]}
+                >
+                  <Animated.Image source={DEFAULT_COVER} style={styles.albumArt} resizeMode="contain" />
+                  <View style={styles.peekCaption}>
+                    <Text style={styles.peekCaptionText} numberOfLines={1}>
+                      {isShuffled
+                        ? t.playerShuffleNextHint
+                        : nextHymnItem
+                          ? `#${nextHymnItem.number} · ${nextHymnItem.title}`
+                          : ''}
+                    </Text>
+                  </View>
+                </Animated.View>
+              )}
+
+              {/* Active Album Art Frame (exact top+83 slot for seamless cover morph) */}
+              <View style={[styles.artContainer, { width: artSize, height: artSize }]}>
+                {/* No audio overlay */}
+                {!audioAvailable && (
+                  <View style={styles.noAudioOverlay}>
+                    <MaterialIcons name="music-off" size={40} color="rgba(255,255,255,0.5)" />
+                    <Text style={styles.noAudioText}>{t.audioUnavailable}</Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
+            </View>
+          </GestureDetector>
 
           {/* ─── Responsive Lower Deck (fills remaining vertical space cleanly) ── */}
           <View style={styles.lowerDeck}>
@@ -1283,12 +1419,44 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
   },
 
+  // Album art stage — full width hit target for horizontal swipe, exact top+83 vertical slot
+  artStage: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+    overflow: 'visible',
+  },
+  peekCard: {
+    position: 'absolute',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#120405',
+  },
+  peekCaption: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(10, 4, 5, 0.72)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  peekCaptionText: {
+    fontFamily: SYSTEM_FONT,
+    fontWeight: '600',
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.92)',
+    textAlign: 'center',
+  },
   // Album art — takes up main space at exact top+83 offset
   artContainer: {
     alignSelf: 'center',
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 18,
     ...Platform.select({
       ios: {
         shadowColor: '#000',

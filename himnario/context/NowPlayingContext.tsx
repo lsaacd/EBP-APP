@@ -32,14 +32,20 @@ interface NowPlayingState {
   repeatMode: 'off' | 'all' | 'one';
   /** Current playback speed multiplier (default 1) */
   playbackRate: number;
-  /** The list of hymn IDs currently in the playback queue (for playlists) */
+  /** The list of hymn IDs currently in the playback queue (for playlists / favorites) */
   currentQueueIds: string[] | null;
+  /** Optional human-readable label for the active queue (e.g. "Mis Favoritos" or playlist name) */
+  queueLabel: string | null;
   /** Set a custom playback queue */
-  setQueue: (ids: string[] | null) => void;
+  setQueue: (ids: string[] | null, label?: string | null) => void;
   /** Change playback speed (e.g. 0.75, 0.85, 1, 1.15, 1.25, 1.5) */
   setPlaybackRate: (rate: number) => void;
   /** Open the full-screen player for a specific hymn */
-  openPlayer: (hymnId: string, queueIds?: string[] | null) => void;
+  openPlayer: (
+    hymnId: string,
+    queueIds?: string[] | null,
+    opts?: { label?: string | null; shuffle?: boolean },
+  ) => void;
   /** Close the full-screen player (audio keeps playing) */
   closeFullPlayer: () => void;
   /** Fully stop and clear now-playing state */
@@ -54,6 +60,8 @@ interface NowPlayingState {
   setCurrentHymnId: (id: string, queueIds?: string[] | null) => void;
   /** Toggle shuffle */
   toggleShuffle: () => void;
+  /** Deterministically set shuffle mode */
+  setShuffle: (enabled: boolean) => void;
   /** Cycle repeat mode */
   cycleRepeat: () => void;
 }
@@ -71,6 +79,7 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
   const snapshot = useSyncExternalStore(nativePlayer.subscribe, nativePlayer.getSnapshot);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [lastPlayedHymnId, setLastPlayedHymnId] = useState<string | null>(null);
+  const [queueLabel, setQueueLabel] = useState<string | null>(null);
 
   useEffect(() => {
     setTrackTitleResolver((id, fallbackTitle) =>
@@ -108,18 +117,32 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
         repeatMode: snapshot.repeatMode,
         playbackRate: snapshot.playbackRate ?? 1,
         currentQueueIds: snapshot.currentQueueIds,
+        queueLabel,
         showFullPlayer,
-        setQueue: nativePlayer.setQueue,
+        setQueue: (ids, label) => {
+          if (label !== undefined) setQueueLabel(label);
+          else if (!ids) setQueueLabel(null);
+          nativePlayer.setQueue(ids);
+        },
         setPlaybackRate: (rate: number) => {
           void nativePlayer.setPlaybackRate(rate);
         },
-        openPlayer: (id, ids) => {
+        openPlayer: (id, ids, opts) => {
+          if (opts?.shuffle !== undefined) {
+            nativePlayer.setShuffle(opts.shuffle);
+          }
+          if (opts?.label !== undefined) {
+            setQueueLabel(opts.label);
+          } else if (ids === null) {
+            setQueueLabel(null);
+          }
           setShowFullPlayer(true);
           if (String(id) !== snapshot.currentHymnId || snapshot.error || ids !== undefined) void nativePlayer.open(String(id), ids);
         },
         closeFullPlayer: () => setShowFullPlayer(false),
         clearNowPlaying: () => {
           setShowFullPlayer(false);
+          setQueueLabel(null);
           void nativePlayer.clear();
         },
         togglePlayPause: () => {
@@ -142,6 +165,7 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
           void nativePlayer.select(String(id), ids);
         },
         toggleShuffle: nativePlayer.toggleShuffle,
+        setShuffle: nativePlayer.setShuffle,
         cycleRepeat: () => {
           void nativePlayer.cycleRepeat();
         },

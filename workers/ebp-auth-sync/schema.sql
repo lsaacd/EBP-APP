@@ -265,3 +265,6 @@ VALUES
 
 -- Visibility to signed-in visitors from other churches requires fresh consent.
 ALTER TABLE users ADD COLUMN directory_visible_to_all INTEGER NOT NULL DEFAULT 0 CHECK(directory_visible_to_all IN (0,1));
+
+-- Signed-in members can view accepted friend names by default; opt-out hides names.
+ALTER TABLE users ADD COLUMN show_friends_list INTEGER NOT NULL DEFAULT 1 CHECK(show_friends_list IN (0,1));

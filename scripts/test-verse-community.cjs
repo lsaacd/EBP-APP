@@ -1840,11 +1840,13 @@ test("Coro Filadelfia is built in, members can suggest choirs, and admin approva
   assert.equal(repRead.status, 200);
   assert.equal(repRead.data.repertoires[0].title, "Culto Domingo");
 
-  // Built-in choir cannot be deleted; custom choir delete clears users.choir.
-  assert.equal((await f.call("/mod/choirs/filadelfia", "DELETE", undefined, admin.token)).status, 400);
+  // Non-admins cannot delete choirs; Admin can delete both custom and built-in choirs cleanly.
+  assert.equal((await f.call("/mod/choirs/filadelfia", "DELETE", undefined, member.token)).status, 403);
   assert.equal((await f.call("/mod/choirs/betel", "DELETE", undefined, admin.token)).status, 200);
   const memberRow = f.sql.prepare("SELECT choir FROM users WHERE id=?1").get(member.id);
   assert.equal(memberRow.choir, null);
+  assert.equal((await f.call("/mod/choirs/filadelfia", "DELETE", undefined, admin.token)).status, 200);
+  assert.equal((await f.call("/choirs/repertoire?choir=filadelfia", "GET")).status, 400);
 });
 
 test("church members directory self-heals missing church_id and lists opt-in members and friends privately", async () => {
@@ -1921,4 +1923,62 @@ test("church members directory self-heals missing church_id and lists opt-in mem
   f.sql.prepare("UPDATE users SET church_id=NULL, church_name='Riverbank' WHERE id=?1").run(me.id);
   assert.equal((await f.call("/friends/suggestions", "GET", undefined, me.token)).data.hasChurch, false);
   assert.equal(f.sql.prepare("SELECT church_id FROM users WHERE id=?1").get(me.id).church_id, null);
+});
+
+test("signed-in members can view accepted friend names unless opted out, excluding blocked and suspended users", async () => {
+  const f = fixture();
+  const alice = await f.account({ name: "Alice Gomez" });
+  const bob = await f.account({ name: "Bob Silva" });
+  const carla = await f.account({ name: "Carla Ruiz" });
+  const viewer = await f.account({ name: "Daniel Paz" });
+
+  await befriend(f, alice, bob);
+  await befriend(f, alice, carla);
+
+  // Guests cannot read friend names
+  assert.equal((await f.call(`/users/${alice.id}/friends`, "GET")).status, 401);
+
+  // Any signed-in member sees Alice's friend count and names by default
+  const initial = await f.call(`/users/${alice.id}/friends`, "GET", undefined, viewer.token);
+  assert.equal(initial.status, 200);
+  assert.equal(initial.data.visible, true);
+  assert.equal(initial.data.count, 2);
+  assert.deepEqual(
+    initial.data.friends.map((x) => [x.name, x.friendStatus]),
+    [
+      ["Bob Silva", "none"],
+      ["Carla Ruiz", "none"],
+    ],
+  );
+
+  // If viewer and Bob become friends, Bob's status updates to "friends"
+  await befriend(f, viewer, bob);
+  const afterMutual = await f.call(`/users/${alice.id}/friends`, "GET", undefined, viewer.token);
+  assert.deepEqual(
+    afterMutual.data.friends.map((x) => [x.name, x.friendStatus]),
+    [
+      ["Bob Silva", "friends"],
+      ["Carla Ruiz", "none"],
+    ],
+  );
+
+  // If viewer blocks Carla, Carla is excluded from viewer's view of Alice's friends
+  await f.call(`/users/${carla.id}/block`, "POST", {}, viewer.token);
+  const afterBlock = await f.call(`/users/${alice.id}/friends`, "GET", undefined, viewer.token);
+  assert.deepEqual(afterBlock.data.friends.map((x) => x.name), ["Bob Silva"]);
+
+  // If Alice turns off showFriendsList, non-self viewers get visible: false and empty friends (count remains)
+  const savedHide = await saveProfile(f, alice, { showFriendsList: false });
+  assert.equal(savedHide.status, 200);
+  assert.equal(savedHide.data.user.showFriendsList, false);
+  const hidden = await f.call(`/users/${alice.id}/friends`, "GET", undefined, viewer.token);
+  assert.equal(hidden.status, 200);
+  assert.equal(hidden.data.visible, false);
+  assert.equal(hidden.data.count, 2);
+  assert.deepEqual(hidden.data.friends, []);
+
+  // Alice herself still sees her own list
+  const selfView = await f.call(`/users/${alice.id}/friends`, "GET", undefined, alice.token);
+  assert.equal(selfView.data.visible, true);
+  assert.equal(selfView.data.friends.length, 2);
 });

@@ -331,4 +331,35 @@ test('audioRegistry.native.ts and audioRegistry.android.ts never import ./audioR
   assert(reg.getAllAudioIds().length > 500);
 });
 
+test('favorites custom queue skips directly to the next favorite and setShuffle sets mode deterministically', async () => {
+  const { createAndroidPlaybackController } = loadTS('audio/android-playback-controller.ts');
+  const loaded = [];
+  const controller = createAndroidPlaybackController({
+    prepare: async () => {},
+    load: async (id) => { loaded.push(id); },
+    play: async () => {},
+    pause: async () => {},
+    reset: async () => {},
+    seek: async () => {},
+    getPlayWhenReady: async () => true,
+    setRepeatOne: async () => {},
+    hasAudio: (id) => ['1', '2', '3', '186', '187', '409', '439'].includes(id),
+    collection: () => ['1', '2', '3', '186', '187', '409', '439'],
+    report: () => {},
+  });
+  await controller.open('186', ['186', '409', '439']);
+  await controller.next();
+  assert.equal(controller.getSnapshot().currentHymnId, '409');
+  await controller.next();
+  assert.equal(controller.getSnapshot().currentHymnId, '439');
+  await controller.next();
+  assert.equal(controller.getSnapshot().currentHymnId, '186');
+  controller.setShuffle(true);
+  assert.equal(controller.getSnapshot().isShuffled, true);
+  controller.setShuffle(true);
+  assert.equal(controller.getSnapshot().isShuffled, true);
+  controller.setShuffle(false);
+  assert.equal(controller.getSnapshot().isShuffled, false);
+});
+
 

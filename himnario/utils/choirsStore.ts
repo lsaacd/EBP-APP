@@ -22,25 +22,23 @@ const notify = () => {
 };
 
 function mergeChoirs(remote: unknown): ApprovedChoir[] {
+  if (!Array.isArray(remote)) return DEFAULT_CHOIRS;
   const map = new Map<string, ApprovedChoir>();
-  for (const c of DEFAULT_CHOIRS) map.set(c.slug, c);
-  if (Array.isArray(remote)) {
-    for (const row of remote) {
-      if (
-        row &&
-        typeof row === 'object' &&
-        typeof (row as any).slug === 'string' &&
-        typeof (row as any).nameEs === 'string' &&
-        typeof (row as any).nameEn === 'string'
-      ) {
-        const slug = String((row as any).slug).trim();
-        if (slug && slug !== 'otro') {
-          map.set(slug, {
-            slug,
-            nameEs: String((row as any).nameEs).trim(),
-            nameEn: String((row as any).nameEn).trim(),
-          });
-        }
+  for (const row of remote) {
+    if (
+      row &&
+      typeof row === 'object' &&
+      typeof (row as any).slug === 'string' &&
+      typeof (row as any).nameEs === 'string' &&
+      typeof (row as any).nameEn === 'string'
+    ) {
+      const slug = String((row as any).slug).trim();
+      if (slug && slug !== 'otro') {
+        map.set(slug, {
+          slug,
+          nameEs: String((row as any).nameEs).trim(),
+          nameEn: String((row as any).nameEn).trim(),
+        });
       }
     }
   }

@@ -44,7 +44,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNowPlaying } from "../context/NowPlayingContext";
 import { fonts } from "../theme/theme";
 import { useCommunityApi, communityError } from "../utils/communityApi";
-import { shouldCollapsePlayer } from "../utils/gestureMotion";
+import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
@@ -55,6 +55,7 @@ import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchSched
 import ChurchQrSheet from "../components/ChurchQrSheet";
 import FriendButton from "../components/FriendButton";
 import { mergeChurchMembers, parseChurchMembers, parseChurchMembersOffset, type ChurchMemberProfile } from "../utils/friends";
+import { seedMemberPreview } from "../utils/memberProfileCache";
 import { MINISTRIES, choirDisplayName } from "../data/communityRules";
 import { useApprovedChoirs } from "../utils/choirsStore";
 import { parseServiceTimes } from "../utils/churchSchedule";
@@ -441,37 +442,23 @@ export default function ChurchesScreen() {
     [finishCloseSubmit, isFormDirty, requestCloseSubmit, submitProgress, submitting],
   );
 
-  const submitPan = Gesture.Pan()
-    .activeOffsetY(8)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(submitProgress);
-      submitDragOrigin.value = submitProgress.value;
-    })
-    .onUpdate((event) => {
-      submitProgress.value = Math.max(
-        0,
-        Math.min(1, submitDragOrigin.value + event.translationY / travel),
-      );
-    })
-    .onEnd((event, success) => {
-      const collapse =
-        success &&
-        shouldCollapsePlayer(
-          submitProgress.value * travel,
-          event.velocityY,
-          travel * 0.42,
-        );
-      if (collapse) {
-        runOnJS(handleSubmitSwipeDismiss)(submitProgress.value);
-      } else {
-        submitProgress.value = withSpring(0, {
-          ...sheetSpring,
-          velocity: event.velocityY / travel,
-        });
-      }
-    });
+  const submitPan = buildSheetPanGesture({
+    progress: submitProgress,
+    dragOrigin: submitDragOrigin,
+    travel,
+    onFinishDismiss: finishCloseSubmit,
+    onInterceptDismiss: handleSubmitSwipeDismiss,
+    collapseRatio: 0.42,
+  });
+
+  const submitBackdropPan = buildSheetPanGesture({
+    progress: submitProgress,
+    dragOrigin: submitDragOrigin,
+    travel,
+    onFinishDismiss: finishCloseSubmit,
+    onInterceptDismiss: handleSubmitSwipeDismiss,
+    collapseRatio: 0.42,
+  });
 
   const hasCenteredInitialRef = useRef(false);
   const userCoordsRef = useRef(userCoords);
@@ -2756,50 +2743,78 @@ export default function ChurchesScreen() {
                                   gap: 10,
                                 }}
                               >
-                                <View
-                                  style={{
-                                    width: 34,
-                                    height: 34,
-                                    borderRadius: 17,
-                                    backgroundColor: theme.primary,
-                                    alignItems: "center",
-                                    justifyContent: "center",
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    Haptics.selectionAsync();
+                                    seedMemberPreview({
+                                      id: member.id,
+                                      name: member.name,
+                                      initials: member.initials,
+                                      ministry: member.ministry,
+                                      choir: member.choir,
+                                      badgeVerified: member.badgeVerified,
+                                      memberSince: member.memberSince,
+                                      churchId: member.churchId ?? selectedChurch.id,
+                                      churchName: member.churchName ?? selectedChurch.name,
+                                      location: member.location,
+                                      friendStatus: member.friendStatus,
+                                    });
+                                    router.push(`/member/${encodeURIComponent(member.id)}` as any);
                                   }}
+                                  style={({ pressed }) => ({
+                                    flex: 1,
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    opacity: pressed ? 0.75 : 1,
+                                  })}
                                 >
-                                  <Text
+                                  <View
                                     style={{
-                                      ...fonts.sansBold,
-                                      fontSize: 12.5,
-                                      color: theme.onPrimary,
+                                      width: 34,
+                                      height: 34,
+                                      borderRadius: 17,
+                                      backgroundColor: theme.primary,
+                                      alignItems: "center",
+                                      justifyContent: "center",
                                     }}
                                   >
-                                    {member.initials}
-                                  </Text>
-                                </View>
-                                <View style={{ flex: 1, gap: 1 }}>
-                                  <Text
-                                    numberOfLines={1}
-                                    style={{
-                                      color: theme.onSurface,
-                                      ...fonts.sansSemiBold,
-                                      fontSize: 14.5,
-                                    }}
-                                  >
-                                    {member.name}
-                                  </Text>
-                                  {!!role && (
+                                    <Text
+                                      style={{
+                                        ...fonts.sansBold,
+                                        fontSize: 12.5,
+                                        color: theme.onPrimary,
+                                      }}
+                                    >
+                                      {member.initials}
+                                    </Text>
+                                  </View>
+                                  <View style={{ flex: 1, gap: 1 }}>
                                     <Text
                                       numberOfLines={1}
                                       style={{
-                                        color: theme.onSurfaceVariant,
-                                        ...fonts.sansRegular,
-                                        fontSize: 12,
+                                        color: theme.onSurface,
+                                        ...fonts.sansSemiBold,
+                                        fontSize: 14.5,
                                       }}
                                     >
-                                      {role}
+                                      {member.name}
                                     </Text>
-                                  )}
-                                </View>
+                                    {!!role && (
+                                      <Text
+                                        numberOfLines={1}
+                                        style={{
+                                          color: theme.onSurfaceVariant,
+                                          ...fonts.sansRegular,
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        {role}
+                                      </Text>
+                                    )}
+                                  </View>
+                                </Pressable>
                                 <FriendButton
                                   userId={member.id}
                                   name={member.name}
@@ -3253,18 +3268,20 @@ export default function ChurchesScreen() {
             style={{ flex: 1, justifyContent: "flex-end" }}
             behavior={isIOS ? "padding" : "height"}
           >
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: "rgba(0,0,0,0.48)" },
-                submitBackdropStyle,
-              ]}
-            >
-              <Pressable
-                style={StyleSheet.absoluteFill}
-                onPress={requestCloseSubmit}
-              />
-            </Animated.View>
+            <GestureDetector gesture={submitBackdropPan}>
+              <Animated.View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: "rgba(0,0,0,0.48)" },
+                  submitBackdropStyle,
+                ]}
+              >
+                <Pressable
+                  style={StyleSheet.absoluteFill}
+                  onPress={requestCloseSubmit}
+                />
+              </Animated.View>
+            </GestureDetector>
 
             <Animated.View style={submitSheetStyle}>
               <SheetGrabber inline />

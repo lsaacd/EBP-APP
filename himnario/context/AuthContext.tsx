@@ -36,6 +36,8 @@ export interface AuthUser {
   showChurchLocation: boolean;
   /** Accepted friends may see this person's favourite hymns. */
   shareFavoritesWithFriends: boolean;
+  /** Signed-in members may view this person's accepted friend names. */
+  showFriendsList: boolean;
   /** Suggested to others who linked the same verified church. */
   suggestToChurchMembers: boolean;
   /** Explicit consent to appear to signed-in visitors from other churches. */
@@ -80,6 +82,7 @@ function normalizeUser(raw: any): AuthUser {
     showChurchLocation: raw?.showChurchLocation === true,
     // Absent on sessions saved before friends existed: default to the server's defaults.
     shareFavoritesWithFriends: raw?.shareFavoritesWithFriends !== false,
+    showFriendsList: raw?.showFriendsList !== false,
     suggestToChurchMembers:
       typeof raw?.suggestToChurchMembers === 'boolean'
         ? raw.suggestToChurchMembers
@@ -137,6 +140,7 @@ interface AuthContextType {
     location?: string | null;
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
+    showFriendsList?: boolean;
     suggestToChurchMembers?: boolean;
     directoryVisibleToAll?: boolean;
     notifyCommentLikes?: boolean;
@@ -689,6 +693,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     location?: string | null;
     showChurchLocation?: boolean;
     shareFavoritesWithFriends?: boolean;
+    showFriendsList?: boolean;
     suggestToChurchMembers?: boolean;
     directoryVisibleToAll?: boolean;
     notifyCommentLikes?: boolean;

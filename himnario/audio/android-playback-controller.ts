@@ -194,6 +194,7 @@ export function createAndroidPlaybackController(driver: PlaybackDriver) {
       });
     },
     toggleShuffle() { update({ isShuffled: !state.isShuffled }); },
+    setShuffle(enabled: boolean) { update({ isShuffled: Boolean(enabled) }); },
     cycleRepeat: () => command(async () => {
       const mode = state.repeatMode === 'off' ? 'all' : state.repeatMode === 'all' ? 'one' : 'off';
       const wantOne = mode === 'one';

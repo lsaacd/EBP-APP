@@ -45,6 +45,7 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { shouldCollapsePlayer } from "../utils/gestureMotion";
+import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
@@ -426,45 +427,21 @@ export default function VerseCard() {
     );
   }, [finishCloseFull, fullProgress]);
 
-  const pickerPan = Gesture.Pan()
-    .activeOffsetY(8)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(pickerProgress);
-      pickerDragOrigin.value = pickerProgress.value;
-    })
-    .onUpdate((event) => {
-      pickerProgress.value = Math.max(
-        0,
-        Math.min(1, pickerDragOrigin.value + event.translationY / travel),
-      );
-    })
-    .onEnd((event, success) => {
-      const collapse =
-        success &&
-        shouldCollapsePlayer(
-          pickerProgress.value * travel,
-          event.velocityY,
-          travel * 0.42,
-        );
-      if (collapse) {
-        const remaining = Math.max(0.05, 1 - pickerProgress.value);
-        const duration = Math.max(110, Math.min(240, Math.round(remaining * 240)));
-        pickerProgress.value = withTiming(
-          1,
-          { duration, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) runOnJS(finishClosePicker)();
-          },
-        );
-      } else {
-        pickerProgress.value = withSpring(0, {
-          ...sheetSpring,
-          velocity: event.velocityY / travel,
-        });
-      }
-    });
+  const pickerPan = buildSheetPanGesture({
+    progress: pickerProgress,
+    dragOrigin: pickerDragOrigin,
+    travel,
+    onFinishDismiss: finishClosePicker,
+    collapseRatio: 0.42,
+  });
+
+  const pickerBackdropPan = buildSheetPanGesture({
+    progress: pickerProgress,
+    dragOrigin: pickerDragOrigin,
+    travel,
+    onFinishDismiss: finishClosePicker,
+    collapseRatio: 0.42,
+  });
 
   const fullPan = Gesture.Pan()
     .activeOffsetY(10)
@@ -1435,19 +1412,21 @@ export default function VerseCard() {
         }}
       >
         <GestureHandlerRootView style={{ flex: 1, justifyContent: "flex-end" }}>
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: "rgba(0,0,0,0.48)" },
-              pickerBackdropStyle,
-            ]}
-          >
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={closePickerAnimated}
-              accessibilityLabel={t.close}
-            />
-          </Animated.View>
+          <GestureDetector gesture={pickerBackdropPan}>
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: "rgba(0,0,0,0.48)" },
+                pickerBackdropStyle,
+              ]}
+            >
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={closePickerAnimated}
+                accessibilityLabel={t.close}
+              />
+            </Animated.View>
+          </GestureDetector>
           <Animated.View style={pickerSheetAnimStyle}>
             <SheetGrabber inline />
           </Animated.View>

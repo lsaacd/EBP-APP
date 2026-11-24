@@ -61,6 +61,8 @@ function fixture(saved = new Map(), opts = {}) {
     effects = [],
     requests = [],
     alerts = [],
+    pushedRoutes = [],
+    seededPreviews = [],
     storage = saved;
   let cursor = 0,
     scheduled = false,
@@ -270,6 +272,19 @@ function fixture(saved = new Map(), opts = {}) {
     },
     "../utils/verseDiscussionState": thread,
     "../utils/gestureMotion": { shouldCollapsePlayer: () => false },
+    "../utils/useSheetBackdropGesture": { buildSheetPanGesture: () => gesture },
+    "../utils/memberProfileCache": {
+      seedMemberPreview: (seed) => {
+        seededPreviews.push(seed);
+      },
+    },
+    "expo-router": {
+      useRouter: () => ({
+        push: (route) => {
+          pushedRoutes.push(route);
+        },
+      }),
+    },
     "./GlassSurface": { default: "GlassSurface" },
     "./AppMenuIcon": { default: "AppMenuIcon" },
     "./SheetGrabber": { default: "SheetGrabber" },
@@ -322,6 +337,8 @@ function fixture(saved = new Map(), opts = {}) {
   return {
     requests,
     alerts,
+    pushedRoutes,
+    seededPreviews,
     storage,
     all,
     button,
@@ -682,25 +699,19 @@ test("cancelling a reply keeps the typed text and sends it without an obsolete p
   assert.equal(post.body.body, "Keep my text");
   f.unmount();
 });
-test("closing an author preview invalidates its fetch and system Back closes the preview first", async () => {
+test("tapping a comment author seeds their preview, dismisses the sheet, and opens their full-screen profile", async () => {
   const f = fixture();
   await f.ready([comment("parent")]);
   f.all("Pressable")
     .find((n) => n.props.accessibilityLabel?.startsWith("Ver perfil"))
     .props.onPress();
   await flush();
-  const request = f.requests.at(-1);
-  f.tree.props.onRequestClose();
-  await flush();
-  assert.equal(f.closes, 0);
-  request.resolve({ user: { id: "u1", displayName: "Late profile" } });
-  await flush();
-  assert.equal(
-    f
-      .all("Pressable")
-      .some((n) => n.props.accessibilityLabel === "Cerrar perfil"),
-    false,
-  );
+  assert.equal(f.closes, 1);
+  assert.equal(f.seededPreviews.length, 1);
+  assert.equal(f.seededPreviews[0].id, "u1");
+  assert.equal(f.seededPreviews[0].name, "Test Person");
+  f.tree.props.onDismiss();
+  assert.deepEqual(f.pushedRoutes, ["/member/u1"]);
   f.unmount();
 });
 test("extra pages and expanded replies survive background refreshes; ACK retries deduplicate real rows", () => {

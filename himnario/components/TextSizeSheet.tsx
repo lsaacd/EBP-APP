@@ -11,7 +11,7 @@
  * - Closes on outside tap or Android back button
  */
 import SheetGrabber from './SheetGrabber';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,16 @@ import {
   Pressable,
   TextInput,
   KeyboardAvoidingView,
+  useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
@@ -32,6 +41,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNowPlaying } from '../context/NowPlayingContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
+import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 
 const BASE_PX = 22;
 const MIN_PX = 12;
@@ -77,13 +87,67 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
     }
   };
 
+  const { height: windowHeight } = useWindowDimensions();
+  const travel = Math.max(360, windowHeight * 0.55);
+  const progress = useSharedValue(1);
+  const dragOrigin = useSharedValue(0);
+  const spring = { damping: 28, stiffness: 240, mass: 1, overshootClamping: true };
+
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    progress.value = withSpring(1, spring, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishClose, progress]);
+
+  useEffect(() => {
+    if (visible) {
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
+    } else {
+      progress.value = 1;
+    }
+    return () => cancelAnimation(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const backdropPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.42,
+  });
+
+  const headerPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.42,
+  });
+
+  const backdropAnimStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, Math.min(1, 1 - progress.value)),
+  }));
+
+  const sheetAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: progress.value * travel }],
+  }));
+
   const isIOS = Platform.OS === 'ios';
   const isDefault = currentPx === BASE_PX;
 
   const content = (
     <View style={styles.inner}>
       {/* Top Row: Label, Direct Number Input, Reset */}
-      <View style={styles.headerRow}>
+      <GestureDetector gesture={headerPan}>
+        <View style={styles.headerRow}>
         <Text style={[styles.title, { color: theme.onSurface }]}>
           {t.textSizeTitle}
         </Text>
@@ -142,6 +206,7 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
           </TouchableOpacity>
         </View>
       </View>
+      </GestureDetector>
 
       {/* Live Newsreader Preview */}
       <View
@@ -225,43 +290,56 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={animateClose}
     >
-      <KeyboardAvoidingView
-        behavior={isIOS ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={isIOS ? 'padding' : undefined}
+          style={styles.overlay}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.backdropBg, backdropAnimStyle]}
+          />
+          <GestureDetector gesture={backdropPan}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={animateClose} />
+          </GestureDetector>
 
-        {isIOS ? (
-          <GlassSurface
-            intensity={65}
-            style={[
-              styles.iosPopover,
-              {
-                marginBottom:
-                  Math.max(insets.bottom, 22) + (miniPlayerVisible ? 138 : 74),
-              },
-            ]}
-          >
-            {content}
-          </GlassSurface>
-        ) : (
-          <View
-            style={[
-              styles.androidSheet,
-              {
-                backgroundColor: theme.surfaceVariants.containerLow,
-                paddingBottom: Math.max(insets.bottom, 20) + 12,
-              },
-            ]}
-          >
-            <SheetGrabber />
-            {content}
-          </View>
-        )}
-      </KeyboardAvoidingView>
+          <Animated.View style={[{ width: '100%' }, sheetAnimStyle]}>
+            {isIOS ? (
+              <View
+                style={{
+                  marginHorizontal: 16,
+                  marginBottom:
+                    Math.max(insets.bottom, 22) + (miniPlayerVisible ? 138 : 74),
+                }}
+              >
+                <SheetGrabber />
+                <GlassSurface intensity={65} style={styles.iosPopover}>
+                  {content}
+                </GlassSurface>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.androidSheet,
+                  {
+                    backgroundColor: theme.surfaceVariants.containerLow,
+                    paddingBottom: Math.max(insets.bottom, 20) + 12,
+                  },
+                ]}
+              >
+                <SheetGrabber />
+                {content}
+              </View>
+            )}
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -270,10 +348,11 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  backdropBg: {
     backgroundColor: 'rgba(0,0,0,0.28)',
   },
   iosPopover: {
-    marginHorizontal: 16,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 10,

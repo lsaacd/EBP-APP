@@ -35,6 +35,9 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { shouldCollapsePlayer } from "../utils/gestureMotion";
+import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
+import { seedMemberPreview } from "../utils/memberProfileCache";
+import { useRouter } from "expo-router";
 import { uuid } from "expo-modules-core";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeContext";
@@ -67,7 +70,7 @@ import type { DailyVerse } from "../data/dailyVerses";
 import GlassSurface from "./GlassSurface";
 import AppMenuIcon from "./AppMenuIcon";
 import FriendButton from "./FriendButton";
-import { memberSinceLabel, parseFriendStatus, type FriendStatus } from "../utils/friends";
+import { memberSinceLabel, type FriendStatus } from "../utils/friends";
 import * as Haptics from "../utils/haptics";
 
 type Draft = {
@@ -180,8 +183,10 @@ export default function VerseDiscussionSheet({
   // sets `error` too, and must not make the list claim to be offline.
   const [loadFailed, setLoadFailed] = useState(false);
   const authorFetchSeq = useRef(0);
+  const router = useRouter();
   const input = useRef<TextInput>(null);
   const authAfterDismiss = useRef(false);
+  const memberAfterDismiss = useRef<string | null>(null);
   const requestSignIn = () => {
     authAfterDismiss.current = Platform.OS === "ios";
     onClose();
@@ -195,7 +200,7 @@ export default function VerseDiscussionSheet({
   const dragOrigin = useSharedValue(0);
   const scrollOffset = useSharedValue(0);
   const backdropAnimStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
+    opacity: Math.max(0, Math.min(1, 1 - progress.value)),
   }));
   const sheetAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: progress.value * travel }],
@@ -223,63 +228,29 @@ export default function VerseDiscussionSheet({
     (c: VerseComment) => {
       if (!c.userId) return;
       Keyboard.dismiss();
+      Haptics.selectionAsync();
       const uid = c.userId;
-      const seq = ++authorFetchSeq.current;
       const isSelf = user?.id === uid;
-      setSelectedAuthor({
+      seedMemberPreview({
         id: uid,
         name: c.authorName,
         initials: c.authorInitials,
         ministry: c.ministry,
         choir: c.choir,
         badgeVerified: c.badgeVerified,
+        churchId: isSelf && user?.showChurchLocation ? user.churchId : null,
         churchName: isSelf && user?.showChurchLocation ? user.churchName : null,
         location: isSelf && user?.showChurchLocation ? user.location : null,
-        memberSince: null,
-        friendCount: null,
-        friendStatus: null,
-        loading: true,
       });
-      void api<{
-        user: {
-          id: string;
-          displayName: string;
-          initials: string;
-          ministry: string | null;
-          choir: string | null;
-          badgeVerified: boolean;
-          churchName: string | null;
-          location: string | null;
-          memberSince?: string | null;
-          friendCount?: number;
-          friendStatus?: string | null;
-        };
-      }>(`/users/${uid}/public-profile`)
-        .then((res) => {
-          if (seq !== authorFetchSeq.current || !res?.user) return;
-          setSelectedAuthor({
-            id: res.user.id,
-            name: res.user.displayName || c.authorName,
-            initials: res.user.initials || c.authorInitials,
-            ministry: res.user.ministry ?? c.ministry,
-            choir: res.user.choir ?? c.choir,
-            badgeVerified: Boolean(res.user.badgeVerified),
-            churchName: res.user.churchName ?? null,
-            location: res.user.location ?? null,
-            memberSince: res.user.memberSince ?? null,
-            friendCount: typeof res.user.friendCount === 'number' ? res.user.friendCount : null,
-            friendStatus: parseFriendStatus(res.user.friendStatus),
-            loading: false,
-          });
-        })
-        .catch(() => {
-          if (seq !== authorFetchSeq.current) return;
-          setSelectedAuthor((prev) =>
-            prev ? { ...prev, loading: false } : null,
-          );
-        });
+      if (Platform.OS === "ios") {
+        memberAfterDismiss.current = uid;
+        onClose();
+      } else {
+        onClose();
+        router.push(`/member/${encodeURIComponent(uid)}` as any);
+      }
     },
-    [api, user],
+    [onClose, router, user],
   );
 
   const finishClose = useCallback(() => {
@@ -298,48 +269,21 @@ export default function VerseDiscussionSheet({
     );
   }, [finishClose, progress]);
 
-  const handlePan = Gesture.Pan()
-    .activeOffsetY(8)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(progress);
-      dragOrigin.value = progress.value;
-    })
-    .onUpdate((event) => {
-      progress.value = Math.max(
-        0,
-        Math.min(1, dragOrigin.value + event.translationY / travel),
-      );
-    })
-    .onEnd((event, success) => {
-      const collapse =
-        success &&
-        shouldCollapsePlayer(
-          progress.value * travel,
-          event.velocityY,
-          travel * 0.42,
-        );
-      if (collapse) {
-        const remaining = Math.max(0.05, 1 - progress.value);
-        const duration = Math.max(
-          110,
-          Math.min(240, Math.round(remaining * 240)),
-        );
-        progress.value = withTiming(
-          1,
-          { duration, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) runOnJS(finishClose)();
-          },
-        );
-      } else {
-        progress.value = withSpring(0, {
-          ...sheetSpring,
-          velocity: event.velocityY / travel,
-        });
-      }
-    });
+  const handlePan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.42,
+  });
+
+  const backdropPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.42,
+  });
 
   const bodyPan = Gesture.Pan()
     .activeOffsetY(12)
@@ -1173,23 +1117,29 @@ export default function VerseDiscussionSheet({
         if (authAfterDismiss.current) {
           authAfterDismiss.current = false;
           openAuthSheet();
+        } else if (memberAfterDismiss.current) {
+          const targetUid = memberAfterDismiss.current;
+          memberAfterDismiss.current = null;
+          router.push(`/member/${encodeURIComponent(targetUid)}` as any);
         }
       }}
     >
       <GestureHandlerRootView style={{ flex: 1, justifyContent: "flex-end" }}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(0,0,0,0.44)" },
-            backdropAnimStyle,
-          ]}
-        >
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            accessibilityLabel={label("Close comments", "Cerrar comentarios")}
-            onPress={closeAnimated}
-          />
-        </Animated.View>
+        <GestureDetector gesture={backdropPan}>
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(0,0,0,0.44)" },
+              backdropAnimStyle,
+            ]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              accessibilityLabel={label("Close comments", "Cerrar comentarios")}
+              onPress={closeAnimated}
+            />
+          </Animated.View>
+        </GestureDetector>
         <Animated.View style={sheetAnimStyle}>
           <SheetGrabber inline />
         </Animated.View>

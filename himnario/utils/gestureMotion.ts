@@ -89,3 +89,56 @@ export function sheetSnapTarget(height: number, velocityY: number, snaps: number
   for (let i = snaps.length - 1; i >= 0; i--) if (snaps[i] < height - 1) return i;
   return 0;
 }
+
+/**
+ * Clamps horizontal drag on the expanded MusicPlayer artwork carousel.
+ * Allows full-card drag when a neighbor exists and damped rubber-band at edges.
+ */
+export function clampArtworkDrag(
+  translationX: number,
+  stride: number,
+  hasPrev: boolean,
+  hasNext: boolean,
+) {
+  'worklet';
+  const span = Math.max(180, stride);
+  if (translationX < 0) {
+    if (!hasNext) return Math.max(-span * 0.24, translationX * 0.22);
+    return Math.max(-span, translationX);
+  }
+  if (translationX > 0) {
+    if (!hasPrev) return Math.min(span * 0.24, translationX * 0.22);
+    return Math.min(span, translationX);
+  }
+  return 0;
+}
+
+/**
+ * Decides whether releasing a horizontal artwork swipe commits to the next track (1),
+ * previous track (-1), or snaps back to the current track (0).
+ */
+export function artworkSwipeDirection(
+  translationX: number,
+  velocityX: number,
+  stride: number,
+  hasPrev: boolean,
+  hasNext: boolean,
+): -1 | 0 | 1 {
+  'worklet';
+  const span = Math.max(180, stride);
+  if (translationX < 0) {
+    if (!hasNext || velocityX > 320) return 0;
+    if (translationX < -span * 0.25 || (translationX < -20 && velocityX < -550)) {
+      return 1;
+    }
+    return 0;
+  }
+  if (translationX > 0) {
+    if (!hasPrev || velocityX < -320) return 0;
+    if (translationX > span * 0.25 || (translationX > 20 && velocityX > 550)) {
+      return -1;
+    }
+    return 0;
+  }
+  return 0;
+}

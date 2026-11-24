@@ -67,7 +67,6 @@ type ModChoir = {
   createdAt: number;
   approvedAt: number | null;
 };
-const BUILTIN_CHOIRS = new Set(["esmirna", "maranatha", "filadelfia"]);
 export default function CommunityModeration({
   alwaysExpanded = false,
 }: {
@@ -638,7 +637,6 @@ export default function CommunityModeration({
                     ]
                 ).map((item, idx) => {
                   const label = es ? item.nameEs : item.nameEn;
-                  const isBuiltin = BUILTIN_CHOIRS.has(item.slug);
                   const editing = editingChoirSlug === item.slug;
                   const draft = choirDraftNames[item.slug] || { nameEs: item.nameEs, nameEn: item.nameEn };
                   return (
@@ -688,92 +686,71 @@ export default function CommunityModeration({
                         >
                           <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: theme.primary }}>{t.choirEditAction}</Text>
                         </Pressable>
-                        {isBuiltin ? (
-                          <View
+                        <Pressable
+                          disabled={busy}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${t.choirRemoveAction} ${label}`}
+                          onPress={() => {
+                            Haptics.notificationAsync(
+                              Haptics.NotificationFeedbackType.Warning,
+                            );
+                            Alert.alert(
+                              t.choirRemoveTitle,
+                              t.choirRemoveBody.replace("{name}", label),
+                              [
+                                { text: t.cancel, style: "cancel" },
+                                {
+                                  text: t.choirRemoveAction,
+                                  style: "destructive",
+                                  onPress: () =>
+                                    void run(async () => {
+                                      await api(
+                                        `/mod/choirs/${encodeURIComponent(item.slug)}`,
+                                        "DELETE",
+                                      );
+                                      if (choir === item.slug) setChoir("esmirna");
+                                      await Promise.all([
+                                        loadChoirs(),
+                                        refreshApprovedChoirs(),
+                                      ]);
+                                      Haptics.notificationAsync(
+                                        Haptics.NotificationFeedbackType.Success,
+                                      );
+                                      flashToast(t.choirRemovedToast);
+                                    }),
+                                },
+                              ],
+                            );
+                          }}
+                          style={({ pressed }) => ({
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 5,
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 10,
+                            backgroundColor: isDarkMode
+                              ? "rgba(255, 85, 85, 0.16)"
+                              : "rgba(214, 69, 69, 0.10)",
+                            opacity: busy ? 0.5 : pressed ? 0.72 : 1,
+                          })}
+                        >
+                          <AppMenuIcon
+                            ios="trash"
+                            android="delete-outline"
+                            color={isDarkMode ? "#FF6B6B" : "#D64545"}
+                            size={14}
+                          />
+                          <Text
                             style={{
-                              paddingHorizontal: 9,
-                              paddingVertical: 4,
-                              borderRadius: 999,
-                              backgroundColor: theme.surfaceVariants.containerHigh,
+                              color: isDarkMode ? "#FF6B6B" : "#D64545",
+                              ...fonts.sansSemiBold,
+                              fontSize: 12.5,
                             }}
                           >
-                            <Text
-                              style={{
-                                color: theme.onSurfaceVariant,
-                                ...fonts.sansMedium,
-                                fontSize: 11.5,
-                              }}
-                            >
-                              {t.choirBuiltinBadge}
-                            </Text>
-                          </View>
-                        ) : (
-                          <Pressable
-                            disabled={busy}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${t.choirRemoveAction} ${label}`}
-                            onPress={() => {
-                              Haptics.notificationAsync(
-                                Haptics.NotificationFeedbackType.Warning,
-                              );
-                              Alert.alert(
-                                t.choirRemoveTitle,
-                                t.choirRemoveBody.replace("{name}", label),
-                                [
-                                  { text: t.cancel, style: "cancel" },
-                                  {
-                                    text: t.choirRemoveAction,
-                                    style: "destructive",
-                                    onPress: () =>
-                                      void run(async () => {
-                                        await api(
-                                          `/mod/choirs/${encodeURIComponent(item.slug)}`,
-                                          "DELETE",
-                                        );
-                                        if (choir === item.slug) setChoir("esmirna");
-                                        await Promise.all([
-                                          loadChoirs(),
-                                          refreshApprovedChoirs(),
-                                        ]);
-                                        Haptics.notificationAsync(
-                                          Haptics.NotificationFeedbackType.Success,
-                                        );
-                                        flashToast(t.choirRemovedToast);
-                                      }),
-                                  },
-                                ],
-                              );
-                            }}
-                            style={({ pressed }) => ({
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 5,
-                              paddingHorizontal: 10,
-                              paddingVertical: 6,
-                              borderRadius: 10,
-                              backgroundColor: isDarkMode
-                                ? "rgba(255, 85, 85, 0.16)"
-                                : "rgba(214, 69, 69, 0.10)",
-                              opacity: busy ? 0.5 : pressed ? 0.72 : 1,
-                            })}
-                          >
-                            <AppMenuIcon
-                              ios="trash"
-                              android="delete-outline"
-                              color={isDarkMode ? "#FF6B6B" : "#D64545"}
-                              size={14}
-                            />
-                            <Text
-                              style={{
-                                color: isDarkMode ? "#FF6B6B" : "#D64545",
-                                ...fonts.sansSemiBold,
-                                fontSize: 12.5,
-                              }}
-                            >
-                              {t.choirRemoveAction}
-                            </Text>
-                          </Pressable>
-                        )}
+                            {t.choirRemoveAction}
+                          </Text>
+                        </Pressable>
                       </View>
                       {editing && (
                         <View style={{ paddingHorizontal: 14, paddingBottom: 12, gap: 9 }}>
@@ -888,7 +865,7 @@ export default function CommunityModeration({
                     setHymns(v?.hymnIds.join(", ") || "");
                   },
                 )}
-                {!BUILTIN_CHOIRS.has(choir) &&
+                {choir &&
                   button(
                     l("Delete choir", "Eliminar coro"),
                     async () => {

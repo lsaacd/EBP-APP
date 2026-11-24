@@ -72,10 +72,11 @@ const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: string };
 
 export default function HymnDetail() {
-  const { id, playlistId } = useLocalSearchParams();
+  const { id, playlistId, source } = useLocalSearchParams();
+  const isFromFavorites = String(source ?? '') === 'favorites';
   const router = useRouter();
   const { theme, isDarkMode, fontSizeMultiplier, toggleTheme } = useTheme();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const { addRecent } = useRecentHymns();
   const { playlists } = usePlaylists();
   const { t, language, hymnLanguage } = useLanguage();
@@ -101,8 +102,16 @@ export default function HymnDetail() {
         return combined.find(h => String(h.id) === String(hId));
       }).filter(Boolean);
     }
+    if (isFromFavorites && favoriteIds.length > 0) {
+      const combined = [...hymnsData, ...estribillosData];
+      const favSet = new Set(favoriteIds.map(String));
+      const list = combined.filter(h => favSet.has(String(h.id)));
+      if (list.some(h => String(h.id) === String(id))) {
+        return list;
+      }
+    }
     return allHymns;
-  }, [activePlaylist, allHymns]);
+  }, [activePlaylist, isFromFavorites, favoriteIds, id, allHymns]);
 
   const currentIndex = useMemo(
     () => hymnList.findIndex((h: any) => String(h.id) === String(id)),
@@ -137,11 +146,13 @@ export default function HymnDetail() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (playlistId) {
       router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, playlistId } });
+    } else if (isFromFavorites) {
+      router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, source: 'favorites' } });
     } else {
       router.replace(`/hymn/${prevHymn.id}`);
     }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [prevHymn, navDisabled, router, playlistId]);
+  }, [prevHymn, navDisabled, router, playlistId, isFromFavorites]);
 
   const goToNext = useCallback(() => {
     if (!nextHymn || navDisabled) return;
@@ -150,11 +161,13 @@ export default function HymnDetail() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (playlistId) {
       router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, playlistId } });
+    } else if (isFromFavorites) {
+      router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, source: 'favorites' } });
     } else {
       router.replace(`/hymn/${nextHymn.id}`);
     }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [nextHymn, navDisabled, router, playlistId]);
+  }, [nextHymn, navDisabled, router, playlistId, isFromFavorites]);
 
   /** Handle swipe-to-flip gestures from the PageFlipTransition component */
   const handleSwipeFlip = useCallback((dir: FlipDirection) => {
@@ -184,7 +197,10 @@ export default function HymnDetail() {
     if (!hymnAudio(h)) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (activePlaylist) {
-      openPlayer(String(h.id), activePlaylist.hymnIds);
+      openPlayer(String(h.id), activePlaylist.hymnIds, { label: activePlaylist.name });
+    } else if (isFromFavorites) {
+      const favQueue = hymnList.map((item: any) => String(item.id));
+      openPlayer(String(h.id), favQueue.length > 0 ? favQueue : favoriteIds, { label: t.myFavorites });
     } else {
       openPlayer(String(h.id), null);
     }

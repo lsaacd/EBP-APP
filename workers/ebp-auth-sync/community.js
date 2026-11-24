@@ -67,6 +67,7 @@ function profile(body, user) {
           "location",
           "showChurchLocation",
           "shareFavoritesWithFriends",
+          "showFriendsList",
           "suggestToChurchMembers",
           "directoryVisibleToAll",
           "notifyCommentLikes",
@@ -126,6 +127,7 @@ function profile(body, user) {
         : 0;
   for (const key of [
     "shareFavoritesWithFriends",
+    "showFriendsList",
     "suggestToChurchMembers",
     "directoryVisibleToAll",
     "notifyCommentLikes",
@@ -146,6 +148,12 @@ function profile(body, user) {
       body.shareFavoritesWithFriends === undefined
         ? Number(user.share_favorites_with_friends ?? 1)
         : body.shareFavoritesWithFriends
+          ? 1
+          : 0,
+    show_friends_list:
+      body.showFriendsList === undefined
+        ? Number(user.show_friends_list ?? 1)
+        : body.showFriendsList
           ? 1
           : 0,
     // Stays NULL ("follow the public church setting") until the person chooses.
@@ -471,7 +479,7 @@ export async function handleCommunity(
     await quota(env, `profile:${user.id}`, 20, 60000);
     const body = await bodyOf(request);
     const p = profile(body, user);
-    if (p.choir != null && !Object.hasOwn(CHOIRS, p.choir)) {
+    if (p.choir != null && p.choir !== "otro") {
       const approvedChoir = await env.DB.prepare(
         "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
       )
@@ -480,7 +488,7 @@ export async function handleCommunity(
       if (!approvedChoir) fail(400, "invalid_choir");
     }
     const saved = await env.DB.prepare(
-      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=CASE WHEN ?14=1 THEN ?8 ELSE church_id END,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,directory_visible_to_all=?15,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1 RETURNING church_id",
+      "UPDATE users SET name=?2,ministry=?3,choir=?4,church_name=?5,location=?6,show_church_location=?7,church_id=CASE WHEN ?14=1 THEN ?8 ELSE church_id END,share_favorites_with_friends=?9,suggest_to_church_members=?10,notify_comment_likes=?11,notify_comment_replies=?12,notify_friends=?13,directory_visible_to_all=?15,show_friends_list=?16,badge_verified=CASE WHEN ministry IS ?3 THEN badge_verified ELSE 0 END WHERE id=?1 RETURNING church_id",
     )
       .bind(
         user.id,
@@ -498,6 +506,7 @@ export async function handleCommunity(
         p.notify_friends,
         body.churchId === undefined ? 0 : 1,
         p.directory_visible_to_all,
+        p.show_friends_list,
       )
       .first();
     return json({
@@ -896,7 +905,7 @@ export async function handleCommunity(
   if (publicProfileRoute && method === "GET") {
     const targetId = publicProfileRoute[1];
     const target = await env.DB.prepare(
-      "SELECT id,name,ministry,choir,church_id,church_name,location,show_church_location,badge_verified,suspended_at,created_at FROM users WHERE id=?1",
+      "SELECT id,name,ministry,choir,church_id,church_name,location,show_church_location,show_friends_list,share_favorites_with_friends,badge_verified,suspended_at,created_at FROM users WHERE id=?1",
     )
       .bind(targetId)
       .first();
@@ -904,38 +913,46 @@ export async function handleCommunity(
     // none | self | outgoing (I asked) | incoming (they asked) | friends.
     // Only a signed-in caller gets a status; a block reads as "none".
     let friendStatus = null;
+    let blocked = false;
     if (user) {
       friendStatus = "none";
       if (user.id === target.id) friendStatus = "self";
-      else if (!(await blockedEitherWay(user.id, target.id))) {
-        const [low, high] = pairOf(user.id, target.id);
-        const row = await env.DB.prepare(
-          "SELECT status,requested_by FROM friendships WHERE user_low=?1 AND user_high=?2",
-        )
-          .bind(low, high)
-          .first();
-        if (row?.status === "accepted") friendStatus = "friends";
-        else if (row) friendStatus = row.requested_by === user.id ? "outgoing" : "incoming";
+      else {
+        blocked = await blockedEitherWay(user.id, target.id);
+        if (!blocked) {
+          const [low, high] = pairOf(user.id, target.id);
+          const row = await env.DB.prepare(
+            "SELECT status,requested_by FROM friendships WHERE user_low=?1 AND user_high=?2",
+          )
+            .bind(low, high)
+            .first();
+          if (row?.status === "accepted") friendStatus = "friends";
+          else if (row) friendStatus = row.requested_by === user.id ? "outgoing" : "incoming";
+        }
       }
     }
     // An accepted friend sees church and location even when they are hidden
     // from everyone else. Nobody else sees more than before.
     const showExtra =
-      target.show_church_location === 1 ||
-      friendStatus === "friends" ||
-      friendStatus === "self";
+      !blocked &&
+      (target.show_church_location === 1 ||
+        friendStatus === "friends" ||
+        friendStatus === "self");
     const friendCountRow = await env.DB.prepare(
       `SELECT COUNT(*) AS total FROM friendships f JOIN users u
        ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
-       WHERE f.status='accepted' AND (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL`,
+       WHERE f.status='accepted' AND (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))`,
     ).bind(target.id).first();
     return json({
       user: {
         memberSince: memberSince(target.created_at),
         friendCount: Number(friendCountRow?.total ?? 0),
+        showFriendsList: !blocked && (target.show_friends_list !== 0 || friendStatus === "self"),
         friendStatus,
         id: target.id,
         name: target.name,
+        displayName: target.name,
         initials: initials(target.name),
         ministry: target.ministry ?? null,
         choir: target.choir ?? null,
@@ -960,6 +977,75 @@ export async function handleCommunity(
     churchName: full || row.show_church_location === 1 ? (row.church_name ?? null) : null,
     location: full || row.show_church_location === 1 ? (row.location ?? null) : null,
   });
+  const userFriendsRoute = path.match(/^\/users\/([a-z0-9-]+)\/friends$/);
+  if (userFriendsRoute && method === "GET") {
+    if (!user) fail(401, "unauthorized");
+    const targetId = userFriendsRoute[1];
+    if (!validId(targetId)) fail(400, "invalid_friend");
+    const target = await env.DB.prepare(
+      "SELECT id,show_friends_list,suspended_at FROM users WHERE id=?1",
+    )
+      .bind(targetId)
+      .first();
+    if (!target || target.suspended_at != null) fail(404, "not_found");
+    if (user.id !== targetId && (await blockedEitherWay(user.id, targetId))) {
+      return json(
+        { visible: false, count: 0, friends: [] },
+        200,
+        { "Cache-Control": "private, no-store" },
+      );
+    }
+    const countRow = await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM friendships f JOIN users u
+       ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
+       WHERE f.status='accepted' AND (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))`,
+    )
+      .bind(targetId)
+      .first();
+    const totalCount = Number(countRow?.total ?? 0);
+    if (target.show_friends_list === 0 && user.id !== targetId) {
+      return json(
+        { visible: false, count: totalCount, friends: [] },
+        200,
+        { "Cache-Control": "private, no-store" },
+      );
+    }
+    const rows = await all(
+      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
+              vf.status AS vf_status, vf.requested_by AS vf_requested_by
+       FROM friendships f
+       JOIN users u ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
+       LEFT JOIN friendships vf ON (vf.user_low=CASE WHEN ?2<u.id THEN ?2 ELSE u.id END AND vf.user_high=CASE WHEN ?2<u.id THEN u.id ELSE ?2 END) AND ?2<>u.id
+       WHERE f.status='accepted' AND (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
+         AND NOT EXISTS(SELECT 1 FROM user_blocks b2 WHERE (b2.blocker_user_id=?2 AND b2.blocked_user_id=u.id) OR (b2.blocked_user_id=?2 AND b2.blocker_user_id=u.id))
+       ORDER BY u.name COLLATE NOCASE ASC LIMIT 200`,
+      targetId,
+      user.id,
+    );
+    const friends = rows.map((row) => {
+      const friendStatus =
+        row.id === user.id
+          ? "self"
+          : row.vf_status === "accepted"
+            ? "friends"
+            : row.vf_status === "pending"
+              ? row.vf_requested_by === user.id
+                ? "outgoing"
+                : "incoming"
+              : "none";
+      return {
+        ...friendSummary(row, friendStatus === "friends" || friendStatus === "self"),
+        friendStatus,
+      };
+    });
+    return json(
+      { visible: true, count: totalCount, friends },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
   if (path === "/friends" && method === "GET") {
     if (!user) fail(401, "unauthorized");
     // The other person of each pair, leaving out suspended accounts and
@@ -1572,12 +1658,10 @@ export async function handleCommunity(
     }
     return json({ ok: true });
   }
-  const BUILTIN_CHOIR_SLUGS = new Set(["esmirna", "maranatha", "filadelfia"]);
   const isApprovedRepertoireChoir = async (slug) => {
     if (typeof slug !== "string" || !/^[a-z0-9_-]{2,40}$/.test(slug) || slug === "otro") {
       return false;
     }
-    if (BUILTIN_CHOIR_SLUGS.has(slug)) return true;
     const row = await env.DB.prepare(
       "SELECT slug FROM choirs WHERE slug=?1 AND status='approved'",
     )
@@ -1779,7 +1863,6 @@ export async function handleCommunity(
         choir: { slug, nameEs, nameEn, status: "approved" },
       });
     }
-    if (BUILTIN_CHOIR_SLUGS.has(slug)) fail(400, "invalid_choir");
     await env.DB.prepare("UPDATE choirs SET status='rejected' WHERE slug=?1")
       .bind(slug)
       .run();
@@ -1814,7 +1897,6 @@ export async function handleCommunity(
   }
   if (modChoirDel && method === "DELETE") {
     const slug = modChoirDel[1];
-    if (BUILTIN_CHOIR_SLUGS.has(slug)) fail(400, "invalid_choir");
     const existing = await env.DB.prepare("SELECT slug FROM choirs WHERE slug=?1")
       .bind(slug)
       .first();

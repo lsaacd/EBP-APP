@@ -1,23 +1,33 @@
 import SheetGrabber from './SheetGrabber';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TouchableWithoutFeedback,
+  Pressable,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { usePlaylists } from '../context/PlaylistsContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 import { fonts } from '../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
+import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 
 interface AddToPlaylistModalProps {
   visible: boolean;
@@ -32,13 +42,60 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
   
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const { height: windowHeight } = useWindowDimensions();
+  const travel = Math.max(460, windowHeight * 0.7);
+  const progress = useSharedValue(1);
+  const dragOrigin = useSharedValue(0);
+  const spring = { damping: 28, stiffness: 240, mass: 1, overshootClamping: true };
 
-  React.useEffect(() => {
-    if (!visible) {
+  const finishClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const animateClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    progress.value = withSpring(1, spring, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishClose, progress]);
+
+  useEffect(() => {
+    if (visible) {
+      progress.value = 1;
+      progress.value = withSpring(0, spring);
+    } else {
       setIsCreating(false);
       setNewPlaylistName('');
+      progress.value = 1;
     }
+    return () => cancelAnimation(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  const backdropPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.45,
+  });
+
+  const headerPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.45,
+  });
+
+  const backdropAnimStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, Math.min(1, 1 - progress.value)),
+  }));
+
+  const sheetAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: progress.value * travel }],
+  }));
 
   const handleCreate = () => {
     const clean = newPlaylistName.trim().slice(0, 100);
@@ -60,30 +117,53 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView 
-        style={styles.overlay} 
-        behavior="padding"
-      >
-        <TouchableWithoutFeedback onPress={() => {
-          if (isCreating) {
-            setIsCreating(false);
-            setNewPlaylistName('');
-          } else onClose();
-        }}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={animateClose}
+    >
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={styles.overlay} behavior="padding">
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnimStyle]}
+          />
+          <GestureDetector gesture={backdropPan}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => {
+                if (isCreating) {
+                  setIsCreating(false);
+                  setNewPlaylistName('');
+                } else {
+                  animateClose();
+                }
+              }}
+            />
+          </GestureDetector>
 
-        <View style={[styles.modalContainer, { backgroundColor: theme.surfaceVariants.containerLow }]}>
-          <SheetGrabber />
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.onSurface }]}>
-              {isCreating ? t.createPlaylist : t.addToPlaylist}
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
-            </TouchableOpacity>
-          </View>
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              { backgroundColor: theme.surfaceVariants.containerLow },
+              sheetAnimStyle,
+            ]}
+          >
+            <SheetGrabber />
+            <GestureDetector gesture={headerPan}>
+              <View style={styles.header}>
+                <Text style={[styles.title, { color: theme.onSurface }]}>
+                  {isCreating ? t.createPlaylist : t.addToPlaylist}
+                </Text>
+                <TouchableOpacity onPress={animateClose} style={styles.closeBtn}>
+                  <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+            </GestureDetector>
 
           {isCreating ? (
             <View style={styles.createContainer}>
@@ -162,7 +242,7 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
               <View style={styles.doneBtnContainer}>
                 <TouchableOpacity 
                   style={[styles.actionBtn, styles.actionBtnPrimary, styles.fullWidthBtn, { backgroundColor: theme.primary }]} 
-                  onPress={onClose}
+                  onPress={animateClose}
                 >
                   <Text style={[styles.actionBtnText, { color: theme.onPrimary, textAlign: 'center' }]}>
                     {t.done}
@@ -171,8 +251,9 @@ export default function AddToPlaylistModal({ visible, onClose, hymnId }: AddToPl
               </View>
             </>
           )}
-        </View>
-      </KeyboardAvoidingView>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

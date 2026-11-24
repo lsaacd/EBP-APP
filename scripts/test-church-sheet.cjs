@@ -4,16 +4,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('../himnario/node_modules/typescript');
 
-const load = (file) => {
+const load = (file, deps = {}) => {
   const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const loaded = { exports: {} };
-  // Resolve bare imports (e.g. "qrcode") against the app's own node_modules.
-  const appRequire = (name) =>
-    require(name.startsWith('.')
+  // Resolve injected stubs first, then bare imports (e.g. "qrcode") against the app's own node_modules.
+  const appRequire = (name) => {
+    if (Object.prototype.hasOwnProperty.call(deps, name)) return deps[name];
+    return require(name.startsWith('.')
       ? path.join(__dirname, '..', path.dirname(file), name)
       : path.join(__dirname, '../himnario/node_modules', name));
+  };
   new Function('require', 'module', 'exports', compiled)(appRequire, loaded, loaded.exports);
   return loaded.exports;
 };
@@ -555,4 +557,72 @@ test('driving distance and travel time formatting matches Apple Maps style', () 
   assert.equal(formatDriveTime(120 * 60), '2 hr');
   assert.equal(formatDrivingEstimate(44 * 1609.344, 56 * 60), '44 mi (71 km) · 56 min');
   assert.equal(formatDrivingEstimate(3.2 * 1609.344, 8 * 60), '3.2 mi (5.1 km) · 8 min');
+});
+
+test('member profile offline cache helper seeds previews and sanitizes public friends lists safely', () => {
+  const memStore = new Map();
+  const {
+    seedMemberPreview,
+    buildInitialMemberProfile,
+    parsePublicFriendsResponse,
+    sanitizeCachedMemberProfile,
+    saveCachedMemberProfile,
+    loadCachedMemberProfile,
+  } = load('himnario/utils/memberProfileCache.ts', {
+    './friends': load('himnario/utils/friends.ts'),
+    '@react-native-async-storage/async-storage': {
+      default: {
+        getItem: async (k) => (memStore.has(k) ? memStore.get(k) : null),
+        setItem: async (k, v) => { memStore.set(k, v); },
+        removeItem: async (k) => { memStore.delete(k); },
+      },
+    },
+  });
+
+  seedMemberPreview({
+    id: 'u-isaac-v2',
+    name: 'Isaac V2',
+    ministry: 'hermano',
+    choir: 'filadelfia',
+    churchName: 'IDDV El Buen Pastor — Riverbank',
+    friendStatus: 'friends',
+    friendCount: 3,
+  });
+
+  const initial = buildInitialMemberProfile('viewer-1', 'u-isaac-v2');
+  assert.ok(initial);
+  assert.equal(initial.name, 'Isaac V2');
+  assert.equal(initial.initials, 'IV');
+  assert.equal(initial.friendStatus, 'friends');
+  assert.equal(initial.friendCount, 3);
+
+  const publicFriends = parsePublicFriendsResponse({
+    visible: true,
+    count: 2,
+    friends: [
+      { id: 'f1', name: 'Marta Lopez', initials: 'ML', friendStatus: 'friends' },
+      { id: 'f2', name: 'Luis Tapia', initials: 'LT', friendStatus: 'none' },
+    ],
+  });
+  assert.equal(publicFriends.visible, true);
+  assert.equal(publicFriends.count, 2);
+  assert.deepEqual(
+    publicFriends.friends.map((x) => [x.name, x.friendStatus]),
+    [
+      ['Marta Lopez', 'friends'],
+      ['Luis Tapia', 'none'],
+    ],
+  );
+
+  const hiddenFriends = parsePublicFriendsResponse({
+    visible: false,
+    count: 5,
+    friends: [{ id: 'f1', name: 'Should Not Leak', friendStatus: 'friends' }],
+  });
+  assert.equal(hiddenFriends.visible, false);
+  assert.equal(hiddenFriends.count, 5);
+  assert.deepEqual(hiddenFriends.friends, []);
+
+  assert.equal(sanitizeCachedMemberProfile(null), null);
+  assert.equal(sanitizeCachedMemberProfile({ id: '', name: 'Bad' }), null);
 });

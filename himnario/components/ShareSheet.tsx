@@ -27,7 +27,6 @@ import {
   View,
 } from 'react-native';
 import {
-  Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
@@ -38,7 +37,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { shouldCollapsePlayer } from '../utils/gestureMotion';
+import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -117,40 +116,25 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const pan = Gesture.Pan()
-    .enabled(mode === 'menu')
-    .activeOffsetY(8)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(progress);
-      dragOrigin.value = progress.value;
-    })
-    .onUpdate((event) => {
-      progress.value = Math.max(
-        0,
-        Math.min(1, dragOrigin.value + event.translationY / travel)
-      );
-    })
-    .onEnd((event, success) => {
-      const collapse =
-        success &&
-        shouldCollapsePlayer(
-          progress.value * travel,
-          event.velocityY,
-          travel * 0.55
-        );
-      progress.value = withSpring(
-        collapse ? 1 : 0,
-        { ...spring, velocity: event.velocityY / travel },
-        (finished) => {
-          if (finished && collapse) runOnJS(finishClose)();
-        }
-      );
-    });
+  const pan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.55,
+    enabled: mode === 'menu',
+  });
+
+  const backdropPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    collapseRatio: 0.55,
+  });
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
+    opacity: Math.max(0, Math.min(1, 1 - progress.value)),
   }));
 
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
@@ -407,7 +391,9 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
         />
-        <Pressable style={StyleSheet.absoluteFill} onPress={animateClose} />
+        <GestureDetector gesture={backdropPan}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={animateClose} />
+        </GestureDetector>
 
         <GestureDetector gesture={pan}>
           <Animated.View style={[{ width: '100%' }, sheetAnimatedStyle]}>

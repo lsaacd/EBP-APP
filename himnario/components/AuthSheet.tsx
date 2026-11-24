@@ -44,7 +44,6 @@ import Animated, {
   FadeInLeft,
 } from 'react-native-reanimated';
 import {
-  Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
@@ -62,7 +61,7 @@ import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
 import { MINISTRIES, choirDisplayName } from '../data/communityRules';
 import { useApprovedChoirs } from '../utils/choirsStore';
 import { useFriends } from '../utils/friendsStore';
-import { shouldCollapsePlayer } from '../utils/gestureMotion';
+import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
 
@@ -122,8 +121,9 @@ export function AuthSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'home' | null>(null);
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'member' | 'home' | null>(null);
   const pendingHymnIdRef = useRef<string | null>(null);
+  const pendingMemberIdRef = useRef<string | null>(null);
 
   const visible = propVisible !== undefined ? propVisible : authSheetVisible;
   const signedInUserId = user?.id;
@@ -274,6 +274,10 @@ export function AuthSheet({
       const hymnId = pendingHymnIdRef.current;
       pendingHymnIdRef.current = null;
       router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+    } else if (nextAction === 'member' && pendingMemberIdRef.current) {
+      const memberId = pendingMemberIdRef.current;
+      pendingMemberIdRef.current = null;
+      router.push(`/member/${encodeURIComponent(memberId)}` as any);
     } else if (nextAction === 'home') {
       router.navigate('/(tabs)/home' as any);
     }
@@ -321,40 +325,26 @@ export function AuthSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const pan = Gesture.Pan()
-    .activeOffsetY(10)
-    .failOffsetX([-20, 20])
-    .maxPointers(1)
-    .onStart(() => {
-      cancelAnimation(progress);
-      dragOrigin.value = progress.value;
-      runOnJS(clearPendingPostClose)();
-    })
-    .onUpdate((event) => {
-      progress.value = Math.max(
-        0,
-        Math.min(1, dragOrigin.value + event.translationY / travel)
-      );
-    })
-    .onEnd((event, success) => {
-      const collapse =
-        success &&
-        shouldCollapsePlayer(
-          progress.value * travel,
-          event.velocityY,
-          travel * 0.45
-        );
-      progress.value = withSpring(
-        collapse ? 1 : 0,
-        { ...spring, velocity: event.velocityY / travel },
-        (finished) => {
-          if (finished && collapse) runOnJS(finishClose)();
-        }
-      );
-    });
+  const pan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    onDragStart: clearPendingPostClose,
+    collapseRatio: 0.45,
+  });
+
+  const backdropPan = buildSheetPanGesture({
+    progress,
+    dragOrigin,
+    travel,
+    onFinishDismiss: finishClose,
+    onDragStart: clearPendingPostClose,
+    collapseRatio: 0.45,
+  });
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
+    opacity: Math.max(0, Math.min(1, 1 - progress.value)),
   }));
 
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
@@ -1759,6 +1749,11 @@ export function AuthSheet({
               pendingPostCloseRef.current = 'hymn';
               animateClose();
             }}
+            onOpenMember={(memberId) => {
+              pendingMemberIdRef.current = memberId;
+              pendingPostCloseRef.current = 'member';
+              animateClose();
+            }}
             onOpenChurchesMap={() => {
               pendingPostCloseRef.current = 'churches';
               animateClose();
@@ -1875,24 +1870,26 @@ export function AuthSheet({
           style={styles.overlay}
           behavior={isIOS ? 'padding' : undefined}
         >
-          <Animated.View
-            style={[
-              styles.backdrop,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(0,0,0,0.58)'
-                  : 'rgba(20,16,12,0.38)',
-              },
-              backdropStyle,
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.close}
-              style={StyleSheet.absoluteFill}
-              onPress={animateClose}
-            />
-          </Animated.View>
+          <GestureDetector gesture={backdropPan}>
+            <Animated.View
+              style={[
+                styles.backdrop,
+                {
+                  backgroundColor: isDarkMode
+                    ? 'rgba(0,0,0,0.58)'
+                    : 'rgba(20,16,12,0.38)',
+                },
+                backdropStyle,
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.close}
+                style={StyleSheet.absoluteFill}
+                onPress={animateClose}
+              />
+            </Animated.View>
+          </GestureDetector>
 
           <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
             <SheetGrabber />

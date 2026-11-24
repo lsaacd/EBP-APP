@@ -110,9 +110,11 @@ export default function DetentSheet({
             {background}
           </View>
         ) : null}
-        <SheetGrabber />
         <GestureDetector gesture={gesture}>
-          <View collapsable={false}>{header}</View>
+          <View collapsable={false}>
+            <SheetGrabber interactive />
+            {header}
+          </View>
         </GestureDetector>
         <View style={styles.body}>{children}</View>
       </View>

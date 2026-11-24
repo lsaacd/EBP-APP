@@ -147,6 +147,7 @@ function ThemedStack() {
   const isPad = isIOS && Boolean((Platform as any).isPad);
   const isPlaylist = pathname.startsWith('/playlist/');
   const isChurches = pathname === '/churches';
+  const isMember = pathname.startsWith('/member/');
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
@@ -198,8 +199,8 @@ function ThemedStack() {
 
   let miniPlayerBottom: number;
 
-  if (isPlaylist || isChurches) {
-    // Playlist & Churches pages have no bottom tab bar or tool bar at all
+  if (isPlaylist || isChurches || isMember) {
+    // Playlist, Churches & Member profile pages have no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn) {
     // On iPhone, iOS tab bar retains its 49pt height at the bottom.
@@ -244,6 +245,9 @@ function ThemedStack() {
 
         {/* ── Verified Churches Map & Directory — native iOS push ────────── */}
         <Stack.Screen name="churches" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+
+        {/* ── Full-screen Member Profile — native iOS push ───────────────── */}
+        <Stack.Screen name="member/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
