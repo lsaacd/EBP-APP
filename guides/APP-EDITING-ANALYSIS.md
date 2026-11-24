@@ -1,5 +1,12 @@
 # App editing
 
+## November 24, 2026 — Swipe-down Home doctrine sheet & editorial cards (released)
+
+- **Source:** commit `b3581eb` (pushed to `app-web-parity` and `main`).
+- **iOS OTA (`production`, runtime `2.0.0-release-5`):** group [3a5900b7-2500-454a-94a1-f4b5dffd1c8f](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3a5900b7-2500-454a-94a1-f4b5dffd1c8f), iOS update `01a20ede-44ad-7b54-af63-cbfd1fdf7d81`.
+- **What changed (`himnario/app/(tabs)/home.tsx`):** Replaced the static Church Motto modal with a Reanimated + Gesture Handler swipe-down sheet (`buildSheetBackdropGesture` + `buildSheetPanGesture` on backdrop, floating grabber, and sticky header), redesigned the layout with a sticky Liquid Glass `X` header, left-accented Scripture callout card, and 4 icon-badged editorial cards (`Nombre`, `Lema`, `Fundamento`, `Finalidad` — zero crosses), plus English title localization for Recently Viewed hymns on Home.
+- **Verification:** `tsc --noEmit` 0 errors, `expo lint` 0 errors (0 warnings in `home.tsx`), `git diff --check` clean, iOS Hermes export clean. Physical iOS device swipe check pending.
+
 ## November 24, 2026 — Profile navigation and sign-out (released)
 
 Source `8ed9f84`. iOS production OTA group [7c22b4d8-75cd-4d1c-9cb0-0ff211130233](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/7c22b4d8-75cd-4d1c-9cb0-0ff211130233), iOS update `01a20ed7-e20b-79a0-82a6-4e60f1dcdbc1`, runtime `2.0.0-release-5` for Build #34. Profile sections use native stack entries. Member browsing replaces the current member, tapping oneself returns to the overview, and returning from a verse author reopens the discussion. Sign-out closes the account sheet and clears profile history. TypeScript, 196 tests, search checks and iOS export passed. Physical iOS swipe, notification and offline sign-out checks pending.

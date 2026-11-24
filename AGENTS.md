@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 24, 2026 (iOS Build #34 `d1f054c9`; latest OTA `90ef7b68` on `2.0.0-release-5`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`).
+> **Last updated:** November 24, 2026 (iOS Build #34 `d1f054c9`; latest OTA `3a5900b7` on `2.0.0-release-5`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`).
 
 ## Before you start
 

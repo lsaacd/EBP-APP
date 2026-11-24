@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 24, 2026 (iOS Build #34 `d1f054c9`; latest OTA `90ef7b68` on `2.0.0-release-5`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`)
+> **Last Updated:** November 24, 2026 (iOS Build #34 `d1f054c9`; latest OTA `3a5900b7` on `2.0.0-release-5`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`)
 > **Branches:** `main` and `app-web-parity` are kept identical (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-release-5"` (iOS Build #34 finished & auto-submitted to App Store Connect, latest OTA `90ef7b68`; Build #33 remains on `2.0.0-notif-4` with OTA `dc4ca9aa`; Builds #30 and #31 remain on `2.0.0-media-3`)
+> **App Version & Runtime:** `2.0.0` · `runtimeVersion: "2.0.0-release-5"` (iOS Build #34 finished & auto-submitted to App Store Connect, latest OTA `3a5900b7`; Build #33 remains on `2.0.0-notif-4` with OTA `dc4ca9aa`; Builds #30 and #31 remain on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
