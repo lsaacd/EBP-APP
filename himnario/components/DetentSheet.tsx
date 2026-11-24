@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   background: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     overflow: 'hidden',

@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   docScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.48)',
   },
   docSheetOuter: {

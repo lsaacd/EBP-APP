@@ -555,7 +555,7 @@ export default function SettingsScreen() {
         <View style={styles.aboutOverlay}>
           {/* Backdrop click interceptor */}
           <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={() => setShowAbout(false)}
           />
@@ -588,7 +588,7 @@ export default function SettingsScreen() {
         <View style={styles.modalOverlay}>
           {/* Backdrop click interceptor */}
           <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={() => setLangPickerTarget(null)}
           />

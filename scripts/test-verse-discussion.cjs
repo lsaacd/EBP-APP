@@ -9,6 +9,7 @@ const compile = (file, deps = {}) => {
       target: ts.ScriptTarget.ES2020,
       jsx: ts.JsxEmit.React,
       allowJs: true,
+      esModuleInterop: false,
     },
   }).outputText;
   const module = { exports: {} };

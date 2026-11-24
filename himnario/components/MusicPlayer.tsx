@@ -818,7 +818,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
       pointerEvents={visible ? 'auto' : 'none'}
       accessibilityElementsHidden={!visible}
       importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}
-      style={[StyleSheet.absoluteFillObject, { zIndex: 100, elevation: android ? 24 : 0 }, overlayStyle]}
+      style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: android ? 24 : 0 }, overlayStyle]}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, backdropStyle]} />
@@ -1474,7 +1474,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   noAudioOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',

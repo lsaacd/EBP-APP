@@ -5,7 +5,7 @@ const path = require('node:path');
 const ts = require(path.resolve('himnario/node_modules/typescript'));
 const source = fs.readFileSync('himnario/context/AuthContext.tsx', 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: {
-  module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.React,
+  module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.React, esModuleInterop: false,
 } }).outputText;
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b; }); return { promise, resolve, reject }; };
 const prefs = { language:'es', hymnLanguage:'es', isDarkMode:false, fontSizeMultiplier:1 };

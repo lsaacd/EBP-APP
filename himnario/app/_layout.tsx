@@ -218,11 +218,7 @@ function ThemedStack() {
   return (
     <View style={{ flex: 1 }}>
       {/* Status bar text colour tracks the APP's theme, not the system theme. */}
-      <StatusBar
-        style={showFullPlayer || isDarkMode ? 'light' : 'dark'}
-        translucent
-        backgroundColor="transparent"
-      />
+      <StatusBar style={showFullPlayer || isDarkMode ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,

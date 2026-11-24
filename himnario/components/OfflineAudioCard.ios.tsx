@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   ringCenterIcon: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

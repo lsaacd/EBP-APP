@@ -1,7 +1,7 @@
 import { fonts } from '../theme/theme';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { NavigationContext } from '@react-navigation/native';
+import { NavigationContext } from 'expo-router/react-navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import Animated, {

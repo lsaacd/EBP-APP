@@ -5,8 +5,8 @@ import {
   createNavigatorFactory, TabRouter, useNavigationBuilder,
   type DefaultNavigatorOptions, type ParamListBase, type TabNavigationState,
   type TabRouterOptions, type TabActionHelpers,
-} from '@react-navigation/native';
-import type { BottomTabNavigationOptions, BottomTabNavigationEventMap } from '@react-navigation/bottom-tabs';
+} from 'expo-router/react-navigation';
+import type { BottomTabNavigationOptions, BottomTabNavigationEventMap } from 'expo-router/js-tabs';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { TabPagerContext } from './TabPagerContext';
 import { useTheme } from '../theme/ThemeContext';

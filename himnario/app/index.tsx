@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   // Full-screen touch target — zIndex:99 ensures it wins over main (10)
   // and footer (10) regardless of render order on both iOS and Android.
   tapZone: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 99,
   },
 });

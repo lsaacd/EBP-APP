@@ -10,8 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import { withLayoutContext } from 'expo-router';
-import type { ParamListBase, TabNavigationState } from '@react-navigation/native';
-import type { BottomTabNavigationOptions, BottomTabNavigationEventMap } from '@react-navigation/bottom-tabs';
+import type { ParamListBase, TabNavigationState } from 'expo-router/react-navigation';
+import type { BottomTabNavigationOptions, BottomTabNavigationEventMap } from 'expo-router/js-tabs';
 import { createSwipeTabsNavigator } from '../../components/SwipeTabsNavigator';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';

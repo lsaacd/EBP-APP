@@ -7,7 +7,7 @@
  */
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { NavigationContext } from '@react-navigation/native';
+import { NavigationContext } from 'expo-router/react-navigation';
 import { BlurView } from 'expo-blur';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTheme } from '../theme/ThemeContext';
