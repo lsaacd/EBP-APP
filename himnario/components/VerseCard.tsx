@@ -98,6 +98,7 @@ import {
 } from "../utils/communityApi";
 import AppMenuIcon from "./AppMenuIcon";
 import GlassSurface from "./GlassSurface";
+import { useNavigation } from "expo-router";
 import VerseDiscussionSheet from "./VerseDiscussionSheet";
 import ChoirRepertoire from "./ChoirRepertoire";
 import * as Haptics from "../utils/haptics";
@@ -196,6 +197,15 @@ export default function VerseCard() {
     [brandLogoUri, setBrandLogoUri] = useState<string | null>(
       cachedBrandLogoDataUri,
     );
+  const navigation = useNavigation();
+  const resumeDiscussion = useRef(false);
+  useEffect(() => navigation.addListener("focus", () => {
+    if (resumeDiscussion.current) {
+      resumeDiscussion.current = false;
+      setDiscussion(true);
+    }
+  }), [navigation]);
+  useEffect(() => { resumeDiscussion.current = false; }, [user?.id]);
   const shareSvgRef = useRef<Svg | null>(null);
   const svgPhotoReadyUri = useRef<string | null>(null);
   const svgLogoReadyUri = useRef<string | null>(null);
@@ -2251,6 +2261,7 @@ export default function VerseCard() {
 
       <VerseDiscussionSheet
         visible={discussion}
+        onVisitMember={() => { resumeDiscussion.current = true; }}
         onClose={() => setDiscussion(false)}
         verse={verse}
         onChanged={() => void refresh()}

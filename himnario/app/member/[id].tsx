@@ -277,9 +277,9 @@ export default function MemberProfileScreen() {
     (person: ChurchMemberProfile) => {
       Haptics.selectionAsync();
       if (person.id === memberId) return;
-      // If tapping your own row inside someone else's friends list, replace directly to your full-screen /my-profile page
+      // If tapping your own row inside someone else's friends list, return to the existing profile overview when available
       if (user && person.id === user.id) {
-        router.replace('/my-profile' as any);
+        router.dismissTo('/my-profile' as any);
         return;
       }
       seedMemberPreview({

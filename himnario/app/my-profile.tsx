@@ -58,12 +58,11 @@ const VALID_SECTIONS = new Set<string>([
 
 export default function MyProfileScreen() {
   const params = useLocalSearchParams<{ section?: string }>();
-  const initialSection: ProfileSection =
+  const section: ProfileSection =
     typeof params.section === 'string' && VALID_SECTIONS.has(params.section)
       ? (params.section as ProfileSection)
       : 'overview';
 
-  const [section, setSection] = useState<ProfileSection>(initialSection);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
@@ -92,11 +91,9 @@ export default function MyProfileScreen() {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (typeof params.section === 'string' && VALID_SECTIONS.has(params.section)) {
-      setSection(params.section as ProfileSection);
-    }
-  }, [params.section]);
+  const openSection = (next: ProfileSection) => {
+    if (next !== section) router.push(`/my-profile/${next}` as any);
+  };
 
   useEffect(() => {
     if (user) {
@@ -106,26 +103,14 @@ export default function MyProfileScreen() {
     }
   }, [user, refreshFriendsIfStale, refreshNotificationsIfStale]);
 
-  // If signed out (e.g. after deleting account), exit cleanly back to Home
-  useEffect(() => {
-    if (!user && !isLoading) {
-      if (router.canGoBack()) router.back();
-      else router.replace('/(tabs)/home' as any);
-    }
-  }, [user, isLoading, router]);
-
   const handleBack = useCallback(() => {
     Haptics.selectionAsync();
     setInfoMessage(null);
     setErrorMessage(null);
-    if (section !== 'overview') {
-      setSection('overview');
-      return;
-    }
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(tabs)/home' as any);
+      router.replace((section === 'overview' ? '/(tabs)/home' : '/my-profile') as any);
     }
   }, [router, section]);
 
@@ -190,6 +175,7 @@ export default function MyProfileScreen() {
   }, [deleteAccount, t.authDeleteAccount, t.authDeleteConfirmBody, t.authDeleteConfirmTitle, t.cancel, t.churchError, user]);
 
   if (!user) {
+    if (!isLoading) return null; // The root stack removes this route on sign-out.
     return (
       <View style={[styles.root, { backgroundColor: isDarkMode ? '#010101' : '#fcf9f2', justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator color={theme.primary} />
@@ -300,7 +286,7 @@ export default function MyProfileScreen() {
                 accessibilityLabel={t.accountProfileDetails}
                 onPress={() => {
                   Haptics.selectionAsync();
-                  setSection('account-edit');
+                  openSection('account-edit');
                 }}
                 style={({ pressed }) => [styles.navCircleHit, pressed && { opacity: 0.78 }]}
               >
@@ -321,7 +307,7 @@ export default function MyProfileScreen() {
               accessibilityLabel={t.accountProfileDetails}
               onPress={() => {
                 Haptics.selectionAsync();
-                setSection('account-edit');
+                openSection('account-edit');
               }}
               style={[
                 styles.navCircle,
@@ -391,7 +377,7 @@ export default function MyProfileScreen() {
                   accessibilityRole="button"
                   onPress={() => {
                     Haptics.selectionAsync();
-                    setSection('friends');
+                    openSection('friends');
                   }}
                   style={({ pressed }) => [
                     styles.statPill,
@@ -436,7 +422,7 @@ export default function MyProfileScreen() {
                 accessibilityRole="button"
                 onPress={() => {
                   Haptics.selectionAsync();
-                  setSection('account-edit');
+                  openSection('account-edit');
                 }}
                 style={[
                   styles.card,
@@ -456,7 +442,7 @@ export default function MyProfileScreen() {
             <CommunityProfile
               onOpenSubPage={(next) => {
                 Haptics.selectionAsync();
-                setSection(next);
+                openSection(next);
               }}
               onOpenChurchesMap={() => {
                 Haptics.selectionAsync();
@@ -579,8 +565,8 @@ export default function MyProfileScreen() {
           <Animated.View key={`my-profile-${section}`} entering={FadeIn.duration(160)}>
             <CommunityProfile
               subPage={section}
-              onBack={() => setSection('overview')}
-              onOpenSubPage={(next) => setSection(next)}
+              onBack={handleBack}
+              onOpenSubPage={(next) => openSection(next)}
               onOpenChurchesMap={() => {
                 router.push(
                   (user.churchId ? `/churches?id=${encodeURIComponent(user.churchId)}` : '/churches') as any,
@@ -594,7 +580,7 @@ export default function MyProfileScreen() {
               }}
               onNotificationNavigate={(dest) => {
                 if (dest.kind === 'friends') {
-                  setSection('friends');
+                  openSection('friends');
                 } else if (dest.kind === 'hymn') {
                   router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
                 }

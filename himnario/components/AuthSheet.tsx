@@ -1323,6 +1323,9 @@ export function AuthSheet({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               try {
                 await signOut();
+                pendingPostCloseRef.current = null;
+                onClose();
+                router.dismissTo('/(tabs)/home');
               } catch (err: any) {
                 displayAuthError(err);
               }

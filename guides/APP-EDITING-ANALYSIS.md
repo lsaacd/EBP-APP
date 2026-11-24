@@ -1,5 +1,9 @@
 # App editing
 
+## November 24, 2026 — Sign-out navigation (local)
+
+Signing out closes the account sheet and returns to Home. The root navigator removes My Profile from history when the session ends. Its spinner appears only while auth is loading. Physical checks pending on iOS include repeated profile visits, opening a profile link while signed out, and offline logout. No OTA published for this fix.
+
 ## November 24, 2026 — Glorify sheet swipe, full member profiles, Liquid Glass Favorites/Playlists, swipeable player artwork, and full Admin coro controls (released)
 
 - **Source:** commit `1787731` (pushed to `main` and `app-web-parity` before OTA).

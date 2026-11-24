@@ -95,6 +95,7 @@ export default function VerseDiscussionSheet({
   onChanged,
   titleOverride,
   subtitleOverride,
+  onVisitMember,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -102,6 +103,7 @@ export default function VerseDiscussionSheet({
   onChanged: () => void;
   titleOverride?: { en: string; es: string };
   subtitleOverride?: string;
+  onVisitMember?: () => void;
 }) {
   const { theme, isDarkMode } = useTheme(),
     { language, t } = useLanguage(),
@@ -230,6 +232,7 @@ export default function VerseDiscussionSheet({
       Keyboard.dismiss();
       Haptics.selectionAsync();
       const uid = c.userId;
+      onVisitMember?.();
       const isSelf = user?.id === uid;
       seedMemberPreview({
         id: uid,
@@ -250,7 +253,7 @@ export default function VerseDiscussionSheet({
         router.push(`/member/${encodeURIComponent(uid)}` as any);
       }
     },
-    [onClose, router, user],
+    [onClose, onVisitMember, router, user],
   );
 
   const finishClose = useCallback(() => {

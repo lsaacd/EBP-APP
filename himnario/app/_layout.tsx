@@ -102,7 +102,7 @@ function isIOS26OrLater(): boolean {
 function ThemedStack() {
   const { isDarkMode } = useTheme();
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
@@ -119,7 +119,7 @@ function ThemedStack() {
       const dest = parseNotificationDestination(data);
       if (!dest) return;
       if (dest.kind === 'friends') {
-        router.push('/my-profile?section=friends' as any);
+        router.push('/my-profile/friends' as any);
       } else if (dest.kind === 'hymn') {
         router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
       } else {
@@ -148,7 +148,7 @@ function ThemedStack() {
   const isPlaylist = pathname.startsWith('/playlist/');
   const isChurches = pathname === '/churches';
   const isMember = pathname.startsWith('/member/');
-  const isMyProfile = pathname === '/my-profile';
+  const isMyProfile = pathname === '/my-profile' || pathname.startsWith('/my-profile/');
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
@@ -251,7 +251,10 @@ function ThemedStack() {
         <Stack.Screen name="member/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
 
         {/* ── Full-screen My Profile & Community/Moderation — native iOS push ── */}
-        <Stack.Screen name="my-profile" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+        <Stack.Protected guard={isLoading || !!user}>
+          <Stack.Screen name="my-profile" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+          <Stack.Screen name="my-profile/[section]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+        </Stack.Protected>
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
