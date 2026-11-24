@@ -8,7 +8,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   StyleSheet,
   Switch,
@@ -17,9 +16,6 @@ import {
 } from 'react-native';
 import Animated, {
   FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -41,17 +37,11 @@ import {
 import { useFriends } from '../utils/friendsStore';
 import { seedMemberPreview } from '../utils/memberProfileCache';
 import AppMenuIcon from './AppMenuIcon';
-import GlassSurface from './GlassSurface';
+import LiquidGlassSegmented from './LiquidGlassSegmented';
 import FriendButton from './FriendButton';
 
 type Table = Record<string, [string, string]>;
 type FriendsTab = 'friends' | 'requests' | 'church';
-
-const SEGMENT_SPRING = {
-  damping: 26,
-  stiffness: 290,
-  mass: 0.9,
-};
 
 export default function FriendsPanel({
   onOpenHymn,
@@ -67,7 +57,6 @@ export default function FriendsPanel({
   const { user, updateProfile, refreshUser } = useAuth();
   const { importPlaylist } = usePlaylists();
   const es = language !== 'en';
-  const isIOS = Platform.OS === 'ios';
 
   const {
     lists,
@@ -83,8 +72,6 @@ export default function FriendsPanel({
   } = useFriends();
 
   const [activeTab, setActiveTab] = useState<FriendsTab>('friends');
-  const [segmentWidth, setSegmentWidth] = useState(0);
-  const tabIndex = useSharedValue(0);
 
   const [openSharedId, setOpenSharedId] = useState<string | null>(null);
   const [savedSharedIds, setSavedSharedIds] = useState<Record<string, boolean>>({});
@@ -122,24 +109,10 @@ export default function FriendsPanel({
     }
   }, [lists.friends]);
 
-  const switchTab = useCallback(
-    (next: FriendsTab) => {
-      Haptics.selectionAsync();
-      setActiveTab(next);
-      const idx = next === 'friends' ? 0 : next === 'requests' ? 1 : 2;
-      tabIndex.value = withSpring(idx, SEGMENT_SPRING);
-    },
-    [tabIndex],
-  );
-
-  const segmentThumbStyle = useAnimatedStyle(() => {
-    const third = Math.max(0, (segmentWidth - 8) / 3);
-    return {
-      width: third,
-      opacity: segmentWidth > 0 ? 1 : 0,
-      transform: [{ translateX: tabIndex.value * third }],
-    };
-  }, [segmentWidth]);
+  const switchTab = useCallback((next: FriendsTab) => {
+    Haptics.selectionAsync();
+    setActiveTab(next);
+  }, []);
 
   const hymnById = useMemo(() => {
     const map = new Map<string, { id: string; number: string; title: string }>();
@@ -492,7 +465,7 @@ export default function FriendsPanel({
                     <AppMenuIcon
                       ios="music.note.list"
                       android="queue-music"
-                      color={item.seen ? theme.primary : '#FFFFFF'}
+                      color={item.seen ? theme.primary : theme.onPrimary}
                       size={18}
                     />
                   </View>
@@ -609,14 +582,14 @@ export default function FriendsPanel({
                         <AppMenuIcon
                           ios={saved ? 'checkmark' : 'plus.circle.fill'}
                           android={saved ? 'check' : 'playlist-add'}
-                          color={saved ? theme.primary : '#FFFFFF'}
+                          color={saved ? theme.primary : theme.onPrimary}
                           size={15}
                         />
                         <Text
                           style={{
                             ...fonts.sansSemiBold,
                             fontSize: 13.5,
-                            color: saved ? theme.primary : '#FFFFFF',
+                            color: saved ? theme.primary : theme.onPrimary,
                           }}
                         >
                           {saved ? t.friendsPlaylistSaved : t.friendsSavePlaylist}
@@ -872,112 +845,30 @@ export default function FriendsPanel({
 
   return (
     <View style={{ gap: 18 }}>
-      {/* Animated iOS Liquid Glass Segmented Control */}
-      <View
-        onLayout={(e) => setSegmentWidth(e.nativeEvent.layout.width)}
-        style={[
-          styles.segmentTrack,
+      {/* Animated iOS 26 Liquid Glass Segmented Control */}
+      <LiquidGlassSegmented
+        compact
+        value={activeTab}
+        onChange={(next) => switchTab(next)}
+        items={[
           {
-            backgroundColor: isIOS
-              ? 'transparent'
-              : isDarkMode
-                ? 'rgba(255,255,255,0.08)'
-                : theme.surfaceVariants.containerLow,
-            borderColor: cardBorder,
+            key: 'friends',
+            label: t.friendsTabMine,
+            count: lists.friends.length,
+          },
+          {
+            key: 'requests',
+            label: t.friendsTabRequests,
+            count: requestsBadgeCount,
+            highlightBadge: requestsBadgeCount > 0,
+          },
+          {
+            key: 'church',
+            label: t.friendsTabChurch,
+            count: churchMembers.length > 0 ? churchMembers.length : null,
           },
         ]}
-      >
-        {isIOS ? (
-          <GlassSurface
-            intensity={62}
-            glassEffectStyle="regular"
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
-
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.segmentThumb,
-            isIOS
-              ? {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(255,255,255,0.17)'
-                    : 'rgba(255,255,255,0.92)',
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDarkMode
-                    ? 'rgba(255,255,255,0.22)'
-                    : 'rgba(255,255,255,0.85)',
-                }
-              : { backgroundColor: cardBg },
-            segmentThumbStyle,
-          ]}
-        />
-
-        {(
-          [
-            ['friends', t.friendsTabMine, lists.friends.length, false],
-            ['requests', t.friendsTabRequests, requestsBadgeCount, requestsBadgeCount > 0],
-            ['church', t.friendsTabChurch, churchMembers.length > 0 ? churchMembers.length : null, false],
-          ] as const
-        ).map(([tab, label, count, highlightBadge]) => {
-          const selected = activeTab === tab;
-          return (
-            <Pressable
-              key={tab}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              onPress={() => switchTab(tab)}
-              style={styles.segmentTab}
-            >
-              <View style={styles.segmentLabelRow}>
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  style={{
-                    ...fonts.sansSemiBold,
-                    fontSize: 13,
-                    color: selected ? theme.primary : mutedText,
-                    flexShrink: 1,
-                  }}
-                >
-                  {label}
-                </Text>
-                {count !== null && count > 0 ? (
-                  <View
-                    style={[
-                      styles.segmentCountPill,
-                      {
-                        backgroundColor: highlightBadge
-                          ? theme.primary
-                          : selected
-                            ? theme.primary + '1C'
-                            : isDarkMode
-                              ? 'rgba(255,255,255,0.10)'
-                              : 'rgba(0,0,0,0.06)',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        ...fonts.sansBold,
-                        fontSize: 10.5,
-                        color: highlightBadge
-                          ? theme.onPrimary
-                          : selected
-                            ? theme.primary
-                            : mutedText,
-                      }}
-                    >
-                      {count}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      />
 
       {activeTab === 'requests' && (
         <Animated.View key="tab-requests" entering={FadeIn.duration(150)} style={{ gap: 16 }}>

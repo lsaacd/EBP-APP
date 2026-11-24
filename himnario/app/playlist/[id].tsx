@@ -313,13 +313,14 @@ export default function PlaylistDetailScreen() {
         <GlassSurface
           isInteractive
           glassEffectStyle="regular"
-          intensity={56}
+          intensity={58}
           style={[
             styles.circleGlass,
             !IS_IOS && {
               backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : theme.surfaceVariants.containerLow,
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: cardBorder,
+              overflow: 'hidden',
             },
           ]}
         >
@@ -330,9 +331,17 @@ export default function PlaylistDetailScreen() {
             }}
             accessibilityRole="button"
             accessibilityLabel={t.goBack}
-            style={({ pressed }) => [styles.circleGlassInner, pressed && { opacity: 0.65 }]}
+            style={({ pressed }) => [styles.circleGlassInner, pressed && { opacity: 0.72 }]}
           >
-            <AppMenuIcon ios="chevron.left" android="arrow-back" size={20} color={theme.onSurface} weight="semibold" />
+            <AppMenuIcon
+              ios="chevron.left"
+              android="arrow-back"
+              size={22}
+              containerSize={26}
+              scale="large"
+              color={theme.primary}
+              weight="semibold"
+            />
           </Pressable>
         </GlassSurface>
 
@@ -384,18 +393,27 @@ export default function PlaylistDetailScreen() {
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
-            intensity={56}
+            intensity={58}
             style={[
               styles.circleGlass,
               !IS_IOS && {
                 backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : theme.surfaceVariants.containerLow,
                 borderWidth: StyleSheet.hairlineWidth,
                 borderColor: cardBorder,
+                overflow: 'hidden',
               },
             ]}
           >
             <View style={styles.circleGlassInner} accessibilityRole="button" accessibilityLabel={t.playlistOptionsTitle}>
-              <AppMenuIcon ios="ellipsis" android="more-horiz" size={20} color={theme.onSurface} weight="semibold" />
+              <AppMenuIcon
+                ios="ellipsis"
+                android="more-horiz"
+                size={22}
+                containerSize={26}
+                scale="large"
+                color={theme.primary}
+                weight="semibold"
+              />
             </View>
           </GlassSurface>
         </MenuView>
@@ -427,7 +445,7 @@ export default function PlaylistDetailScreen() {
           </Text>
         </View>
 
-        {/* ── Play & Shuffle Pills ── */}
+        {/* ── Play & Liquid Glass Shuffle Capsules ── */}
         {playlistHymns.length > 0 && (
           <View style={styles.playShuffleRow}>
             <TouchableOpacity
@@ -435,28 +453,45 @@ export default function PlaylistDetailScreen() {
               style={[styles.heroActionBtn, { backgroundColor: theme.primary }]}
               onPress={() => handlePlayPlaylist(false)}
             >
-              <MaterialIcons name="play-arrow" size={22} color="#FFFFFF" />
-              <Text style={[styles.heroActionText, { color: '#FFFFFF' }]}>{t.favoritesPlay}</Text>
+              <AppMenuIcon
+                ios="play.fill"
+                android="play-arrow"
+                size={22}
+                containerSize={22}
+                scale="large"
+                weight="semibold"
+                color={theme.onPrimary}
+              />
+              <Text style={[styles.heroActionText, { color: theme.onPrimary }]}>{t.favoritesPlay}</Text>
             </TouchableOpacity>
 
             <GlassSurface
               isInteractive
               glassEffectStyle="regular"
-              intensity={52}
+              intensity={58}
               style={[
                 styles.heroActionGlass,
                 !IS_IOS && {
                   backgroundColor: subtlePillBg,
                   borderWidth: StyleSheet.hairlineWidth,
                   borderColor: cardBorder,
+                  overflow: 'hidden',
                 },
               ]}
             >
               <Pressable
-                style={({ pressed }) => [styles.heroActionGlassInner, pressed && { opacity: 0.72 }]}
+                style={({ pressed }) => [styles.heroActionGlassInner, pressed && { opacity: 0.78 }]}
                 onPress={() => handlePlayPlaylist(true)}
               >
-                <MaterialIcons name="shuffle" size={20} color={theme.primary} />
+                <AppMenuIcon
+                  ios="shuffle"
+                  android="shuffle"
+                  size={21}
+                  containerSize={23}
+                  scale="large"
+                  weight="semibold"
+                  color={theme.primary}
+                />
                 <Text style={[styles.heroActionText, { color: theme.primary }]}>
                   {t.favoritesShuffle}
                 </Text>
@@ -530,12 +565,12 @@ export default function PlaylistDetailScreen() {
                       ]}
                     >
                       {isCurrent && isPlaying ? (
-                        <MaterialIcons name="graphic-eq" size={20} color="#FFFFFF" />
+                        <MaterialIcons name="graphic-eq" size={21} color={theme.onPrimary} />
                       ) : (
                         <Text
                           style={[
                             styles.numBadgeText,
-                            { color: isCurrent ? '#FFFFFF' : theme.primary },
+                            { color: isCurrent ? theme.onPrimary : theme.primary },
                           ]}
                           numberOfLines={1}
                           adjustsFontSizeToFit
@@ -650,14 +685,22 @@ export default function PlaylistDetailScreen() {
                         {t.playlistAddHymnsSub}
                       </Text>
                     </View>
-                    <GlassSurface isInteractive glassEffectStyle="regular" intensity={56} style={styles.closeGlass}>
+                    <GlassSurface isInteractive glassEffectStyle="regular" intensity={58} style={styles.closeGlass}>
                       <Pressable
                         onPress={closeAddHymnsSheet}
                         accessibilityRole="button"
                         accessibilityLabel={t.close}
                         style={styles.closeGlass}
                       >
-                        <AppMenuIcon ios="xmark" android="close" color={theme.onSurface} size={17} weight="semibold" />
+                        <AppMenuIcon
+                          ios="xmark"
+                          android="close"
+                          color={theme.primary}
+                          size={19}
+                          containerSize={22}
+                          scale="large"
+                          weight="semibold"
+                        />
                       </Pressable>
                     </GlassSurface>
                   </View>
@@ -777,7 +820,9 @@ export default function PlaylistDetailScreen() {
                   { backgroundColor: theme.primary, opacity: renameValue.trim() ? 1 : 0.45 },
                 ]}
               >
-                <Text style={styles.renameBtnPrimaryText}>{t.playlistSaveAction}</Text>
+                <Text style={[styles.renameBtnPrimaryText, { color: theme.onPrimary }]}>
+                  {t.playlistSaveAction}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -819,14 +864,22 @@ export default function PlaylistDetailScreen() {
                   {t.friendsSharePlaylistSub}
                 </Text>
               </View>
-              <GlassSurface isInteractive glassEffectStyle="regular" intensity={56} style={styles.closeGlass}>
+              <GlassSurface isInteractive glassEffectStyle="regular" intensity={58} style={styles.closeGlass}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t.close}
                   onPress={() => setSharePickerOpen(false)}
                   style={styles.closeGlass}
                 >
-                  <AppMenuIcon ios="xmark" android="close" color={theme.onSurface} size={17} weight="semibold" />
+                  <AppMenuIcon
+                    ios="xmark"
+                    android="close"
+                    color={theme.primary}
+                    size={19}
+                    containerSize={22}
+                    scale="large"
+                    weight="semibold"
+                  />
                 </Pressable>
               </GlassSurface>
             </View>
@@ -961,14 +1014,14 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   circleGlass: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   circleGlassInner: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1018,29 +1071,30 @@ const styles = StyleSheet.create({
   },
   heroActionBtn: {
     flex: 1,
-    height: 46,
-    borderRadius: 14,
+    height: 48,
+    borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   heroActionGlass: {
     flex: 1,
-    height: 46,
-    borderRadius: 14,
-    overflow: 'hidden',
+    height: 48,
+    borderRadius: 999,
   },
   heroActionGlassInner: {
     flex: 1,
+    height: 48,
+    borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   heroActionText: {
     ...fonts.sansSemiBold,
-    fontSize: 15.5,
+    fontSize: 16,
   },
   addHymnsRow: {
     flexDirection: 'row',
@@ -1254,9 +1308,9 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   closeGlass: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },

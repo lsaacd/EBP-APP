@@ -14,9 +14,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -45,17 +42,12 @@ import { churchDisplayName } from '../../utils/churchName';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import GlassSurface from '../../components/GlassSurface';
+import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import FriendButton from '../../components/FriendButton';
 import * as Haptics from '../../utils/haptics';
 
 type ProfileTab = 'friends' | 'favorites';
-
-const SEGMENT_SPRING = {
-  damping: 26,
-  stiffness: 290,
-  mass: 0.9,
-};
 
 export default function MemberProfileScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -80,8 +72,6 @@ export default function MemberProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>('friends');
-  const [segmentWidth, setSegmentWidth] = useState(0);
-  const segmentIndex = useSharedValue(0);
   const fetchSeqRef = useRef(0);
   const profileRef = useRef<CachedMemberProfile | null>(profile);
   profileRef.current = profile;
@@ -99,14 +89,19 @@ export default function MemberProfileScreen() {
     return map;
   }, [hymnLanguage]);
 
-  const switchTab = useCallback(
-    (next: ProfileTab) => {
-      Haptics.selectionAsync();
-      setActiveTab(next);
-      segmentIndex.value = withSpring(next === 'friends' ? 0 : 1, SEGMENT_SPRING);
-    },
-    [segmentIndex],
-  );
+  const switchTab = useCallback((next: ProfileTab) => {
+    Haptics.selectionAsync();
+    setActiveTab(next);
+  }, []);
+
+  const handleBackToMain = useCallback(() => {
+    Haptics.selectionAsync();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home' as any);
+    }
+  }, [router]);
 
   const loadMemberData = useCallback(
     async (isPullRefresh = false) => {
@@ -232,13 +227,12 @@ export default function MemberProfileScreen() {
 
   useEffect(() => {
     setActiveTab('friends');
-    segmentIndex.value = 0;
     const initial = memberId ? buildInitialMemberProfile(user?.id, memberId) : null;
     setProfile(initial);
     setLoading(!initial);
     setOfflineMode(false);
     void loadMemberData(false);
-  }, [loadMemberData, memberId, segmentIndex, user?.id]);
+  }, [loadMemberData, memberId, user?.id]);
 
   const handleBlockMember = useCallback(() => {
     if (!user || !profile || user.id === profile.id) return;
@@ -280,6 +274,19 @@ export default function MemberProfileScreen() {
   const openOtherMember = useCallback(
     (person: ChurchMemberProfile) => {
       Haptics.selectionAsync();
+      if (person.id === memberId) return;
+      // If tapping your own row inside someone else's friends list, exit back to main and open your own Account sheet
+      if (user && person.id === user.id) {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/home' as any);
+        }
+        setTimeout(() => {
+          openAuthSheet();
+        }, 200);
+        return;
+      }
       seedMemberPreview({
         id: person.id,
         name: person.name,
@@ -293,19 +300,11 @@ export default function MemberProfileScreen() {
         location: person.location,
         friendStatus: person.friendStatus,
       });
-      router.push(`/member/${encodeURIComponent(person.id)}` as any);
+      // Replace in-place so clicking through multiple profiles never builds a back-button loop!
+      router.replace(`/member/${encodeURIComponent(person.id)}` as any);
     },
-    [router],
+    [memberId, openAuthSheet, router, user],
   );
-
-  const thumbAnimStyle = useAnimatedStyle(() => {
-    const half = Math.max(0, (segmentWidth - 8) / 2);
-    return {
-      width: half,
-      opacity: segmentWidth > 0 ? 1 : 0,
-      transform: [{ translateX: segmentIndex.value * half }],
-    };
-  }, [segmentWidth]);
 
   const bg = isDarkMode ? '#010101' : '#fcf9f2';
   const cardBg = isDarkMode ? '#1A1A1D' : '#FFFFFF';
@@ -352,23 +351,22 @@ export default function MemberProfileScreen() {
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
-            intensity={56}
+            intensity={58}
             style={styles.navCircle}
           >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.homeMenuBack}
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.back();
-              }}
-              style={styles.navCircleHit}
+              onPress={handleBackToMain}
+              style={({ pressed }) => [styles.navCircleHit, pressed && { opacity: 0.78 }]}
             >
               <AppMenuIcon
                 ios="chevron.left"
                 android="arrow-back"
-                color={theme.onSurface}
-                size={18}
+                color={theme.primary}
+                size={21}
+                containerSize={25}
+                scale="large"
                 weight="semibold"
               />
             </Pressable>
@@ -377,12 +375,10 @@ export default function MemberProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.homeMenuBack}
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.back();
-            }}
+            onPress={handleBackToMain}
             style={[
               styles.navCircle,
+              styles.navCircleAndroid,
               styles.navCircleHit,
               { backgroundColor: theme.surfaceVariants.containerHigh },
             ]}
@@ -390,8 +386,8 @@ export default function MemberProfileScreen() {
             <AppMenuIcon
               ios="chevron.left"
               android="arrow-back"
-              color={theme.onSurface}
-              size={19}
+              color={theme.primary}
+              size={22}
             />
           </Pressable>
         )}
@@ -404,28 +400,56 @@ export default function MemberProfileScreen() {
         </Text>
 
         {user && profile && !isSelf ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.memberBlockUser}
-            hitSlop={8}
-            onPress={handleBlockMember}
-            style={[
-              styles.navCircle,
-              styles.navCircleHit,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.08)'
-                  : theme.surfaceVariants.containerHigh,
-              },
-            ]}
-          >
-            <AppMenuIcon
-              ios="hand.raised"
-              android="block"
-              color={mutedText}
-              size={16}
-            />
-          </Pressable>
+          isIOS ? (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={58}
+              style={styles.navCircle}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.memberBlockUser}
+                hitSlop={8}
+                onPress={handleBlockMember}
+                style={({ pressed }) => [styles.navCircleHit, pressed && { opacity: 0.78 }]}
+              >
+                <AppMenuIcon
+                  ios="hand.raised"
+                  android="block"
+                  color={theme.primary}
+                  size={20}
+                  containerSize={24}
+                  scale="large"
+                  weight="medium"
+                />
+              </Pressable>
+            </GlassSurface>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.memberBlockUser}
+              hitSlop={8}
+              onPress={handleBlockMember}
+              style={[
+                styles.navCircle,
+                styles.navCircleAndroid,
+                styles.navCircleHit,
+                {
+                  backgroundColor: isDarkMode
+                    ? 'rgba(255,255,255,0.08)'
+                    : theme.surfaceVariants.containerHigh,
+                },
+              ]}
+            >
+              <AppMenuIcon
+                ios="hand.raised"
+                android="block"
+                color={theme.primary}
+                size={20}
+              />
+            </Pressable>
+          )
         ) : (
           <View style={styles.navCircle} />
         )}
@@ -692,77 +716,25 @@ export default function MemberProfileScreen() {
             </View>
 
             {/* Liquid Glass Segmented Control: Amistades | Favoritos */}
-            <View
-              onLayout={(e) => setSegmentWidth(e.nativeEvent.layout.width)}
-              style={[
-                styles.segmentTrack,
+            <LiquidGlassSegmented
+              value={activeTab}
+              onChange={(next) => setActiveTab(next)}
+              items={[
                 {
-                  backgroundColor: isIOS
-                    ? 'transparent'
-                    : isDarkMode
-                      ? 'rgba(255,255,255,0.08)'
-                      : theme.surfaceVariants.containerLow,
-                  borderColor: cardBorder,
+                  key: 'friends',
+                  label: t.friendsTabMine,
+                  count: friendCountDisplay,
+                },
+                {
+                  key: 'favorites',
+                  label: t.memberFavoritesCountLabel,
+                  count:
+                    profile.friendStatus === 'friends' && profile.favoritesShared !== false
+                      ? knownFavorites.length
+                      : null,
                 },
               ]}
-            >
-              {isIOS ? (
-                <GlassSurface
-                  intensity={58}
-                  glassEffectStyle="regular"
-                  style={StyleSheet.absoluteFill}
-                />
-              ) : null}
-
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.segmentThumb,
-                  isIOS
-                    ? {
-                        backgroundColor: isDarkMode
-                          ? 'rgba(255,255,255,0.16)'
-                          : 'rgba(255,255,255,0.92)',
-                      }
-                    : { backgroundColor: cardBg },
-                  thumbAnimStyle,
-                ]}
-              />
-
-              {(
-                [
-                  ['friends', `${t.friendsTabMine} (${friendCountDisplay})`],
-                  [
-                    'favorites',
-                    profile.friendStatus === 'friends' && profile.favoritesShared !== false
-                      ? `${t.memberFavoritesCountLabel} (${knownFavorites.length})`
-                      : t.memberFavoritesCountLabel,
-                  ],
-                ] as const
-              ).map(([tabKey, tabLabel]) => {
-                const selected = activeTab === tabKey;
-                return (
-                  <Pressable
-                    key={tabKey}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected }}
-                    onPress={() => switchTab(tabKey)}
-                    style={styles.segmentTab}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        ...fonts.sansSemiBold,
-                        fontSize: 13.5,
-                        color: selected ? theme.primary : mutedText,
-                      }}
-                    >
-                      {tabLabel}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            />
 
             {/* Tab Content */}
             {activeTab === 'friends' ? (
@@ -990,14 +962,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   navCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navCircleAndroid: {
     overflow: 'hidden',
   },
   navCircleHit: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
