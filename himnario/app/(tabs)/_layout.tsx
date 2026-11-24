@@ -1,7 +1,7 @@
 /** Main tabs: continuous adjacent-scene paging with platform-specific bar artwork. */
 import { fonts } from '../../theme/theme';
 import React from 'react';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import {
   View,
   Text,
@@ -206,27 +206,6 @@ function IOSTabs() {
   const activeColor = isDarkMode ? '#ffffff' : theme.primary;
   const inactiveColor = isDarkMode ? '#8e8e93' : '#5c5b52';
 
-  // Apply identical appearance options to every Trigger so both standardAppearance
-  // and scrollEdgeAppearance match on initial mount (prevents unselected tab labels
-  // from dropping down before first tab switch on iOS) and pull labels closer to icons.
-  const sharedTriggerOptions = {
-    disableTransparentOnScrollEdge: true,
-    iconColor: inactiveColor,
-    selectedIconColor: activeColor,
-    titlePositionAdjustment: { vertical: -2 },
-    selectedTitlePositionAdjustment: { vertical: -2 },
-    labelStyle: {
-      fontSize: 10.5,
-      fontWeight: '700' as const,
-      color: inactiveColor,
-    },
-    selectedLabelStyle: {
-      fontSize: 10.5,
-      fontWeight: '700' as const,
-      color: activeColor,
-    },
-  };
-
   return (
     <NativeTabs
       tintColor={activeColor}
@@ -234,6 +213,7 @@ function IOSTabs() {
         default: inactiveColor,
         selected: activeColor,
       }}
+      titlePositionAdjustment={{ vertical: -2 }}
       labelStyle={{
         default: {
           fontSize: 10.5,
@@ -250,71 +230,62 @@ function IOSTabs() {
     >
       <NativeTabs.Trigger
         name="home"
-        options={{
-          ...sharedTriggerOptions,
-          // Home positions its content manually below the large "Inicio" header,
-          // so stop react-native-screens from forcing automatic safe-area insets
-          // on its ScrollView (that produced a double top gap on iOS).
-          overrideScrollViewContentInsetAdjustmentBehavior: false,
-        } as any}
+        disableTransparentOnScrollEdge
+        // Home positions its content manually below the large "Inicio" header,
+        // so disable automatic scroll-view content inset adjustment on iOS.
+        disableAutomaticContentInsets
       >
-        <Icon
+        <NativeTabs.Trigger.Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-home-outline.png'),
             selected: require('../../assets/images/ios-tabs/tab-home-filled.png'),
           }}
         />
-        <Label>{t.tabHome}</Label>
+        <NativeTabs.Trigger.Label>{t.tabHome}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       {/* iOS-only 32pt template PNGs share identical frames so UIKit lays out
           every label at the same baseline from the very first render. */}
-      <NativeTabs.Trigger name="hymns" options={sharedTriggerOptions as any}>
-        <Icon
+      <NativeTabs.Trigger name="hymns" disableTransparentOnScrollEdge>
+        <NativeTabs.Trigger.Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-hymns-outline.png'),
             selected: require('../../assets/images/ios-tabs/tab-hymns-filled.png'),
           }}
         />
-        <Label>{t.tabHymns}</Label>
+        <NativeTabs.Trigger.Label>{t.tabHymns}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
         name="favorites"
-        options={{
-          ...sharedTriggerOptions,
-          // Favorites positions its content manually below the large header,
-          // so stop react-native-screens from forcing automatic safe-area insets
-          // on its ScrollView (which produced an extra top gap on iOS only).
-          overrideScrollViewContentInsetAdjustmentBehavior: false,
-        } as any}
+        disableTransparentOnScrollEdge
+        // Favorites positions its content manually below the large header,
+        // so disable automatic scroll-view content inset adjustment on iOS.
+        disableAutomaticContentInsets
       >
-        <Icon
+        <NativeTabs.Trigger.Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-favorites-outline.png'),
             selected: require('../../assets/images/ios-tabs/tab-favorites-filled.png'),
           }}
         />
-        <Label>{t.tabFavorites}</Label>
+        <NativeTabs.Trigger.Label>{t.tabFavorites}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
         name="settings"
-        options={{
-          ...sharedTriggerOptions,
-          // Settings positions its content manually below the large header,
-          // so stop react-native-screens from forcing automatic safe-area insets
-          // on its ScrollView (which produced an extra top gap on iOS only).
-          overrideScrollViewContentInsetAdjustmentBehavior: false,
-        } as any}
+        disableTransparentOnScrollEdge
+        // Settings positions its content manually below the large header,
+        // so disable automatic scroll-view content inset adjustment on iOS.
+        disableAutomaticContentInsets
       >
-        <Icon
+        <NativeTabs.Trigger.Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-settings-outline.png'),
             selected: require('../../assets/images/ios-tabs/tab-settings-filled.png'),
           }}
         />
-        <Label>{t.tabSettings}</Label>
+        <NativeTabs.Trigger.Label>{t.tabSettings}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

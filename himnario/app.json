@@ -7,7 +7,6 @@
     "icon": "./assets/images/android-legacy-app-logo.png",
     "scheme": "el-buen-pastor-himnario",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/AppIcon.icon",
@@ -54,7 +53,6 @@
         "foregroundImage": "./assets/images/android-foreground-app.png",
         "monochromeImage": "./assets/images/android-monochrome-app-logo.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.elbuenpastor.himnario",
       "permissions": [
@@ -143,7 +141,10 @@
           "icon": "./assets/images/android-monochrome-app-logo.png",
           "color": "#7B1E26"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
