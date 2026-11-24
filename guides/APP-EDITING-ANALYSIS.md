@@ -7,7 +7,7 @@
   - **D1 (`ebp-himnario-db`):** `0017_friends_list_visibility.sql` applied remotely (`show_friends_list INTEGER NOT NULL DEFAULT 1`).
   - **Worker (`ebp-himnario-sync`):** `e8b6bbc6-06ef-4c9a-bf97-b84bf4e08eec`.
   - **Pages (`ebp-himnario`):** `60dba153` (`https://60dba153.ebp-himnario.pages.dev`).
-  - **iOS OTA (`production`, runtime `2.0.0-release-5`):** group `154a6e7f-f46f-4e29-bba3-0e660aca5099` · iOS update `01a20cc7-88d6-7f31-b0c8-197cdbaf2728`.
+  - **iOS OTA (`production`, runtime `2.0.0-release-5`):** latest group `144045be-5b87-4892-a5a7-5e34bad89dbb` · iOS update `01a20cf0-0232-7638-8c7f-86cca42be8f9` (commit `6ecd690`: `LiquidGlassSegmented` native `AnimatedGlassView` pill thumb, profile `<` back-arrow loop fix, dark-mode `theme.onPrimary` contrast, larger unclipped iOS Liquid Glass buttons). Previous group `154a6e7f-f46f-4e29-bba3-0e660aca5099` · iOS update `01a20cc7-88d6-7f31-b0c8-197cdbaf2728`.
 - **What changed:**
   - **Glorify backdrop swipe:** Added `himnario/utils/useSheetBackdropGesture.ts` and wired backdrop + grabber swipe-down across all bottom sheets (`AuthSheet`, `VerseDiscussionSheet`, `DetentSheet`, `AppShareSheet`, `ShareSheet`, `TextSizeSheet`, `AddToPlaylistModal`, `VerseCard`, `churches.tsx`, `favorites.tsx`, `playlist/[id].tsx`).
   - **Full-screen member profiles + offline cache:** Created `himnario/app/member/[id].tsx` + `himnario/utils/memberProfileCache.ts` (`AsyncStorage` stale-while-revalidate cache); wired member taps from `FriendsPanel`, `churches.tsx`, and `VerseDiscussionSheet` while keeping `Cuenta` as a bottom sheet. Added `GET /users/:id/friends` + `showFriendsList` privacy switch + `docs/privacy.html` updates.
