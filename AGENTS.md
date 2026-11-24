@@ -28,7 +28,8 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 | Task | Where to read | Notes |
 | --- | --- | --- |
 | **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Deferred by the owner. Deadline April 2027. Must be done on its own branch with a new `runtimeVersion`. |
-| **Friends ("Hermanos")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | All 4 phases are live (requests/profiles, favourites, shared playlists, church suggestions). Needs live two-account device verification. |
+| **Friends ("Amistades")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Requests, profiles, favourites, church suggestions, and friend counts are live on iOS. The plan's shared-playlist phase still needs confirmation; signed-in two-account device verification remains. |
+| **Antigravity pickup: November 23 release** | [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) | Read the top handoff before touching friends, church directory, coro moderation, or publishing another OTA. iOS is released; signed-in device checks and Android rebuild remain. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |
 | Device check of the churches redesign | CLAUDE.md section 5 | Built without a simulator; only the owner's phone has seen it. |
 | Remaining inline strings | `git grep -n "es$" himnario/app himnario/components` | A few dozen strings with interpolated values are still inline `es ? … : …` pairs. |
