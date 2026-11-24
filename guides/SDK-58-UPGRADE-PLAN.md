@@ -1,6 +1,6 @@
 # Expo SDK 58 / Xcode 27 upgrade — deferred task
 
-> **Status (November 24, 2026):** **iOS SDK 58 / Xcode 27.1 Build `#38` (`4ce09aa6`, `2.1.0-sdk58-1`) FINISHED & auto-submitted to TestFlight** on the `sdk-58` branch (`825db8d`). Physical iPhone TestFlight verification and the matching Android `2.1.0-sdk58-1` rebuild remain before merging `sdk-58` into `main` / `app-web-parity`.
+> **Status (November 24, 2026):** **iOS SDK 58 / Xcode 27.1 Build `#39` (`85ea3bf4`, `2.1.0-sdk58-2`, commit `143b1d3`) with `@expo/ui` iOS 26 Native Liquid Glass UI FINISHED & auto-submitted to TestFlight** on the `sdk-58` branch (superseding Build `#38` `4ce09aa6`). Physical iPhone TestFlight verification and the matching Android `2.1.0-sdk58-2` rebuild remain before merging `sdk-58` into `main` / `app-web-parity`.
 > **Deadline:** April 2027.
 > Any agent (Claude, Codex, Antigravity) may pick this up. Read this whole file first.
 

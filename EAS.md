@@ -1,5 +1,23 @@
 # Native builds and updates
 
+## November 24, 2026 — iOS 26 Native Liquid Glass & `@expo/ui` TestFlight Build #39 (`sdk-58` branch, `runtimeVersion: "2.1.0-sdk58-2"`)
+
+- **Branch & Source:** `sdk-58` branch (commit `143b1d3`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until TestFlight sign-off).
+- **iOS `production`, Build #39 (`2.1.0 (39)`) — FINISHED on Xcode 27.1 and auto-submitted to App Store Connect / TestFlight:**
+  - **EAS Build:** [`85ea3bf4-1464-450a-8ac3-a4214dc4902a`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/85ea3bf4-1464-450a-8ac3-a4214dc4902a)
+  - **IPA Artifact:** `https://expo.dev/artifacts/eas/MPDftzkr0l96M9dvFgdw2JylR_JULY1UEMHn1sPxX5k.ipa`
+  - **Auto-Submission:** [`2ff03642-7c40-4f72-84fc-fa202635d082`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/2ff03642-7c40-4f72-84fc-fa202635d082) *(do **not** run manual `eas submit`)*
+  - **Native Changes:** Added `@expo/ui@~58.0.29` (SwiftUI native bridge `ExpoUI`) and bumped `runtimeVersion` from `2.1.0-sdk58-1` to `2.1.0-sdk58-2`. All 3 patches re-applied cleanly (`@react-native-menu+menu+2.0.0.patch`, `react-native+0.88.1.patch`, `react-native-track-player+4.1.2.patch`).
+  - **Included UI (iOS 26 Native Liquid Glass Polish Pass, Oyelo & Inkigo patterns):**
+    - Guarded SwiftUI helper `himnario/utils/expoSwiftUI.ts` (Android/Web/Node-safe).
+    - System / Light / Dark appearance mode in `ThemeContext.tsx` (`Appearance.setColorScheme('auto')` for system) + 19 new `es`/`en` strings in `LanguageContext.tsx`.
+    - Oyelo-style native SwiftUI Settings (`components/screens/Settings.ios.tsx` + `app/(tabs)/settings/_layout.tsx` & `index.tsx` with `headerLargeTitle: true`, monochrome SF Symbols, hover-popover `Picker`s for Appearance & Languages, live serif font preview + native `Slider`, offline audio controls, Inkigo `DisclosureGroup`, and Share & About; legacy Settings preserved for Android/Web in `Settings.legacy.tsx`).
+    - Inkigo-style native SwiftUI Profile (`components/screens/MyProfileOverview.ios.tsx` + transparent native large-title stack in `app/my-profile.tsx` & `app/_layout.tsx`, pull-to-refresh, `LabeledContent` rows, `churchDisplayName()`/`choirDisplayName()` rows, Sign Out, Danger Zone).
+    - `NativeTabs` `minimizeBehavior="onScrollDown"` in `app/(tabs)/_layout.tsx` (collapsing tab bar on scroll across all 4 tabs).
+    - Native SwiftUI `Picker(.segmented)` Liquid Glass lens bubble in `LiquidGlassSegmented.tsx` (adopted on iOS in `hymns.tsx`, `AuthSheet.tsx`, `AppShareSheet.tsx`, plus existing `favorites.tsx`, `FriendsPanel.tsx`, `member/[id].tsx`).
+    - Translucent iOS 26 Liquid Glass `formSheet` routes `app/text-size-sheet.tsx` (from `app/hymn/[id].tsx`) and `app/about-sheet.tsx` (from `Settings.ios.tsx`).
+  - **Verification:** `tsc --noEmit` 0 errors, `196/196` Node tests + `761` search checks passed, `npx expo lint` 0 errors (0 warnings in new files), iOS (`8.3 MB`) & Android (`8.5 MB`) Hermes exports clean. Physical iPhone TestFlight verification and matching Android `2.1.0-sdk58-2` rebuild remain.
+
 ## November 24, 2026 — Expo SDK 58 / Xcode 27.1 iOS TestFlight Build #38 (`sdk-58` branch, `runtimeVersion: "2.1.0-sdk58-1"`)
 
 - **Branch & Source:** `sdk-58` branch (commit `825db8d`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until TestFlight sign-off).
