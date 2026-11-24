@@ -57,7 +57,8 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
   const [surfaceSize, setSurfaceSize] = useState({ width: 360, height: 72 });
   const [slotWidthState, setSlotWidthState] = useState(210);
   const { theme, isDarkMode } = useTheme();
-  const { t, hymnLanguage } = useLanguage();
+  const { t, language, hymnLanguage } = useLanguage();
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
   const {
     currentHymnId,
     currentQueueIds,
@@ -97,7 +98,7 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
         ? ALL_ESTRIBILLO_AUDIO_IDS
         : ALL_HYMN_AUDIO_IDS;
     const idx = list.indexOf(idStr);
-    const localizedCurrent = getLocalizedHymn(current, hymnLanguage);
+    const localizedCurrent = getLocalizedHymn(current, displayHymnLang);
     if (idx < 0 || list.length <= 1) {
       return { hymn: localizedCurrent, prevHymn: null, nextHymn: null };
     }
@@ -110,10 +111,10 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
 
     return {
       hymn: localizedCurrent,
-      prevHymn: prevRaw ? getLocalizedHymn(prevRaw, hymnLanguage) : null,
-      nextHymn: nextRaw ? getLocalizedHymn(nextRaw, hymnLanguage) : null,
+      prevHymn: prevRaw ? getLocalizedHymn(prevRaw, displayHymnLang) : null,
+      nextHymn: nextRaw ? getLocalizedHymn(nextRaw, displayHymnLang) : null,
     };
-  }, [currentHymnId, currentQueueIds, repeatMode, hymnLanguage]);
+  }, [currentHymnId, currentQueueIds, repeatMode, displayHymnLang]);
 
   useEffect(() => {
     hasPrevShared.value = Boolean(prevHymn);

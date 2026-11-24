@@ -2,11 +2,11 @@
  * FavoritesScreen — Apple Music–inspired Liquid Glass Favorites & Playlists hub.
  *
  * - Native iOS 26 LiquidGlassSegmented control (Mis Favoritos / Listas)
- * - Top-right iOS 26 GlassContainer paired circular capsules (Search/+ & Sort MenuView)
- * - 1-tap Play & Shuffle hero capsules with proper dark/light `theme.onPrimary` contrast
- * - Tapping any favorite opens its lyrics with `source: 'favorites'` so skipping
- *   audio and flipping pages both stay inside Favorites
- * - Create New Playlist bottom sheet with Glorify backdrop swipe-down
+ * - Apple Music–style Top Liquid Glass Search Takeover (pill search bar + X circle + scope bar)
+ * - Top-right iOS 26 GlassContainer paired circular capsules (Search/+ & Sort MenuView with SF Symbols)
+ * - Live Favorites sort-order sync with NowPlayingContext (`setQueue`) so Next/Prev immediately
+ *   follows Recently added / By number / A–Z order
+ * - Localized hymn titles following app language (`en` / `es`) with bilingual search
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import {
@@ -20,6 +20,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  Keyboard,
   KeyboardAvoidingView,
   useWindowDimensions,
 } from 'react-native';
@@ -33,6 +34,7 @@ import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-ha
 import Reanimated, {
   Easing,
   Extrapolation,
+  FadeIn,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -91,11 +93,16 @@ function getNativeGlassPair() {
     : null;
 }
 
-function numericOrder(id: string): number {
-  const clean = String(id);
-  const isChorus = clean.startsWith('E');
-  const num = parseInt(clean.replace(/[^\d]/g, ''), 10) || 0;
-  return (isChorus ? 10000 : 0) + num;
+export function compareHymnIdsByNumber(aId: string, bId: string): number {
+  const aClean = String(aId).trim();
+  const bClean = String(bId).trim();
+  const aChorus = aClean.startsWith('E') ? 1 : 0;
+  const bChorus = bClean.startsWith('E') ? 1 : 0;
+  if (aChorus !== bChorus) return aChorus - bChorus;
+  const aNum = parseInt(aClean.replace(/[^\d]/g, ''), 10) || 0;
+  const bNum = parseInt(bClean.replace(/[^\d]/g, ''), 10) || 0;
+  if (aNum !== bNum) return aNum - bNum;
+  return aClean.localeCompare(bClean);
 }
 
 export default function FavoritesScreen() {
@@ -108,14 +115,18 @@ export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
-  const { currentHymnId, isPlaying, openPlayer } = useNowPlaying();
+  const { currentHymnId, isPlaying, queueLabel, setQueue, openPlayer } = useNowPlaying();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 150 : 90);
+
+  // Follow app UI language ('en') automatically for hymn titles on Favorites/Playlists lists
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
 
   const [activeTab, setActiveTab] = useState<'favorites' | 'playlists'>('favorites');
   const [favSort, setFavSort] = useState<FavSort>('recent');
   const [playlistSort, setPlaylistSort] = useState<PlaylistSort>('recent');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<TextInput>(null);
 
   // Create Playlist sheet state
   const [createOpen, setCreateOpen] = useState(false);
@@ -182,6 +193,22 @@ export default function FavoritesScreen() {
     closeCreateSheet();
   }, [newPlaylistName, createPlaylist, closeCreateSheet]);
 
+  const openSearchTakeover = useCallback(() => {
+    Haptics.selectionAsync();
+    setSearchQuery('');
+    setSearchOpen(true);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 60);
+  }, []);
+
+  const closeSearchTakeover = useCallback(() => {
+    Haptics.selectionAsync();
+    Keyboard.dismiss();
+    setSearchQuery('');
+    setSearchOpen(false);
+  }, []);
+
   // ── Data resolution & sorting ─────────────────────────────────────────────
   const allHymnsMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -190,35 +217,57 @@ export default function FavoritesScreen() {
     return map;
   }, []);
 
-  const favoriteHymns = useMemo(() => {
+  // Full sorted Favorites list (independent of search filter, used as canonical playback queue!)
+  const sortedAllFavorites = useMemo(() => {
     const base = favoriteIds
       .map((id) => allHymnsMap.get(String(id)))
       .filter(Boolean)
-      .map((h) => getLocalizedHymn(h, hymnLanguage));
+      .map((raw) => ({
+        raw,
+        localized: getLocalizedHymn(raw, displayHymnLang),
+        englishTitle: getLocalizedHymn(raw, 'en').title,
+      }));
 
     const sorted = [...base];
     if (favSort === 'recent') {
       sorted.reverse();
     } else if (favSort === 'number') {
-      sorted.sort((a, b) => numericOrder(String(a.id)) - numericOrder(String(b.id)));
+      sorted.sort((a, b) => compareHymnIdsByNumber(String(a.localized.id), String(b.localized.id)));
     } else if (favSort === 'alpha') {
-      sorted.sort((a, b) => a.title.localeCompare(b.title));
+      sorted.sort((a, b) => a.localized.title.localeCompare(b.localized.title));
     }
-
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter(
-      (h) =>
-        String(h.number).toLowerCase().includes(q) ||
-        h.title.toLowerCase().includes(q) ||
-        (h.categories && h.categories.toLowerCase().includes(q)),
-    );
-  }, [favoriteIds, allHymnsMap, hymnLanguage, favSort, searchQuery]);
+    return sorted;
+  }, [favoriteIds, allHymnsMap, displayHymnLang, favSort]);
 
   const sortedFavoriteQueueIds = useMemo(
-    () => favoriteHymns.map((h) => String(h.id)),
-    [favoriteHymns],
+    () => sortedAllFavorites.map((entry) => String(entry.localized.id)),
+    [sortedAllFavorites],
   );
+
+  // Keep the active Favorites playback queue in sync whenever favSort or favoriteIds change!
+  useEffect(() => {
+    if (queueLabel === t.myFavorites && sortedFavoriteQueueIds.length > 0) {
+      setQueue(sortedFavoriteQueueIds, t.myFavorites);
+    }
+  }, [queueLabel, sortedFavoriteQueueIds, setQueue, t.myFavorites]);
+
+  const favoriteHymns = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sortedAllFavorites.map((entry) => entry.localized);
+    return sortedAllFavorites
+      .filter(({ raw, localized, englishTitle }) => {
+        const translatedCat = raw.categories ? translateCategories(raw.categories, language).toLowerCase() : '';
+        return (
+          String(localized.number).toLowerCase().includes(q) ||
+          localized.title.toLowerCase().includes(q) ||
+          String(raw.title).toLowerCase().includes(q) ||
+          englishTitle.toLowerCase().includes(q) ||
+          (raw.categories && String(raw.categories).toLowerCase().includes(q)) ||
+          translatedCat.includes(q)
+        );
+      })
+      .map((entry) => entry.localized);
+  }, [sortedAllFavorites, searchQuery, language]);
 
   const playableFavoriteIds = useMemo(
     () => sortedFavoriteQueueIds.filter(hasHymnAudio),
@@ -234,8 +283,10 @@ export default function FavoritesScreen() {
     } else if (playlistSort === 'count') {
       list.sort((a, b) => b.hymnIds.length - a.hymnIds.length);
     }
-    return list;
-  }, [playlists, playlistSort]);
+    const q = searchQuery.trim().toLowerCase();
+    if (!searchOpen || !q) return list;
+    return list.filter((p) => p.name.toLowerCase().includes(q));
+  }, [playlists, playlistSort, searchOpen, searchQuery]);
 
   // ── 1-Tap Play / Shuffle Favorites ────────────────────────────────────────
   const handlePlayFavorites = useCallback(
@@ -285,49 +336,46 @@ export default function FavoritesScreen() {
   const mutedSub = isDarkMode ? 'rgba(235,235,245,0.62)' : theme.onSurfaceVariant;
   const scheme = isDarkMode ? 'dark' : 'light';
   const glassPair = getNativeGlassPair();
+  const menuIconActive = theme.primary;
+  const menuIconDefault = theme.onSurface;
 
-  const primaryActionNode =
-    activeTab === 'playlists' ? (
-      <Pressable
-        onPress={openCreateSheet}
-        accessibilityRole="button"
-        accessibilityLabel={t.playlistsNewTitle}
-        style={({ pressed }) => [styles.circleHit, pressed && { opacity: 0.75 }]}
-      >
-        <AppMenuIcon
-          ios="plus"
-          android="add"
-          size={23}
-          containerSize={27}
-          scale="large"
-          weight="semibold"
-          color={theme.primary}
-        />
-      </Pressable>
-    ) : (
-      <Pressable
-        onPress={() => {
-          Haptics.selectionAsync();
-          setSearchOpen((prev) => {
-            if (prev) setSearchQuery('');
-            return !prev;
-          });
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={t.favoritesSearchPlaceholder}
-        style={({ pressed }) => [styles.circleHit, pressed && { opacity: 0.75 }]}
-      >
-        <AppMenuIcon
-          ios={searchOpen ? 'xmark' : 'magnifyingglass'}
-          android={searchOpen ? 'close' : 'search'}
-          size={22}
-          containerSize={26}
-          scale="large"
-          weight="medium"
-          color={theme.primary}
-        />
-      </Pressable>
-    );
+  const searchTriggerNode = (
+    <Pressable
+      onPress={openSearchTakeover}
+      accessibilityRole="button"
+      accessibilityLabel={t.favoritesSearchPlaceholder}
+      style={({ pressed }) => [styles.circleHit, pressed && { opacity: 0.75 }]}
+    >
+      <AppMenuIcon
+        ios="magnifyingglass"
+        android="search"
+        size={22}
+        containerSize={26}
+        scale="large"
+        weight="medium"
+        color={theme.primary}
+      />
+    </Pressable>
+  );
+
+  const createTriggerNode = (
+    <Pressable
+      onPress={openCreateSheet}
+      accessibilityRole="button"
+      accessibilityLabel={t.playlistsNewTitle}
+      style={({ pressed }) => [styles.circleHit, pressed && { opacity: 0.75 }]}
+    >
+      <AppMenuIcon
+        ios="plus"
+        android="add"
+        size={23}
+        containerSize={27}
+        scale="large"
+        weight="semibold"
+        color={theme.primary}
+      />
+    </Pressable>
+  );
 
   const sortMenuNode = (
     <MenuView
@@ -342,18 +390,21 @@ export default function FavoritesScreen() {
                 title: t.favoritesSortRecent,
                 state: favSort === 'recent' ? 'on' : 'off',
                 image: IS_IOS ? 'clock' : undefined,
+                imageColor: favSort === 'recent' ? menuIconActive : menuIconDefault,
               },
               {
                 id: 'number',
                 title: t.favoritesSortNumber,
                 state: favSort === 'number' ? 'on' : 'off',
                 image: IS_IOS ? 'number' : undefined,
+                imageColor: favSort === 'number' ? menuIconActive : menuIconDefault,
               },
               {
                 id: 'alpha',
                 title: t.favoritesSortAZ,
                 state: favSort === 'alpha' ? 'on' : 'off',
                 image: IS_IOS ? 'textformat.abc' : undefined,
+                imageColor: favSort === 'alpha' ? menuIconActive : menuIconDefault,
               },
             ]
           : [
@@ -362,18 +413,21 @@ export default function FavoritesScreen() {
                 title: t.playlistsSortRecent,
                 state: playlistSort === 'recent' ? 'on' : 'off',
                 image: IS_IOS ? 'clock' : undefined,
+                imageColor: playlistSort === 'recent' ? menuIconActive : menuIconDefault,
               },
               {
                 id: 'alpha',
                 title: t.playlistsSortAZ,
                 state: playlistSort === 'alpha' ? 'on' : 'off',
                 image: IS_IOS ? 'textformat.abc' : undefined,
+                imageColor: playlistSort === 'alpha' ? menuIconActive : menuIconDefault,
               },
               {
                 id: 'count',
                 title: t.playlistsSortCount,
                 state: playlistSort === 'count' ? 'on' : 'off',
                 image: IS_IOS ? 'list.number' : undefined,
+                imageColor: playlistSort === 'count' ? menuIconActive : menuIconDefault,
               },
             ]
       }
@@ -400,9 +454,346 @@ export default function FavoritesScreen() {
     </MenuView>
   );
 
-  const scrollContent = (
+  const renderFavoritesRows = () => (
+    <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder }]}>
+      {favoriteHymns.map((hymn, index) => {
+        const idStr = String(hymn.id);
+        const isCurrent = currentHymnId === idStr;
+        const canPlay = hasHymnAudio(idStr);
+        return (
+          <View key={idStr}>
+            {index > 0 && (
+              <View
+                style={[
+                  styles.rowDivider,
+                  { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35' },
+                ]}
+              />
+            )}
+            <TouchableOpacity
+              style={[
+                styles.favRow,
+                isCurrent && {
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.primary + '0B',
+                },
+              ]}
+              activeOpacity={0.78}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: '/hymn/[id]',
+                  params: { id: idStr, source: 'favorites', sort: favSort },
+                });
+              }}
+            >
+              <View
+                style={[
+                  styles.numBadge,
+                  {
+                    backgroundColor: isCurrent
+                      ? theme.primary
+                      : isDarkMode
+                        ? 'rgba(255,255,255,0.08)'
+                        : theme.primary + '10',
+                  },
+                ]}
+              >
+                {isCurrent && isPlaying ? (
+                  <MaterialIcons name="graphic-eq" size={21} color={theme.onPrimary} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.numBadgeText,
+                      { color: isCurrent ? theme.onPrimary : theme.primary },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {hymn.number}
+                  </Text>
+                )}
+              </View>
+
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.rowTitle,
+                    { color: isCurrent ? theme.primary : theme.onSurface },
+                  ]}
+                >
+                  {hymn.title}
+                </Text>
+                {hymn.categories ? (
+                  <Text numberOfLines={1} style={[styles.rowSub, { color: mutedSub }]}>
+                    {translateCategories(hymn.categories, language)}
+                  </Text>
+                ) : null}
+              </View>
+
+              {canPlay && (
+                <Pressable
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.favoritesPlay}
+                  onPress={() => handlePlaySingleFavorite(idStr)}
+                  style={({ pressed }) => [
+                    styles.quickPlayBtn,
+                    { backgroundColor: subtlePillBg },
+                    pressed && { opacity: 0.65 },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={isCurrent && isPlaying ? 'equalizer' : 'play-arrow'}
+                    size={21}
+                    color={theme.primary}
+                  />
+                </Pressable>
+              )}
+
+              <Pressable
+                hitSlop={8}
+                accessibilityRole="button"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  toggleFavorite(idStr);
+                }}
+                style={({ pressed }) => [styles.bookmarkBtn, pressed && { opacity: 0.65 }]}
+              >
+                <MaterialIcons name="bookmark" size={23} color={theme.primary} />
+              </Pressable>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+    </View>
+  );
+
+  const renderPlaylistsRows = () => (
+    <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder, marginTop: searchOpen ? 0 : 14 }]}>
+      {sortedPlaylists.map((playlist, index) => (
+        <View key={playlist.id}>
+          {index > 0 && (
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  marginLeft: 82,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35',
+                },
+              ]}
+            />
+          )}
+          <TouchableOpacity
+            style={styles.playlistRow}
+            activeOpacity={0.78}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({ pathname: '/playlist/[id]', params: { id: playlist.id } } as any);
+            }}
+          >
+            <LinearGradient
+              colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.playlistThumb}
+            >
+              <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
+            </LinearGradient>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
+                {playlist.name}
+              </Text>
+              <Text style={[styles.playlistMeta, { color: mutedSub }]}>
+                {playlist.hymnIds.length}{' '}
+                {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const searchInputInner = (
+    <View style={styles.topSearchInner}>
+      <AppMenuIcon
+        ios="magnifyingglass"
+        android="search"
+        size={20}
+        containerSize={22}
+        scale="medium"
+        weight="medium"
+        color={mutedSub}
+      />
+      <TextInput
+        ref={searchInputRef}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={
+          activeTab === 'favorites'
+            ? t.favoritesSearchAllPlaceholder
+            : t.playlistsSearchPlaceholder
+        }
+        placeholderTextColor={mutedSub}
+        style={[styles.topSearchInput, { color: theme.onSurface }]}
+        autoFocus
+        returnKeyType="search"
+        clearButtonMode="while-editing"
+      />
+      {searchQuery.length > 0 && !IS_IOS && (
+        <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+          <MaterialIcons name="close" size={19} color={mutedSub} />
+        </Pressable>
+      )}
+    </View>
+  );
+
+  const cancelSearchBtnInner = (
+    <Pressable
+      onPress={closeSearchTakeover}
+      accessibilityRole="button"
+      accessibilityLabel={t.close}
+      style={({ pressed }) => [styles.circleHit, pressed && { opacity: 0.75 }]}
+    >
+      <AppMenuIcon
+        ios="xmark"
+        android="close"
+        size={21}
+        containerSize={25}
+        scale="large"
+        weight="semibold"
+        color={theme.primary}
+      />
+    </Pressable>
+  );
+
+  const scrollContent = searchOpen ? (
+    /* ══════════════════════════════════════════════════════════════════════════
+     * APPLE MUSIC–STYLE TOP NATIVE LIQUID GLASS SEARCH TAKEOVER
+     * ══════════════════════════════════════════════════════════════════════════ */
+    <Reanimated.View key="search-takeover" entering={FadeIn.duration(160)}>
+      {glassPair ? (
+        <glassPair.GlassContainer key={`fav-search-bar-${scheme}`} spacing={8} style={styles.topSearchRow}>
+          <glassPair.GlassView
+            glassEffectStyle="regular"
+            colorScheme={scheme}
+            isInteractive
+            style={styles.topSearchPill}
+          >
+            {searchInputInner}
+          </glassPair.GlassView>
+          <glassPair.GlassView
+            glassEffectStyle="regular"
+            colorScheme={scheme}
+            isInteractive
+            style={styles.glassCircle}
+          >
+            {cancelSearchBtnInner}
+          </glassPair.GlassView>
+        </glassPair.GlassContainer>
+      ) : (
+        <View style={styles.topSearchRow}>
+          <GlassSurface
+            isInteractive
+            intensity={58}
+            style={[
+              styles.topSearchPill,
+              !IS_IOS && {
+                backgroundColor: cardSurface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: cardBorder,
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            {searchInputInner}
+          </GlassSurface>
+          <GlassSurface
+            isInteractive
+            intensity={58}
+            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
+          >
+            {cancelSearchBtnInner}
+          </GlassSurface>
+        </View>
+      )}
+
+      {/* Scope Bar directly beneath the Search Pill (matches Apple Music | Library) */}
+      <View style={{ marginBottom: 20 }}>
+        <LiquidGlassSegmented
+          value={activeTab}
+          onChange={(next) => setActiveTab(next)}
+          items={[
+            { key: 'favorites', label: t.myFavorites, count: favoriteIds.length },
+            { key: 'playlists', label: t.playlistsTabShort, count: playlists.length },
+          ]}
+        />
+      </View>
+
+      {searchQuery.trim().length === 0 ? (
+        <View style={styles.searchEmptyPrompt}>
+          <AppMenuIcon
+            ios="magnifyingglass"
+            android="search"
+            size={48}
+            containerSize={54}
+            scale="large"
+            weight="regular"
+            color={mutedSub}
+          />
+          <Text style={[styles.searchPromptTitle, { color: theme.onSurface }]}>
+            {t.favoritesSearchPromptTitle}
+          </Text>
+          <Text style={[styles.searchPromptBody, { color: mutedSub }]}>
+            {t.favoritesSearchPromptBody}
+          </Text>
+        </View>
+      ) : activeTab === 'favorites' ? (
+        favoriteHymns.length === 0 ? (
+          <View style={styles.searchEmptyPrompt}>
+            <AppMenuIcon
+              ios="magnifyingglass"
+              android="search"
+              size={44}
+              containerSize={50}
+              scale="large"
+              color={mutedSub}
+            />
+            <Text style={[styles.searchPromptTitle, { color: theme.onSurface }]}>
+              {t.hymnsNoResultsFound}
+            </Text>
+          </View>
+        ) : (
+          renderFavoritesRows()
+        )
+      ) : sortedPlaylists.length === 0 ? (
+        <View style={styles.searchEmptyPrompt}>
+          <AppMenuIcon
+            ios="magnifyingglass"
+            android="search"
+            size={44}
+            containerSize={50}
+            scale="large"
+            color={mutedSub}
+          />
+          <Text style={[styles.searchPromptTitle, { color: theme.onSurface }]}>
+            {t.hymnsNoResultsFound}
+          </Text>
+        </View>
+      ) : (
+        renderPlaylistsRows()
+      )}
+
+      <View style={{ height: bottomClearance }} />
+    </Reanimated.View>
+  ) : (
+    /* ══════════════════════════════════════════════════════════════════════════
+     * STANDARD FAVORITES & PLAYLISTS HUB
+     * ══════════════════════════════════════════════════════════════════════════ */
     <>
-      {/* ── Top Title Row + Native iOS 26 Liquid Glass Action Circles (matches Home) ── */}
       <View style={styles.heroRow}>
         <View style={{ flex: 1 }}>
           <Text
@@ -425,14 +816,24 @@ export default function FavoritesScreen() {
         </View>
 
         {glassPair ? (
-          <glassPair.GlassContainer key={`fav-actions-${scheme}`} spacing={6} style={styles.actionsRow}>
+          <glassPair.GlassContainer key={`fav-actions-${scheme}-${activeTab}`} spacing={6} style={styles.actionsRow}>
+            {activeTab === 'playlists' ? (
+              <glassPair.GlassView
+                glassEffectStyle="regular"
+                colorScheme={scheme}
+                isInteractive
+                style={styles.glassCircle}
+              >
+                {createTriggerNode}
+              </glassPair.GlassView>
+            ) : null}
             <glassPair.GlassView
               glassEffectStyle="regular"
               colorScheme={scheme}
               isInteractive
               style={styles.glassCircle}
             >
-              {primaryActionNode}
+              {searchTriggerNode}
             </glassPair.GlassView>
             <glassPair.GlassView
               glassEffectStyle="regular"
@@ -445,12 +846,21 @@ export default function FavoritesScreen() {
           </glassPair.GlassContainer>
         ) : (
           <View style={styles.actionsRow}>
+            {activeTab === 'playlists' ? (
+              <GlassSurface
+                isInteractive
+                intensity={58}
+                style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
+              >
+                {createTriggerNode}
+              </GlassSurface>
+            ) : null}
             <GlassSurface
               isInteractive
               intensity={58}
               style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
             >
-              {primaryActionNode}
+              {searchTriggerNode}
             </GlassSurface>
             <GlassSurface
               isInteractive
@@ -467,47 +877,13 @@ export default function FavoritesScreen() {
       <View style={{ marginBottom: 18 }}>
         <LiquidGlassSegmented
           value={activeTab}
-          onChange={(next) => {
-            setActiveTab(next);
-            setSearchOpen(false);
-            setSearchQuery('');
-          }}
+          onChange={(next) => setActiveTab(next)}
           items={[
             { key: 'favorites', label: t.myFavorites, count: favoriteIds.length },
             { key: 'playlists', label: t.playlistsTabShort, count: playlists.length },
           ]}
         />
       </View>
-
-      {/* ── Optional Inline Search Bar (Favorites) ── */}
-      {activeTab === 'favorites' && searchOpen && (
-        <View
-          style={[
-            styles.searchBar,
-            {
-              backgroundColor: cardSurface,
-              borderColor: cardBorder,
-            },
-          ]}
-        >
-          <MaterialIcons name="search" size={20} color={mutedSub} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={t.favoritesSearchPlaceholder}
-            placeholderTextColor={mutedSub}
-            style={[styles.searchInput, { color: theme.onSurface }]}
-            autoFocus
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
-          {searchQuery.length > 0 && !IS_IOS && (
-            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-              <MaterialIcons name="close" size={19} color={mutedSub} />
-            </Pressable>
-          )}
-        </View>
-      )}
 
       {/* ── TAB 1: MIS FAVORITOS ── */}
       {activeTab === 'favorites' ? (
@@ -586,130 +962,7 @@ export default function FavoritesScreen() {
               </GlassSurface>
             </View>
 
-            {/* Favorites List Card */}
-            {favoriteHymns.length === 0 ? (
-              <View style={styles.noMatchBox}>
-                <Text style={[styles.emptyText, { color: mutedSub, marginBottom: 0 }]}>
-                  {t.hymnsNoResultsFound}
-                </Text>
-              </View>
-            ) : (
-              <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder }]}>
-                {favoriteHymns.map((hymn, index) => {
-                  const idStr = String(hymn.id);
-                  const isCurrent = currentHymnId === idStr;
-                  const canPlay = hasHymnAudio(idStr);
-                  return (
-                    <View key={idStr}>
-                      {index > 0 && (
-                        <View
-                          style={[
-                            styles.rowDivider,
-                            { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35' },
-                          ]}
-                        />
-                      )}
-                      <TouchableOpacity
-                        style={[
-                          styles.favRow,
-                          isCurrent && {
-                            backgroundColor: isDarkMode
-                              ? 'rgba(255,255,255,0.08)'
-                              : theme.primary + '0B',
-                          },
-                        ]}
-                        activeOpacity={0.78}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          router.push({
-                            pathname: '/hymn/[id]',
-                            params: { id: idStr, source: 'favorites' },
-                          });
-                        }}
-                      >
-                        <View
-                          style={[
-                            styles.numBadge,
-                            {
-                              backgroundColor: isCurrent
-                                ? theme.primary
-                                : isDarkMode
-                                  ? 'rgba(255,255,255,0.08)'
-                                  : theme.primary + '10',
-                            },
-                          ]}
-                        >
-                          {isCurrent && isPlaying ? (
-                            <MaterialIcons name="graphic-eq" size={21} color={theme.onPrimary} />
-                          ) : (
-                            <Text
-                              style={[
-                                styles.numBadgeText,
-                                { color: isCurrent ? theme.onPrimary : theme.primary },
-                              ]}
-                              numberOfLines={1}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.65}
-                            >
-                              {hymn.number}
-                            </Text>
-                          )}
-                        </View>
-
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              styles.rowTitle,
-                              { color: isCurrent ? theme.primary : theme.onSurface },
-                            ]}
-                          >
-                            {hymn.title}
-                          </Text>
-                          {hymn.categories ? (
-                            <Text numberOfLines={1} style={[styles.rowSub, { color: mutedSub }]}>
-                              {translateCategories(hymn.categories, language)}
-                            </Text>
-                          ) : null}
-                        </View>
-
-                        {canPlay && (
-                          <Pressable
-                            hitSlop={8}
-                            accessibilityRole="button"
-                            accessibilityLabel={t.favoritesPlay}
-                            onPress={() => handlePlaySingleFavorite(idStr)}
-                            style={({ pressed }) => [
-                              styles.quickPlayBtn,
-                              { backgroundColor: subtlePillBg },
-                              pressed && { opacity: 0.65 },
-                            ]}
-                          >
-                            <MaterialIcons
-                              name={isCurrent && isPlaying ? 'equalizer' : 'play-arrow'}
-                              size={21}
-                              color={theme.primary}
-                            />
-                          </Pressable>
-                        )}
-
-                        <Pressable
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                            toggleFavorite(idStr);
-                          }}
-                          style={({ pressed }) => [styles.bookmarkBtn, pressed && { opacity: 0.65 }]}
-                        >
-                          <MaterialIcons name="bookmark" size={23} color={theme.primary} />
-                        </Pressable>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
+            {renderFavoritesRows()}
           </>
         )
       ) : (
@@ -748,50 +1001,7 @@ export default function FavoritesScreen() {
               <Text style={[styles.emptyText, { color: mutedSub }]}>{t.noPlaylistsYet}</Text>
             </View>
           ) : (
-            <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder, marginTop: 14 }]}>
-              {sortedPlaylists.map((playlist, index) => (
-                <View key={playlist.id}>
-                  {index > 0 && (
-                    <View
-                      style={[
-                        styles.rowDivider,
-                        {
-                          marginLeft: 82,
-                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35',
-                        },
-                      ]}
-                    />
-                  )}
-                  <TouchableOpacity
-                    style={styles.playlistRow}
-                    activeOpacity={0.78}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push({ pathname: '/playlist/[id]', params: { id: playlist.id } } as any);
-                    }}
-                  >
-                    <LinearGradient
-                      colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.playlistThumb}
-                    >
-                      <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
-                    </LinearGradient>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
-                        {playlist.name}
-                      </Text>
-                      <Text style={[styles.playlistMeta, { color: mutedSub }]}>
-                        {playlist.hymnIds.length}{' '}
-                        {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
-                      </Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
+            renderPlaylistsRows()
           )}
         </>
       )}
@@ -820,11 +1030,12 @@ export default function FavoritesScreen() {
 
       <Animated.ScrollView
         ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + ipadTopOffset + 18 },
+          { paddingTop: insets.top + ipadTopOffset + (searchOpen ? 10 : 18) },
           IS_IPAD && styles.tabletCenter,
         ]}
         onScroll={Animated.event(
@@ -1019,21 +1230,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchBar: {
+  topSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    height: 44,
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 12,
   },
-  searchInput: {
+  topSearchPill: {
+    flex: 1,
+    height: 44,
+    borderRadius: 999,
+    justifyContent: 'center',
+  },
+  topSearchInner: {
+    flex: 1,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 9,
+  },
+  topSearchInput: {
     flex: 1,
     ...fonts.sansRegular,
-    fontSize: 15,
+    fontSize: 16.5,
     paddingVertical: 6,
+  },
+  searchEmptyPrompt: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 96,
+    paddingHorizontal: 32,
+    gap: 10,
+  },
+  searchPromptTitle: {
+    ...fonts.sansBold,
+    fontSize: 22,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  searchPromptBody: {
+    ...fonts.sansRegular,
+    fontSize: 15.5,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   playShuffleRow: {
     flexDirection: 'row',
@@ -1168,10 +1408,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 23,
     marginBottom: 24,
-  },
-  noMatchBox: {
-    paddingVertical: 32,
-    alignItems: 'center',
   },
   primaryPillBtn: {
     flexDirection: 'row',

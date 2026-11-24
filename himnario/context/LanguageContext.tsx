@@ -828,6 +828,11 @@ export const strings = {
     playlistSaveAction: "Guardar",
     playlistOptionsTitle: "Opciones de lista",
     playerShuffleNextHint: "Siguiente aleatorio",
+    myProfileTitle: "Mi perfil",
+    favoritesSearchAllPlaceholder: "Número, título o categoría…",
+    playlistsSearchPlaceholder: "Buscar listas de reproducción…",
+    favoritesSearchPromptTitle: "Buscar en Favoritos",
+    favoritesSearchPromptBody: "Encuentra rápidamente cualquier himno guardado o lista de reproducción.",
   },
   en: {
     homeMenu: "Hymnal menu",
@@ -1649,6 +1654,11 @@ export const strings = {
     playlistSaveAction: "Save",
     playlistOptionsTitle: "Playlist options",
     playerShuffleNextHint: "Up next (Shuffle)",
+    myProfileTitle: "My Profile",
+    favoritesSearchAllPlaceholder: "Hymn number, title, or category…",
+    playlistsSearchPlaceholder: "Search playlists…",
+    favoritesSearchPromptTitle: "Search Favorites",
+    favoritesSearchPromptBody: "Quickly find any saved hymn or custom playlist.",
   },
 };
 

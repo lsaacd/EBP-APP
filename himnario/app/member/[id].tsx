@@ -76,10 +76,12 @@ export default function MemberProfileScreen() {
   const profileRef = useRef<CachedMemberProfile | null>(profile);
   profileRef.current = profile;
 
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
+
   const hymnById = useMemo(() => {
     const map = new Map<string, { id: string; number: string; title: string }>();
     for (const raw of [...hymnsData, ...estribillosData]) {
-      const hymn = getLocalizedHymn(raw as any, hymnLanguage) as any;
+      const hymn = getLocalizedHymn(raw as any, displayHymnLang) as any;
       map.set(String(raw.id), {
         id: String(raw.id),
         number: String(hymn.number),
@@ -87,7 +89,7 @@ export default function MemberProfileScreen() {
       });
     }
     return map;
-  }, [hymnLanguage]);
+  }, [displayHymnLang]);
 
   const switchTab = useCallback((next: ProfileTab) => {
     Haptics.selectionAsync();
@@ -275,16 +277,9 @@ export default function MemberProfileScreen() {
     (person: ChurchMemberProfile) => {
       Haptics.selectionAsync();
       if (person.id === memberId) return;
-      // If tapping your own row inside someone else's friends list, exit back to main and open your own Account sheet
+      // If tapping your own row inside someone else's friends list, replace directly to your full-screen /my-profile page
       if (user && person.id === user.id) {
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace('/(tabs)/home' as any);
-        }
-        setTimeout(() => {
-          openAuthSheet();
-        }, 200);
+        router.replace('/my-profile' as any);
         return;
       }
       seedMemberPreview({

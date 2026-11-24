@@ -61,6 +61,7 @@ import { AppShareContent, SMART_APP_URL } from './AppShareSheet';
 import { MINISTRIES, choirDisplayName } from '../data/communityRules';
 import { useApprovedChoirs } from '../utils/choirsStore';
 import { useFriends } from '../utils/friendsStore';
+import { useNotifications } from '../utils/notificationsStore';
 import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
@@ -117,11 +118,12 @@ export function AuthSheet({
   const { favoriteIds } = useFavorites();
   const { playlists } = usePlaylists();
   const { bySlug: choirsBySlug } = useApprovedChoirs();
-  const { lists: friendsLists, refreshIfStale: refreshFriendsIfStale } = useFriends();
+  const { lists: friendsLists, badgeCount: friendsBadge, refreshIfStale: refreshFriendsIfStale } = useFriends();
+  const { unreadCount: notificationsUnread } = useNotifications();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'member' | 'home' | null>(null);
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'member' | 'my-profile' | 'home' | null>(null);
   const pendingHymnIdRef = useRef<string | null>(null);
   const pendingMemberIdRef = useRef<string | null>(null);
 
@@ -278,6 +280,8 @@ export function AuthSheet({
       const memberId = pendingMemberIdRef.current;
       pendingMemberIdRef.current = null;
       router.push(`/member/${encodeURIComponent(memberId)}` as any);
+    } else if (nextAction === 'my-profile') {
+      router.push('/my-profile' as any);
     } else if (nextAction === 'home') {
       router.navigate('/(tabs)/home' as any);
     }
@@ -1087,11 +1091,14 @@ export function AuthSheet({
     if (!user) return null;
     return (
       <>
-        {/* Apple Books Compact Contained Account Pill */}
+        {/* Apple Books Compact Contained Account Pill — opens full-screen /my-profile */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${user.displayName || user.email}, ${t.accountAccountDetails}`}
-          onPress={() => goSubPage('profile-details')}
+          accessibilityLabel={`${user.displayName || user.email}, ${t.myProfileTitle}`}
+          onPress={() => {
+            pendingPostCloseRef.current = 'my-profile';
+            animateClose();
+          }}
           style={({ pressed }) => [
             styles.group,
             {
@@ -1128,6 +1135,21 @@ export function AuthSheet({
             >
               {initials}
             </Text>
+            {(friendsBadge > 0 || notificationsUnread > 0) && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: 11,
+                  height: 11,
+                  borderRadius: 5.5,
+                  backgroundColor: '#D64545',
+                  borderWidth: 2,
+                  borderColor: cardBg,
+                }}
+              />
+            )}
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <Text
@@ -1163,7 +1185,10 @@ export function AuthSheet({
         {!user.emailVerified && (
           <Pressable
             accessibilityRole="button"
-            onPress={() => goSubPage('profile-details')}
+            onPress={() => {
+              pendingPostCloseRef.current = 'my-profile';
+              animateClose();
+            }}
             style={[
               styles.group,
               {
@@ -1184,14 +1209,6 @@ export function AuthSheet({
             <AppMenuIcon ios="chevron.right" android="chevron-right" color={mutedText} size={14} />
           </Pressable>
         )}
-
-        <CommunityProfile
-          onOpenSubPage={goSubPage}
-          onOpenChurchesMap={() => {
-            pendingPostCloseRef.current = 'churches';
-            animateClose();
-          }}
-        />
 
         {/* Standalone Sync Now Pill */}
         <View

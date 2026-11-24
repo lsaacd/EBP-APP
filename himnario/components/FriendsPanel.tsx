@@ -114,10 +114,12 @@ export default function FriendsPanel({
     setActiveTab(next);
   }, []);
 
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
+
   const hymnById = useMemo(() => {
     const map = new Map<string, { id: string; number: string; title: string }>();
     for (const raw of [...hymnsData, ...estribillosData]) {
-      const hymn = getLocalizedHymn(raw as any, hymnLanguage) as any;
+      const hymn = getLocalizedHymn(raw as any, displayHymnLang) as any;
       map.set(String(raw.id), {
         id: String(raw.id),
         number: String(hymn.number),
@@ -125,7 +127,7 @@ export default function FriendsPanel({
       });
     }
     return map;
-  }, [hymnLanguage]);
+  }, [displayHymnLang]);
 
   const cardBg = isDarkMode ? '#222225' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '50';

@@ -102,7 +102,7 @@ function isIOS26OrLater(): boolean {
 function ThemedStack() {
   const { isDarkMode } = useTheme();
   const { language } = useLanguage();
-  const { user, openAuthSheetToPage } = useAuth();
+  const { user } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
@@ -119,14 +119,14 @@ function ThemedStack() {
       const dest = parseNotificationDestination(data);
       if (!dest) return;
       if (dest.kind === 'friends') {
-        openAuthSheetToPage('friends');
+        router.push('/my-profile?section=friends' as any);
       } else if (dest.kind === 'hymn') {
         router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
       } else {
         router.navigate('/(tabs)/home' as any);
       }
     });
-  }, [openAuthSheetToPage, router]);
+  }, [router]);
 
   // Silently refresh Expo push token & language for signed-in users who already granted OS permission.
   useEffect(() => {
@@ -148,6 +148,7 @@ function ThemedStack() {
   const isPlaylist = pathname.startsWith('/playlist/');
   const isChurches = pathname === '/churches';
   const isMember = pathname.startsWith('/member/');
+  const isMyProfile = pathname === '/my-profile';
   const isHymn = pathname.startsWith('/hymn/');
 
   useEffect(() => {
@@ -199,8 +200,8 @@ function ThemedStack() {
 
   let miniPlayerBottom: number;
 
-  if (isPlaylist || isChurches || isMember) {
-    // Playlist, Churches & Member profile pages have no bottom tab bar or tool bar at all
+  if (isPlaylist || isChurches || isMember || isMyProfile) {
+    // Playlist, Churches & Profile pages have no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn) {
     // On iPhone, iOS tab bar retains its 49pt height at the bottom.
@@ -248,6 +249,9 @@ function ThemedStack() {
 
         {/* ── Full-screen Member Profile — native iOS push ───────────────── */}
         <Stack.Screen name="member/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+
+        {/* ── Full-screen My Profile & Community/Moderation — native iOS push ── */}
+        <Stack.Screen name="my-profile" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}

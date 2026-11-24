@@ -445,9 +445,10 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
   const offlineSnapshot = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
   const currentId = currentHymnId ?? hymnId;
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
   const activeData = String(currentId).startsWith('E') ? estribillosData : hymnsData;
   const rawHymn = activeData.find((h: any) => String(h.id) === String(currentId));
-  const hymn = rawHymn ? getLocalizedHymn(rawHymn, hymnLanguage) : undefined;
+  const hymn = rawHymn ? getLocalizedHymn(rawHymn, displayHymnLang) : undefined;
   const currentIndex = activeData.findIndex((h: any) => String(h.id) === String(currentId));
   const isSavedOffline = offlineSnapshot.savedIds.has(String(currentId));
 
@@ -660,10 +661,10 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
     return {
       prevHymn: hasPrev ? true : null,
       nextHymn: hasNext ? true : null,
-      prevHymnItem: prevRaw ? getLocalizedHymn(prevRaw, hymnLanguage) : null,
-      nextHymnItem: nextRaw ? getLocalizedHymn(nextRaw, hymnLanguage) : null,
+      prevHymnItem: prevRaw ? getLocalizedHymn(prevRaw, displayHymnLang) : null,
+      nextHymnItem: nextRaw ? getLocalizedHymn(nextRaw, displayHymnLang) : null,
     };
-  }, [currentId, currentQueueIds, activeData, repeatMode, isShuffled, allHymnsById, hymnLanguage]);
+  }, [currentId, currentQueueIds, activeData, repeatMode, isShuffled, allHymnsById, displayHymnLang]);
 
   // YouTube Music–style horizontal swipeable artwork state
   const artGap = 20;
@@ -1259,6 +1260,7 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
                     ios: rate === 1 ? 'gauge.with.dots.needle.50percent' : rate < 1 ? 'tortoise' : 'hare',
                     default: undefined,
                   }),
+                  imageColor: '#ffffff',
                 }))}
                 onPressAction={({ nativeEvent }) => {
                   const chosen = Number(nativeEvent.event);

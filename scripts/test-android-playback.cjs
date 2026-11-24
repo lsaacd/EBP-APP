@@ -350,10 +350,20 @@ test('favorites custom queue skips directly to the next favorite and setShuffle 
   await controller.open('186', ['186', '409', '439']);
   await controller.next();
   assert.equal(controller.getSnapshot().currentHymnId, '409');
+  // Switching sort order in Favorites (e.g. from Recently Added to By Number) updates live queue without restarting track
+  controller.setQueue(['1', '186', '409', '439']);
+  await controller.previous();
+  assert.equal(controller.getSnapshot().currentHymnId, '186');
+  await controller.previous();
+  assert.equal(controller.getSnapshot().currentHymnId, '1');
+  await controller.next();
+  assert.equal(controller.getSnapshot().currentHymnId, '186');
+  await controller.next();
+  assert.equal(controller.getSnapshot().currentHymnId, '409');
   await controller.next();
   assert.equal(controller.getSnapshot().currentHymnId, '439');
   await controller.next();
-  assert.equal(controller.getSnapshot().currentHymnId, '186');
+  assert.equal(controller.getSnapshot().currentHymnId, '1');
   controller.setShuffle(true);
   assert.equal(controller.getSnapshot().isShuffled, true);
   controller.setShuffle(true);

@@ -75,7 +75,8 @@ export function useNowPlaying() {
 }
 
 export function NowPlayingProvider({ children }: { children: React.ReactNode }) {
-  const { hymnLanguage } = useLanguage();
+  const { language, hymnLanguage } = useLanguage();
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
   const snapshot = useSyncExternalStore(nativePlayer.subscribe, nativePlayer.getSnapshot);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
   const [lastPlayedHymnId, setLastPlayedHymnId] = useState<string | null>(null);
@@ -83,9 +84,9 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     setTrackTitleResolver((id, fallbackTitle) =>
-      hymnLanguage === 'en' ? ALABANZAS_ENGLISH[id]?.title || fallbackTitle : fallbackTitle,
+      displayHymnLang === 'en' ? ALABANZAS_ENGLISH[id]?.title || fallbackTitle : fallbackTitle,
     );
-  }, [hymnLanguage]);
+  }, [displayHymnLang]);
 
   useEffect(() => {
     void refreshOfflineAudio();

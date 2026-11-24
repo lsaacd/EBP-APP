@@ -95,11 +95,16 @@ export default function PlaylistDetailScreen() {
   const [renameValue, setRenameValue] = useState('');
 
   const playlist = playlists.find((p) => p.id === id);
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
 
   const allLocalizedHymns = useMemo(() => {
     const combined = [...hymnsData, ...estribillosData];
-    return combined.map((h) => getLocalizedHymn(h as any, hymnLanguage));
-  }, [hymnLanguage]);
+    return combined.map((h) => ({
+      ...getLocalizedHymn(h as any, displayHymnLang),
+      _rawTitle: (h as any).title,
+      _enTitle: getLocalizedHymn(h as any, 'en').title,
+    }));
+  }, [displayHymnLang]);
 
   const hymnMap = useMemo(() => {
     const m = new Map<string, any>();
@@ -121,9 +126,11 @@ export default function PlaylistDetailScreen() {
     const q = hymnSearch.trim().toLowerCase();
     if (!q) return allLocalizedHymns;
     return allLocalizedHymns.filter(
-      (h) =>
+      (h: any) =>
         String(h.number).toLowerCase().includes(q) ||
         h.title.toLowerCase().includes(q) ||
+        (h._rawTitle && String(h._rawTitle).toLowerCase().includes(q)) ||
+        (h._enTitle && String(h._enTitle).toLowerCase().includes(q)) ||
         (h.categories && h.categories.toLowerCase().includes(q)),
     );
   }, [allLocalizedHymns, hymnSearch]);
@@ -363,6 +370,7 @@ export default function PlaylistDetailScreen() {
                     id: 'share',
                     title: t.friendsSharePlaylist,
                     image: IS_IOS ? 'paperplane' : undefined,
+                    imageColor: theme.onSurface,
                   },
                 ]
               : []),
@@ -370,17 +378,20 @@ export default function PlaylistDetailScreen() {
               id: 'add',
               title: t.playlistAddHymns,
               image: IS_IOS ? 'plus' : undefined,
+              imageColor: theme.onSurface,
             },
             {
               id: 'rename',
               title: t.playlistRenameAction,
               image: IS_IOS ? 'pencil' : undefined,
+              imageColor: theme.onSurface,
             },
             {
               id: 'delete',
               title: t.deletePlaylist,
               attributes: { destructive: true },
               image: IS_IOS ? 'trash' : undefined,
+              imageColor: '#FF453A',
             },
           ]}
           onPressAction={({ nativeEvent }) => {

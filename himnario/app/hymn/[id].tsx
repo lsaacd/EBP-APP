@@ -72,8 +72,9 @@ const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
 type Stanza = { isCoro: boolean; text: string; verseNum: number; coroLabel?: string };
 
 export default function HymnDetail() {
-  const { id, playlistId, source } = useLocalSearchParams();
+  const { id, playlistId, source, sort } = useLocalSearchParams();
   const isFromFavorites = String(source ?? '') === 'favorites';
+  const favSortParam = String(sort ?? 'recent');
   const router = useRouter();
   const { theme, isDarkMode, fontSizeMultiplier, toggleTheme } = useTheme();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
@@ -104,14 +105,35 @@ export default function HymnDetail() {
     }
     if (isFromFavorites && favoriteIds.length > 0) {
       const combined = [...hymnsData, ...estribillosData];
-      const favSet = new Set(favoriteIds.map(String));
-      const list = combined.filter(h => favSet.has(String(h.id)));
+      const byId = new Map<string, any>();
+      for (const h of combined) byId.set(String(h.id), h);
+      const list = favoriteIds.map((fId) => byId.get(String(fId))).filter(Boolean);
+      const displayLang = language === 'en' ? 'en' : hymnLanguage;
+      if (favSortParam === 'recent') {
+        list.reverse();
+      } else if (favSortParam === 'number') {
+        list.sort((a: any, b: any) => {
+          const aClean = String(a.id).trim();
+          const bClean = String(b.id).trim();
+          const aChorus = aClean.startsWith('E') ? 1 : 0;
+          const bChorus = bClean.startsWith('E') ? 1 : 0;
+          if (aChorus !== bChorus) return aChorus - bChorus;
+          const aNum = parseInt(aClean.replace(/[^\d]/g, ''), 10) || 0;
+          const bNum = parseInt(bClean.replace(/[^\d]/g, ''), 10) || 0;
+          if (aNum !== bNum) return aNum - bNum;
+          return aClean.localeCompare(bClean);
+        });
+      } else if (favSortParam === 'alpha') {
+        list.sort((a: any, b: any) =>
+          getLocalizedHymn(a, displayLang).title.localeCompare(getLocalizedHymn(b, displayLang).title),
+        );
+      }
       if (list.some(h => String(h.id) === String(id))) {
         return list;
       }
     }
     return allHymns;
-  }, [activePlaylist, isFromFavorites, favoriteIds, id, allHymns]);
+  }, [activePlaylist, isFromFavorites, favoriteIds, favSortParam, language, hymnLanguage, id, allHymns]);
 
   const currentIndex = useMemo(
     () => hymnList.findIndex((h: any) => String(h.id) === String(id)),
@@ -147,12 +169,12 @@ export default function HymnDetail() {
     if (playlistId) {
       router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, playlistId } });
     } else if (isFromFavorites) {
-      router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, source: 'favorites' } });
+      router.replace({ pathname: '/hymn/[id]', params: { id: prevHymn.id, source: 'favorites', sort: favSortParam } });
     } else {
       router.replace(`/hymn/${prevHymn.id}`);
     }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [prevHymn, navDisabled, router, playlistId, isFromFavorites]);
+  }, [prevHymn, navDisabled, router, playlistId, isFromFavorites, favSortParam]);
 
   const goToNext = useCallback(() => {
     if (!nextHymn || navDisabled) return;
@@ -162,12 +184,12 @@ export default function HymnDetail() {
     if (playlistId) {
       router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, playlistId } });
     } else if (isFromFavorites) {
-      router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, source: 'favorites' } });
+      router.replace({ pathname: '/hymn/[id]', params: { id: nextHymn.id, source: 'favorites', sort: favSortParam } });
     } else {
       router.replace(`/hymn/${nextHymn.id}`);
     }
     setTimeout(() => setNavDisabled(false), 800);
-  }, [nextHymn, navDisabled, router, playlistId, isFromFavorites]);
+  }, [nextHymn, navDisabled, router, playlistId, isFromFavorites, favSortParam]);
 
   /** Handle swipe-to-flip gestures from the PageFlipTransition component */
   const handleSwipeFlip = useCallback((dir: FlipDirection) => {
