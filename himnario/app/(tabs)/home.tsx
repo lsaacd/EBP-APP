@@ -13,19 +13,34 @@
  * @returns {React.JSX.Element} The rendered Home screen.
  */
 import SheetGrabber from '../../components/SheetGrabber';
-import React, { useState, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
+import GlassSurface from '../../components/GlassSurface';
+import AppMenuIcon from '../../components/AppMenuIcon';
+import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
+import React, { useState, useRef, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   Animated,
   Platform,
   BackHandler,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Reanimated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
@@ -93,13 +108,69 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const [showDoctrine, setShowDoctrine] = useState(false);
+  const { height: screenHeight } = useWindowDimensions();
+  const docTravel = Math.max(460, Math.round(screenHeight * 0.88));
+  const docProgress = useSharedValue(1);
+  const docDragOrigin = useSharedValue(0);
 
+  const finishCloseDoctrine = useCallback(() => {
+    setShowDoctrine(false);
+  }, []);
+
+  const closeDoctrine = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    docProgress.value = withTiming(1, { duration: 230, easing: Easing.out(Easing.cubic) });
+    setTimeout(finishCloseDoctrine, 230);
+  }, [docProgress, finishCloseDoctrine]);
+
+  useEffect(() => {
+    if (showDoctrine) {
+      docProgress.value = 1;
+      requestAnimationFrame(() => {
+        docProgress.value = withSpring(0, { damping: 28, stiffness: 245, mass: 0.92, overshootClamping: true });
+      });
+    } else {
+      docProgress.value = 1;
+    }
+  }, [showDoctrine, docProgress]);
+
+  const docBackdropPan = useMemo(
+    () =>
+      buildSheetBackdropGesture({
+        progress: docProgress,
+        dragOrigin: docDragOrigin,
+        travel: docTravel,
+        enabled: showDoctrine,
+        onTapClose: closeDoctrine,
+        onFinishDismiss: finishCloseDoctrine,
+      }),
+    [docProgress, docDragOrigin, docTravel, showDoctrine, closeDoctrine, finishCloseDoctrine],
+  );
+  const docHeaderPan = useMemo(
+    () =>
+      buildSheetPanGesture({
+        progress: docProgress,
+        dragOrigin: docDragOrigin,
+        travel: docTravel,
+        enabled: showDoctrine,
+        onFinishDismiss: finishCloseDoctrine,
+      }),
+    [docProgress, docDragOrigin, docTravel, showDoctrine, finishCloseDoctrine],
+  );
+  const docBackdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(docProgress.value, [0, 1], [1, 0], Extrapolation.CLAMP),
+  }));
+  const docSheetAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: docProgress.value * docTravel }],
+  }));
+
+  const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
   const allHymns = [...hymnsData, ...estribillosData];
   const recentHymns = recentIds
     .map((rid) => allHymns.find((h) => String(h.id) === rid))
     .filter(Boolean)
     .slice(0, 10)
-    .map((h) => getLocalizedHymn(h as any, hymnLanguage)) as typeof hymnsData;
+    .map((h) => getLocalizedHymn(h as any, displayHymnLang)) as typeof hymnsData;
 
   // ── Android: block hardware/swipe back so home never navigates to index ──
   useFocusEffect(
@@ -377,76 +448,181 @@ export default function HomeScreen() {
     </>
   );
 
-  // Shared Modal JSX
+  const docCardBg = isDarkMode ? '#1F1F23' : '#FFFFFF';
+  const docSheetBg = isDarkMode ? '#131316' : '#FAF6EE';
+  const docBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant + '55';
+  const docMuted = isDarkMode ? 'rgba(235,235,245,0.62)' : theme.onSurfaceVariant;
+  const docIconBg = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.primary + '12';
+
+  const doctrineSections: {
+    key: string;
+    ios: React.ComponentProps<typeof AppMenuIcon>['ios'];
+    android: React.ComponentProps<typeof AppMenuIcon>['android'];
+    title: string;
+    body: string;
+  }[] = [
+    { key: 'name', ios: 'building.columns', android: 'account-balance', title: t.doctrineName, body: t.doctrineNameBody },
+    { key: 'motto', ios: 'quote.opening', android: 'format-quote', title: t.doctrineMotto, body: t.doctrineMottoBody },
+    { key: 'foundation', ios: 'book.closed.fill', android: 'menu-book', title: t.doctrineFoundation, body: t.doctrineFoundationBody },
+    { key: 'purpose', ios: 'sparkles', android: 'auto-awesome', title: t.doctrinePurpose, body: t.doctrinePurposeBody },
+  ];
+
+  // Shared Modal JSX — Glorify-style backdrop/grabber/header swipe-down + Sacred Ink editorial cards
   const doctrineModal = (
     <Modal
       visible={showDoctrine}
       transparent
-      animationType="slide"
-      onRequestClose={() => setShowDoctrine(false)}
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      onRequestClose={closeDoctrine}
     >
-      <View style={styles.docOverlay}>
-        <View style={[styles.docSheet, { backgroundColor: theme.background }]}>
-          <SheetGrabber />
-          <View style={styles.docHandle} />
-          <ScrollView
-            showsVerticalScrollIndicator={true}
-            indicatorStyle={isDarkMode ? 'white' : 'black'}
-            contentContainerStyle={styles.docScroll}
-          >
-            <Text style={[styles.docModalTitle, { color: theme.primary }]}>
-              {t.doctrineModalTitle}
-            </Text>
-            <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={styles.docOverlay}>
+          <GestureDetector gesture={docBackdropPan}>
+            <Reanimated.View style={[styles.docScrim, docBackdropStyle]}>
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                accessibilityRole="button"
+                accessibilityLabel={t.close}
+                onPress={closeDoctrine}
+              />
+            </Reanimated.View>
+          </GestureDetector>
 
-            {/* Intro */}
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>{t.doctrineIntro}</Text>
-            <Text style={[styles.docVerse, { color: theme.primary }]}>{t.doctrineVerse}</Text>
-            <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
+          <Reanimated.View style={[styles.docSheetOuter, docSheetAnimStyle]}>
+            <GestureDetector gesture={docHeaderPan}>
+              <View style={styles.docGrabberZone}>
+                <SheetGrabber inline interactive />
+              </View>
+            </GestureDetector>
 
-            {/* Nombre */}
-            <Text style={[styles.docSectionTitle, { color: theme.primary }]}>
-              {t.doctrineName}
-            </Text>
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>
-              {t.doctrineNameBody}
-            </Text>
-            <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
+            <View
+              style={[
+                styles.docSheet,
+                {
+                  backgroundColor: docSheetBg,
+                  maxHeight: Math.round(screenHeight * 0.88),
+                },
+              ]}
+            >
+              {/* Draggable Sticky Header */}
+              <GestureDetector gesture={docHeaderPan}>
+                <View style={[styles.docHeader, { borderBottomColor: docBorder }]}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.docEyebrow, { color: docMuted }]}>
+                      {t.homeOurChurchMotto.toUpperCase()}
+                    </Text>
+                    <Text style={[styles.docModalTitle, { color: theme.primary }]}>
+                      {t.doctrineModalTitle}
+                    </Text>
+                  </View>
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={58}
+                    style={[
+                      styles.docCloseGlass,
+                      !IS_IOS && {
+                        backgroundColor: docIconBg,
+                        overflow: 'hidden',
+                      },
+                    ]}
+                  >
+                    <Pressable
+                      onPress={closeDoctrine}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.close}
+                      style={({ pressed }) => [styles.docCloseGlassHit, pressed && { opacity: 0.72 }]}
+                    >
+                      <AppMenuIcon
+                        ios="xmark"
+                        android="close"
+                        color={theme.primary}
+                        size={19}
+                        containerSize={22}
+                        scale="large"
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  </GlassSurface>
+                </View>
+              </GestureDetector>
 
-            {/* Lema */}
-            <Text style={[styles.docSectionTitle, { color: theme.primary }]}>
-              {t.doctrineMotto}
-            </Text>
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>
-              {t.doctrineMottoBody}
-            </Text>
-            <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
+              <ScrollView
+                showsVerticalScrollIndicator={true}
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
+                contentContainerStyle={[
+                  styles.docScroll,
+                  { paddingBottom: Math.max(insets.bottom, 22) + 12 },
+                ]}
+              >
+                {/* Intro Paragraph */}
+                <Text style={[styles.docIntroBody, { color: theme.onSurface }]}>
+                  {t.doctrineIntro}
+                </Text>
 
-            {/* Fundamento */}
-            <Text style={[styles.docSectionTitle, { color: theme.primary }]}>
-              {t.doctrineFoundation}
-            </Text>
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>
-              {t.doctrineFoundationBody}
-            </Text>
-            <View style={[styles.docDivider, { backgroundColor: theme.outlineVariant }]} />
+                {/* Highlighted Scripture Quote Callout */}
+                <View
+                  style={[
+                    styles.docVerseCard,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : theme.primary + '0A',
+                      borderColor: isDarkMode ? 'rgba(255,255,255,0.10)' : theme.primary + '22',
+                    },
+                  ]}
+                >
+                  <View style={[styles.docVerseAccent, { backgroundColor: theme.primary }]} />
+                  <Text style={[styles.docVerse, { color: theme.primary }]}>
+                    {t.doctrineVerse}
+                  </Text>
+                </View>
 
-            {/* Finalidad */}
-            <Text style={[styles.docSectionTitle, { color: theme.primary }]}>
-              {t.doctrinePurpose}
-            </Text>
-            <Text style={[styles.docBody, { color: theme.onSurface }]}>
-              {t.doctrinePurposeBody}
-            </Text>
-          </ScrollView>
-          <TouchableOpacity
-            style={[styles.docCloseBtn, { backgroundColor: theme.primary }]}
-            onPress={() => setShowDoctrine(false)}
-          >
-            <Text style={[styles.docCloseTxt, { color: theme.onPrimary }]}>{t.close}</Text>
-          </TouchableOpacity>
+                {/* 4 Editorial Identity Cards */}
+                <View style={styles.docCardsStack}>
+                  {doctrineSections.map((sec) => (
+                    <View
+                      key={sec.key}
+                      style={[
+                        styles.docSectionCard,
+                        { backgroundColor: docCardBg, borderColor: docBorder },
+                      ]}
+                    >
+                      <View style={styles.docSectionHeader}>
+                        <View style={[styles.docSectionIcon, { backgroundColor: docIconBg }]}>
+                          <AppMenuIcon
+                            ios={sec.ios}
+                            android={sec.android}
+                            color={theme.primary}
+                            size={18}
+                            containerSize={20}
+                            weight="semibold"
+                          />
+                        </View>
+                        <Text style={[styles.docSectionTitle, { color: theme.primary }]}>
+                          {sec.title}
+                        </Text>
+                      </View>
+                      <Text style={[styles.docBody, { color: theme.onSurface }]}>
+                        {sec.body}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Bottom Pill Close Action */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[styles.docCloseBtn, { backgroundColor: theme.primary }]}
+                  onPress={closeDoctrine}
+                >
+                  <Text style={[styles.docCloseTxt, { color: theme.onPrimary }]}>{t.close}</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </Reanimated.View>
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 
@@ -750,66 +926,129 @@ const styles = StyleSheet.create({
   docOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  docScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.48)',
+  },
+  docSheetOuter: {
+    width: '100%',
+  },
+  docGrabberZone: {
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   docSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
-    paddingBottom: 40,
-    maxHeight: '90%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
-  docHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-    opacity: 0.3,
+  docHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  docScroll: {
-    paddingHorizontal: 28,
-    paddingBottom: 24,
+  docEyebrow: {
+    ...fonts.sansBold,
+    fontSize: 11,
+    letterSpacing: 1.1,
   },
   docModalTitle: {
     ...fonts.bold,
-    fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 16,
+    fontSize: 22,
+    lineHeight: 27,
   },
-  docDivider: {
-    height: 1,
-    opacity: 0.2,
-    marginVertical: 20,
+  docCloseGlass: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  docCloseGlassHit: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docScroll: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    gap: 16,
+  },
+  docIntroBody: {
+    ...(IS_IOS ? fonts.sansRegular : fonts.regular),
+    fontSize: 15.5,
+    lineHeight: 24.5,
+    paddingHorizontal: 4,
+  },
+  docVerseCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    alignItems: 'stretch',
+  },
+  docVerseAccent: {
+    width: 3.5,
+    borderRadius: 2,
+  },
+  docVerse: {
+    flex: 1,
+    ...fonts.regularItalic,
+    fontSize: 15.5,
+    lineHeight: 23.5,
+  },
+  docCardsStack: {
+    gap: 12,
+  },
+  docSectionCard: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    gap: 10,
+  },
+  docSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  docSectionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   docSectionTitle: {
     ...fonts.bold,
-    fontSize: 20,
-    marginBottom: 10,
+    fontSize: 19,
+    flex: 1,
   },
   docBody: {
     ...(IS_IOS ? fonts.sansRegular : fonts.regular),
-    fontSize: 15.5,
-    lineHeight: 24,
-    opacity: 0.9,
-  },
-  docVerse: {
-    ...fonts.regularItalic,
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-    marginTop: 16,
-    opacity: 0.8,
+    fontSize: 15,
+    lineHeight: 23.5,
+    opacity: 0.92,
   },
   docCloseBtn: {
-    marginHorizontal: 28,
-    marginTop: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
+    marginTop: 6,
+    height: 48,
+    borderRadius: 999,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   docCloseTxt: {
     ...(IS_IOS ? fonts.sansSemiBold : fonts.semiBold),
-    fontSize: 15.5,
+    fontSize: 16,
   },
 });
