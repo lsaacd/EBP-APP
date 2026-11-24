@@ -213,6 +213,7 @@ function IOSTabs() {
         default: inactiveColor,
         selected: activeColor,
       }}
+      minimizeBehavior="onScrollDown"
       titlePositionAdjustment={{ vertical: -2 }}
       labelStyle={{
         default: {
@@ -275,9 +276,6 @@ function IOSTabs() {
       <NativeTabs.Trigger
         name="settings"
         disableTransparentOnScrollEdge
-        // Settings positions its content manually below the large header,
-        // so disable automatic scroll-view content inset adjustment on iOS.
-        disableAutomaticContentInsets
       >
         <NativeTabs.Trigger.Icon
           src={{

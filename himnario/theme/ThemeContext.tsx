@@ -8,15 +8,18 @@ import React, {
   ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Appearance, Platform } from 'react-native';
+import { Appearance, Platform, useColorScheme } from 'react-native';
 import { lightTheme, darkTheme } from './theme';
 
 // Infer the theme type from lightTheme
 type Theme = typeof lightTheme;
+export type AppearanceMode = 'system' | 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
   isDarkMode: boolean;
+  appearanceMode: AppearanceMode;
+  setAppearanceMode: (mode: AppearanceMode) => void;
   toggleTheme: () => void;
   fontSizeMultiplier: number;
   changeFontSize: (val: number) => void;
@@ -30,18 +33,35 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const systemColorScheme = useColorScheme();
+  const [appearanceMode, setAppearanceModeState] = useState<AppearanceMode>('light');
   const [fontSizeMultiplier, setFontSizeMultiplierState] = useState(1.0);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const isDarkMode =
+    appearanceMode === 'system'
+      ? systemColorScheme === 'dark'
+      : appearanceMode === 'dark';
 
   // ── Load persisted settings on mount ────────────────────────────────────
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const storedTheme = await AsyncStorage.getItem('isDarkMode');
-        const storedSize = await AsyncStorage.getItem('fontSizeMultiplier');
-        if (storedTheme !== null) setIsDarkMode(JSON.parse(storedTheme));
-        if (storedSize !== null) {
+        const entries = await AsyncStorage.multiGet([
+          'appearanceMode',
+          'isDarkMode',
+          'fontSizeMultiplier',
+        ]);
+        const storedMode = entries[0]?.[1];
+        const storedTheme = entries[1]?.[1];
+        const storedSize = entries[2]?.[1];
+
+        if (storedMode === 'system' || storedMode === 'light' || storedMode === 'dark') {
+          setAppearanceModeState(storedMode);
+        } else if (storedTheme !== null && storedTheme !== undefined) {
+          setAppearanceModeState(JSON.parse(storedTheme) ? 'dark' : 'light');
+        }
+        if (storedSize !== null && storedSize !== undefined) {
           const parsed = parseFloat(storedSize);
           if (!isNaN(parsed)) setFontSizeMultiplierState(parsed);
         }
@@ -55,9 +75,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, []);
 
   // ── Persist AFTER React commits — keeps the UI toggle instant ──────────
-  // Instead of writing to AsyncStorage inside the state setter (which can
-  // delay the re-render), we fire the write in a useEffect that only runs
-  // once isLoaded is true (avoiding the initial load from re-persisting).
+  useEffect(() => {
+    if (!isLoaded) return;
+    AsyncStorage.setItem('appearanceMode', appearanceMode).catch(console.error);
+  }, [appearanceMode, isLoaded]);
+
   useEffect(() => {
     if (!isLoaded) return; // Don't persist on first load
     AsyncStorage.setItem('isDarkMode', JSON.stringify(isDarkMode)).catch(
@@ -66,15 +88,15 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, [isDarkMode, isLoaded]);
 
   // Sync native OS appearance (iOS UITabBarController / Android system surfaces)
-  // with the in-app dark/light mode toggle so native navigation bars switch cleanly.
+  // with the user's selected mode; 'auto' restores real system dark/light tracking.
   useEffect(() => {
     if (!isLoaded || Platform.OS === 'web') return;
     try {
-      Appearance.setColorScheme?.(isDarkMode ? 'dark' : 'light');
+      Appearance.setColorScheme?.(appearanceMode === 'system' ? 'auto' : appearanceMode);
     } catch {
       // Ignore on runtimes where setColorScheme is unsupported
     }
-  }, [isDarkMode, isLoaded]);
+  }, [appearanceMode, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -83,9 +105,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     );
   }, [fontSizeMultiplier, isLoaded]);
 
-  // ── Toggle — just flips the boolean; persistence handled by useEffect ──
+  const setAppearanceMode = useCallback((mode: AppearanceMode) => {
+    setAppearanceModeState(mode);
+  }, []);
+
+  // ── Toggle — switches explicitly so reader dark/light works in system mode ─
   const toggleTheme = useCallback(() => {
-    setIsDarkMode((prev) => !prev);
+    setAppearanceModeState((prev) => {
+      const currentDark =
+        prev === 'system' ? Appearance.getColorScheme() === 'dark' : prev === 'dark';
+      return currentDark ? 'light' : 'dark';
+    });
   }, []);
 
   const changeFontSize = useCallback((val: number) => {
@@ -108,12 +138,23 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     () => ({
       theme,
       isDarkMode,
+      appearanceMode,
+      setAppearanceMode,
       toggleTheme,
       fontSizeMultiplier,
       changeFontSize,
       setFontSizeMultiplier,
     }),
-    [theme, isDarkMode, toggleTheme, fontSizeMultiplier, changeFontSize, setFontSizeMultiplier],
+    [
+      theme,
+      isDarkMode,
+      appearanceMode,
+      setAppearanceMode,
+      toggleTheme,
+      fontSizeMultiplier,
+      changeFontSize,
+      setFontSizeMultiplier,
+    ],
   );
 
   if (!isLoaded) return null;

@@ -23,6 +23,7 @@ import Animated, {
 import { useTheme } from '../theme/ThemeContext';
 import { fonts } from '../theme/theme';
 import * as Haptics from '../utils/haptics';
+import { getExpoSwiftUI } from '../utils/expoSwiftUI';
 
 export interface LiquidSegmentItem<K extends string = string> {
   key: K;
@@ -156,8 +157,46 @@ export default function LiquidGlassSegmented<K extends string>({
     transform: [{ translateX: pos.value * segWidth }, { scale: thumbScale.value }],
   }));
 
-  const AnimatedGlass = getAnimatedGlassView();
+  const swiftUI = getExpoSwiftUI();
   const scheme = isDarkMode ? 'dark' : 'light';
+
+  if (swiftUI) {
+    const { Host, Picker, Text: SwiftUIText } = swiftUI.ui;
+    const { pickerStyle, tag } = swiftUI.modifiers;
+
+    return (
+      <Host
+        colorScheme={scheme}
+        seedColor={theme.primary}
+        style={[styles.nativeHost, compact && styles.nativeHostCompact]}
+      >
+        <Picker
+          label=""
+          selection={value}
+          onSelectionChange={(next) => {
+            if (typeof next === 'string' && next !== value) {
+              Haptics.selectionAsync();
+              onChange(next as K);
+            }
+          }}
+          modifiers={[pickerStyle('segmented')]}
+        >
+          {items.map((item) => {
+            const showCount =
+              item.count !== undefined && item.count !== null && item.count > 0;
+            const displayLabel = showCount ? `${item.label} (${item.count})` : item.label;
+            return (
+              <SwiftUIText key={item.key} modifiers={[tag(item.key)]}>
+                {displayLabel}
+              </SwiftUIText>
+            );
+          })}
+        </Picker>
+      </Host>
+    );
+  }
+
+  const AnimatedGlass = getAnimatedGlassView();
   const mutedText = isDarkMode ? 'rgba(235,235,245,0.62)' : theme.onSurfaceVariant;
 
   const trackBg = isDarkMode
@@ -313,6 +352,13 @@ export default function LiquidGlassSegmented<K extends string>({
 }
 
 const styles = StyleSheet.create({
+  nativeHost: {
+    width: '100%',
+    height: 36,
+  },
+  nativeHostCompact: {
+    height: 32,
+  },
   track: {
     flexDirection: 'row',
     alignItems: 'center',

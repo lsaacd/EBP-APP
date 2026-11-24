@@ -47,6 +47,7 @@ import { TOP_HYMNS_FILTER, rankByLikes, useTopHymns } from '../../utils/topHymns
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
+import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import {
   create as createSearchEngine,
@@ -562,48 +563,69 @@ export default function HymnListScreen() {
 
   // ── Render Sections ──────────────────────────────────────────
 
-  const renderSubTabs = () => (
-    <View style={styles.subTabBar}>
-      {[
-        { key: 'himnos', label: t.subTabHimnos || 'Himnos' },
-        { key: 'estribillos', label: t.subTabEstribillos || 'Estribillos' },
-        { key: 'indice', label: t.subTabIndice || 'Índice' },
-      ].map((tab) => {
-        const isActive = activeSubTab === tab.key;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveSubTab(tab.key as any);
-              setSearchFilter('Todos');
-              chipsScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-              if (flatListRef.current) {
-                flatListRef.current.scrollToOffset({ offset: 0, animated: false });
-              }
-              if (indiceListRef.current) {
-                indiceListRef.current.scrollToOffset({ offset: 0, animated: false });
-              }
-            }}
-            style={styles.subTabItem}
-          >
-            <Text
-              style={[
-                styles.subTabText,
-                isActive && styles.subTabActiveText,
-                { color: isActive ? theme.primary : theme.onSurfaceVariant },
-              ]}
+  const selectSubTab = (nextKey: 'himnos' | 'estribillos' | 'indice') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveSubTab(nextKey);
+    setSearchFilter('Todos');
+    chipsScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+    }
+    if (indiceListRef.current) {
+      indiceListRef.current.scrollToOffset({ offset: 0, animated: false });
+    }
+  };
+
+  const renderSubTabs = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+          <LiquidGlassSegmented
+            compact
+            value={activeSubTab}
+            onChange={(next) => selectSubTab(next)}
+            items={[
+              { key: 'himnos', label: t.subTabHimnos || 'Himnos' },
+              { key: 'estribillos', label: t.subTabEstribillos || 'Estribillos' },
+              { key: 'indice', label: t.subTabIndice || 'Índice' },
+            ]}
+          />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.subTabBar}>
+        {[
+          { key: 'himnos', label: t.subTabHimnos || 'Himnos' },
+          { key: 'estribillos', label: t.subTabEstribillos || 'Estribillos' },
+          { key: 'indice', label: t.subTabIndice || 'Índice' },
+        ].map((tab) => {
+          const isActive = activeSubTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => selectSubTab(tab.key as any)}
+              style={styles.subTabItem}
             >
-              {tab.label}
-            </Text>
-            {isActive && (
-              <View style={[styles.activeIndicator, { backgroundColor: theme.primary }]} />
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+              <Text
+                style={[
+                  styles.subTabText,
+                  isActive && styles.subTabActiveText,
+                  { color: isActive ? theme.primary : theme.onSurfaceVariant },
+                ]}
+              >
+                {tab.label}
+              </Text>
+              {isActive && (
+                <View style={[styles.activeIndicator, { backgroundColor: theme.primary }]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
 
   const renderHimnos = () => {
     const totalHymns = filtered.length;

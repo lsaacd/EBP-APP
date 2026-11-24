@@ -22,7 +22,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../theme/ThemeContext';
@@ -38,8 +38,10 @@ import { churchDisplayName } from '../utils/churchName';
 import { useFriends } from '../utils/friendsStore';
 import { useNotifications } from '../utils/notificationsStore';
 import CommunityProfile, { type CommunitySubPage } from '../components/CommunityProfile';
+import MyProfileOverview from '../components/screens/MyProfileOverview';
 import GlassSurface from '../components/GlassSurface';
 import AppMenuIcon from '../components/AppMenuIcon';
+import { getExpoSwiftUI } from '../utils/expoSwiftUI';
 import * as Haptics from '../utils/haptics';
 
 type ProfileSection = 'overview' | 'account-edit' | CommunitySubPage;
@@ -209,12 +211,54 @@ export default function MyProfileScreen() {
     moderation: t.profileModeration,
   };
 
+  const useNativeIOSOverview = isIOS && section === 'overview' && Boolean(getExpoSwiftUI());
+  const headerAccent = isDarkMode ? '#ffffff' : theme.primary;
+
   return (
     <KeyboardAvoidingView
       behavior={isIOS ? 'padding' : undefined}
       style={[styles.root, { backgroundColor: bg }]}
     >
-      {/* ── Top Liquid Glass Bar ── */}
+      <Stack.Screen
+        options={{
+          title: sectionTitleMap[section],
+          headerLargeTitle: isIOS && section === 'overview',
+          headerRight:
+            isIOS && section === 'overview'
+              ? () => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.editProfileAction}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      openSection('account-edit');
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        width: 34,
+                        height: 34,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="pencil"
+                      android="edit"
+                      color={headerAccent}
+                      size={20}
+                      containerSize={22}
+                      weight="semibold"
+                    />
+                  </Pressable>
+                )
+              : undefined,
+        }}
+      />
+
+      {/* ── Custom Top Liquid Glass Bar (Android / Web only; iOS uses native Stack header) ── */}
+      {!isIOS && (
       <View
         style={[
           styles.topBar,
@@ -224,35 +268,37 @@ export default function MyProfileScreen() {
           },
         ]}
       >
-        {isIOS ? (
-          <GlassSurface
-            isInteractive
-            glassEffectStyle="regular"
-            intensity={58}
-            style={styles.navCircle}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.homeMenuBack}
-              onPress={handleBack}
-              style={({ pressed }) => [styles.navCircleHit, pressed && { opacity: 0.78 }]}
-            >
-              <AppMenuIcon
-                ios="chevron.left"
-                android="arrow-back"
-                color={theme.primary}
-                size={21}
-                containerSize={25}
-                scale="large"
-                weight="semibold"
-              />
-            </Pressable>
-          </GlassSurface>
-        ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.homeMenuBack}
+          onPress={handleBack}
+          style={[
+            styles.navCircle,
+            styles.navCircleAndroid,
+            styles.navCircleHit,
+            { backgroundColor: theme.surfaceVariants.containerHigh },
+          ]}
+        >
+          <AppMenuIcon
+            ios="chevron.left"
+            android="arrow-back"
+            color={theme.primary}
+            size={22}
+          />
+        </Pressable>
+
+        <Text numberOfLines={1} style={[styles.topTitle, { color: theme.onSurface }]}>
+          {sectionTitleMap[section]}
+        </Text>
+
+        {section === 'overview' ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t.homeMenuBack}
-            onPress={handleBack}
+            accessibilityLabel={t.accountProfileDetails}
+            onPress={() => {
+              Haptics.selectionAsync();
+              openSection('account-edit');
+            }}
             style={[
               styles.navCircle,
               styles.navCircleAndroid,
@@ -260,71 +306,22 @@ export default function MyProfileScreen() {
               { backgroundColor: theme.surfaceVariants.containerHigh },
             ]}
           >
-            <AppMenuIcon
-              ios="chevron.left"
-              android="arrow-back"
-              color={theme.primary}
-              size={22}
-            />
+            <AppMenuIcon ios="pencil" android="edit" color={theme.primary} size={20} />
           </Pressable>
-        )}
-
-        <Text numberOfLines={1} style={[styles.topTitle, { color: theme.onSurface }]}>
-          {sectionTitleMap[section]}
-        </Text>
-
-        {section === 'overview' ? (
-          isIOS ? (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={58}
-              style={styles.navCircle}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.accountProfileDetails}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  openSection('account-edit');
-                }}
-                style={({ pressed }) => [styles.navCircleHit, pressed && { opacity: 0.78 }]}
-              >
-                <AppMenuIcon
-                  ios="pencil"
-                  android="edit"
-                  color={theme.primary}
-                  size={20}
-                  containerSize={24}
-                  scale="large"
-                  weight="semibold"
-                />
-              </Pressable>
-            </GlassSurface>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.accountProfileDetails}
-              onPress={() => {
-                Haptics.selectionAsync();
-                openSection('account-edit');
-              }}
-              style={[
-                styles.navCircle,
-                styles.navCircleAndroid,
-                styles.navCircleHit,
-                { backgroundColor: theme.surfaceVariants.containerHigh },
-              ]}
-            >
-              <AppMenuIcon ios="pencil" android="edit" color={theme.primary} size={20} />
-            </Pressable>
-          )
         ) : (
           <View style={styles.navCircle} />
         )}
       </View>
+      )}
 
+      {useNativeIOSOverview ? (
+        <MyProfileOverview
+          onOpenSection={openSection}
+          onConfirmDeleteAccount={handleConfirmDeleteAccount}
+        />
+      ) : (
       <ScrollView
+        contentInsetAdjustmentBehavior={isIOS ? 'automatic' : undefined}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
@@ -589,6 +586,7 @@ export default function MyProfileScreen() {
           </Animated.View>
         )}
       </ScrollView>
+      )}
     </KeyboardAvoidingView>
   );
 }

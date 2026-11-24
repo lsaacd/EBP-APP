@@ -65,6 +65,7 @@ import { useNotifications } from '../utils/notificationsStore';
 import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
+import LiquidGlassSegmented from './LiquidGlassSegmented';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -1394,56 +1395,72 @@ export function AuthSheet({
         </Text>
 
         {mode !== 'recovery' && (
-          <View
-            onLayout={(e) => {
-              const w = e.nativeEvent.layout.width;
-              if (w > 0 && Math.abs(w - segmentTrackWidth) > 0.5) {
-                setSegmentTrackWidth(w);
-              }
-            }}
-            style={[
-              styles.segmentedBar,
-              {
-                backgroundColor: theme.surfaceVariants.containerLow,
-                borderColor: cardStroke,
-              },
-            ]}
-          >
-            <Animated.View
-              pointerEvents="none"
+          isIOS ? (
+            <View style={{ marginBottom: 4 }}>
+              <LiquidGlassSegmented
+                compact
+                value={mode === 'register' ? 'register' : 'login'}
+                onChange={(next) => {
+                  if (!submitting && !isLoading) switchMode(next);
+                }}
+                items={[
+                  { key: 'login', label: t.authSignIn },
+                  { key: 'register', label: t.authCreateAccount },
+                ]}
+              />
+            </View>
+          ) : (
+            <View
+              onLayout={(e) => {
+                const w = e.nativeEvent.layout.width;
+                if (w > 0 && Math.abs(w - segmentTrackWidth) > 0.5) {
+                  setSegmentTrackWidth(w);
+                }
+              }}
               style={[
-                styles.segmentSlidingPill,
-                { backgroundColor: theme.primary },
-                segmentPillStyle,
+                styles.segmentedBar,
+                {
+                  backgroundColor: theme.surfaceVariants.containerLow,
+                  borderColor: cardStroke,
+                },
               ]}
-            />
-            {(['login', 'register'] as const).map((tab) => {
-              const active = mode === tab;
-              const label = tab === 'login' ? t.authSignIn : t.authCreateAccount;
-              return (
-                <Pressable
-                  key={tab}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  disabled={submitting || isLoading}
-                  onPress={() => switchMode(tab)}
-                  style={[
-                    styles.segmentButton,
-                    segmentTrackWidth === 0 && active && { backgroundColor: theme.primary },
-                  ]}
-                >
-                  <Text
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.segmentSlidingPill,
+                  { backgroundColor: theme.primary },
+                  segmentPillStyle,
+                ]}
+              />
+              {(['login', 'register'] as const).map((tab) => {
+                const active = mode === tab;
+                const label = tab === 'login' ? t.authSignIn : t.authCreateAccount;
+                return (
+                  <Pressable
+                    key={tab}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    disabled={submitting || isLoading}
+                    onPress={() => switchMode(tab)}
                     style={[
-                      styles.segmentButtonText,
-                      { color: active ? theme.onPrimary : theme.onSurfaceVariant },
+                      styles.segmentButton,
+                      segmentTrackWidth === 0 && active && { backgroundColor: theme.primary },
                     ]}
                   >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.segmentButtonText,
+                        { color: active ? theme.onPrimary : theme.onSurfaceVariant },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )
         )}
 
         {/* Auth Form Card */}

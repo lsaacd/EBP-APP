@@ -643,10 +643,14 @@ export default function HymnDetail() {
             { shadowColor: theme.onSurface },
           ]}
         >
-          {/* Text Size — opens live TextSizeSheet popover (Workstream C) */}
+          {/* Text Size — native iOS 26 Liquid Glass formSheet on iOS, modal popover elsewhere */}
           <TouchableOpacity style={styles.controlItem} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setTextSizeSheetVisible(true);
+            if (Platform.OS === 'ios') {
+              router.push('/text-size-sheet' as any);
+            } else {
+              setTextSizeSheetVisible(true);
+            }
           }}>
             <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
               <MaterialIcons name="format-size" size={20} color={theme.onSurfaceVariant} />

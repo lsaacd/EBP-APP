@@ -61,6 +61,7 @@ import * as Updates from 'expo-updates';
 import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
+import { isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 
 // The background playback service is now registered in the root index.js
 
@@ -100,8 +101,8 @@ function isIOS26OrLater(): boolean {
 // This ensures the slide-transition background always matches the active
 // dark/light mode colour (#1a1a16 dark, #fcf9f2 light) with no flash.
 function ThemedStack() {
-  const { isDarkMode } = useTheme();
-  const { language } = useLanguage();
+  const { theme, isDarkMode } = useTheme();
+  const { language, t } = useLanguage();
   const { user, isLoading } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
@@ -150,6 +151,24 @@ function ThemedStack() {
   const isMember = pathname.startsWith('/member/');
   const isMyProfile = pathname === '/my-profile' || pathname.startsWith('/my-profile/');
   const isHymn = pathname.startsWith('/hymn/');
+  const isTextSizeSheet = pathname === '/text-size-sheet';
+  const isIOSLiquidGlass = isIOSLiquidGlassAvailable();
+  const profileHeaderOptions = isIOS
+    ? {
+        headerShown: true,
+        headerTransparent: true,
+        headerBlurEffect: isIOSLiquidGlass
+          ? undefined
+          : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light'),
+        headerBackButtonDisplayMode: 'minimal' as const,
+        headerTintColor: isDarkMode ? '#ffffff' : theme.primary,
+        headerLargeStyle: {
+          backgroundColor: 'transparent',
+        },
+      }
+    : {
+        headerShown: false,
+      };
 
   useEffect(() => {
     if (Platform.OS === 'web' || __DEV__ || !Updates.isEnabled) return;
@@ -203,15 +222,15 @@ function ThemedStack() {
   if (isPlaylist || isChurches || isMember || isMyProfile) {
     // Playlist, Churches & Profile pages have no bottom tab bar or tool bar at all
     miniPlayerBottom = pillBottom;
-  } else if (isIOS && !isHymn) {
-    // On iPhone, iOS tab bar retains its 49pt height at the bottom.
+  } else if (isIOS && !isHymn && !isTextSizeSheet) {
+    // On iPhone, iOS tab bar retains its 49pt height at the bottom (including when formSheet /about-sheet presents above tabs).
     // On iPadOS, NativeTabs renders as a top floating pill so bottom is clear.
     miniPlayerBottom = isPad ? pillBottom : 49 + insets.bottom;
-  } else if (!isIOS && !isHymn) {
+  } else if (!isIOS && !isHymn && !isTextSizeSheet) {
     // Flush Android tabs include the safe inset beneath their 64px icon row.
     miniPlayerBottom = insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
   } else {
-    // Android Tabs and all Hymn Lyrics pages use the floating pill bar
+    // Android Tabs and all Hymn Lyrics pages (plus /text-size-sheet presented above lyrics) use the floating pill bar
     miniPlayerBottom = pillBottom + pillHeight;
   }
 
@@ -248,9 +267,67 @@ function ThemedStack() {
 
         {/* ── Full-screen My Profile & Community/Moderation — native iOS push ── */}
         <Stack.Protected guard={isLoading || !!user}>
-          <Stack.Screen name="my-profile" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
-          <Stack.Screen name="my-profile/[section]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+          <Stack.Screen
+            name="my-profile"
+            options={{
+              animation: 'slide_from_right',
+              gestureEnabled: true,
+              fullScreenGestureEnabled: true,
+              ...profileHeaderOptions,
+            }}
+          />
+          <Stack.Screen
+            name="my-profile/[section]"
+            options={{
+              animation: 'slide_from_right',
+              gestureEnabled: true,
+              fullScreenGestureEnabled: true,
+              ...profileHeaderOptions,
+            }}
+          />
         </Stack.Protected>
+
+        {/* ── Native iOS 26 Liquid Glass formSheet pop-ups ─────────────────── */}
+        <Stack.Screen
+          name="text-size-sheet"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.48, 0.65],
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: isIOSLiquidGlass
+                ? 'transparent'
+                : isDarkMode
+                  ? '#141414'
+                  : '#FAF5EE',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="about-sheet"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.78, 1.0],
+            headerShown: isIOS,
+            headerTransparent: true,
+            headerBlurEffect: isIOS
+              ? isIOSLiquidGlass
+                ? undefined
+                : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light')
+              : undefined,
+            headerTitle: t.about,
+            headerTintColor: isDarkMode ? '#ffffff' : theme.primary,
+            contentStyle: {
+              backgroundColor: isIOSLiquidGlass
+                ? 'transparent'
+                : isDarkMode
+                  ? '#141414'
+                  : '#FAF5EE',
+            },
+          }}
+        />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}

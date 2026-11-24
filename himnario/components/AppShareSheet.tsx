@@ -49,6 +49,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
+import LiquidGlassSegmented from './LiquidGlassSegmented';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -192,6 +193,17 @@ export function AppShareContent({
   return (
     <View style={styles.inner}>
       {/* Segmented Mode Switcher: Tarjeta | Código QR */}
+      {isIOS ? (
+        <LiquidGlassSegmented
+          compact
+          value={tab}
+          onChange={(next) => setTab(next)}
+          items={[
+            { key: 'banner', label: t.appShareBanner },
+            { key: 'qr', label: t.appShareInPersonQr },
+          ]}
+        />
+      ) : (
       <View
         style={[
           styles.segmentContainer,
@@ -274,6 +286,7 @@ export function AppShareContent({
           </Text>
         </Pressable>
       </View>
+      )}
 
       {/* Visual Card Preview (Banner or QR) */}
       {tab === 'banner' ? (
