@@ -1,5 +1,21 @@
 # App editing
 
+## November 24, 2026 — Glorify sheet swipe, full member profiles, Liquid Glass Favorites/Playlists, swipeable player artwork, and full Admin coro controls (released)
+
+- **Source:** commit `1787731` (pushed to `main` and `app-web-parity` before OTA).
+- **Published live IDs:**
+  - **D1 (`ebp-himnario-db`):** `0017_friends_list_visibility.sql` applied remotely (`show_friends_list INTEGER NOT NULL DEFAULT 1`).
+  - **Worker (`ebp-himnario-sync`):** `e8b6bbc6-06ef-4c9a-bf97-b84bf4e08eec`.
+  - **Pages (`ebp-himnario`):** `60dba153` (`https://60dba153.ebp-himnario.pages.dev`).
+  - **iOS OTA (`production`, runtime `2.0.0-release-5`):** group `154a6e7f-f46f-4e29-bba3-0e660aca5099` · iOS update `01a20cc7-88d6-7f31-b0c8-197cdbaf2728`.
+- **What changed:**
+  - **Glorify backdrop swipe:** Added `himnario/utils/useSheetBackdropGesture.ts` and wired backdrop + grabber swipe-down across all bottom sheets (`AuthSheet`, `VerseDiscussionSheet`, `DetentSheet`, `AppShareSheet`, `ShareSheet`, `TextSizeSheet`, `AddToPlaylistModal`, `VerseCard`, `churches.tsx`, `favorites.tsx`, `playlist/[id].tsx`).
+  - **Full-screen member profiles + offline cache:** Created `himnario/app/member/[id].tsx` + `himnario/utils/memberProfileCache.ts` (`AsyncStorage` stale-while-revalidate cache); wired member taps from `FriendsPanel`, `churches.tsx`, and `VerseDiscussionSheet` while keeping `Cuenta` as a bottom sheet. Added `GET /users/:id/friends` + `showFriendsList` privacy switch + `docs/privacy.html` updates.
+  - **Admin coro edit/delete for all coros:** Unlocked `PUT /mod/choirs/:slug` and `DELETE /mod/choirs/:slug` for all approved choirs (including built-ins) in `community.js`, `choirsStore.ts`, `CommunityProfile.tsx`, and `CommunityModeration.tsx`.
+  - **Favorites queue fix + Apple Music Liquid Glass redesign:** Wired `source: 'favorites'` in `hymn/[id].tsx` and `queueLabel`/`setShuffle` in `NowPlayingContext.tsx` so skipping and page-flipping stay inside Favorites; redesigned `favorites.tsx` and `playlist/[id].tsx` with Liquid Glass action capsules, spring-sliding segmented control, 1-tap Play/Shuffle pills, inline Search/Sort `MenuView`, Create/Rename sheets, and `+ Add Hymns` picker.
+  - **YouTube Music swipeable artwork:** Added `clampArtworkDrag` & `artworkSwipeDirection` (`gestureMotion.ts`) and 3-card horizontal cover swipe with peeking `#number · Title` captions in `MusicPlayer.tsx` while preserving the MiniPlayer morph.
+- **Verification:** `tsc --noEmit` 0 errors, `196/196` Node tests passing, `test-web-search.js` passing, `expo lint` 0 errors (49 baseline warnings), iOS Hermes export clean (`8.33 MB`), `audit-secrets.py` 0 findings. Physical iOS device testing on TestFlight Build #34 remains.
+
 ## November 23, 2026 — Friendships, cross-church directory, choir editing (released)
 
 ### Antigravity pickup: what is live and where to continue

@@ -1,5 +1,15 @@
 # Native builds and updates
 
+## November 24, 2026 — Glorify backdrop swipe, full member profiles + offline cache, Liquid Glass Favorites/Playlists, swipeable MusicPlayer artwork, and full Admin coro controls
+
+- **Source:** commit `1787731`, pushed to both `main` and `app-web-parity` before publication. App version remains `2.0.0`; no native code, dependencies, or runtime version changed.
+- **D1:** applied `workers/ebp-auth-sync/migrations/0017_friends_list_visibility.sql` to production `ebp-himnario-db` (`ed683396-bfd7-43ff-b69e-f82cf4621c55`, bookmark `0000015a-00000006-0000512d-e2885f3d668b49d0447b6be99b57b7b6`). Adds `show_friends_list INTEGER NOT NULL DEFAULT 1`.
+- **Worker:** deployed `ebp-himnario-sync` version `e8b6bbc6-06ef-4c9a-bf97-b84bf4e08eec`. Adds `GET /users/:id/friends` (signed-in members see friend count & names unless opted out, excluding blocked/suspended users), `showFriendsList` in `PUT /auth/profile`, and unlocks Admin edit/delete for all approved coros (including built-ins).
+- **Pages:** deployed [Pages `60dba153`](https://60dba153.ebp-himnario.pages.dev) to `ebp-himnario`, updating `docs/privacy.html` (ES & EN) for visible friend lists and the opt-out switch.
+- **iOS OTA:** published [group `154a6e7f-f46f-4e29-bba3-0e660aca5099`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/154a6e7f-f46f-4e29-bba3-0e660aca5099), iOS update `01a20cc7-88d6-7f31-b0c8-197cdbaf2728`, on `production` for runtime `2.0.0-release-5` (Build #34).
+- **Included UI & Fixes:** Glorify-style backdrop swipe-down across all bottom sheets (`useSheetBackdropGesture.ts`), full-screen `/member/[id]` profile page with `AsyncStorage` offline cache (`memberProfileCache.ts`), Reanimated Liquid Glass segmented control in `FriendsPanel.tsx`, Admin edit/delete on all coros in `CommunityProfile.tsx` and `CommunityModeration.tsx`, Favorites queue skip & page-flip fix (`source: 'favorites'`), Apple Music–inspired Liquid Glass redesign for `favorites.tsx` and `playlist/[id].tsx` (Play/Shuffle pills, Sort `MenuView`, Create/Rename/Add Hymns sheets), and YouTube Music–style horizontal swipeable cover art in `MusicPlayer.tsx`.
+- **Verification:** `tsc --noEmit` 0 errors, `npx expo lint` 0 errors (49 baseline warnings), 196/196 Node tests passing, `test-web-search.js` passed, `npx expo export --platform ios` clean (`8.33 MB` Hermes bundle), `audit-secrets.py` 0 findings. Physical iOS device check remains.
+
 ## November 23, 2026 — Consented church directory and coro editing release
 
 - **Source:** commits `e505fcc` (features) and `791683d` (Pages OAuth helper), pushed to both `main` and `app-web-parity` before publication. App version remains `2.0.0`; no native code, dependencies, or runtime version changed.
