@@ -394,7 +394,7 @@ export default function PlaylistDetailScreen() {
           isDarkMode ? 'rgba(0,0,0,0.92)' : 'rgba(252,249,242,0.95)',
           isDarkMode ? 'rgba(0,0,0,0.0)' : 'rgba(252,249,242,0.0)',
         ]}
-        style={[styles.topScrim, { height: insets.top + ipadTopOffset + 64 }]}
+        style={[styles.topScrim, { height: insets.top + ipadTopOffset + 56 }]}
         pointerEvents="none"
       />
 
@@ -425,8 +425,8 @@ export default function PlaylistDetailScreen() {
             <AppMenuIcon
               ios="chevron.left"
               android="arrow-back"
-              size={20}
-              containerSize={24}
+              size={22}
+              containerSize={26}
               color={primaryInk}
               weight="semibold"
             />
@@ -446,7 +446,7 @@ export default function PlaylistDetailScreen() {
           glassEffectStyle="regular"
           intensity={62}
           style={[
-            { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, gap: 2 },
+            { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 4 },
             !IS_IOS && {
               backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : theme.surfaceVariants.containerLow,
               borderWidth: StyleSheet.hairlineWidth,
@@ -461,26 +461,28 @@ export default function PlaylistDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel={t.friendsSharePlaylist}
               style={({ pressed }) => [
-                { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+                { width: 44, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
                 pressed && { opacity: 0.72 },
               ]}
             >
               <AppMenuIcon
                 ios="square.and.arrow.up"
                 android="share"
-                size={18}
+                size={22}
+                containerSize={26}
+                scale="large"
                 color={primaryInk}
-                weight="semibold"
+                weight="medium"
               />
             </Pressable>
           ) : null}
 
           {swiftUI?.ui.Menu ? (() => {
             const { Button: SwiftButton, Host, Image: SwiftImage, Menu: SwiftMenu, Section: SwiftSection } = swiftUI.ui;
-            const { foregroundStyle, frame } = swiftUI.modifiers;
+            const { font, foregroundStyle, frame } = swiftUI.modifiers;
             return (
               <Host
-                style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 44, height: 42, alignItems: 'center', justifyContent: 'center' }}
                 colorScheme={isDarkMode ? 'dark' : 'light'}
                 seedColor={theme.primary}
               >
@@ -488,10 +490,11 @@ export default function PlaylistDetailScreen() {
                   label={
                     <SwiftImage
                       systemName="ellipsis"
-                      size={18}
+                      size={22}
                       modifiers={[
+                        font({ size: 22, weight: 'semibold' }),
                         foregroundStyle({ type: 'color', color: primaryInk }),
-                        frame({ width: 38, height: 38 }),
+                        frame({ width: 44, height: 42 }),
                       ]}
                     />
                   }
@@ -527,11 +530,11 @@ export default function PlaylistDetailScreen() {
               }}
             >
               <View
-                style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 44, height: 42, alignItems: 'center', justifyContent: 'center' }}
                 accessibilityRole="button"
                 accessibilityLabel={t.playlistOptionsTitle}
               >
-                <AppMenuIcon ios="ellipsis" android="more-horiz" size={19} color={primaryInk} weight="semibold" />
+                <AppMenuIcon ios="ellipsis" android="more-horiz" size={22} containerSize={26} color={primaryInk} weight="semibold" />
               </View>
             </MenuView>
           )}
@@ -539,8 +542,10 @@ export default function PlaylistDetailScreen() {
       </View>
 
       <Animated.ScrollView
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
         contentContainerStyle={[
-          { paddingTop: insets.top + ipadTopOffset + 64, flexGrow: 1 },
+          { paddingTop: insets.top + ipadTopOffset + 70, flexGrow: 1 },
           isWideTablet && styles.tabletContent,
         ]}
         onScroll={Animated.event(

@@ -160,8 +160,10 @@ export const strings = {
     exploreHymns: 'Explorar Himnos',
     hymnsSaved_one: 'himno guardado',
     hymnsSaved_other: 'himnos guardados',
+    favoritesCollectionTitle: 'Himnos Guardados',
     // Playlists
     myPlaylists: 'Mis Listas',
+    playlistsYourPlaylists: 'Tus Listas',
     playlistsTitle: 'Listas de Reproducción',
     noPlaylistsYet: 'Aún no has creado ninguna lista.',
     createPlaylist: 'Crear nueva lista',
@@ -1188,8 +1190,10 @@ export const strings = {
     exploreHymns: 'Browse Hymns',
     hymnsSaved_one: 'hymn saved',
     hymnsSaved_other: 'hymns saved',
+    favoritesCollectionTitle: 'Saved Hymns',
     // Playlists
     myPlaylists: 'My Playlists',
+    playlistsYourPlaylists: 'Your Playlists',
     playlistsTitle: 'Playlists',
     noPlaylistsYet: "You haven't created any playlists yet.",
     createPlaylist: 'Create new playlist',

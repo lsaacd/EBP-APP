@@ -968,21 +968,17 @@ export function AuthSheet({
         },
       ]}
     >
-      {!user && (
-        <>
-          {renderMenuRow(
-            t.profileChurches,
-            'map',
-            'map',
-            () => {
-              pendingPostCloseRef.current = 'churches';
-              animateClose();
-            },
-            t.profileMap
-          )}
-          <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
-        </>
+      {renderMenuRow(
+        t.profileChurches,
+        'map',
+        'map',
+        () => {
+          pendingPostCloseRef.current = 'churches';
+          animateClose();
+        },
+        t.profileMap
       )}
+      <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 53, backgroundColor: dividerColor }} />
       {renderMenuRow(
         t.accountScanQrCode,
         'qrcode.viewfinder',

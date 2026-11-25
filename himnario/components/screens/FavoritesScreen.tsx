@@ -334,11 +334,6 @@ export default function FavoritesScreen() {
   const scrollViewRef = useRef<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  const stickyTitleOpacity = scrollY.interpolate({
-    inputRange: [185, 245],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
   const heroArtworkScale = scrollY.interpolate({
     inputRange: [-60, 0, 220],
     outputRange: [1.06, 1, 0.88],
@@ -1048,7 +1043,9 @@ export default function FavoritesScreen() {
                 </View>
               </Animated.View>
 
-              <Text style={[styles.heroTitle, { color: primaryInk }]}>{t.myFavorites}</Text>
+              <Text style={[styles.heroTitle, { color: primaryInk }]}>
+                {t.favoritesCollectionTitle}
+              </Text>
               <Text style={[styles.heroBrand, { color: accentColor }]}>{t.appName}</Text>
 
               <View style={styles.heroMetaRow}>
@@ -1183,13 +1180,18 @@ export default function FavoritesScreen() {
           </>
         )
       ) : (
-        /* ── TAB 2: PLAYLISTS (Apple Music 2-Column Cover Grid) ── */
+        /* ── TAB 2: PLAYLISTS (Compact Minimalist Apple Music Rows) ── */
         <View style={styles.sectionPad}>
           <View style={styles.playlistsHeaderRow}>
-            <Text style={[styles.playlistsSectionTitle, { color: primaryInk }]}>
-              {t.playlistsTitle}
+            <Text style={[styles.playlistsSectionEyebrow, { color: mutedSub }]}>
+              {t.playlistsYourPlaylists}
             </Text>
-            <Text style={[styles.playlistsSectionCount, { color: mutedSub }]}>
+            <Text
+              style={[
+                styles.playlistsSectionCount,
+                { color: mutedSub, fontVariant: ['tabular-nums'] },
+              ]}
+            >
               {`${playlists.length} ${
                 playlists.length === 1 ? t.playlistsCount_one : t.playlistsCount_other
               }`}
@@ -1238,16 +1240,14 @@ export default function FavoritesScreen() {
             pointerEvents="box-none"
             style={[styles.stickyTopBar, { paddingTop: insets.top + ipadTopOffset + 6 }]}
           >
-            <View style={styles.stickyBarSpacer} />
-            <Animated.Text
+            <Text
               numberOfLines={1}
-              style={[
-                styles.stickyBarTitle,
-                { color: primaryInk, opacity: stickyTitleOpacity },
-              ]}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              style={[styles.stickyLeftTitle, { color: primaryInk }]}
             >
-              {activeTab === 'favorites' ? t.myFavorites : t.playlistsTitle}
-            </Animated.Text>
+              {activeTab === 'favorites' ? t.myFavorites : t.playlistsTabShort}
+            </Text>
             <GlassSurface
               isInteractive
               glassEffectStyle="regular"
@@ -1446,15 +1446,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  stickyBarSpacer: {
-    width: 84,
-  },
-  stickyBarTitle: {
+  stickyLeftTitle: {
     flex: 1,
-    textAlign: 'center',
-    ...fonts.sansSemiBold,
-    fontSize: 16.5,
-    letterSpacing: -0.2,
+    ...fonts.sansBold,
+    fontSize: 27,
+    letterSpacing: -0.5,
+    paddingLeft: 2,
   },
   scroll: {
     flexGrow: 1,
@@ -1659,14 +1656,15 @@ const styles = StyleSheet.create({
   },
   playlistsHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 6,
   },
-  playlistsSectionTitle: {
-    ...fonts.sansBold,
-    fontSize: 22,
-    letterSpacing: -0.3,
+  playlistsSectionEyebrow: {
+    ...fonts.sansSemiBold,
+    fontSize: 12.5,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
   },
   playlistsSectionCount: {
     ...fonts.sansMedium,

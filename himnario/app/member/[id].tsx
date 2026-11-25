@@ -807,18 +807,21 @@ export default function MemberProfileScreen() {
     [memberId, router, user],
   );
 
-  // Sacred Ink Light & Dark palette (open Threads canvas)
-  const bg = isDarkMode ? '#000000' : '#FCF9F2';
-  const primaryInk = isDarkMode ? '#FDF9F2' : '#1A1614';
-  const mutedText = isDarkMode ? 'rgba(235,235,245,0.60)' : '#6C645E';
-  const hairline = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(26,22,20,0.10)';
-  const chipBg = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(110,22,25,0.075)';
-  const chipBorder = isDarkMode ? 'rgba(255,255,255,0.11)' : 'rgba(110,22,25,0.11)';
-  const accentBtnBg = isDarkMode ? '#FDF9F2' : theme.primary;
-  const accentBtnText = isDarkMode ? '#0D0D0F' : '#FFFFFF';
+  // Clean iOS 26 monochrome system palette (calm, minimal red — red reserved for destructive actions)
+  const bg = isDarkMode ? '#000000' : '#FFFFFF';
+  const primaryInk = isDarkMode ? '#FFFFFF' : '#000000';
+  const mutedText = isDarkMode ? 'rgba(235,235,245,0.60)' : 'rgba(60,60,67,0.60)';
+  const subtleChevron = isDarkMode ? 'rgba(235,235,245,0.34)' : 'rgba(60,60,67,0.32)';
+  const hairline = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(60,60,67,0.12)';
+  const chipBg = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(120,120,128,0.10)';
+  const secondaryFill = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(120,120,128,0.12)';
+  const avatarFallbackBg = isDarkMode ? '#3A3A3C' : '#636366';
+  const accentBtnBg = isDarkMode ? '#FFFFFF' : '#1C1C1E';
+  const accentBtnText = isDarkMode ? '#000000' : '#FFFFFF';
+  const verifiedTint = isDarkMode ? '#FFFFFF' : '#1C1C1E';
   const secondaryBtnBorder = isDarkMode
-    ? 'rgba(255,255,255,0.22)'
-    : 'rgba(26,22,20,0.18)';
+    ? 'rgba(255,255,255,0.16)'
+    : 'rgba(60,60,67,0.14)';
 
   const friendCountText = effective
     ? (effective.friendCount === 1
@@ -849,262 +852,310 @@ export default function MemberProfileScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* ── Threads-Style Minimal Top Bar ── */}
+      {/* ── Native iOS 26 Liquid Glass Top Bar ── */}
       <View
         style={[
           styles.topBar,
           {
-            paddingTop: insets.top + 6,
+            paddingTop: insets.top + 8,
             backgroundColor: bg,
           },
         ]}
       >
         {searchOpen ? (
-          <View
-            style={[
-              styles.inlineSearchRow,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.10)'
-                  : 'rgba(26,22,20,0.06)',
-              },
-            ]}
-          >
-            <AppMenuIcon
-              ios="magnifyingglass"
-              android="search"
-              color={mutedText}
-              size={16}
-            />
-            <TextInput
-              ref={searchInputRef}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder={t.profileSearchPlaceholder}
-              placeholderTextColor={mutedText}
-              autoFocus
-              returnKeyType="search"
-              style={[styles.inlineSearchInput, { color: primaryInk }]}
-            />
-            {searchQuery.length > 0 && (
-              <Pressable
-                hitSlop={8}
-                onPress={() => setSearchQuery('')}
-                accessibilityLabel={t.churchClear}
-              >
-                <AppMenuIcon
-                  ios="xmark.circle.fill"
-                  android="cancel"
-                  color={mutedText}
-                  size={16}
-                />
-              </Pressable>
-            )}
-            <Pressable
-              hitSlop={8}
-              onPress={() => {
-                Keyboard.dismiss();
-                setSearchQuery('');
-                setSearchOpen(false);
-              }}
-              style={{ paddingLeft: 4 }}
+          <View style={styles.searchTakeoverRow}>
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={64}
+              style={[
+                styles.inlineSearchGlass,
+                !isIOS && {
+                  backgroundColor: secondaryFill,
+                  overflow: 'hidden',
+                },
+              ]}
             >
-              <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.primary }}>
-                {t.cancel}
-              </Text>
-            </Pressable>
-          </View>
-        ) : (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.homeMenuBack}
-              onPress={handleBackToMain}
-              style={({ pressed }) => [styles.topBackBtn, pressed && { opacity: 0.65 }]}
-            >
-              <AppMenuIcon
-                ios="chevron.left"
-                android="arrow-back"
-                color={primaryInk}
-                size={21}
-                weight="semibold"
-              />
-              <Text style={[styles.topBackText, { color: primaryInk }]}>
-                {t.homeMenuBack}
-              </Text>
-            </Pressable>
-
-            <View style={styles.topIconCluster}>
-              {/* 1. Search */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.profileSearchPlaceholder}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setSearchOpen(true);
-                }}
-                style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
-              >
+              <View style={styles.inlineSearchRow}>
                 <AppMenuIcon
                   ios="magnifyingglass"
                   android="search"
+                  color={mutedText}
+                  size={17}
+                  containerSize={20}
+                />
+                <TextInput
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={t.profileSearchPlaceholder}
+                  placeholderTextColor={mutedText}
+                  autoFocus
+                  returnKeyType="search"
+                  clearButtonMode="while-editing"
+                  style={[styles.inlineSearchInput, { color: primaryInk }]}
+                />
+                {searchQuery.length > 0 && !isIOS && (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => setSearchQuery('')}
+                    accessibilityLabel={t.churchClear}
+                  >
+                    <AppMenuIcon
+                      ios="xmark.circle.fill"
+                      android="cancel"
+                      color={mutedText}
+                      size={17}
+                    />
+                  </Pressable>
+                )}
+              </View>
+            </GlassSurface>
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={64}
+              style={[
+                styles.topCircleGlass,
+                !isIOS && { backgroundColor: secondaryFill, overflow: 'hidden' },
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.cancel}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  Keyboard.dismiss();
+                  setSearchQuery('');
+                  setSearchOpen(false);
+                }}
+                style={({ pressed }) => [styles.topCircleHit, pressed && { opacity: 0.65 }]}
+              >
+                <AppMenuIcon
+                  ios="xmark"
+                  android="close"
                   color={primaryInk}
-                  size={20}
-                  weight="medium"
+                  size={19}
+                  containerSize={22}
+                  weight="semibold"
                 />
               </Pressable>
+            </GlassSurface>
+          </View>
+        ) : (
+          <>
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={64}
+              style={[
+                styles.topCircleGlass,
+                !isIOS && { backgroundColor: secondaryFill, overflow: 'hidden' },
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.homeMenuBack}
+                onPress={handleBackToMain}
+                style={({ pressed }) => [styles.topCircleHit, pressed && { opacity: 0.65 }]}
+              >
+                <AppMenuIcon
+                  ios="chevron.left"
+                  android="arrow-back"
+                  color={primaryInk}
+                  size={21}
+                  containerSize={25}
+                  weight="semibold"
+                />
+              </Pressable>
+            </GlassSurface>
 
-              {/* 2. Church Map shortcut */}
-              {effective?.churchId ? (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={64}
+              style={[
+                styles.topCapsuleGlass,
+                !isIOS && { backgroundColor: secondaryFill, overflow: 'hidden' },
+              ]}
+            >
+              <View style={styles.topIconCluster}>
+                {/* 1. Search */}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={t.profileViewChurch}
-                  onPress={handleOpenChurchOnMap}
+                  accessibilityLabel={t.profileSearchPlaceholder}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSearchOpen(true);
+                  }}
                   style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
                 >
                   <AppMenuIcon
-                    ios="building.columns"
-                    android="account-balance"
+                    ios="magnifyingglass"
+                    android="search"
                     color={primaryInk}
                     size={19}
-                    weight="medium"
+                    containerSize={22}
+                    weight="semibold"
                   />
                 </Pressable>
-              ) : null}
 
-              {/* 3. Share */}
-              {effective ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.profileShareProfile}
-                  onPress={() => void handleShareProfile()}
-                  style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
-                >
-                  <AppMenuIcon
-                    ios="square.and.arrow.up"
-                    android="share"
-                    color={primaryInk}
-                    size={19}
-                    weight="medium"
-                  />
-                </Pressable>
-              ) : null}
-
-              {/* 4. More Menu (Native SwiftUI Menu with SF Symbols on iOS) */}
-              {effective ? (
-                swiftUI?.ui.Menu ? (() => {
-                  const {
-                    Button: SwiftButton,
-                    Host,
-                    Image: SwiftImage,
-                    Menu: SwiftMenu,
-                    Section: SwiftSection,
-                  } = swiftUI.ui;
-                  const { foregroundStyle, frame } = swiftUI.modifiers;
-                  return (
-                    <Host
-                      style={styles.topIconBtn}
-                      colorScheme={isDarkMode ? 'dark' : 'light'}
-                      seedColor={theme.primary}
-                    >
-                      <SwiftMenu
-                        label={
-                          <SwiftImage
-                            systemName="ellipsis.circle"
-                            size={20}
-                            modifiers={[
-                              foregroundStyle({ type: 'color', color: primaryInk }),
-                              frame({ width: 34, height: 34 }),
-                            ]}
-                          />
-                        }
-                      >
-                        <SwiftButton
-                          label={t.profileCopyProfileLink}
-                          systemImage="doc.on.doc"
-                          onPress={() => void handleCopyLink()}
-                        />
-                        {!isSelf && user ? (
-                          <SwiftButton
-                            role="destructive"
-                            label={t.memberBlockUser}
-                            systemImage="hand.raised"
-                            onPress={handleBlockMember}
-                          />
-                        ) : null}
-                        {isAdmin && !isSelf ? (
-                          <SwiftSection title={t.profileAdminSection}>
-                            {effective.ministry === 'obispo' ? (
-                              <SwiftButton
-                                label={
-                                  effective.badgeVerified
-                                    ? t.profileAdminRevokeObispo
-                                    : t.profileAdminVerifyObispo
-                                }
-                                systemImage="checkmark.seal"
-                                onPress={() => handleAdminAction('verify-obispo')}
-                              />
-                            ) : null}
-                            {effective.avatarUrl ? (
-                              <SwiftButton
-                                role="destructive"
-                                label={t.profileAdminClearAvatar}
-                                systemImage="trash"
-                                onPress={() => handleAdminAction('clear-avatar')}
-                              />
-                            ) : null}
-                            <SwiftButton
-                              role="destructive"
-                              label={t.profileAdminSuspend}
-                              systemImage="person.crop.circle.badge.xmark"
-                              onPress={() => handleAdminAction('suspend')}
-                            />
-                          </SwiftSection>
-                        ) : null}
-                      </SwiftMenu>
-                    </Host>
-                  );
-                })() : (
+                {/* 2. Church Map shortcut */}
+                {effective?.churchId ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t.churchMoreActions}
-                    onPress={openFallbackMoreMenu}
+                    accessibilityLabel={t.profileViewChurch}
+                    onPress={handleOpenChurchOnMap}
                     style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
                   >
                     <AppMenuIcon
-                      ios="ellipsis.circle"
-                      android="more-horiz"
+                      ios="building.columns"
+                      android="account-balance"
                       color={primaryInk}
-                      size={20}
+                      size={19}
+                      containerSize={22}
                       weight="medium"
                     />
                   </Pressable>
-                )
-              ) : null}
-            </View>
+                ) : null}
+
+                {/* 3. Share */}
+                {effective ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.profileShareProfile}
+                    onPress={() => void handleShareProfile()}
+                    style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
+                  >
+                    <AppMenuIcon
+                      ios="square.and.arrow.up"
+                      android="share"
+                      color={primaryInk}
+                      size={20}
+                      containerSize={24}
+                      scale="large"
+                      weight="medium"
+                    />
+                  </Pressable>
+                ) : null}
+
+                {/* 4. More Menu (Native SwiftUI Menu with SF Symbols on iOS) */}
+                {effective ? (
+                  swiftUI?.ui.Menu ? (() => {
+                    const {
+                      Button: SwiftButton,
+                      Host,
+                      Image: SwiftImage,
+                      Menu: SwiftMenu,
+                      Section: SwiftSection,
+                    } = swiftUI.ui;
+                    const { font, foregroundStyle, frame } = swiftUI.modifiers;
+                    return (
+                      <Host
+                        style={styles.topIconBtn}
+                        colorScheme={isDarkMode ? 'dark' : 'light'}
+                        seedColor={primaryInk}
+                      >
+                        <SwiftMenu
+                          label={
+                            <SwiftImage
+                              systemName="ellipsis"
+                              size={20}
+                              modifiers={[
+                                font({ size: 20, weight: 'semibold' }),
+                                foregroundStyle({ type: 'color', color: primaryInk }),
+                                frame({ width: 40, height: 40 }),
+                              ]}
+                            />
+                          }
+                        >
+                          <SwiftButton
+                            label={t.profileCopyProfileLink}
+                            systemImage="doc.on.doc"
+                            onPress={() => void handleCopyLink()}
+                          />
+                          {!isSelf && user ? (
+                            <SwiftButton
+                              role="destructive"
+                              label={t.memberBlockUser}
+                              systemImage="hand.raised"
+                              onPress={handleBlockMember}
+                            />
+                          ) : null}
+                          {isAdmin && !isSelf ? (
+                            <SwiftSection title={t.profileAdminSection}>
+                              {effective.ministry === 'obispo' ? (
+                                <SwiftButton
+                                  label={
+                                    effective.badgeVerified
+                                      ? t.profileAdminRevokeObispo
+                                      : t.profileAdminVerifyObispo
+                                  }
+                                  systemImage="checkmark.seal"
+                                  onPress={() => handleAdminAction('verify-obispo')}
+                                />
+                              ) : null}
+                              {effective.avatarUrl ? (
+                                <SwiftButton
+                                  role="destructive"
+                                  label={t.profileAdminClearAvatar}
+                                  systemImage="trash"
+                                  onPress={() => handleAdminAction('clear-avatar')}
+                                />
+                              ) : null}
+                              <SwiftButton
+                                role="destructive"
+                                label={t.profileAdminSuspend}
+                                systemImage="person.crop.circle.badge.xmark"
+                                onPress={() => handleAdminAction('suspend')}
+                              />
+                            </SwiftSection>
+                          ) : null}
+                        </SwiftMenu>
+                      </Host>
+                    );
+                  })() : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.churchMoreActions}
+                      onPress={openFallbackMoreMenu}
+                      style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      <AppMenuIcon
+                        ios="ellipsis"
+                        android="more-horiz"
+                        color={primaryInk}
+                        size={20}
+                        containerSize={24}
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  )
+                ) : null}
+              </View>
+            </GlassSurface>
           </>
         )}
       </View>
 
-      {/* ── "View As Others See Me" Interactive Preview Banner (Self Only) ── */}
+      {/* ── "View As Others See Me" Native iOS Inset Preview Bar (Self Only) ── */}
       {isSelf && user ? (
         <View
           style={[
             styles.previewBanner,
             {
               backgroundColor: isDarkMode
-                ? 'rgba(255,255,255,0.06)'
-                : 'rgba(110,22,25,0.06)',
-              borderBottomColor: hairline,
+                ? 'rgba(255,255,255,0.07)'
+                : 'rgba(120,120,128,0.08)',
             },
           ]}
         >
           <View style={styles.previewTopRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
               <AppMenuIcon
-                ios="eye.fill"
+                ios="eye"
                 android="visibility"
-                color={theme.primary}
+                color={mutedText}
                 size={14}
               />
               <Text
@@ -1120,64 +1171,98 @@ export default function MemberProfileScreen() {
                 Haptics.selectionAsync();
                 router.push('/my-profile/friends' as any);
               }}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+              style={({ pressed }) => [
+                { flexDirection: 'row', alignItems: 'center', gap: 2 },
+                pressed && { opacity: 0.6 },
+              ]}
             >
-              <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: theme.primary }}>
+              <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: primaryInk }}>
                 {t.profilePrivacyShortcut}
               </Text>
               <AppMenuIcon
                 ios="chevron.right"
                 android="chevron-right"
-                color={theme.primary}
+                color={mutedText}
                 size={11}
                 weight="semibold"
               />
             </Pressable>
           </View>
 
-          <View
-            style={[
-              styles.previewToggleTrack,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.09)'
-                  : 'rgba(26,22,20,0.07)',
-              },
-            ]}
-          >
-            {(['friend', 'public'] as const).map((mode) => {
-              const selected = previewAs === mode;
-              return (
-                <Pressable
-                  key={mode}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setPreviewAs(mode);
+          {swiftUI?.ui.Picker ? (() => {
+            const { Host, Picker: SwiftPicker, Text: SwiftText } = swiftUI.ui;
+            const { pickerStyle, tag } = swiftUI.modifiers;
+            return (
+              <Host
+                style={styles.previewNativePickerHost}
+                colorScheme={isDarkMode ? 'dark' : 'light'}
+                seedColor={primaryInk}
+              >
+                <SwiftPicker
+                  label={t.profilePreviewBannerHint}
+                  selection={previewAs}
+                  onSelectionChange={(next) => {
+                    if ((next === 'friend' || next === 'public') && next !== previewAs) {
+                      Haptics.selectionAsync();
+                      setPreviewAs(next);
+                    }
                   }}
-                  style={[
-                    styles.previewTogglePill,
-                    selected && {
-                      backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
-                    },
-                  ]}
+                  modifiers={[pickerStyle('segmented')]}
                 >
-                  <Text
-                    style={{
-                      ...fonts.sansSemiBold,
-                      fontSize: 12.5,
-                      color: selected ? primaryInk : mutedText,
+                  <SwiftText modifiers={[tag('friend')]}>
+                    {t.profilePreviewAsFriend}
+                  </SwiftText>
+                  <SwiftText modifiers={[tag('public')]}>
+                    {t.profilePreviewAsPublic}
+                  </SwiftText>
+                </SwiftPicker>
+              </Host>
+            );
+          })() : (
+            <View
+              style={[
+                styles.previewToggleTrack,
+                {
+                  backgroundColor: isDarkMode
+                    ? 'rgba(255,255,255,0.10)'
+                    : 'rgba(120,120,128,0.12)',
+                },
+              ]}
+            >
+              {(['friend', 'public'] as const).map((mode) => {
+                const selected = previewAs === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setPreviewAs(mode);
                     }}
+                    style={[
+                      styles.previewTogglePill,
+                      selected && {
+                        backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
+                      },
+                    ]}
                   >
-                    {mode === 'friend'
-                      ? t.profilePreviewAsFriend
-                      : t.profilePreviewAsPublic}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={{
+                        ...fonts.sansSemiBold,
+                        fontSize: 12.5,
+                        color: selected ? primaryInk : mutedText,
+                      }}
+                    >
+                      {mode === 'friend'
+                        ? t.profilePreviewAsFriend
+                        : t.profilePreviewAsPublic}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
       ) : null}
 
@@ -1188,7 +1273,7 @@ export default function MemberProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => void loadMemberData(true)}
-            tintColor={theme.primary}
+            tintColor={mutedText}
           />
         }
         contentContainerStyle={{
@@ -1204,7 +1289,7 @@ export default function MemberProfileScreen() {
               {
                 backgroundColor: isDarkMode
                   ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(26,22,20,0.05)',
+                  : 'rgba(120,120,128,0.08)',
                 borderColor: hairline,
               },
             ]}
@@ -1213,7 +1298,7 @@ export default function MemberProfileScreen() {
             <Text style={{ flex: 1, ...fonts.sansMedium, fontSize: 13, color: mutedText }}>
               {t.memberOfflineSaved}
             </Text>
-            <Text style={{ ...fonts.sansSemiBold, fontSize: 13, color: theme.primary }}>
+            <Text style={{ ...fonts.sansSemiBold, fontSize: 13, color: primaryInk }}>
               {t.memberOfflineRetry}
             </Text>
           </Pressable>
@@ -1222,7 +1307,7 @@ export default function MemberProfileScreen() {
         {!effective ? (
           <View style={styles.emptyWrap}>
             {loading ? (
-              <ActivityIndicator color={theme.primary} />
+              <ActivityIndicator color={mutedText} />
             ) : (
               <>
                 <AppMenuIcon ios="wifi.slash" android="wifi-off" color={mutedText} size={28} />
@@ -1243,10 +1328,10 @@ export default function MemberProfileScreen() {
           </View>
         ) : (
           <>
-            {/* ── Threads Asymmetric Identity Header (Zero Boxes) ── */}
+            {/* ── Clean iOS 26 Asymmetric Identity Header (Zero Boxes) ── */}
             <View style={styles.identityBlock}>
               <View style={styles.identityHeaderRow}>
-                <View style={{ flex: 1, gap: 4, paddingRight: 12 }}>
+                <View style={{ flex: 1, gap: 4, paddingRight: 14 }}>
                   <Text style={[styles.displayName, { color: primaryInk }]}>
                     {effective.name}
                   </Text>
@@ -1267,15 +1352,20 @@ export default function MemberProfileScreen() {
                     Haptics.selectionAsync();
                     setAvatarLightboxOpen(true);
                   }}
-                  style={styles.avatarWrap}
+                  style={[
+                    styles.avatarWrap,
+                    {
+                      borderColor: hairline,
+                    },
+                  ]}
                 >
                   <UserAvatar
                     uri={effective.avatarUrl}
                     initials={effective.initials}
-                    size={68}
+                    size={70}
                     fontSize={24}
-                    backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
-                    textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+                    backgroundColor={avatarFallbackBg}
+                    textColor="#FFFFFF"
                   />
                   {effective.badgeVerified ? (
                     <View
@@ -1287,7 +1377,7 @@ export default function MemberProfileScreen() {
                       <AppMenuIcon
                         ios="checkmark.seal.fill"
                         android="verified"
-                        color={isDarkMode ? '#FDF9F2' : theme.primary}
+                        color={verifiedTint}
                         size={18}
                       />
                     </View>
@@ -1295,19 +1385,14 @@ export default function MemberProfileScreen() {
                 </Pressable>
               </View>
 
-              {/* ── Membership, Ministry, Coro & Church Pill Strip ── */}
+              {/* ── Calm Neutral iOS Metadata Pills (Ministry, Coro, Church) ── */}
               <View style={styles.pillsRow}>
                 {ministryLabel ? (
-                  <View
-                    style={[
-                      styles.metaPill,
-                      { backgroundColor: chipBg, borderColor: chipBorder },
-                    ]}
-                  >
+                  <View style={[styles.metaPill, { backgroundColor: chipBg }]}>
                     <AppMenuIcon
                       ios={effective.badgeVerified ? 'checkmark.seal.fill' : 'person.fill'}
                       android={effective.badgeVerified ? 'verified' : 'person'}
-                      color={isDarkMode ? '#FDF9F2' : theme.primary}
+                      color={effective.badgeVerified ? verifiedTint : mutedText}
                       size={12.5}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
@@ -1317,16 +1402,11 @@ export default function MemberProfileScreen() {
                 ) : null}
 
                 {choirLabel ? (
-                  <View
-                    style={[
-                      styles.metaPill,
-                      { backgroundColor: chipBg, borderColor: chipBorder },
-                    ]}
-                  >
+                  <View style={[styles.metaPill, { backgroundColor: chipBg }]}>
                     <AppMenuIcon
                       ios="music.note"
                       android="music-note"
-                      color={isDarkMode ? '#FDF9F2' : theme.primary}
+                      color={mutedText}
                       size={12.5}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
@@ -1343,15 +1423,14 @@ export default function MemberProfileScreen() {
                       styles.metaPill,
                       {
                         backgroundColor: chipBg,
-                        borderColor: chipBorder,
-                        opacity: pressed ? 0.72 : 1,
+                        opacity: pressed ? 0.68 : 1,
                       },
                     ]}
                   >
                     <AppMenuIcon
                       ios="building.columns"
                       android="account-balance"
-                      color={isDarkMode ? '#FDF9F2' : theme.primary}
+                      color={mutedText}
                       size={12.5}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
@@ -1361,12 +1440,7 @@ export default function MemberProfileScreen() {
                 ) : null}
 
                 {!ministryLabel && !choirLabel && !churchLabel ? (
-                  <View
-                    style={[
-                      styles.metaPill,
-                      { backgroundColor: chipBg, borderColor: chipBorder },
-                    ]}
-                  >
+                  <View style={[styles.metaPill, { backgroundColor: chipBg }]}>
                     <AppMenuIcon
                       ios="person.fill"
                       android="person"
@@ -1405,7 +1479,7 @@ export default function MemberProfileScreen() {
                           initials={fr.initials}
                           size={20}
                           fontSize={8.5}
-                          backgroundColor={isDarkMode ? '#3B181A' : theme.primary}
+                          backgroundColor={avatarFallbackBg}
                           textColor="#FFFFFF"
                         />
                       </View>
@@ -1422,7 +1496,7 @@ export default function MemberProfileScreen() {
                 </Text>
               </Pressable>
 
-              {/* ── Dual Equal-Width Threads Action Buttons ── */}
+              {/* ── Dual Equal-Width Monochrome iOS Action Pills ── */}
               <View style={styles.dualBtnRow}>
                 {isSelf ? (
                   <>
@@ -1434,7 +1508,7 @@ export default function MemberProfileScreen() {
                       }}
                       style={({ pressed }) => [
                         styles.dualBtnPrimary,
-                        { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
+                        { backgroundColor: accentBtnBg, opacity: pressed ? 0.84 : 1 },
                       ]}
                     >
                       <Text style={[styles.dualBtnText, { color: accentBtnText }]}>
@@ -1446,7 +1520,11 @@ export default function MemberProfileScreen() {
                       onPress={() => void handleShareProfile()}
                       style={({ pressed }) => [
                         styles.dualBtnSecondary,
-                        { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                        {
+                          backgroundColor: secondaryFill,
+                          borderColor: secondaryBtnBorder,
+                          opacity: pressed ? 0.72 : 1,
+                        },
                       ]}
                     >
                       <Text style={[styles.dualBtnText, { color: primaryInk }]}>
@@ -1467,33 +1545,26 @@ export default function MemberProfileScreen() {
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
                           {
-                            borderColor: isDarkMode
-                              ? 'rgba(76,217,100,0.45)'
-                              : 'rgba(46,158,86,0.45)',
-                            backgroundColor: isDarkMode
-                              ? 'rgba(52,199,89,0.12)'
-                              : 'rgba(52,199,89,0.08)',
-                            opacity: pressed ? 0.8 : 1,
+                            borderColor: secondaryBtnBorder,
+                            backgroundColor: secondaryFill,
+                            opacity: pressed ? 0.76 : 1,
                           },
                         ]}
                       >
                         {friendBusy ? (
-                          <ActivityIndicator size="small" color="#34C759" />
+                          <ActivityIndicator size="small" color={primaryInk} />
                         ) : (
                           <>
                             <AppMenuIcon
                               ios="checkmark"
                               android="check"
-                              color={isDarkMode ? '#4CD964' : '#248A3D'}
+                              color={primaryInk}
                               size={14}
                               weight="bold"
                             />
                             <Text
                               numberOfLines={1}
-                              style={[
-                                styles.dualBtnText,
-                                { color: isDarkMode ? '#4CD964' : '#248A3D' },
-                              ]}
+                              style={[styles.dualBtnText, { color: primaryInk }]}
                             >
                               {t.friendsAreFriends}
                             </Text>
@@ -1512,7 +1583,11 @@ export default function MemberProfileScreen() {
                         }
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.75 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.75 : 1,
+                          },
                         ]}
                       >
                         {friendBusy ? (
@@ -1580,7 +1655,11 @@ export default function MemberProfileScreen() {
                         }}
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.72 : 1,
+                          },
                         ]}
                       >
                         <Text
@@ -1597,7 +1676,11 @@ export default function MemberProfileScreen() {
                         onPress={() => void handleFriendAction('remove')}
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.72 : 1,
+                          },
                         ]}
                       >
                         <Text
@@ -1613,7 +1696,11 @@ export default function MemberProfileScreen() {
                         onPress={handleOpenChurchOnMap}
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.72 : 1,
+                          },
                         ]}
                       >
                         <Text
@@ -1629,7 +1716,11 @@ export default function MemberProfileScreen() {
                         onPress={() => void handleShareProfile()}
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.72 : 1,
+                          },
                         ]}
                       >
                         <Text
@@ -1730,7 +1821,7 @@ export default function MemberProfileScreen() {
                     <View key={hymn.id}>
                       {idx > 0 ? (
                         <View
-                          style={[styles.fullDivider, { backgroundColor: hairline }]}
+                          style={[styles.hymnDivider, { backgroundColor: hairline }]}
                         />
                       ) : null}
                       <Pressable
@@ -1744,7 +1835,7 @@ export default function MemberProfileScreen() {
                           pressed && {
                             backgroundColor: isDarkMode
                               ? 'rgba(255,255,255,0.05)'
-                              : 'rgba(110,22,25,0.04)',
+                              : 'rgba(120,120,128,0.08)',
                           },
                         ]}
                       >
@@ -1752,7 +1843,7 @@ export default function MemberProfileScreen() {
                           style={[
                             styles.hymnNumber,
                             {
-                              color: isDarkMode ? '#E8B8BA' : theme.primary,
+                              color: mutedText,
                               fontVariant: ['tabular-nums'],
                             },
                           ]}
@@ -1771,14 +1862,14 @@ export default function MemberProfileScreen() {
                               numberOfLines={1}
                               style={[styles.hymnCategory, { color: mutedText }]}
                             >
-                              {hymn.category.toUpperCase()}
+                              {hymn.category}
                             </Text>
                           ) : null}
                         </View>
                         <AppMenuIcon
                           ios="chevron.right"
                           android="chevron-right"
-                          color={mutedText}
+                          color={subtleChevron}
                           size={12.5}
                           weight="semibold"
                         />
@@ -1809,7 +1900,7 @@ export default function MemberProfileScreen() {
                 ) : filteredFriends.length === 0 ? (
                   <View style={styles.emptyWrap}>
                     {loading ? (
-                      <ActivityIndicator color={theme.primary} />
+                      <ActivityIndicator color={mutedText} />
                     ) : (
                       <>
                         <AppMenuIcon ios="person.2" android="group" color={mutedText} size={24} />
@@ -1854,7 +1945,7 @@ export default function MemberProfileScreen() {
                             pressed && {
                               backgroundColor: isDarkMode
                                 ? 'rgba(255,255,255,0.05)'
-                                : 'rgba(110,22,25,0.04)',
+                                : 'rgba(120,120,128,0.08)',
                             },
                           ]}
                         >
@@ -1863,7 +1954,7 @@ export default function MemberProfileScreen() {
                             initials={person.initials}
                             size={42}
                             fontSize={14}
-                            backgroundColor={isDarkMode ? '#3B181A' : theme.primary}
+                            backgroundColor={avatarFallbackBg}
                             textColor="#FFFFFF"
                           />
                           <View style={{ flex: 1, gap: 2 }}>
@@ -1883,7 +1974,7 @@ export default function MemberProfileScreen() {
                                 <AppMenuIcon
                                   ios="checkmark.seal.fill"
                                   android="verified"
-                                  color={isDarkMode ? '#FDF9F2' : theme.primary}
+                                  color={verifiedTint}
                                   size={14}
                                 />
                               ) : null}
@@ -1904,7 +1995,7 @@ export default function MemberProfileScreen() {
                           <AppMenuIcon
                             ios="chevron.right"
                             android="chevron-right"
-                            color={mutedText}
+                            color={subtleChevron}
                             size={12.5}
                             weight="semibold"
                           />
@@ -1928,17 +2019,15 @@ export default function MemberProfileScreen() {
                     style={[
                       styles.churchBadgeCircle,
                       {
-                        backgroundColor: isDarkMode
-                          ? 'rgba(255,255,255,0.10)'
-                          : 'rgba(110,22,25,0.10)',
+                        backgroundColor: chipBg,
                       },
                     ]}
                   >
                     <AppMenuIcon
                       ios="building.columns.fill"
                       android="account-balance"
-                      color={isDarkMode ? '#FDF9F2' : theme.primary}
-                      size={20}
+                      color={primaryInk}
+                      size={19}
                     />
                   </View>
                   <View style={{ flex: 1, gap: 3 }}>
@@ -1952,8 +2041,8 @@ export default function MemberProfileScreen() {
                         <AppMenuIcon
                           ios="checkmark.seal.fill"
                           android="verified"
-                          color={isDarkMode ? '#FDF9F2' : theme.primary}
-                          size={16}
+                          color={verifiedTint}
+                          size={15}
                         />
                       ) : null}
                     </View>
@@ -1998,7 +2087,7 @@ export default function MemberProfileScreen() {
                             style={{
                               ...fonts.sansSemiBold,
                               fontSize: 11.5,
-                              color: isDarkMode ? '#FDF9F2' : theme.primary,
+                              color: primaryInk,
                             }}
                           >
                             {nextChurchService}
@@ -2080,7 +2169,11 @@ export default function MemberProfileScreen() {
                         onPress={handleOpenDirections}
                         style={({ pressed }) => [
                           styles.dualBtnSecondary,
-                          { borderColor: secondaryBtnBorder, opacity: pressed ? 0.72 : 1 },
+                          {
+                            backgroundColor: secondaryFill,
+                            borderColor: secondaryBtnBorder,
+                            opacity: pressed ? 0.72 : 1,
+                          },
                         ]}
                       >
                         <AppMenuIcon
@@ -2189,12 +2282,12 @@ export default function MemberProfileScreen() {
                             </Text>
                           </View>
                           {sending ? (
-                            <ActivityIndicator size="small" color={theme.primary} />
+                            <ActivityIndicator size="small" color={primaryInk} />
                           ) : (
                             <AppMenuIcon
                               ios="paperplane.fill"
                               android="send"
-                              color={isDarkMode ? '#FDF9F2' : theme.primary}
+                              color={primaryInk}
                               size={16}
                             />
                           )}
@@ -2242,37 +2335,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: 10,
-    minHeight: 52,
+    minHeight: 54,
   },
-  topBackBtn: {
-    flexDirection: 'row',
+  topCircleGlass: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  topCircleHit: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    gap: 2,
-    paddingVertical: 6,
-    paddingRight: 8,
+    justifyContent: 'center',
   },
-  topBackText: {
-    ...fonts.sansMedium,
-    fontSize: 16.5,
+  topCapsuleGlass: {
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
   },
   topIconCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    paddingHorizontal: 5,
+    gap: 2,
   },
   topIconBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchTakeoverRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inlineSearchGlass: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
   },
   inlineSearchRow: {
     flex: 1,
-    height: 38,
-    borderRadius: 19,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -2280,13 +2391,16 @@ const styles = StyleSheet.create({
   inlineSearchInput: {
     flex: 1,
     ...fonts.sansRegular,
-    fontSize: 15,
+    fontSize: 15.5,
     paddingVertical: 0,
   },
   previewBanner: {
-    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    borderCurve: 'continuous',
     gap: 8,
   },
   previewTopRow: {
@@ -2295,15 +2409,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  previewNativePickerHost: {
+    width: '100%',
+    height: 32,
+  },
   previewToggleTrack: {
     flexDirection: 'row',
     padding: 3,
-    borderRadius: 11,
+    borderRadius: 10,
     gap: 3,
   },
   previewTogglePill: {
     flex: 1,
-    height: 30,
+    height: 28,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2321,7 +2439,7 @@ const styles = StyleSheet.create({
   },
   identityBlock: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 16,
     gap: 12,
   },
@@ -2331,9 +2449,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   displayName: {
-    ...fonts.bold,
-    fontSize: 26,
-    letterSpacing: -0.4,
+    ...fonts.sansBold,
+    fontSize: 27,
+    letterSpacing: -0.6,
     lineHeight: 32,
   },
   subtitleLine: {
@@ -2343,6 +2461,8 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     position: 'relative',
+    borderRadius: 36,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   verifiedSealOverlay: {
     position: 'absolute',
@@ -2363,10 +2483,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 5.5,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   metaPillText: {
     ...fonts.sansMedium,
@@ -2398,27 +2517,28 @@ const styles = StyleSheet.create({
   dualBtnPrimary: {
     flex: 1,
     height: 40,
-    borderRadius: 11,
+    borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
   dualBtnSecondary: {
     flex: 1,
     height: 40,
-    borderRadius: 11,
-    borderWidth: 1,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
   dualBtnText: {
     ...fonts.sansSemiBold,
     fontSize: 14.5,
+    letterSpacing: -0.1,
   },
   tabBar: {
     flexDirection: 'row',
@@ -2436,8 +2556,8 @@ const styles = StyleSheet.create({
   },
   tabUnderline: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 20,
+    right: 20,
     bottom: 0,
     height: 2,
     borderRadius: 1,
@@ -2463,23 +2583,29 @@ const styles = StyleSheet.create({
   hymnRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 13,
   },
   hymnNumber: {
-    ...fonts.bold,
-    fontSize: 16.5,
-    minWidth: 34,
+    ...fonts.sansMedium,
+    fontSize: 15,
+    width: 34,
+    textAlign: 'right',
   },
   hymnTitle: {
-    ...fonts.sansSemiBold,
-    fontSize: 15.5,
+    ...fonts.sansMedium,
+    fontSize: 16,
+    letterSpacing: -0.2,
   },
   hymnCategory: {
-    ...fonts.sansMedium,
-    fontSize: 11,
-    letterSpacing: 0.7,
+    ...fonts.sansRegular,
+    fontSize: 12.5,
+  },
+  hymnDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 66,
+    marginRight: 20,
   },
   fullDivider: {
     height: StyleSheet.hairlineWidth,

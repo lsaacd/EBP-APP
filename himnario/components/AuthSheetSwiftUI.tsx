@@ -367,9 +367,7 @@ export default function AuthSheetSwiftUI({
 
   const appMenuSection = (
     <Section title={t.authQuickAccessTitle}>
-      {isSignedOut
-        ? renderMenuButtonRow(t.profileChurches, 'map', onOpenChurches, t.profileMap)
-        : null}
+      {renderMenuButtonRow(t.profileChurches, 'map', onOpenChurches, t.profileMap)}
       {renderMenuButtonRow(t.accountScanQrCode, 'qrcode.viewfinder', onOpenScanQr)}
       {renderMenuButtonRow(t.tabSettings, 'gearshape', onOpenSettings)}
       {renderMenuButtonRow(t.accountShareApp, 'square.and.arrow.up', onOpenShareApp)}
