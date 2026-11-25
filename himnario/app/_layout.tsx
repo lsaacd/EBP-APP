@@ -385,7 +385,21 @@ function ThemedStack() {
             sheetGrabberVisible: true,
             sheetAllowedDetents: [0.68, 1.0],
             sheetExpandsWhenScrolledToEdge: true,
-            headerShown: false,
+            headerShown: isIOS,
+            headerTransparent: true,
+            headerShadowVisible: false,
+            headerBlurEffect: isIOS
+              ? isIOSLiquidGlass
+                ? undefined
+                : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light')
+              : undefined,
+            headerTintColor: isDarkMode ? '#ffffff' : theme.primary,
+            headerTitleStyle: { color: adaptiveTitleColor },
+            headerUserInterfaceStyle: isDarkMode ? 'dark' : 'light',
+            scrollEdgeEffects: {
+              top: 'soft',
+              bottom: 'soft',
+            },
             contentStyle: {
               backgroundColor: isIOSLiquidGlass
                 ? 'transparent'

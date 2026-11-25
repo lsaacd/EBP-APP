@@ -11,9 +11,18 @@
  * - Interactive classic iOS warm-gold 5-star rating card + feedback & about links.
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Platform, StyleSheet, Text as RNText, View } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import * as Haptics from '../../utils/haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage, type Language } from '../../context/LanguageContext';
@@ -27,8 +36,7 @@ import {
   cancelDownloadAll,
   deleteSavedHymnAudio,
 } from '../../audio/offline-audio';
-import { getExpoSwiftUI } from '../../utils/expoSwiftUI';
-import AppShareSheet from '../AppShareSheet';
+import { getExpoSwiftUI, type ExpoSwiftUIBundle } from '../../utils/expoSwiftUI';
 import SettingsLegacy from './Settings.legacy';
 
 const BASE_PX = 22;
@@ -44,7 +52,16 @@ function formatSize(bytes: number) {
 
 export default function SettingsScreenIOS() {
   const swiftUI = getExpoSwiftUI();
+  if (!swiftUI) {
+    return <SettingsLegacy />;
+  }
+  return <SettingsSwiftUIContent swiftUI={swiftUI} />;
+}
+
+function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
   const {
     theme,
     isDarkMode,
@@ -58,18 +75,37 @@ export default function SettingsScreenIOS() {
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
 
   const [selectedStars, setSelectedStars] = useState(0);
-  const [showShareApp, setShowShareApp] = useState(false);
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const lastHapticPxRef = useRef(currentPx);
+  const firstEventTime = useSharedValue(0);
+  const lastContainerW = useSharedValue(0);
+  const restOffsetY = useSharedValue<number | null>(null);
+  const scrollDelta = useSharedValue(0);
+
+  const scrollGeometryModifier = swiftUI.modifiers.useScrollGeometryChange((g) => {
+    'worklet';
+    const y = g.contentOffsetY;
+    const now = Date.now();
+    if (lastContainerW.value !== 0 && Math.abs(g.containerWidth - lastContainerW.value) > 1) {
+      firstEventTime.value = now;
+      restOffsetY.value = y;
+    }
+    lastContainerW.value = g.containerWidth;
+    if (firstEventTime.value === 0) {
+      firstEventTime.value = now;
+    }
+    if (restOffsetY.value === null) {
+      restOffsetY.value = y;
+    } else if (y < restOffsetY.value && now - firstEventTime.value < 400) {
+      restOffsetY.value = y;
+    }
+    scrollDelta.value = Math.max(0, y - (restOffsetY.value ?? y));
+  });
 
   useEffect(() => {
     void refreshOfflineAudio();
   }, []);
-
-  if (!swiftUI) {
-    return <SettingsLegacy />;
-  }
 
   const {
     Button,
@@ -94,6 +130,9 @@ export default function SettingsScreenIOS() {
     controlSize,
     font,
     foregroundStyle,
+    listRowBackground,
+    listRowInsets,
+    listSectionMargins,
     listSectionSpacing,
     monospacedDigit,
     multilineTextAlignment,
@@ -105,6 +144,18 @@ export default function SettingsScreenIOS() {
     tag,
     tint,
   } = swiftUI.modifiers;
+
+  const stickyHeaderStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollDelta.value, [14, 42], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  const stickyTitleStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(scrollDelta.value, [14, 42], [6, 0], Extrapolation.CLAMP),
+      },
+    ],
+  }));
 
   const scheme = isDarkMode ? 'dark' : 'light';
   const accentTint = isDarkMode ? '#fdf9f2' : theme.primary;
@@ -203,23 +254,46 @@ export default function SettingsScreenIOS() {
     />
   );
 
+  const formModifiers = [
+    tint(symbolTint),
+    listSectionSpacing('compact'),
+    scrollEdgeEffectStyle('soft', 'all'),
+    ...(scrollGeometryModifier ? [scrollGeometryModifier] : []),
+  ];
+
+  const stickyBarTop = isPad ? Math.max(insets.top, 20) + 48 : insets.top;
+
   return (
-    <>
+    <View style={settingsStyles.root}>
       <Host
-        style={{ flex: 1 }}
+        style={settingsStyles.root}
         colorScheme={scheme}
         seedColor={symbolTint}
       >
-        <Form
-          modifiers={[
-            tint(symbolTint),
-            listSectionSpacing('compact'),
-            scrollEdgeEffectStyle('soft', 'all'),
-          ]}
-        >
+        <Form modifiers={formModifiers}>
+          {/* ─── Tight Large Title (zero dead space above; collapses into floating blur bar on scroll) ─── */}
+          <Section modifiers={[listSectionMargins({ edges: 'top', length: 0 })]}>
+            <Text
+              modifiers={[
+                font({ size: 34, weight: 'bold' }),
+                foregroundStyle(primaryStyle),
+                listRowBackground('clear'),
+                listRowInsets({
+                  top: isPad ? 52 : 4,
+                  leading: 20,
+                  bottom: 0,
+                  trailing: 20,
+                }),
+              ]}
+            >
+              {t.tabSettings}
+            </Text>
+          </Section>
+
           {/* ─── Account & Cloud ─── */}
           <Section
             title={t.accountSectionLabel}
+            modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}
             footer={user ? undefined : <Text>{t.authSettingsCardHint}</Text>}
           >
             {user ? (
@@ -645,7 +719,10 @@ export default function SettingsScreenIOS() {
               modifiers={[foregroundStyle(primaryStyle)]}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
-                setShowShareApp(true);
+                router.push({
+                  pathname: '/auth-sheet',
+                  params: { page: 'share-app', from: '/(tabs)/settings', noBack: '1' },
+                } as any);
               }}
             >
               <HStack alignment="center">
@@ -672,7 +749,73 @@ export default function SettingsScreenIOS() {
         </Form>
       </Host>
 
-      <AppShareSheet visible={showShareApp} onClose={() => setShowShareApp(false)} />
-    </>
+      {/* ─── Scroll-reactive soft blur compact header ("Ajustes" small title on scroll) ─── */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          settingsStyles.stickyHeader,
+          { height: stickyBarTop + 46 },
+          stickyHeaderStyle,
+        ]}
+      >
+        <BlurView
+          intensity={isDarkMode ? 52 : 62}
+          tint={isDarkMode ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+          style={[StyleSheet.absoluteFill, { bottom: 6 }]}
+        />
+        <LinearGradient
+          colors={[
+            isDarkMode ? 'rgba(0,0,0,0.52)' : 'rgba(242,242,247,0.68)',
+            isDarkMode ? 'rgba(0,0,0,0.22)' : 'rgba(242,242,247,0.28)',
+            'transparent',
+          ]}
+          locations={[0, 0.72, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View
+          style={[
+            settingsStyles.stickyTitleWrap,
+            { top: stickyBarTop },
+            stickyTitleStyle,
+          ]}
+        >
+          <RNText
+            numberOfLines={1}
+            style={[
+              settingsStyles.stickyTitleText,
+              { color: isDarkMode ? '#FFFFFF' : '#000000' },
+            ]}
+          >
+            {t.tabSettings}
+          </RNText>
+        </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
+
+const settingsStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+  },
+  stickyTitleWrap: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickyTitleText: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.25,
+  },
+});

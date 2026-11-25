@@ -49,6 +49,7 @@ import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import HymnRowLink from '../../components/HymnRowLink';
+import { ANDROID_BOTTOM_BAR_HEIGHT } from '../../components/androidBottomLayout';
 import {
   create as createSearchEngine,
   normalize as normalizeSearch,
@@ -160,7 +161,8 @@ export default function HymnListScreen() {
   const params = useLocalSearchParams<{ tab?: string; t?: string; focusSearch?: string }>();
 
   const [draggingLetter, setDraggingLetter] = useState<string | null>(null);
-  const [indiceSection, setIndiceSection] = useState<'himnos' | 'estribillos'>('himnos');
+  const [indiceSection, setIndiceSection] = useState<'himnos' | 'estribillos' | 'coritos'>('himnos');
+  const [indiceBodyHeight, setIndiceBodyHeight] = useState(0);
 
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const bubbleFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,7 +174,7 @@ export default function HymnListScreen() {
   const overlayChipsScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const sliderTrackRef = useRef<React.ComponentRef<typeof View>>(null);
   const sidebarTrackRef = useRef<React.ComponentRef<typeof View>>(null);
-  const { currentHymnId } = useNowPlaying();
+  const { currentHymnId, miniPlayerHeight, showFullPlayer } = useNowPlaying();
   const [isFocused, setIsFocused] = useState(false);
   const blurAnim = useRef(new Animated.Value(0)).current;
   const isTopFilter = searchFilter === TOP_HYMNS_FILTER;
@@ -403,9 +405,17 @@ export default function HymnListScreen() {
     localizedEstribillosData,
   ]);
 
-  // ── Índice Logic (switches between Himnos and Coritos/Estribillos) ──────────
+  // ── Índice Logic (switches between Himnos, Estribillos 1–26, and Coritos 27+) ──
   const indiceData = useMemo(() => {
-    const sourceList = indiceSection === 'estribillos' ? localizedEstribillosData : localizedHymnsData;
+    const sourceList =
+      indiceSection === 'estribillos'
+        ? localizedEstribillosData.filter((h: any) => {
+            const num = Number(h.number);
+            return num >= 1 && num <= 26;
+          })
+        : indiceSection === 'coritos'
+          ? localizedEstribillosData.filter((h: any) => Number(h.number) > 26)
+          : localizedHymnsData;
     const sorted = [...sourceList].sort((a, b) =>
       normalizeSearch(a.title).localeCompare(normalizeSearch(b.title))
     );
@@ -416,7 +426,9 @@ export default function HymnListScreen() {
       title:
         indiceSection === 'estribillos'
           ? t.indiceEstribillosTitle || 'ÍNDICE ALFABÉTICO DE ESTRIBILLOS'
-          : t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS',
+          : indiceSection === 'coritos'
+            ? t.indiceCoritosTitle || 'ÍNDICE ALFABÉTICO DE CORITOS'
+            : t.indiceHimnosTitle || 'ÍNDICE ALFABÉTICO DE HIMNOS',
       marginTop: 4,
     });
 
@@ -888,9 +900,42 @@ export default function HymnListScreen() {
     );
   };
 
+  const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
+  const activeMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
+  const resolvedMiniPlayerHeight =
+    miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 58;
+  const bottomNavClearance =
+    Platform.OS === 'ios'
+      ? isPad
+        ? Math.max(insets.bottom, 22)
+        : 49 + insets.bottom
+      : insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
+  const scrubberTopClearance = 16;
+  const scrubberBottomClearance =
+    bottomNavClearance + (activeMiniPlayer ? resolvedMiniPlayerHeight + 18 : 16);
+  const scrubberAvailableHeight =
+    indiceBodyHeight > 0
+      ? Math.max(240, indiceBodyHeight - scrubberTopClearance - scrubberBottomClearance)
+      : 390;
+  const scrubberCapsuleHeight = Math.min(400, scrubberAvailableHeight);
+
+  const measureSidebarTrack = useCallback(() => {
+    sidebarTrackRef.current?.measure((_x, _y, _width, height, _pageX, pageY) => {
+      if (height !== undefined && height > 0) sidebarTrackHeight.current = height;
+      if (pageY !== undefined) sidebarTrackY.current = pageY;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeSubTab !== 'indice') return;
+    const timer = setTimeout(measureSidebarTrack, 90);
+    return () => clearTimeout(timer);
+  }, [activeSubTab, indiceSection, measureSidebarTrack, scrubberBottomClearance, scrubberCapsuleHeight]);
+
   const renderIndice = () => {
-    const coritosLabel = t.hymnsChoruses;
-    const himnosLabel = t.subTabHimnos || (t.tabHymns);
+    const estribillosLabel = t.hymnsChoruses;
+    const coritosLabel = t.hymnsCoritos;
+    const himnosLabel = t.subTabHimnos || t.tabHymns;
 
     const indiceToggleHeader = (
       <View style={styles.indiceToggleWrap}>
@@ -898,7 +943,8 @@ export default function HymnListScreen() {
           {(
             [
               { key: 'himnos', label: himnosLabel },
-              { key: 'estribillos', label: coritosLabel },
+              { key: 'estribillos', label: estribillosLabel },
+              { key: 'coritos', label: coritosLabel },
             ] as const
           ).map((opt) => {
             const active = indiceSection === opt.key;
@@ -997,7 +1043,15 @@ export default function HymnListScreen() {
 
     return (
       <View style={styles.flex1}>
-        <View style={styles.indiceBody}>
+        <View
+          style={styles.indiceBody}
+          onLayout={(e) => {
+            const nextH = Math.round(e.nativeEvent.layout.height);
+            if (nextH > 0 && Math.abs(nextH - indiceBodyHeight) > 1) {
+              setIndiceBodyHeight(nextH);
+            }
+          }}
+        >
           <View style={styles.indiceListContainer}>
             <FlatList
               ref={indiceListRef}
@@ -1106,13 +1160,14 @@ export default function HymnListScreen() {
             />
           </View>
 
-          {/* Workstream F: Floating Glass / M3 Alphabet Sidebar */}
+          {/* Workstream F: Floating Glass / M3 Alphabet Sidebar (centered safely above MiniPlayer & bottom tabs) */}
           {!isSearchActive && (
             <View
               style={[
                 styles.alphabetSidebarWrapper,
                 {
-                  marginBottom: insets.bottom + (currentHymnId ? 136 : 74),
+                  paddingTop: scrubberTopClearance,
+                  paddingBottom: scrubberBottomClearance,
                 },
               ]}
             >
@@ -1121,7 +1176,7 @@ export default function HymnListScreen() {
                 glassEffectStyle="regular"
                 intensity={65}
                 tonalColor={theme.surfaceVariants.containerHighest}
-                style={styles.alphabetGlassCapsule}
+                style={[styles.alphabetGlassCapsule, { height: scrubberCapsuleHeight }]}
               >
                 <View
                   ref={sidebarTrackRef}
@@ -1134,13 +1189,7 @@ export default function HymnListScreen() {
                   style={styles.alphabetSidebar}
                   onLayout={(e) => {
                     sidebarTrackHeight.current = e.nativeEvent.layout.height;
-                    setTimeout(() => {
-                      sidebarTrackRef.current?.measure(
-                        (_x, _y, _width, _height, _pageX, pageY) => {
-                          if (pageY !== undefined) sidebarTrackY.current = pageY;
-                        }
-                      );
-                    }, 100);
+                    setTimeout(measureSidebarTrack, 80);
                   }}
                   {...alphabetPanResponder.panHandlers}
                 >
@@ -1955,18 +2004,18 @@ const styles = StyleSheet.create({
   },
   indiceTogglePill: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
   },
   indiceToggleBtnWrap: {
-    borderRadius: 12,
+    borderRadius: 999,
   },
   indiceToggleOption: {
     height: 38,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
   },
   indiceToggleText: {
     fontFamily: SYSTEM_FONT,
@@ -2036,7 +2085,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   alphabetGlassCapsule: {
-    flex: 1,
     width: 28,
     borderRadius: 15,
     borderWidth: StyleSheet.hairlineWidth,

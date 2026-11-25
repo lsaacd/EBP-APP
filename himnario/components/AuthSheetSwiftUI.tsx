@@ -237,6 +237,7 @@ export default function AuthSheetSwiftUI({
   const accentTextColor = isDarkMode ? '#fdf9f2' : '#6e1619';
   const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
   const avatarText = isDarkMode ? '#1A1A1A' : '#FFFFFF';
+  const cardRowBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
@@ -324,7 +325,7 @@ export default function AuthSheetSwiftUI({
     rightValue?: string,
   ) => (
     <Button
-      modifiers={[foregroundStyle(primaryStyle)]}
+      modifiers={[foregroundStyle(primaryStyle), listRowBackground(cardRowBg)]}
       onPress={onPress}
     >
       <HStack
@@ -383,7 +384,7 @@ export default function AuthSheetSwiftUI({
               {/* ── Account Identity Card ── */}
               <Section modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}>
                 <Button
-                  modifiers={[foregroundStyle(primaryStyle)]}
+                  modifiers={[foregroundStyle(primaryStyle), listRowBackground(cardRowBg)]}
                   onPress={onOpenMyProfile}
                 >
                   <HStack
@@ -445,7 +446,7 @@ export default function AuthSheetSwiftUI({
 
                 {!user.emailVerified ? (
                   <Button
-                    modifiers={[foregroundStyle(primaryStyle)]}
+                    modifiers={[foregroundStyle(primaryStyle), listRowBackground(cardRowBg)]}
                     onPress={onOpenMyProfile}
                   >
                     <HStack
@@ -476,7 +477,11 @@ export default function AuthSheetSwiftUI({
                 }
               >
                 <Button
-                  modifiers={[foregroundStyle(primaryStyle), disabled(isSyncing)]}
+                  modifiers={[
+                    foregroundStyle(primaryStyle),
+                    disabled(isSyncing),
+                    listRowBackground(cardRowBg),
+                  ]}
                   onPress={onSyncNow}
                 >
                   <HStack
@@ -505,7 +510,7 @@ export default function AuthSheetSwiftUI({
               {/* ── Session & Account Lifecycle ── */}
               <Section>
                 <Button
-                  modifiers={[foregroundStyle(primaryStyle)]}
+                  modifiers={[foregroundStyle(primaryStyle), listRowBackground(cardRowBg)]}
                   onPress={onSignOut}
                 >
                   <Label
@@ -515,7 +520,7 @@ export default function AuthSheetSwiftUI({
                 </Button>
                 <Button
                   role="destructive"
-                  modifiers={[foregroundStyle('#D64545')]}
+                  modifiers={[foregroundStyle('#D64545'), listRowBackground(cardRowBg)]}
                   onPress={onDeleteAccount}
                 >
                   <Label
@@ -558,7 +563,7 @@ export default function AuthSheetSwiftUI({
                   footer={<Text>{t.authRecoveryHelp}</Text>}
                 >
                   <Button
-                    modifiers={[foregroundStyle(accentTextColor)]}
+                    modifiers={[foregroundStyle(accentTextColor), listRowBackground(cardRowBg)]}
                     onPress={() => onChangeMode('login')}
                   >
                     <Label
@@ -583,7 +588,11 @@ export default function AuthSheetSwiftUI({
                 }
               >
                 {mode === 'register' ? (
-                  <HStack alignment="center" spacing={12}>
+                  <HStack
+                    alignment="center"
+                    spacing={12}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     {renderFieldLeadingIcon('person', 16)}
                     <TextField
                       ref={nameRef}
@@ -600,7 +609,11 @@ export default function AuthSheetSwiftUI({
                   </HStack>
                 ) : null}
 
-                <HStack alignment="center" spacing={12}>
+                <HStack
+                  alignment="center"
+                  spacing={12}
+                  modifiers={[listRowBackground(cardRowBg)]}
+                >
                   {renderFieldLeadingIcon('envelope', 15)}
                   <TextField
                     ref={emailRef}
@@ -619,7 +632,11 @@ export default function AuthSheetSwiftUI({
                 </HStack>
 
                 {mode !== 'recovery' ? (
-                  <HStack alignment="center" spacing={12}>
+                  <HStack
+                    alignment="center"
+                    spacing={12}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     {renderFieldLeadingIcon('lock', 16)}
                     {showPassword ? (
                       <TextField
@@ -677,7 +694,11 @@ export default function AuthSheetSwiftUI({
                 ) : null}
 
                 {mode === 'register' && strength > 0 ? (
-                  <HStack alignment="center" spacing={8}>
+                  <HStack
+                    alignment="center"
+                    spacing={8}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     <SwiftUIImage
                       systemName={strength >= 3 ? 'checkmark.shield.fill' : 'shield.lefthalf.filled'}
                       size={14}
@@ -753,7 +774,10 @@ export default function AuthSheetSwiftUI({
               {/* ── Compact Account Benefits Strip ── */}
               {mode !== 'recovery' ? (
                 <Section title={t.authBenefitsTitle}>
-                  <Label icon={renderTintedIcon('icloud')}>
+                  <Label
+                    icon={renderTintedIcon('icloud')}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     <Text
                       modifiers={[
                         font({ textStyle: 'subheadline' }),
@@ -763,7 +787,10 @@ export default function AuthSheetSwiftUI({
                       {t.authBenefitSync}
                     </Text>
                   </Label>
-                  <Label icon={renderTintedIcon('person.2')}>
+                  <Label
+                    icon={renderTintedIcon('person.2')}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     <Text
                       modifiers={[
                         font({ textStyle: 'subheadline' }),
@@ -773,7 +800,10 @@ export default function AuthSheetSwiftUI({
                       {t.authBenefitFriends}
                     </Text>
                   </Label>
-                  <Label icon={renderTintedIcon('building.columns')}>
+                  <Label
+                    icon={renderTintedIcon('building.columns')}
+                    modifiers={[listRowBackground(cardRowBg)]}
+                  >
                     <Text
                       modifiers={[
                         font({ textStyle: 'subheadline' }),

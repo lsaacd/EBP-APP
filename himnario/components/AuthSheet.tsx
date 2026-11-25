@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router as globalRouter, usePathname, useRouter } from 'expo-router';
+import { router as globalRouter, Stack, usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { Asset } from 'expo-asset';
@@ -85,6 +85,7 @@ interface AuthSheetProps {
   presentationMode?: 'modal' | 'native-sheet' | 'swiftui-sheet';
   initialPage?: SheetPage;
   originPathname?: string;
+  hideNativeBack?: boolean;
 }
 
 export function AuthSheet({
@@ -94,6 +95,7 @@ export function AuthSheet({
   presentationMode = 'modal',
   initialPage = 'account',
   originPathname,
+  hideNativeBack = false,
 }: AuthSheetProps) {
   const {
     theme,
@@ -146,6 +148,7 @@ export function AuthSheet({
   const onClose = propOnClose || closeAuthSheet;
   const isIOS = Platform.OS === 'ios';
   const isNativeSheet = presentationMode === 'native-sheet';
+  const isNativeSubPage = isNativeSheet && initialPage !== 'account';
   const isSwiftUISheet = presentationMode === 'swiftui-sheet';
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
   const hasSwiftUIForm = isIOS && Boolean(getExpoSwiftUI());
@@ -364,22 +367,28 @@ export function AuthSheet({
   }, [runPendingPostClose]);
 
   // Keep AuthContext synchronized when native iOS formSheet is dismissed (by swipe or button),
-  // and run any queued navigation cleanly right after the UIKit sheet finishes unmounting.
+  // and run any queued navigation cleanly right after UIKit finishes the dismissal animation.
+  // Isolated sub-pages (`/auth-sheet?page=share-app|help`) must NOT call `closeAuthSheet()` or
+  // touch global SwiftUI sheet visibility, preventing modal-stack collisions on reopen.
   useEffect(() => {
     if (!isNativeSheet) return;
     return () => {
-      onCloseRef.current();
+      if (!isNativeSubPage) {
+        onCloseRef.current();
+      }
       if (pendingPostCloseRef.current) {
+        const delayMs = pendingPostCloseRef.current === 'reopen-auth' ? 420 : 180;
         setTimeout(() => {
           runPendingPostClose();
-        }, 60);
+        }, delayMs);
       }
     };
-  }, [isNativeSheet, runPendingPostClose]);
+  }, [isNativeSheet, isNativeSubPage, runPendingPostClose]);
 
-  // If closeAuthSheet() is called externally while the native formSheet is mounted, dismiss it.
+  // If closeAuthSheet() is called externally while the native account formSheet is mounted, dismiss it.
+  // Skip for sub-pages (`share-app`, `help`) which have independent route lifecycles.
   useEffect(() => {
-    if (!isNativeSheet) return;
+    if (!isNativeSheet || isNativeSubPage) return;
     if (authSheetVisible) {
       sawVisibleInNativeRef.current = true;
     } else if (sawVisibleInNativeRef.current && !dismissingNativeRef.current) {
@@ -388,25 +397,28 @@ export function AuthSheet({
         router.back();
       }
     }
-  }, [authSheetVisible, isNativeSheet, router]);
+  }, [authSheetVisible, isNativeSheet, isNativeSubPage, router]);
 
   const animateClose = useCallback(() => {
     Keyboard.dismiss();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isSwiftUISheet) {
+      if (visible) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onCloseRef.current();
-      // SwiftUI's `.sheet(isPresented:onDismiss:)` does not always fire `onDismiss`
-      // on programmatic `isPresented = false` transitions. Schedule a guaranteed
-      // post-dismiss fallback; `runPendingPostClose()` is idempotent and clears this timer.
+      // SwiftUI's `.sheet(isPresented:onDismiss:)` fires `onDismiss` once the sheet finishes
+      // animating away (now that `<Host><BottomSheet>` remains permanently mounted). Keep an
+      // idempotent fallback timer in case an OS edge case drops `onDismiss`.
       if (pendingPostCloseRef.current) {
         if (postCloseTimerRef.current) clearTimeout(postCloseTimerRef.current);
         postCloseTimerRef.current = setTimeout(() => {
           postCloseTimerRef.current = null;
           runPendingPostClose();
-        }, 280);
+        }, 380);
       }
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isNativeSheet) {
       if (dismissingNativeRef.current) return;
       dismissingNativeRef.current = true;
@@ -420,7 +432,7 @@ export function AuthSheet({
     progress.value = withSpring(1, spring, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-  }, [finishClose, isNativeSheet, isSwiftUISheet, progress, router]);
+  }, [finishClose, isNativeSheet, isSwiftUISheet, progress, router, runPendingPostClose, visible]);
 
   const handleSwiftUIDismiss = useCallback(() => {
     onCloseRef.current();
@@ -505,7 +517,10 @@ export function AuthSheet({
     transform: [{ translateX: formShakeX.value }],
   }));
 
-  if (!visible) return null;
+  // Keep SwiftUI `<Host><BottomSheet>` permanently mounted so `.onChange(of: props.isPresented)`
+  // smoothly animates dismissal, fires `onDismiss`, and never corrupts UIKit's presentation stack
+  // when reopening Profile after closing a `formSheet` route (like Share App).
+  if (!visible && !isSwiftUISheet) return null;
 
   const triggerFormShake = () => {
     formShakeX.value = withSequence(
@@ -2473,6 +2488,9 @@ export function AuthSheet({
       );
     }
 
+    const useNativeRouteHeader = isIOS && page !== 'account';
+    const headerAccentColor = isDarkMode ? '#FFFFFF' : theme.primary;
+
     return (
       <View
         style={[
@@ -2480,109 +2498,160 @@ export function AuthSheet({
           { backgroundColor: isNativeGlassSheet ? 'transparent' : sheetBg },
         ]}
       >
-        {/* Clean Liquid Glass sheet header aligned with the grabber for sub-pages & pre-SwiftUI fallback */}
-        <View style={styles.nativeSubHeader}>
-          {page !== 'account' ? (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={56}
-              style={styles.glassCircleBtn}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.homeMenuBack}
-                onPress={handleBackOrClose}
-                style={styles.glassCircleHit}
+        {useNativeRouteHeader ? (
+          <Stack.Screen
+            options={{
+              headerShown: true,
+              title: authHeaderTitle,
+              headerBackVisible: false,
+              headerLeft: !hideNativeBack
+                ? () => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.homeMenuBack}
+                      onPress={handleBackOrClose}
+                      style={({ pressed }) => [
+                        styles.nativeRouteHeaderBtn,
+                        pressed && { opacity: 0.65 },
+                      ]}
+                    >
+                      <AppMenuIcon
+                        ios="chevron.left"
+                        android="arrow-back"
+                        color={headerAccentColor}
+                        size={18}
+                        containerSize={22}
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  )
+                : undefined,
+              headerRight: () => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
+                  onPress={animateClose}
+                  style={({ pressed }) => [
+                    styles.nativeRouteCloseBtn,
+                    pressed && { opacity: 0.65 },
+                  ]}
+                >
+                  <Text style={[styles.nativeRouteCloseText, { color: headerAccentColor }]}>
+                    {t.close}
+                  </Text>
+                </Pressable>
+              ),
+            }}
+          />
+        ) : (
+          <>
+            {isIOS ? <Stack.Screen options={{ headerShown: false }} /> : null}
+            {/* Clean header for Android/pre-SwiftUI fallback */}
+            <View style={styles.nativeSubHeader}>
+            {page !== 'account' ? (
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={56}
+                style={styles.glassCircleBtn}
               >
-                <AppMenuIcon
-                  ios="chevron.left"
-                  android="arrow-back"
-                  color={plainToolbarTint}
-                  size={17}
-                  weight="semibold"
-                />
-              </Pressable>
-            </GlassSurface>
-          ) : (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={56}
-              style={styles.glassCancelPill}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={isSignedOutLogin ? t.authCancel : t.close}
-                onPress={animateClose}
-                style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.homeMenuBack}
+                  onPress={handleBackOrClose}
+                  style={styles.glassCircleHit}
+                >
+                  <AppMenuIcon
+                    ios="chevron.left"
+                    android="arrow-back"
+                    color={plainToolbarTint}
+                    size={17}
+                    weight="semibold"
+                  />
+                </Pressable>
+              </GlassSurface>
+            ) : (
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={56}
+                style={styles.glassCancelPill}
               >
-                <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
-                  {isSignedOutLogin ? t.authCancel : t.close}
-                </Text>
-              </Pressable>
-            </GlassSurface>
-          )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={isSignedOutLogin ? t.authCancel : t.close}
+                  onPress={animateClose}
+                  style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+                >
+                  <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
+                    {isSignedOutLogin ? t.authCancel : t.close}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
+            )}
 
-          <Text
-            numberOfLines={1}
-            style={[styles.nativeSubHeaderTitle, { color: plainToolbarTint }]}
-          >
-            {authHeaderTitle}
-          </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.nativeSubHeaderTitle, { color: plainToolbarTint }]}
+            >
+              {authHeaderTitle}
+            </Text>
 
-          {page === 'account' && isSignedOutLogin ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={submitActionLabel}
-              disabled={submitting || isLoading || !!emailAction}
-              onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
-              style={({ pressed }) => [
-                styles.headerActionCircle,
-                {
-                  backgroundColor: prominentFill,
-                  opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              {submitting || emailAction ? (
-                <ActivityIndicator size="small" color={prominentInk} />
-              ) : (
-                <AppMenuIcon
-                  ios={submitActionIcon}
-                  android="vpn-key"
-                  color={prominentInk}
-                  size={18}
-                  weight="semibold"
-                />
-              )}
-            </Pressable>
-          ) : page !== 'account' ? (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={56}
-              style={styles.glassCancelPill}
-            >
+            {page === 'account' && isSignedOutLogin ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t.close}
-                onPress={animateClose}
-                style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+                accessibilityLabel={submitActionLabel}
+                disabled={submitting || isLoading || !!emailAction}
+                onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+                style={({ pressed }) => [
+                  styles.headerActionCircle,
+                  {
+                    backgroundColor: prominentFill,
+                    opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
+                  },
+                ]}
               >
-                <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
-                  {t.close}
-                </Text>
+                {submitting || emailAction ? (
+                  <ActivityIndicator size="small" color={prominentInk} />
+                ) : (
+                  <AppMenuIcon
+                    ios={submitActionIcon}
+                    android="vpn-key"
+                    color={prominentInk}
+                    size={18}
+                    weight="semibold"
+                  />
+                )}
               </Pressable>
-            </GlassSurface>
-          ) : (
-            <View style={styles.glassCircleSpacer} />
-          )}
-        </View>
+            ) : page !== 'account' ? (
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={56}
+                style={styles.glassCancelPill}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
+                  onPress={animateClose}
+                  style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+                >
+                  <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
+                    {t.close}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
+            ) : (
+              <View style={styles.glassCircleSpacer} />
+            )}
+          </View>
+          </>
+        )}
 
         <ScrollView
           key={page}
           style={styles.nativeSheetScroll}
+          contentInsetAdjustmentBehavior={useNativeRouteHeader ? 'automatic' : undefined}
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
           indicatorStyle={isDarkMode ? 'white' : 'black'}
@@ -2590,6 +2659,7 @@ export function AuthSheet({
           keyboardDismissMode="interactive"
           contentContainerStyle={[
             styles.nativeScrollContent,
+            useNativeRouteHeader && { paddingTop: 14 },
             { paddingBottom: Math.max(insets.bottom, 24) + 18 },
           ]}
         >
@@ -2960,6 +3030,22 @@ const styles = StyleSheet.create({
   },
   nativeSheetScroll: {
     flex: 1,
+  },
+  nativeRouteHeaderBtn: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nativeRouteCloseBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nativeRouteCloseText: {
+    ...fonts.sansSemiBold,
+    fontSize: 16,
   },
   nativeSubHeader: {
     flexDirection: 'row',
