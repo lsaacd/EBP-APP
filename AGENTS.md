@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` TestFlight branch**: SDK 58 / Xcode 27.1 iOS Build #39 `85ea3bf4`, latest OTA `4df30934` on `2.1.0-sdk58-2`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`).
+> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` TestFlight branch**: SDK 58 / Xcode 27.1 iOS Build #39 `85ea3bf4`, latest OTA `4ecb18c5` on `2.1.0-sdk58-2`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`).
 
 ## Before you start
 
@@ -27,7 +27,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 
 | Task | Where to read | Notes |
 | --- | --- | --- |
-| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Live on `sdk-58` branch (TestFlight Build #39 `85ea3bf4`, latest OTA `4df30934` on `2.1.0-sdk58-2`). Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) before editing `sdk-58`. Final device sign-off & Android `2.1.0-sdk58-2` rebuild remain before merging to `main`. |
+| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Live on `sdk-58` branch (TestFlight Build #39 `85ea3bf4`, latest OTA `4ecb18c5` on `2.1.0-sdk58-2`). Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) before editing `sdk-58`. Final device sign-off & Android `2.1.0-sdk58-2` rebuild remain before merging to `main`. |
 | **Friends ("Amistades")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Requests, profiles, favourites, church suggestions, and friend counts are live on iOS. The plan's shared-playlist phase still needs confirmation; signed-in two-account device verification remains. |
 | **Antigravity pickup: November 23 release** | [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) | Read the top handoff before touching friends, church directory, coro moderation, or publishing another OTA. iOS is released; signed-in device checks and Android rebuild remain. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |

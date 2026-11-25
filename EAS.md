@@ -1,5 +1,21 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #5: No Tab Minimize, Classic Controls, Glass Map Sheet, Favorites Capsule, Burgundy Stars & Liquid Glass Login
+
+- **Branch & Source:** `sdk-58` branch (commit `5a90281`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`4ecb18c5-425b-4727-8a04-c416dca28758`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/4ecb18c5-425b-4727-8a04-c416dca28758)
+  - **iOS Update ID:** `01a212b8-8c7c-734b-b6ef-564abad92c97`
+  - **Included Changes:**
+    - Disabled 4 → 1 Liquid Glass bottom tab bar collapse on scroll across all tabs (`minimizeBehavior="never"` in `app/(tabs)/_layout.tsx`).
+    - Restored classic underline sub-tabs (`Himnos | Estribillos | Índice`) on iOS in `app/(tabs)/hymns.tsx` and restored the floating Liquid Glass `TextSizeSheet` popover in `app/hymn/[id].tsx`.
+    - Restored genuine translucent Liquid Glass background (removed `stableBackdrop`) and floating top `SheetGrabber` pill (`grabberPlacement="floating"`) on the Churches map `DetentSheet` (`app/churches.tsx`).
+    - Combined the Favorites / Playlists header action buttons into one connected Liquid Glass capsule with Search (`🔍`) on the far left (`app/(tabs)/favorites.tsx`), and removed the SwiftUI `Picker(.segmented)` override in `LiquidGlassSegmented.tsx` to restore the custom sliding pill with count badges.
+    - Redesigned the iOS Settings 5-star review card with Sacred Ink burgundy stars (`#6e1619` light / `#D14D56` dark) and burgundy capsule CTA (`components/screens/Settings.ios.tsx`).
+    - Upgraded the signed-out Login / Register / Recovery sheet (`components/AuthSheet.tsx`) to genuine iOS 26 Liquid Glass with translucent inset cards, left Liquid Glass `Cancelar` capsule, dynamic title, and top-right circular burgundy submit button (`key.fill` / `person.badge.plus` / `paperplane.fill`).
+  - **Verification:** `tsc --noEmit` 0 errors, `npx expo lint` 0 errors, all 11 `scripts/test-*.cjs` Node suites + `test-web-search.js` (761 items) passed, `git diff --check` clean, iOS Hermes export clean (`7.2 MB`, 129 assets, 0 bundled Apple fonts). Physical iPhone TestFlight verification pending.
+  - **Also built reusable simulator dev client (for Expo Simulators cloud testing):** `ab730373-e05a-40aa-ad4e-71b99553354b` (`ios-simulator`, `2.1.0-sdk58-2`).
+
 ## November 24, 2026 — SDK 58 iOS OTA: Dark Mode Toggle Sacred Ink Tint
 
 - **Branch & Source:** `sdk-58` branch (commit `aff8654`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
