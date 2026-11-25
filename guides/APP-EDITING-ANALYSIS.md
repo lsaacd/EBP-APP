@@ -1,5 +1,20 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #1 (`2.2.0-sdk58-1`): Official Sign in with Apple & 4-Color Google Buttons + Cloud-Synced Profile Photos (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`8af1ad4`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live Cloudflare Backend:**
+  - **D1 (`ebp-himnario-db`):** `0019_user_avatars.sql` applied remotely (`ALTER TABLE users ADD COLUMN avatar_url TEXT`).
+  - **Worker (`ebp-himnario-sync`):** Deployed version `d5f8cd5b-aefe-43de-b75a-40a3141180c5` (verified live `/health` `200`, unauthenticated `DELETE /auth/avatar` `401`).
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #1:** Group [`8aa629c1-508d-4b9c-98f3-b8aee0ce5f4c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/8aa629c1-508d-4b9c-98f3-b8aee0ce5f4c) · iOS update `01a2142a-6f24-7c00-a4d2-7cc9b1f2afd5`.
+- **What Changed:**
+  - **Social-First Official OAuth Buttons (`himnario/components/OAuthButtonsStack.tsx`, `AuthSheetSwiftUI.tsx`, `AuthSheet.tsx`):** Moved Apple & Google sign-in to the top of the login sheet directly below `Iniciar sesión | Crear cuenta` (hosted via `@expo/ui/swift-ui` `<RNHostView matchContents={{ vertical: true }}>` on iOS 26 and shared in RN fallback), with Apple HIG dark/light contrast, official 4-color Google "G" SVG (`#4285F4`/`#34A853`/`#FBBC05`/`#EA4335`), zero trailing chevrons, and a clean `o con tu correo` / `or with email` divider.
+  - **Cloud-Synced Profile Photos (`workers/ebp-auth-sync/oauth.js`, `community.js`, `index.js`, `himnario/components/UserAvatar.tsx`, `utils/avatarUpload.ts`, `utils/useAvatarPicker.ts`, `context/AuthContext.tsx`):** Automatic Google OIDC `picture` import mirrored into Cloudflare R2 (`avatars/<userId>/<uuid>.<ext>`, SSRF-guarded `*.googleusercontent.com`, magic-byte validated, never overwrites existing custom avatar); `POST /auth/avatar` & `DELETE /auth/avatar` (`<= 512 KB`, R2 cleanup on overwrite/remove/account-delete); 1-tap camera/library square-crop picker in **Mi Perfil** (`MyProfileOverview.ios.tsx`, `ProfileSubPages.ios.tsx`, `app/my-profile.tsx`); circular `<UserAvatar>` rendered across `HomeHeaderActions.tsx` (top-right Liquid Glass circle), Account sheet, Settings (`Settings.ios.tsx`, `Settings.legacy.tsx`), `app/member/[id].tsx`, `FriendsPanel.tsx`, `VerseDiscussionSheet.tsx`, and `app/churches.tsx`.
+- **Verification & Pending Device Checks:** `tsc --noEmit` 0 errors, ESLint 0 errors, 198/198 Node tests passed (`scripts/test-oauth-security.cjs` extended for Google PFP R2 import, SSRF allowlist, `/auth/avatar` upload/delete, and account-delete R2 cleanup) + `test-web-search.js` (761 items), iOS Hermes export clean (`2,633` modules, `7.6 MB`). Pending on-device TestFlight Build `#43` check: verify official Apple & 4-color Google buttons in Light & Dark Mode, Google login PFP auto-import, and 1-tap photo upload/removal in **Mi Perfil** updating the Home header circle and community views.
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 (`2.2.0` / `2.2.0-sdk58-1`) Upgrade Suite & Live Cloudflare OAuth Backend (`sdk-58` branch)
 
 ### Handoff for continuing on another desktop

@@ -1,5 +1,22 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #1 (`2.2.0-sdk58-1`): Official Sign in with Apple & 4-Color Google Login Buttons + Cloud-Synced Profile Photos (PFP)
+
+- **Branch & Source:** `sdk-58` branch (feature commit `8af1ad4`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`8aa629c1-508d-4b9c-98f3-b8aee0ce5f4c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/8aa629c1-508d-4b9c-98f3-b8aee0ce5f4c)
+  - **iOS Update ID:** `01a2142a-6f24-7c00-a4d2-7cc9b1f2afd5`
+- **Live Cloudflare Backend Released First:**
+  - **D1 (`ebp-himnario-db`):** `0019_user_avatars.sql` applied remotely (`ALTER TABLE users ADD COLUMN avatar_url TEXT`).
+  - **Worker (`ebp-himnario-sync`):** Version **`d5f8cd5b-aefe-43de-b75a-40a3141180c5`** (verified live `/health` `200`, unauthenticated `DELETE /auth/avatar` `401`).
+- **Included Changes:**
+  - **Official Social-First Apple & Google Login (`components/OAuthButtonsStack.tsx`, `AuthSheetSwiftUI.tsx`, `AuthSheet.tsx`):** Replaced monochrome grey OAuth rows with full-width `50pt`, `14pt` continuous-curve branded buttons placed at the top directly below `Iniciar sesión | Crear cuenta` (via `@expo/ui/swift-ui` `<RNHostView matchContents={{ vertical: true }}>` on iOS 26 and shared on Android/fallback): solid high-contrast Sign in with Apple (`#FFFFFF`/`#000000` dark, `#000000`/`#FFFFFF` light), official 4-color Google "G" SVG button (`#131314`/`#8E918F` dark with crisp white badge, `#FFFFFF`/`#747775` light), zero trailing chevrons, and clean `o con tu correo` / `or with email` hairline divider beneath.
+  - **Cloud-Synced Profile Photos (`workers/ebp-auth-sync/oauth.js`, `community.js`, `index.js`, `utils/avatarUpload.ts`, `utils/useAvatarPicker.ts`, `context/AuthContext.tsx`, `components/UserAvatar.tsx`):**
+    - Automatic Google OIDC `picture` import on Google sign-in (SSRF-guarded `*.googleusercontent.com` allowlist, magic-byte validation, mirrored to Cloudflare R2 `avatars/<userId>/<uuid>.<ext>` without overwriting existing custom photos).
+    - 1-tap `POST /auth/avatar` & `DELETE /auth/avatar` (square `512×512` JPEG upload, `<= 512 KB`, magic-byte check, automatic old-object & account-delete R2 cleanup) accessible from **Mi Perfil** (`MyProfileOverview.ios.tsx`, `ProfileSubPages.ios.tsx`, `app/my-profile.tsx`) for Apple, Google, and Email accounts.
+    - Circular `expo-image` `<UserAvatar>` rendered across `HomeHeaderActions.tsx` (top-right Liquid Glass circle), `AuthSheetSwiftUI.tsx`, `AuthSheet.tsx`, `Settings.ios.tsx`, `Settings.legacy.tsx`, `MyProfileOverview.ios.tsx`, `ProfileSubPages.ios.tsx`, `app/my-profile.tsx`, `app/member/[id].tsx`, `FriendsPanel.tsx`, `VerseDiscussionSheet.tsx`, and `app/churches.tsx`.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors across all 21 modified/new files, 198/198 Node tests passed (including extended `scripts/test-oauth-security.cjs` covering Google PFP R2 import, SSRF rejection, `/auth/avatar` upload/delete, and account-delete R2 cleanup) + `test-web-search.js` (761 items), iOS Hermes export clean (`2,633` modules, `7.6 MB` `.hbc`). Physical iPhone + iPad TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS Native Build #43 (`2.2.0`, runtime `2.2.0-sdk58-1`): Full Upgrade Suite (Apple/Google OAuth, Daily Verse Widget, Sort Menus, Sanctuary Brightness, What's New, Tactile/Toast Stack, iPad Polish & Store Review)
 
 - **Branch & Source:** `sdk-58` branch (feature commit `36f86af`, `.easignore` commits `f650c50` & `f0e9260`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
