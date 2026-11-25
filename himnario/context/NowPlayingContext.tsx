@@ -26,6 +26,10 @@ interface NowPlayingState {
   isPlaying: boolean;
   /** Whether the full-screen player modal is open */
   showFullPlayer: boolean;
+  /** Live rendered height of the floating MiniPlayer bar */
+  miniPlayerHeight: number;
+  /** Report the measured MiniPlayer bar height from RootLayout */
+  setMiniPlayerHeight: (height: number) => void;
   /** Shuffle mode */
   isShuffled: boolean;
   /** Repeat mode */
@@ -79,6 +83,7 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
   const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
   const snapshot = useSyncExternalStore(nativePlayer.subscribe, nativePlayer.getSnapshot);
   const [showFullPlayer, setShowFullPlayer] = useState(false);
+  const [miniPlayerHeight, setMiniPlayerHeight] = useState(0);
   const [lastPlayedHymnId, setLastPlayedHymnId] = useState<string | null>(null);
   const [queueLabel, setQueueLabel] = useState<string | null>(null);
 
@@ -120,6 +125,12 @@ export function NowPlayingProvider({ children }: { children: React.ReactNode }) 
         currentQueueIds: snapshot.currentQueueIds,
         queueLabel,
         showFullPlayer,
+        miniPlayerHeight,
+        setMiniPlayerHeight: (height: number) => {
+          if (height > 0) {
+            setMiniPlayerHeight((prev) => (Math.abs(prev - height) < 1 ? prev : height));
+          }
+        },
         setQueue: (ids, label) => {
           if (label !== undefined) setQueueLabel(label);
           else if (!ids) setQueueLabel(null);

@@ -29,6 +29,7 @@ import { churchDisplayName } from '../utils/churchName';
 import { buildQrPath } from '../utils/qrPath';
 import { QR_INK, qrPrintHtml } from '../utils/qrPrint';
 import AppMenuIcon from './AppMenuIcon';
+import GlassSurface from './GlassSurface';
 
 const QR_SIZE = 212;
 
@@ -52,9 +53,17 @@ export default function ChurchQrSheet({
   const { t } = useLanguage();
   const [printing, setPrinting] = useState(false);
 
+  const isIOS = Platform.OS === 'ios';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)';
-  const mutedText = isDarkMode ? 'rgba(235,235,245,0.60)' : theme.onSurfaceVariant;
+  const cardBorder = isIOS
+    ? isDarkMode
+      ? 'rgba(255,255,255,0.18)'
+      : 'rgba(255,255,255,0.68)'
+    : isDarkMode
+      ? 'rgba(255,255,255,0.10)'
+      : 'rgba(0,0,0,0.07)';
+  const mutedText = isDarkMode ? 'rgba(235,235,245,0.68)' : theme.onSurfaceVariant;
+  const prominentBurgundy = isDarkMode ? '#9E2A32' : '#6e1619';
 
   const title = church ? churchDisplayName(church.name, church.city) : '';
   const address = church
@@ -117,90 +126,150 @@ export default function ChurchQrSheet({
         {church && (
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}
+            style={styles.cardWrap}
           >
-            <Text numberOfLines={2} style={[styles.title, { color: theme.onSurface }]}>
-              {title}
-            </Text>
-            <Text numberOfLines={2} style={[styles.address, { color: mutedText }]}>
-              {address}
-            </Text>
-
-            {/* White plate: a QR must stay dark-on-light to scan, in either theme. */}
-            <View style={styles.qrPlate}>
-              {qr ? (
-                <Svg width={QR_SIZE} height={QR_SIZE} viewBox={`0 0 ${qr.extent} ${qr.extent}`}>
-                  <Rect width={qr.extent} height={qr.extent} fill="#FFFFFF" />
-                  <Path d={qr.path} fill={QR_INK} />
-                </Svg>
-              ) : (
-                <View style={styles.qrFallback}>
-                  <Text style={{ ...fonts.sansRegular, fontSize: 13, color: '#5A5048' }}>
-                    {t.churchQrPrintError}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <Text style={[styles.hint, { color: mutedText }]}>{t.churchQrScanHint}</Text>
-
-            <View style={styles.actions}>
-              <Pressable
-                onPress={handleShare}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.action,
-                  { backgroundColor: theme.primary, opacity: pressed ? 0.88 : 1 },
-                ]}
-              >
-                <AppMenuIcon
-                  ios="square.and.arrow.up"
-                  android="share"
-                  color={theme.onPrimary}
-                  size={16}
-                />
-                <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.onPrimary }}>
-                  {t.churchQrShare}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => void handlePrint()}
-                disabled={printing || !qr}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.action,
-                  {
-                    backgroundColor: isDarkMode
-                      ? 'rgba(255,255,255,0.09)'
-                      : theme.surfaceVariants.containerHighest,
-                    opacity: pressed || !qr ? 0.85 : 1,
-                  },
-                ]}
-              >
-                {printing ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <>
-                    <AppMenuIcon ios="printer" android="print" color={theme.onSurface} size={16} />
-                    <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.onSurface }}>
-                      {t.churchQrPrint}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              hitSlop={8}
-              style={styles.closeRow}
+            <GlassSurface
+              glassEffectStyle="regular"
+              intensity={76}
+              style={[
+                styles.card,
+                !isIOS && { backgroundColor: cardBg },
+                { borderColor: cardBorder },
+              ]}
             >
-              <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: mutedText }}>
-                {t.close}
+              <Text numberOfLines={2} style={[styles.title, { color: theme.onSurface }]}>
+                {title}
               </Text>
-            </Pressable>
+              <Text numberOfLines={2} style={[styles.address, { color: mutedText }]}>
+                {address}
+              </Text>
+
+              {/* White plate: a QR must stay dark-on-light to scan, in either theme. */}
+              <View style={styles.qrPlate}>
+                {qr ? (
+                  <Svg width={QR_SIZE} height={QR_SIZE} viewBox={`0 0 ${qr.extent} ${qr.extent}`}>
+                    <Rect width={qr.extent} height={qr.extent} fill="#FFFFFF" />
+                    <Path d={qr.path} fill={QR_INK} />
+                  </Svg>
+                ) : (
+                  <View style={styles.qrFallback}>
+                    <Text style={{ ...fonts.sansRegular, fontSize: 13, color: '#5A5048' }}>
+                      {t.churchQrPrintError}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={[styles.hint, { color: mutedText }]}>{t.churchQrScanHint}</Text>
+
+              <View style={styles.actions}>
+                <Pressable
+                  onPress={handleShare}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.action,
+                    { backgroundColor: prominentBurgundy, opacity: pressed ? 0.88 : 1 },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="square.and.arrow.up"
+                    android="share"
+                    color="#FFFFFF"
+                    size={16}
+                  />
+                  <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: '#FFFFFF' }}>
+                    {t.churchQrShare}
+                  </Text>
+                </Pressable>
+
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={58}
+                    style={styles.actionGlass}
+                  >
+                    <Pressable
+                      onPress={() => void handlePrint()}
+                      disabled={printing || !qr}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.actionGlassHit,
+                        { opacity: pressed || !qr ? 0.8 : 1 },
+                      ]}
+                    >
+                      {printing ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <>
+                          <AppMenuIcon ios="printer" android="print" color={theme.onSurface} size={16} />
+                          <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.onSurface }}>
+                            {t.churchQrPrint}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    onPress={() => void handlePrint()}
+                    disabled={printing || !qr}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.action,
+                      {
+                        backgroundColor: isDarkMode
+                          ? 'rgba(255,255,255,0.09)'
+                          : theme.surfaceVariants.containerHighest,
+                        opacity: pressed || !qr ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    {printing ? (
+                      <ActivityIndicator size="small" color={theme.primary} />
+                    ) : (
+                      <>
+                        <AppMenuIcon ios="printer" android="print" color={theme.onSurface} size={16} />
+                        <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.onSurface }}>
+                          {t.churchQrPrint}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+
+              {isIOS ? (
+                <GlassSurface
+                  isInteractive
+                  glassEffectStyle="regular"
+                  intensity={58}
+                  style={styles.closeGlassPill}
+                >
+                  <Pressable
+                    onPress={onClose}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    style={styles.closeGlassHit}
+                  >
+                    <Text style={{ ...fonts.sansSemiBold, fontSize: 14.5, color: theme.onSurface }}>
+                      {t.close}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
+              ) : (
+                <Pressable
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={styles.closeRow}
+                >
+                  <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: mutedText }}>
+                    {t.close}
+                  </Text>
+                </Pressable>
+              )}
+            </GlassSurface>
           </Pressable>
         )}
       </Pressable>
@@ -216,11 +285,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  cardWrap: {
+    width: '100%',
+    maxWidth: 344,
+  },
   card: {
     width: '100%',
-    maxWidth: 340,
-    borderRadius: 24,
-    borderWidth: 1,
+    borderRadius: 28,
+    borderCurve: 'continuous',
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 20,
     alignItems: 'center',
     gap: 10,
@@ -250,6 +323,30 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 46,
     borderRadius: 14,
+    borderCurve: 'continuous',
+  },
+  actionGlass: {
+    flex: 1,
+    height: 46,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+  },
+  actionGlassHit: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
   },
   closeRow: { paddingVertical: 6, paddingHorizontal: 12 },
+  closeGlassPill: {
+    marginTop: 2,
+    borderRadius: 999,
+  },
+  closeGlassHit: {
+    paddingVertical: 9,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, router as globalRouter, usePathname, useRouter } from 'expo-router';
+import { router as globalRouter, usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { Asset } from 'expo-asset';
@@ -66,7 +66,8 @@ import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
 import LiquidGlassSegmented from './LiquidGlassSegmented';
-import { isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
+import AuthSheetSwiftUI from './AuthSheetSwiftUI';
+import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -142,6 +143,7 @@ export function AuthSheet({
   const isIOS = Platform.OS === 'ios';
   const isNativeSheet = presentationMode === 'native-sheet';
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
+  const hasSwiftUIForm = isIOS && Boolean(getExpoSwiftUI());
   const isNativeGlassSheet = isNativeSheet && hasIOSGlass;
   const es = language !== 'en';
 
@@ -2173,16 +2175,227 @@ export function AuthSheet({
   const plainToolbarTint = isDarkMode ? '#FFFFFF' : '#1C1C18';
 
   if (isNativeSheet) {
+    if (page === 'account' && hasSwiftUIForm) {
+      return (
+        <AuthSheetSwiftUI
+          isDarkMode={isDarkMode}
+          user={user}
+          initials={initials}
+          mode={mode}
+          name={name}
+          email={email}
+          password={password}
+          showPassword={showPassword}
+          submitting={submitting}
+          isLoading={isLoading}
+          emailAction={emailAction}
+          isSyncing={isSyncing}
+          syncBlocked={syncBlocked}
+          friendsBadge={friendsBadge}
+          notificationsUnread={notificationsUnread}
+          errorMessage={errorMessage}
+          infoMessage={infoMessage}
+          onChangeMode={(next) => {
+            Keyboard.dismiss();
+            if (next === 'recovery' || mode === 'recovery') {
+              setPassword('');
+              setShowPassword(false);
+            }
+            switchMode(next);
+          }}
+          onChangeName={setName}
+          onChangeEmail={setEmail}
+          onChangePassword={setPassword}
+          onToggleShowPassword={() => {
+            Haptics.selectionAsync();
+            setShowPassword((prev) => !prev);
+          }}
+          onSubmitAuth={() => {
+            void handleSubmit();
+          }}
+          onSendRecovery={() => {
+            void handleEmailAction('recovery');
+          }}
+          onClose={animateClose}
+          onOpenMyProfile={() => {
+            pendingPostCloseRef.current = 'my-profile';
+            animateClose();
+          }}
+          onSyncNow={() => {
+            Haptics.selectionAsync();
+            setErrorMessage(null);
+            setInfoMessage(null);
+            if (syncBlocked) {
+              handleResolveSyncConflict();
+              return;
+            }
+            void (async () => {
+              try {
+                await syncNow();
+              } catch (err: any) {
+                displayAuthError(err);
+                if (err?.message === 'sync_conflict') {
+                  handleResolveSyncConflict();
+                }
+              }
+            })();
+          }}
+          onOpenChurches={() => {
+            pendingPostCloseRef.current = 'churches';
+            animateClose();
+          }}
+          onOpenScanQr={() => {
+            pendingPostCloseRef.current = 'scan-qr';
+            animateClose();
+          }}
+          onOpenSettings={() => {
+            pendingPostCloseRef.current = 'settings';
+            animateClose();
+          }}
+          onOpenShareApp={() => {
+            if (onOpenShareApp) {
+              pendingPostCloseRef.current = 'share-app';
+              animateClose();
+            } else {
+              goSubPage('share-app');
+            }
+          }}
+          onOpenHelp={() => goSubPage('help')}
+          onOpenTerms={() => {
+            void openExternalLink('https://himnarioebp.com/terms.html');
+          }}
+          onOpenPrivacy={() => {
+            void openExternalLink('https://himnarioebp.com/privacy.html');
+          }}
+          onSignOut={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            void (async () => {
+              try {
+                await signOut();
+                pendingPostCloseRef.current = null;
+                dismissingNativeRef.current = true;
+                onClose();
+                router.dismissTo('/(tabs)/home');
+              } catch (err: any) {
+                displayAuthError(err);
+              }
+            })();
+          }}
+          onDeleteAccount={handleConfirmDeleteAccount}
+        />
+      );
+    }
+
     return (
-      <>
-        {/* ScrollView must remain the first child so iOS 26 attaches soft scroll-edge blur under the transparent glass navbar */}
+      <View
+        style={[
+          styles.nativeSheetScroll,
+          { backgroundColor: isNativeGlassSheet ? 'transparent' : sheetBg },
+        ]}
+      >
+        {/* Clean Liquid Glass sheet header aligned with the grabber for sub-pages & pre-SwiftUI fallback */}
+        <View style={styles.nativeSubHeader}>
+          {page !== 'account' ? (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={56}
+              style={styles.glassCircleBtn}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.homeMenuBack}
+                onPress={handleBackOrClose}
+                style={styles.glassCircleHit}
+              >
+                <AppMenuIcon
+                  ios="chevron.left"
+                  android="arrow-back"
+                  color={plainToolbarTint}
+                  size={17}
+                  weight="semibold"
+                />
+              </Pressable>
+            </GlassSurface>
+          ) : (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={56}
+              style={styles.glassCancelPill}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isSignedOutLogin ? t.authCancel : t.close}
+                onPress={animateClose}
+                style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+              >
+                <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
+                  {isSignedOutLogin ? t.authCancel : t.close}
+                </Text>
+              </Pressable>
+            </GlassSurface>
+          )}
+
+          <Text
+            numberOfLines={1}
+            style={[styles.nativeSubHeaderTitle, { color: plainToolbarTint }]}
+          >
+            {authHeaderTitle}
+          </Text>
+
+          {page === 'account' && isSignedOutLogin ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={submitActionLabel}
+              disabled={submitting || isLoading || !!emailAction}
+              onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+              style={({ pressed }) => [
+                styles.headerActionCircle,
+                {
+                  backgroundColor: prominentBurgundy,
+                  opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              {submitting || emailAction ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <AppMenuIcon
+                  ios={submitActionIcon}
+                  android="vpn-key"
+                  color="#FFFFFF"
+                  size={18}
+                  weight="semibold"
+                />
+              )}
+            </Pressable>
+          ) : page !== 'account' ? (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={56}
+              style={styles.glassCancelPill}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.close}
+                onPress={animateClose}
+                style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+              >
+                <Text style={[styles.glassCancelText, { color: plainToolbarTint }]}>
+                  {t.close}
+                </Text>
+              </Pressable>
+            </GlassSurface>
+          ) : (
+            <View style={styles.glassCircleSpacer} />
+          )}
+        </View>
+
         <ScrollView
           key={page}
-          style={[
-            styles.nativeSheetScroll,
-            { backgroundColor: isNativeGlassSheet ? 'transparent' : sheetBg },
-          ]}
-          contentInsetAdjustmentBehavior="automatic"
+          style={styles.nativeSheetScroll}
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
           indicatorStyle={isDarkMode ? 'white' : 'black'}
@@ -2201,51 +2414,7 @@ export function AuthSheet({
             {renderPageContent()}
           </Animated.View>
         </ScrollView>
-
-        <Stack.Screen
-          options={{
-            headerTitle: authHeaderTitle,
-            headerTitleStyle: { color: plainToolbarTint },
-          }}
-        />
-
-        <Stack.Toolbar placement="left">
-          <Stack.Toolbar.Button
-            hidden={page === 'account'}
-            icon="chevron.left"
-            tintColor={plainToolbarTint}
-            accessibilityLabel={t.homeMenuBack}
-            onPress={handleBackOrClose}
-          />
-          <Stack.Toolbar.Button
-            hidden={!isSignedOutLogin}
-            tintColor={plainToolbarTint}
-            accessibilityLabel={t.authCancel}
-            onPress={animateClose}
-          >
-            {t.authCancel}
-          </Stack.Toolbar.Button>
-        </Stack.Toolbar>
-
-        <Stack.Toolbar placement="right">
-          <Stack.Toolbar.Button
-            hidden={!isSignedOutLogin}
-            icon={submitActionIcon}
-            variant="prominent"
-            tintColor={prominentBurgundy}
-            disabled={submitting || isLoading || !!emailAction}
-            accessibilityLabel={submitActionLabel}
-            onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
-          />
-          <Stack.Toolbar.Button
-            hidden={isSignedOutLogin}
-            icon="xmark"
-            tintColor={plainToolbarTint}
-            accessibilityLabel={t.close}
-            onPress={animateClose}
-          />
-        </Stack.Toolbar>
-      </>
+      </View>
     );
   }
 
@@ -2604,6 +2773,22 @@ const styles = StyleSheet.create({
   },
   nativeSheetScroll: {
     flex: 1,
+  },
+  nativeSubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 10,
+    gap: 10,
+  },
+  nativeSubHeaderTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   nativeScrollContent: {
     paddingHorizontal: 18,

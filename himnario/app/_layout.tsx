@@ -107,7 +107,14 @@ function ThemedStack() {
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
-  const { showFullPlayer, closeFullPlayer, currentHymnId, isPlaying } = useNowPlaying();
+  const {
+    showFullPlayer,
+    closeFullPlayer,
+    currentHymnId,
+    isPlaying,
+    miniPlayerHeight,
+    setMiniPlayerHeight,
+  } = useNowPlaying();
   const insets = useSafeAreaInsets();
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
@@ -145,7 +152,8 @@ function ThemedStack() {
     return () => sub.remove();
   }, [language, refreshNotifications, syncPushToken, user?.id]);
 
-  const [miniPlayerHeight, setMiniPlayerHeight] = useState(Platform.OS === 'android' ? 74 : 57);
+  const resolvedMiniPlayerHeight =
+    miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 57;
   const isIOS = Platform.OS === 'ios';
   const isPad = isIOS && Boolean((Platform as any).isPad);
   const isPlaylist = pathname.startsWith('/playlist/');
@@ -369,22 +377,9 @@ function ThemedStack() {
           options={{
             presentation: 'formSheet',
             sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.72, 1.0],
+            sheetAllowedDetents: [0.68, 1.0],
             sheetExpandsWhenScrolledToEdge: true,
-            headerShown: isIOS,
-            headerTransparent: true,
-            headerBlurEffect: isIOS
-              ? isIOSLiquidGlass
-                ? undefined
-                : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light')
-              : undefined,
-            scrollEdgeEffects: isIOSLiquidGlass
-              ? { top: 'soft', bottom: 'soft' }
-              : undefined,
-            headerTitle: '',
-            headerTintColor: isDarkMode ? '#FFFFFF' : '#1C1C18',
-            headerTitleStyle: { color: adaptiveTitleColor },
-            headerUserInterfaceStyle: isDarkMode ? 'dark' : 'light',
+            headerShown: false,
             contentStyle: {
               backgroundColor: isIOSLiquidGlass
                 ? 'transparent'
@@ -414,7 +409,7 @@ function ThemedStack() {
         <MusicPlayer
           visible={showFullPlayer}
           miniPlayerBottom={miniPlayerBottom}
-          miniPlayerHeight={miniPlayerHeight}
+          miniPlayerHeight={resolvedMiniPlayerHeight}
           hymnId={currentHymnId}
           onClose={() => closeFullPlayer()}
           onViewLyrics={(id) => {

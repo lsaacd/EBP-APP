@@ -22,7 +22,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useIsFocused, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MenuView } from '@react-native-menu/menu';
 import { useTheme } from '../../theme/ThemeContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
@@ -43,6 +43,7 @@ import VerseDiscussionSheet from '../../components/VerseDiscussionSheet';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import WebIcon from '../../components/WebIcon';
 import AndroidReaderControls from '../../components/AndroidReaderControls';
+import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../../components/androidBottomLayout';
 import GlassSurface from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
@@ -76,6 +77,7 @@ export default function HymnDetail() {
   const isFromFavorites = String(source ?? '') === 'favorites';
   const favSortParam = String(sort ?? 'recent');
   const router = useRouter();
+  const navigation = useNavigation();
   const isFocused = useIsFocused();
   const { theme, isDarkMode, fontSizeMultiplier, toggleTheme } = useTheme();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
@@ -202,18 +204,46 @@ export default function HymnDetail() {
   }, [goToNext, goToPrev, nextHymn, prevHymn]);
 
   // ── Music Player via global context ──────────────────────────
-  const { showFullPlayer, openPlayer, currentHymnId } = useNowPlaying();
+  const { showFullPlayer, openPlayer, currentHymnId, miniPlayerHeight } = useNowPlaying();
 
-  // When the mini player is visible, shift nav buttons up to avoid overlap
+  // Anchor prev/next page numbers flush directly on top of MiniPlayer (or the bottom control bar)
   const miniPlayerVisible = !!currentHymnId && !showFullPlayer;
-  const baseNavBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 22) + 78 + 6 : 92;
-  const navBtnBottom = miniPlayerVisible ? baseNavBottom + 70 : baseNavBottom;
+  const resolvedMiniPlayerHeight =
+    miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 57;
+  const dockTop = Platform.OS === 'android'
+    ? androidBottomInset(insets.bottom) + ANDROID_BOTTOM_BAR_HEIGHT + (miniPlayerVisible ? resolvedMiniPlayerHeight : 0)
+    : Math.max(insets.bottom, 22) + (miniPlayerVisible ? 55 + resolvedMiniPlayerHeight : 60);
+  const navBtnBottom = dockTop + 4;
 
   const hymnAudio = (h: any) => hasHymnAudio(String(h?.id ?? ''));
 
   const handleClose = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
+    const parentNav = navigation.getParent() as any;
+    const parentState = parentNav?.getState?.();
+    if (parentNav && parentState && Array.isArray(parentState.routes)) {
+      let hymnStackCount = 0;
+      for (let i = parentState.routes.length - 1; i >= 0; i -= 1) {
+        if (parentState.routes[i]?.name === 'hymn') {
+          hymnStackCount += 1;
+        } else {
+          break;
+        }
+      }
+      if (hymnStackCount > 1 && parentState.routes.length > hymnStackCount) {
+        parentNav.dispatch({ type: 'POP', payload: { count: hymnStackCount } });
+        return;
+      }
+      if (parentNav.canGoBack?.()) {
+        parentNav.goBack();
+        return;
+      }
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
+    }
   };
 
   const handlePlayAudio = (h: any) => {
@@ -715,6 +745,7 @@ export default function HymnDetail() {
           onPress={goToPrev}
           activeOpacity={0.6}
           disabled={navDisabled}
+          hitSlop={{ top: 10, bottom: 6, left: 8, right: 8 }}
         >
           <MaterialIcons name="chevron-left" size={20} color={theme.onSurfaceVariant} />
           <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
@@ -728,6 +759,7 @@ export default function HymnDetail() {
           onPress={goToNext}
           activeOpacity={0.6}
           disabled={navDisabled}
+          hitSlop={{ top: 10, bottom: 6, left: 8, right: 8 }}
         >
           <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
             {nextHymn.number}
@@ -812,13 +844,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    paddingVertical: 8,
+    paddingVertical: 2,
     paddingHorizontal: 6,
     zIndex: 55,
-    opacity: 0.5,
+    opacity: 0.55,
   },
-  hymnNavBtnLeft: { left: 4 },
-  hymnNavBtnRight: { right: 4 },
+  hymnNavBtnLeft: { left: 8 },
+  hymnNavBtnRight: { right: 8 },
   hymnNavBtnText: {
     ...fonts.sansBold,
     fontSize: 13,

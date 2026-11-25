@@ -593,36 +593,37 @@ export default function FavoritesScreen() {
             {IS_IOS ? (
               <Link href={playlistHref as any} asChild>
                 <Link.Trigger>
-                  <TouchableOpacity
-                    style={styles.playlistRow}
-                    activeOpacity={0.78}
+                  <Pressable
+                    style={styles.playlistTrigger}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
                   >
-                    <Link.AppleZoom>
-                      <View style={styles.playlistThumbZoom}>
-                        <LinearGradient
-                          colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.playlistThumbFill}
-                        >
-                          <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
-                        </LinearGradient>
+                    <View style={styles.playlistRow}>
+                      <Link.AppleZoom>
+                        <View style={styles.playlistThumbZoom}>
+                          <LinearGradient
+                            colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.playlistThumbFill}
+                          >
+                            <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
+                          </LinearGradient>
+                        </View>
+                      </Link.AppleZoom>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
+                          {playlist.name}
+                        </Text>
+                        <Text style={[styles.playlistMeta, { color: mutedSub }]}>
+                          {playlist.hymnIds.length}{' '}
+                          {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
+                        </Text>
                       </View>
-                    </Link.AppleZoom>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
-                        {playlist.name}
-                      </Text>
-                      <Text style={[styles.playlistMeta, { color: mutedSub }]}>
-                        {playlist.hymnIds.length}{' '}
-                        {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
-                      </Text>
+                      <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
                     </View>
-                    <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
-                  </TouchableOpacity>
+                  </Pressable>
                 </Link.Trigger>
 
                 <Link.Menu title={playlist.name}>
@@ -1339,6 +1340,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     gap: 12,
+  },
+  playlistTrigger: {
+    width: '100%',
   },
   numBadge: {
     width: 44,

@@ -8,11 +8,15 @@
  *   Save/Remove Favorite, 1-tap Add/Remove to any Playlist, and Share Hymn.
  * - On Android / Web: Renders a standard `TouchableOpacity` with zero extra overhead.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Platform,
+  Pressable,
   Share,
+  StyleSheet,
   TouchableOpacity,
+  View,
+  type GestureResponderEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -45,6 +49,24 @@ export interface HymnRowLinkProps {
 }
 
 const IS_IOS = Platform.OS === 'ios';
+const NAV_DEBOUNCE_MS = 450;
+let lastHymnNavAt = 0;
+
+function claimHymnNavigationSlot(): boolean {
+  const now = Date.now();
+  if (now - lastHymnNavAt < NAV_DEBOUNCE_MS) {
+    return false;
+  }
+  lastHymnNavAt = now;
+  return true;
+}
+
+const styles = StyleSheet.create({
+  /** Plain object style required by Expo Router `<Link.Trigger>` / Radix `<Slot>`. */
+  triggerFullWidth: {
+    width: '100%',
+  },
+});
 
 export default function HymnRowLink({
   hymn,
@@ -62,6 +84,7 @@ export default function HymnRowLink({
   const { isFavorite, toggleFavorite } = useFavorites();
   const { playlists, addHymnToPlaylist, removeHymnFromPlaylist } = usePlaylists();
   const { openPlayer } = useNowPlaying();
+  const [pressed, setPressed] = useState(false);
 
   const idStr = String(hymn.id);
   const canPlay = hasHymnAudio(idStr);
@@ -101,6 +124,7 @@ export default function HymnRowLink({
         style={style}
         activeOpacity={activeOpacity}
         onPress={() => {
+          if (!claimHymnNavigationSlot()) return;
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onNavigate?.();
           router.push(href);
@@ -114,16 +138,23 @@ export default function HymnRowLink({
   return (
     <Link href={href} asChild>
       <Link.Trigger>
-        <TouchableOpacity
-          style={style}
-          activeOpacity={activeOpacity}
-          onPress={() => {
+        <Pressable
+          style={styles.triggerFullWidth}
+          onPressIn={() => setPressed(true)}
+          onPressOut={() => setPressed(false)}
+          onPress={(event: GestureResponderEvent) => {
+            if (!claimHymnNavigationSlot()) {
+              event?.preventDefault?.();
+              return;
+            }
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onNavigate?.();
           }}
         >
-          {children}
-        </TouchableOpacity>
+          <View style={[style, pressed && { opacity: activeOpacity }]}>
+            {children}
+          </View>
+        </Pressable>
       </Link.Trigger>
 
       <Link.Preview />

@@ -55,9 +55,14 @@ export interface TextSizeSheetProps {
 export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) {
   const { theme, isDarkMode, fontSizeMultiplier, setFontSizeMultiplier } = useTheme();
   const { t } = useLanguage();
-  const { currentHymnId, showFullPlayer } = useNowPlaying();
+  const { currentHymnId, showFullPlayer, miniPlayerHeight } = useNowPlaying();
   const insets = useSafeAreaInsets();
   const miniPlayerVisible = Boolean(currentHymnId) && !showFullPlayer;
+  const resolvedMiniPlayerHeight = miniPlayerHeight > 0 ? miniPlayerHeight : 57;
+  const iosPillBottom = Math.max(insets.bottom, 22);
+  const iosPopoverBottom = miniPlayerVisible
+    ? iosPillBottom + 55 + resolvedMiniPlayerHeight + 2
+    : iosPillBottom + 60 + 2;
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const [inputText, setInputText] = useState(String(currentPx));
@@ -314,8 +319,7 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
               <View
                 style={{
                   marginHorizontal: 16,
-                  marginBottom:
-                    Math.max(insets.bottom, 22) + (miniPlayerVisible ? 138 : 74),
+                  marginBottom: iosPopoverBottom,
                 }}
               >
                 <SheetGrabber />

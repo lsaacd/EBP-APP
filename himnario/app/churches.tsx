@@ -50,6 +50,7 @@ import GlassSurface, { GlassGroup } from "../components/GlassSurface";
 import LiquidGlassSegmented from "../components/LiquidGlassSegmented";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
+import { isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI";
 import { LinearGradient } from "expo-linear-gradient";
 import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
@@ -1601,11 +1602,23 @@ export default function ChurchesScreen() {
           ? `${enrichedChurches.length} ${enrichedChurches.length === 1 ? "iglesia verificada" : "iglesias verificadas"}`
           : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
 
+  const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
+  const prominentBurgundy = isDarkMode ? "#9E2A32" : "#6e1619";
   const bgSurface = isDarkMode ? "#0D0D0F" : "#F6F3EC";
-  const cardBg = isDarkMode ? "#1C1C1E" : "#FFFFFF";
-  const cardBorder = isDarkMode
-    ? "rgba(255,255,255,0.10)"
-    : "rgba(0,0,0,0.07)";
+  const cardBg = hasIOSGlass
+    ? isDarkMode
+      ? "rgba(255,255,255,0.085)"
+      : "rgba(255,255,255,0.62)"
+    : isDarkMode
+      ? "#1C1C1E"
+      : "#FFFFFF";
+  const cardBorder = hasIOSGlass
+    ? isDarkMode
+      ? "rgba(255,255,255,0.14)"
+      : "rgba(255,255,255,0.78)"
+    : isDarkMode
+      ? "rgba(255,255,255,0.10)"
+      : "rgba(0,0,0,0.07)";
   const mutedText = isDarkMode
     ? "rgba(235,235,245,0.60)"
     : theme.onSurfaceVariant;
@@ -1802,10 +1815,18 @@ export default function ChurchesScreen() {
               { paddingBottom: bottomClearance, zIndex: 40 },
             ]}
           >
-            <View
+            <GlassSurface
+              glassEffectStyle="regular"
+              intensity={74}
               style={[
                 styles.selectedCard,
-                { backgroundColor: cardBg, borderColor: cardBorder },
+                !isIOS && { backgroundColor: cardBg, borderColor: cardBorder },
+                isIOS && {
+                  borderColor: isDarkMode
+                    ? "rgba(255,255,255,0.16)"
+                    : "rgba(255,255,255,0.65)",
+                  borderCurve: "continuous",
+                },
               ]}
             >
               <Text
@@ -1827,47 +1848,75 @@ export default function ChurchesScreen() {
                 {`${pinPickerCenter.lat.toFixed(6)}, ${pinPickerCenter.lng.toFixed(6)}`}
               </Text>
               <View style={styles.selectedActionsRow}>
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setPinPickerOpen(false);
-                    setSubmitOpen(true);
-                  }}
-                  style={[
-                    styles.actionBtnSecondary,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : theme.surfaceVariants.containerHighest,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: theme.onSurface,
-                      ...fonts.sansSemiBold,
-                      fontSize: 14,
-                    }}
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={56}
+                    style={styles.actionBtnSecondaryGlass}
                   >
-                    {t.cancel}
-                  </Text>
-                </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setPinPickerOpen(false);
+                        setSubmitOpen(true);
+                      }}
+                      style={styles.actionBtnSecondaryHit}
+                    >
+                      <Text
+                        style={{
+                          color: theme.onSurface,
+                          ...fonts.sansSemiBold,
+                          fontSize: 14,
+                        }}
+                      >
+                        {t.cancel}
+                      </Text>
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setPinPickerOpen(false);
+                      setSubmitOpen(true);
+                    }}
+                    style={[
+                      styles.actionBtnSecondary,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255,255,255,0.09)"
+                          : theme.surfaceVariants.containerHighest,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: theme.onSurface,
+                        ...fonts.sansSemiBold,
+                        fontSize: 14,
+                      }}
+                    >
+                      {t.cancel}
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable
                   onPress={handleConfirmPinPicker}
                   style={[
                     styles.actionBtnPrimary,
-                    { backgroundColor: theme.primary },
+                    { backgroundColor: prominentBurgundy },
                   ]}
                 >
                   <AppMenuIcon
                     ios="checkmark.circle.fill"
                     android="check-circle"
-                    color={theme.onPrimary}
+                    color="#FFFFFF"
                     size={17}
                   />
                   <Text
                     style={{
-                      color: theme.onPrimary,
+                      color: "#FFFFFF",
                       ...fonts.sansSemiBold,
                       fontSize: 14.5,
                     }}
@@ -1876,7 +1925,7 @@ export default function ChurchesScreen() {
                   </Text>
                 </Pressable>
               </View>
-            </View>
+            </GlassSurface>
           </View>
         </>
       )}
@@ -2114,41 +2163,53 @@ export default function ChurchesScreen() {
             contentContainerStyle={{ gap: 8, paddingRight: 10 }}
           >
             {pendingChurches.map((pending) => (
-              <Pressable
+              <GlassSurface
                 key={pending.id}
-                onPress={() => {
-                  focusChurchOnMap(pending);
-                  openEditChurchModal(pending);
-                }}
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={62}
+                tintColor={
+                  isIOS
+                    ? isDarkMode
+                      ? "rgba(158,42,50,0.34)"
+                      : "rgba(110,22,25,0.12)"
+                    : undefined
+                }
                 style={[
-                  styles.countryChip,
-                  {
+                  styles.pendingGlassChip,
+                  !isIOS && {
                     backgroundColor: isDarkMode ? "#3B181A" : "#FDF2F2",
                     borderColor: theme.primary,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
+                    borderWidth: 1,
                   },
                 ]}
               >
-                <AppMenuIcon
-                  ios="bell.badge.fill"
-                  android="notifications-active"
-                  color={theme.primary}
-                  size={14}
-                />
-                <Text
-                  style={{
-                    color: theme.onSurface,
-                    ...fonts.sansSemiBold,
-                    fontSize: 12.5,
+                <Pressable
+                  onPress={() => {
+                    focusChurchOnMap(pending);
+                    openEditChurchModal(pending);
                   }}
+                  style={styles.pendingGlassChipHit}
                 >
-                  {es
-                    ? `Pendiente: ${churchDisplayName(pending.name, pending.city)}`
-                    : `Pending: ${churchDisplayName(pending.name, pending.city)}`}
-                </Text>
-              </Pressable>
+                  <AppMenuIcon
+                    ios="bell.badge.fill"
+                    android="notifications-active"
+                    color={theme.primary}
+                    size={14}
+                  />
+                  <Text
+                    style={{
+                      color: theme.onSurface,
+                      ...fonts.sansSemiBold,
+                      fontSize: 12.5,
+                    }}
+                  >
+                    {es
+                      ? `Pendiente: ${churchDisplayName(pending.name, pending.city)}`
+                      : `Pending: ${churchDisplayName(pending.name, pending.city)}`}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
             ))}
           </ScrollView>
         )}
@@ -2289,27 +2350,35 @@ export default function ChurchesScreen() {
                     {`${selectedPosition + 1} / ${enrichedChurches.length}`}
                   </Text>
                 )}
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => closeDetail()}
-                  accessibilityLabel={t.close}
+                <GlassSurface
+                  isInteractive
+                  glassEffectStyle="regular"
+                  intensity={60}
                   style={[
-                    styles.miniCloseBtn,
-                    {
+                    styles.miniCloseGlass,
+                    !isIOS && {
                       backgroundColor: isDarkMode
                         ? "rgba(255,255,255,0.10)"
                         : "rgba(0,0,0,0.06)",
                     },
                   ]}
                 >
-                  <AppMenuIcon
-                    ios="xmark"
-                    android="close"
-                    color={theme.onSurface}
-                    size={13}
-                    weight="bold"
-                  />
-                </Pressable>
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => closeDetail()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.close}
+                    style={styles.miniCloseGlassHit}
+                  >
+                    <AppMenuIcon
+                      ios="xmark"
+                      android="close"
+                      color={theme.onSurface}
+                      size={13}
+                      weight="bold"
+                    />
+                  </Pressable>
+                </GlassSurface>
               </View>
               </View>
             ) : (
@@ -2336,28 +2405,35 @@ export default function ChurchesScreen() {
                 >
                   {sheetSummary}
                 </Text>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => handleModeChange("map")}
-                  accessibilityRole="button"
-                  accessibilityLabel={t.close}
+                <GlassSurface
+                  isInteractive
+                  glassEffectStyle="regular"
+                  intensity={60}
                   style={[
-                    styles.miniCloseBtn,
-                    {
+                    styles.miniCloseGlass,
+                    !isIOS && {
                       backgroundColor: isDarkMode
                         ? "rgba(255,255,255,0.10)"
                         : "rgba(0,0,0,0.06)",
                     },
                   ]}
                 >
-                  <AppMenuIcon
-                    ios="xmark"
-                    android="close"
-                    color={theme.onSurface}
-                    size={13}
-                    weight="bold"
-                  />
-                </Pressable>
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => handleModeChange("map")}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.close}
+                    style={styles.miniCloseGlassHit}
+                  >
+                    <AppMenuIcon
+                      ios="xmark"
+                      android="close"
+                      color={theme.onSurface}
+                      size={13}
+                      weight="bold"
+                    />
+                  </Pressable>
+                </GlassSurface>
               </View>
             )
           }
@@ -2485,9 +2561,11 @@ export default function ChurchesScreen() {
                       (() => {
                         const rows = parseServiceTimes(selectedChurch.serviceTimes);
                         const today = new Date().getDay();
-                        const scheduleBg = isDarkMode
-                          ? "rgba(255,255,255,0.06)"
-                          : theme.surfaceVariants.containerLow;
+                        const scheduleBg = hasIOSGlass
+                          ? cardBg
+                          : isDarkMode
+                            ? "rgba(255,255,255,0.06)"
+                            : theme.surfaceVariants.containerLow;
                         if (!rows) {
                           return (
                             <View style={[styles.scheduleCard, { backgroundColor: scheduleBg }]}>
@@ -2595,44 +2673,83 @@ export default function ChurchesScreen() {
                   </Text>
                 </Pressable>
 
-                <Pressable
-                  disabled={lookingAroundId === selectedChurch.id}
-                  onPress={() => void openStreetPreview(selectedChurch)}
-                  style={({ pressed }) => [
-                    styles.actionBtnSecondary,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : theme.surfaceVariants.containerHighest,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  {lookingAroundId === selectedChurch.id ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <>
-                      <AppMenuIcon
-                        ios="binoculars.fill"
-                        android="streetview"
-                        color={theme.onSurface}
-                        size={15}
-                      />
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          color: theme.onSurface,
-                          ...fonts.sansSemiBold,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {isIOS
-                          ? t.churchLookAround
-                          : t.churchStreetView}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={58}
+                    style={styles.actionBtnSecondaryGlass}
+                  >
+                    <Pressable
+                      disabled={lookingAroundId === selectedChurch.id}
+                      onPress={() => void openStreetPreview(selectedChurch)}
+                      style={({ pressed }) => [
+                        styles.actionBtnSecondaryHit,
+                        { opacity: pressed ? 0.8 : 1 },
+                      ]}
+                    >
+                      {lookingAroundId === selectedChurch.id ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <>
+                          <AppMenuIcon
+                            ios="binoculars.fill"
+                            android="streetview"
+                            color={theme.onSurface}
+                            size={15}
+                          />
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: theme.onSurface,
+                              ...fonts.sansSemiBold,
+                              fontSize: 13.5,
+                            }}
+                          >
+                            {t.churchLookAround}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    disabled={lookingAroundId === selectedChurch.id}
+                    onPress={() => void openStreetPreview(selectedChurch)}
+                    style={({ pressed }) => [
+                      styles.actionBtnSecondary,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255,255,255,0.09)"
+                          : theme.surfaceVariants.containerHighest,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    {lookingAroundId === selectedChurch.id ? (
+                      <ActivityIndicator size="small" color={theme.primary} />
+                    ) : (
+                      <>
+                        <AppMenuIcon
+                          ios="binoculars.fill"
+                          android="streetview"
+                          color={theme.onSurface}
+                          size={15}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            color: theme.onSurface,
+                            ...fonts.sansSemiBold,
+                            fontSize: 13.5,
+                          }}
+                        >
+                          {t.churchStreetView}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
               </View>
 
                     <View style={styles.selectedActionsRow}>
@@ -2640,6 +2757,70 @@ export default function ChurchesScreen() {
                   const isMyLinkedChurch =
                     user?.churchId === selectedChurch.id ||
                     (!user?.churchId && user?.churchName === selectedChurch.name);
+                  if (isIOS) {
+                    return (
+                      <GlassSurface
+                        isInteractive
+                        glassEffectStyle="regular"
+                        intensity={58}
+                        tintColor={
+                          isMyLinkedChurch
+                            ? isDarkMode
+                              ? "rgba(52,199,89,0.22)"
+                              : "rgba(52,199,89,0.16)"
+                            : undefined
+                        }
+                        style={[
+                          styles.actionBtnSecondaryGlass,
+                          {
+                            flex: 1.35,
+                            borderWidth: isMyLinkedChurch ? 1 : 0,
+                            borderColor: isMyLinkedChurch ? "#34C759" : "transparent",
+                          },
+                        ]}
+                      >
+                        <Pressable
+                          disabled={settingMyChurchId === selectedChurch.id}
+                          onPress={() => void handleSetMyChurch(selectedChurch)}
+                          style={({ pressed }) => [
+                            styles.actionBtnSecondaryHit,
+                            { opacity: pressed ? 0.8 : 1 },
+                          ]}
+                        >
+                          {settingMyChurchId === selectedChurch.id ? (
+                            <ActivityIndicator size="small" color={theme.primary} />
+                          ) : (
+                            <>
+                              <AppMenuIcon
+                                ios={
+                                  isMyLinkedChurch
+                                    ? "checkmark.seal.fill"
+                                    : "building.columns"
+                                }
+                                android={
+                                  isMyLinkedChurch ? "verified" : "account-balance"
+                                }
+                                color={isMyLinkedChurch ? "#34C759" : theme.onSurface}
+                                size={16}
+                              />
+                              <Text
+                                numberOfLines={1}
+                                style={{
+                                  color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
+                                  ...fonts.sansSemiBold,
+                                  fontSize: 13.5,
+                                }}
+                              >
+                                {isMyLinkedChurch
+                                  ? t.churchYourChurch
+                                  : t.churchSetAsMyChurch}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      </GlassSurface>
+                    );
+                  }
                   return (
                     <Pressable
                       disabled={settingMyChurchId === selectedChurch.id}
@@ -2695,40 +2876,78 @@ export default function ChurchesScreen() {
                   );
                 })()}
 
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setQrShareChurch(selectedChurch);
-                  }}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.actionBtnSecondary,
-                    {
-                      flex: 0.85,
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.09)"
-                        : theme.surfaceVariants.containerHighest,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="qrcode"
-                    android="qr-code-2"
-                    color={theme.onSurface}
-                    size={16}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      color: theme.onSurface,
-                      ...fonts.sansSemiBold,
-                      fontSize: 13.5,
-                    }}
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={58}
+                    style={[styles.actionBtnSecondaryGlass, { flex: 0.85 }]}
                   >
-                    {t.churchQrCodeAction}
-                  </Text>
-                </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setQrShareChurch(selectedChurch);
+                      }}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.actionBtnSecondaryHit,
+                        { opacity: pressed ? 0.8 : 1 },
+                      ]}
+                    >
+                      <AppMenuIcon
+                        ios="qrcode"
+                        android="qr-code-2"
+                        color={theme.onSurface}
+                        size={16}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: theme.onSurface,
+                          ...fonts.sansSemiBold,
+                          fontSize: 13.5,
+                        }}
+                      >
+                        {t.churchQrCodeAction}
+                      </Text>
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setQrShareChurch(selectedChurch);
+                    }}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.actionBtnSecondary,
+                      {
+                        flex: 0.85,
+                        backgroundColor: isDarkMode
+                          ? "rgba(255,255,255,0.09)"
+                          : theme.surfaceVariants.containerHighest,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="qrcode"
+                      android="qr-code-2"
+                      color={theme.onSurface}
+                      size={16}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: theme.onSurface,
+                        ...fonts.sansSemiBold,
+                        fontSize: 13.5,
+                      }}
+                    >
+                      {t.churchQrCodeAction}
+                    </Text>
+                  </Pressable>
+                )}
                     </View>
 
               {(() => {
@@ -2738,12 +2957,16 @@ export default function ChurchesScreen() {
                       marginTop: 10,
                       borderRadius: 16,
                       borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: isDarkMode
-                        ? "rgba(255,255,255,0.10)"
-                        : theme.outlineVariant + "55",
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.05)"
-                        : theme.surfaceVariants.containerLow,
+                      borderColor: hasIOSGlass
+                        ? cardBorder
+                        : isDarkMode
+                          ? "rgba(255,255,255,0.10)"
+                          : theme.outlineVariant + "55",
+                      backgroundColor: hasIOSGlass
+                        ? cardBg
+                        : isDarkMode
+                          ? "rgba(255,255,255,0.05)"
+                          : theme.surfaceVariants.containerLow,
                       overflow: "hidden",
                     }}
                   >
@@ -3424,21 +3647,67 @@ export default function ChurchesScreen() {
               style={[
                 styles.submitSheet,
                 {
-                  backgroundColor: bgSurface,
+                  backgroundColor: isIOS ? "transparent" : bgSurface,
+                  borderColor: isIOS
+                    ? isDarkMode
+                      ? "rgba(255,255,255,0.16)"
+                      : "rgba(255,255,255,0.62)"
+                    : "transparent",
+                  borderWidth: isIOS ? StyleSheet.hairlineWidth : 0,
+                  borderBottomWidth: 0,
                   maxHeight: windowHeight * 0.9,
                   paddingBottom: Math.max(insets.bottom, 20),
                 },
                 submitSheetStyle,
               ]}
             >
+              {isIOS ? (
+                <GlassSurface
+                  glassEffectStyle="regular"
+                  intensity={76}
+                  style={styles.submitGlassBg}
+                />
+              ) : null}
               <GestureDetector gesture={submitPan}>
                 <View style={styles.submitHeader}>
-                  <View style={styles.grabber} />
+                  {!isIOS ? <View style={styles.grabber} /> : null}
                   <View style={styles.submitTitleRow}>
-                    <View style={{ width: 40 }} />
+                    <GlassSurface
+                      isInteractive
+                      glassEffectStyle="regular"
+                      intensity={56}
+                      style={[
+                        styles.submitCancelPill,
+                        !isIOS && {
+                          backgroundColor: isDarkMode
+                            ? "rgba(255,255,255,0.10)"
+                            : "rgba(0,0,0,0.06)",
+                        },
+                      ]}
+                    >
+                      <Pressable
+                        onPress={requestCloseSubmit}
+                        style={({ pressed }) => [
+                          styles.submitCancelHit,
+                          pressed && { opacity: 0.72 },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t.authCancel}
+                      >
+                        <Text
+                          style={[
+                            styles.submitCancelText,
+                            { color: theme.onSurface },
+                          ]}
+                        >
+                          {t.authCancel}
+                        </Text>
+                      </Pressable>
+                    </GlassSurface>
                     <Text
                       style={[
                         styles.submitTitle,
+                        isIOS && styles.submitTitleIOS,
                         { color: theme.onSurface },
                       ]}
                       numberOfLines={1}
@@ -3451,26 +3720,39 @@ export default function ChurchesScreen() {
                           ? t.churchAddVerifiedChurch
                           : t.churchSubmitAChurch2}
                     </Text>
-                    <GlassSurface
-                      isInteractive
-                      glassEffectStyle="regular"
-                      intensity={56}
-                      style={styles.circleBtn}
+                    <Pressable
+                      disabled={submitting}
+                      onPress={() => void handleSubmitChurch()}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isAdmin
+                          ? editingChurch
+                            ? editingChurch.status === "pending"
+                              ? t.churchApprovePublishOnMap
+                              : t.churchSaveChanges
+                            : t.churchVerifyPublish
+                          : t.churchSendRequestForApproval
+                      }
+                      style={({ pressed }) => [
+                        styles.submitProminentCircle,
+                        {
+                          backgroundColor: prominentBurgundy,
+                          opacity: submitting ? 0.6 : pressed ? 0.85 : 1,
+                        },
+                      ]}
                     >
-                      <Pressable
-                        onPress={requestCloseSubmit}
-                        style={styles.circleBtnHit}
-                        accessibilityLabel={t.close}
-                      >
+                      {submitting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
                         <AppMenuIcon
-                          ios="xmark"
-                          android="close"
-                          color={theme.onSurface}
+                          ios={isAdmin ? "checkmark" : "paperplane.fill"}
+                          android={isAdmin ? "check" : "send"}
+                          color="#FFFFFF"
                           size={17}
-                          weight="semibold"
+                          weight="bold"
                         />
-                      </Pressable>
-                    </GlassSurface>
+                      )}
+                    </Pressable>
                   </View>
                 </View>
               </GestureDetector>
@@ -4316,28 +4598,37 @@ export default function ChurchesScreen() {
                     </View>
                   ))}
                 </ScrollView>
-                <Pressable
-                  onPress={() => setFullscreenPhotoIndex(null)}
-                  style={{
-                    position: "absolute",
-                    top: insets.top + 14,
-                    right: 18,
-                    paddingHorizontal: 16,
-                    paddingVertical: 9,
-                    borderRadius: 999,
-                    backgroundColor: "rgba(255,255,255,0.18)",
-                  }}
+                <GlassSurface
+                  isInteractive
+                  glassEffectStyle="regular"
+                  intensity={62}
+                  style={[
+                    styles.overlayGlassPill,
+                    {
+                      position: "absolute",
+                      top: insets.top + 14,
+                      right: 18,
+                    },
+                    !isIOS && { backgroundColor: "rgba(255,255,255,0.18)" },
+                  ]}
                 >
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      ...fonts.sansSemiBold,
-                      fontSize: 15,
-                    }}
+                  <Pressable
+                    onPress={() => setFullscreenPhotoIndex(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.done}
+                    style={styles.overlayGlassPillHit}
                   >
-                    {t.done}
-                  </Text>
-                </Pressable>
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        ...fonts.sansSemiBold,
+                        fontSize: 15,
+                      }}
+                    >
+                      {t.done}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
               </>
             );
           })()}
@@ -4384,25 +4675,32 @@ export default function ChurchesScreen() {
               >
                 {t.accountScanQrCode}
               </Text>
-              <Pressable
-                onPress={dismissQrScanner}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: "rgba(0,0,0,0.58)",
-                }}
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={62}
+                style={[
+                  styles.overlayGlassPill,
+                  !isIOS && { backgroundColor: "rgba(0,0,0,0.58)" },
+                ]}
               >
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    ...fonts.sansSemiBold,
-                    fontSize: 14.5,
-                  }}
+                <Pressable
+                  onPress={dismissQrScanner}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
+                  style={styles.overlayGlassPillHit}
                 >
-                  {t.close}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      ...fonts.sansSemiBold,
+                      fontSize: 14.5,
+                    }}
+                  >
+                    {t.close}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
             </View>
 
             {/* Center Viewfinder Frame */}
@@ -4425,14 +4723,13 @@ export default function ChurchesScreen() {
                   backgroundColor: "rgba(255,255,255,0.04)",
                 }}
               />
-              <View
-                style={{
-                  marginTop: 20,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: 14,
-                  backgroundColor: "rgba(0,0,0,0.65)",
-                }}
+              <GlassSurface
+                glassEffectStyle="regular"
+                intensity={58}
+                style={[
+                  styles.scannerHintGlass,
+                  !isIOS && { backgroundColor: "rgba(0,0,0,0.65)" },
+                ]}
               >
                 <Text
                   style={{
@@ -4444,7 +4741,7 @@ export default function ChurchesScreen() {
                 >
                   {t.churchPointAtAnElBuenPastor}
                 </Text>
-              </View>
+              </GlassSurface>
             </View>
           </View>
         </Modal>
@@ -4832,6 +5129,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  miniCloseGlass: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniCloseGlassHit: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingGlassChip: {
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  pendingGlassChipHit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
   selectedActionsRow: {
     flexDirection: "row",
     gap: 10,
@@ -4854,13 +5176,32 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
   },
+  actionBtnSecondaryGlass: {
+    flex: 1,
+    borderRadius: 14,
+    borderCurve: "continuous",
+  },
+  actionBtnSecondaryHit: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 12,
+  },
   submitSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderCurve: "continuous",
     overflow: "hidden",
   },
+  submitGlassBg: {
+    ...StyleSheet.absoluteFill,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
   submitHeader: {
-    paddingTop: 10,
+    paddingTop: 14,
     paddingHorizontal: 16,
     paddingBottom: 10,
     gap: 8,
@@ -4875,12 +5216,61 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 10,
+  },
+  submitCancelPill: {
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  submitCancelHit: {
+    height: 36,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  submitCancelText: {
+    ...fonts.sansSemiBold,
+    fontSize: 15,
+  },
+  submitProminentCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   submitTitle: {
     flex: 1,
     textAlign: "center",
     ...fonts.bold,
     fontSize: 19,
+  },
+  submitTitleIOS: {
+    ...fonts.sansBold,
+    fontSize: 17,
+    letterSpacing: -0.2,
+  },
+  overlayGlassPill: {
+    borderRadius: 999,
+  },
+  overlayGlassPillHit: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scannerHintGlass: {
+    marginTop: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 18,
+    borderCurve: "continuous",
   },
   formInput: {
     borderWidth: 1,
