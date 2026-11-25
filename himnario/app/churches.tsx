@@ -674,6 +674,38 @@ export default function ChurchesScreen() {
     mapRef.current.animateToRegion(region, 420);
   }, [churches, insets.top, loading, params.id, userCoords, viewerCoords]);
 
+  const animateChurchFocus = useCallback(
+    (church: VerifiedChurch) => {
+      if (Platform.OS === "web") return;
+      // Wait briefly so `mapPadding.bottom = sheetHalf` commits to native MapView first,
+      // centering the enlarged church cleanly above the half-sheet grabber pill.
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        if (Platform.OS === "ios" && is3DMode) {
+          mapRef.current.animateCamera(
+            {
+              center: { latitude: church.lat, longitude: church.lng },
+              altitude: 340,
+              pitch: 60,
+            },
+            { duration: 520 },
+          );
+          return;
+        }
+        mapRef.current.animateToRegion(
+          {
+            latitude: church.lat,
+            longitude: church.lng,
+            latitudeDelta: 0.0024,
+            longitudeDelta: 0.0024,
+          },
+          520,
+        );
+      }, 140);
+    },
+    [is3DMode],
+  );
+
   const requestNearMe = useCallback(
     async (focusMap = true) => {
       if (Platform.OS === "web") return;
@@ -695,24 +727,15 @@ export default function ChurchesScreen() {
         };
         setUserCoords(coords);
         if (focusMap && mapRef.current) {
-          // "Near me" answers "which church is closest?": frame the user and
-          // the nearest church together and open that church's card.
+          // "Near me" answers "which church is closest?": open the nearest church
+          // at medium sheet height and frame a close-up of the church cleanly above the sheet.
           const nearest = churches[nearestIndex(coords, churches)];
           if (nearest) {
             listSnapBeforeDetailRef.current = 0;
             setSelectedChurch(nearest);
             setCarouselIndex(0);
             setSnapIndex(1);
-            mapRef.current.fitToCoordinates(
-              [
-                { latitude: coords.lat, longitude: coords.lng },
-                { latitude: nearest.lat, longitude: nearest.lng },
-              ],
-              {
-                edgePadding: { top: 70, right: 60, bottom: 70, left: 60 },
-                animated: true,
-              },
-            );
+            animateChurchFocus(nearest);
           } else {
             mapRef.current.animateToRegion(
               {
@@ -731,7 +754,7 @@ export default function ChurchesScreen() {
         setLocating(false);
       }
     },
-    [churches],
+    [animateChurchFocus, churches],
   );
 
   // Silently check existing location permission on mount (without prompting)
@@ -856,20 +879,8 @@ export default function ChurchesScreen() {
     setSnapIndex(1);
     setSelectedChurch(church);
     setCarouselIndex(0);
-    if (Platform.OS !== "web") {
-      setTimeout(() => {
-        mapRef.current?.animateToRegion(
-          {
-            latitude: church.lat,
-            longitude: church.lng,
-            latitudeDelta: 0.04,
-            longitudeDelta: 0.04,
-          },
-          480,
-        );
-      }, 60);
-    }
-  }, [selectedChurch, snapIndex]);
+    animateChurchFocus(church);
+  }, [animateChurchFocus, selectedChurch, snapIndex]);
 
   useEffect(() => {
     if (params.scan === "1" && handledDeepLinkRef.current !== "scan:1") {
@@ -1580,10 +1591,13 @@ export default function ChurchesScreen() {
   const sheetFull = Math.max(360, windowHeight - insets.top - TOP_CONTROLS_HEIGHT);
   // At rest the sheet sits fully below the screen (negative so its grabber hides too).
   const sheetCollapsed = -40;
+  // Cap medium detail sheet at ~52% so the map window above the grabber stays generous
+  // and never expands almost full-screen automatically; users can still drag up to sheetFull.
+  const maxDetailHalf = Math.min(sheetFull, Math.round(windowHeight * 0.52));
   const sheetHalf = Math.max(
     240,
     Math.min(
-      sheetFull,
+      maxDetailHalf,
       selectedChurch && detailBodyHeight > 0
         ? detailHeaderHeight + detailBodyHeight + bottomClearance
         : Math.round(windowHeight * 0.46),

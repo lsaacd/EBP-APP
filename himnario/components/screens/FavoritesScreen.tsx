@@ -117,7 +117,7 @@ export default function FavoritesScreen() {
   const { playlists, createPlaylist, deletePlaylist } = usePlaylists();
   const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight } = useWindowDimensions();
   const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId, isPlaying, queueLabel, setQueue, openPlayer } = useNowPlaying();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 160 : 104);
@@ -382,11 +382,6 @@ export default function FavoritesScreen() {
       : favSort === 'number'
         ? t.favoritesSortNumber
         : t.favoritesSortAZ;
-
-  const gridColumnWidth = useMemo(() => {
-    const maxContainer = IS_IPAD ? Math.min(screenWidth, 780) : screenWidth;
-    return Math.floor((maxContainer - 40 - 14) / 2);
-  }, [screenWidth]);
 
   // ── Top Bar Controls (Native SwiftUI Menu for Sort on iOS) ────────────────
   const searchTriggerNode = (
@@ -698,57 +693,45 @@ export default function FavoritesScreen() {
   );
 
   const renderPlaylistsGrid = () => (
-    <View style={styles.playlistsGrid}>
-      {/* Sleek "+ New Playlist" Square Tile */}
+    <View style={styles.playlistsList}>
+      {/* Compact minimalist "+ New Playlist" row (Apple Music Library style) */}
       {!searchOpen ? (
         <Pressable
           onPress={openCreateSheet}
           style={({ pressed }) => [
-            styles.playlistGridCard,
-            { width: gridColumnWidth, opacity: pressed ? 0.76 : 1 },
+            styles.playlistCompactRow,
+            { opacity: pressed ? 0.72 : 1 },
           ]}
         >
           <View
             style={[
-              styles.playlistGridArt,
-              styles.newPlaylistGridBox,
+              styles.playlistCompactNewThumb,
               {
-                width: gridColumnWidth,
-                height: gridColumnWidth,
                 backgroundColor: isDarkMode
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'rgba(110,22,25,0.06)',
+                  ? 'rgba(255,255,255,0.07)'
+                  : 'rgba(110,22,25,0.07)',
                 borderColor: isDarkMode
-                  ? 'rgba(255,255,255,0.14)'
-                  : 'rgba(110,22,25,0.18)',
+                  ? 'rgba(255,255,255,0.12)'
+                  : 'rgba(110,22,25,0.14)',
               },
             ]}
           >
-            <View
-              style={[
-                styles.newPlaylistPlusCircle,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(255,255,255,0.12)'
-                    : 'rgba(110,22,25,0.12)',
-                },
-              ]}
-            >
-              <AppMenuIcon
-                ios="plus"
-                android="add"
-                size={26}
-                color={accentColor}
-                weight="semibold"
-              />
-            </View>
+            <AppMenuIcon
+              ios="plus"
+              android="add"
+              size={22}
+              color={accentColor}
+              weight="semibold"
+            />
           </View>
-          <Text numberOfLines={1} style={[styles.playlistGridTitle, { color: accentColor }]}>
-            {t.playlistsNewTitle}
-          </Text>
-          <Text numberOfLines={1} style={[styles.playlistGridSub, { color: mutedSub }]}>
-            {t.playlistsCreateButton}
-          </Text>
+          <View style={styles.playlistCompactTextCol}>
+            <Text numberOfLines={1} style={[styles.playlistCompactTitle, { color: accentColor }]}>
+              {t.playlistsNewTitle}
+            </Text>
+            <Text numberOfLines={1} style={[styles.playlistCompactSub, { color: mutedSub }]}>
+              {t.playlistsCreateButton}
+            </Text>
+          </View>
         </Pressable>
       ) : null}
 
@@ -765,39 +748,59 @@ export default function FavoritesScreen() {
 
         // Plain flat object required by Expo Router `<Link.AppleZoom>` (Radix `<Slot>`
         // spreads array styles into `{ 0: ..., 1: ... }` in production, stripping dimensions).
-        const coverCardStyle = {
-          width: gridColumnWidth,
-          height: gridColumnWidth,
-          borderRadius: 14,
+        const coverThumbStyle = {
+          width: 54,
+          height: 54,
+          borderRadius: 10,
           borderCurve: 'continuous' as const,
           overflow: 'hidden' as const,
           position: 'relative' as const,
           backgroundColor: isDarkMode ? '#1C1C1E' : '#2A1214',
         };
 
-        const coverCard = (
-          <View style={coverCardStyle}>
+        const coverThumb = (
+          <View style={coverThumbStyle}>
             <Image
               source={EBP_HYMN_COVER}
-              style={{ width: gridColumnWidth, height: gridColumnWidth }}
+              style={{ width: 54, height: 54 }}
               resizeMode="cover"
             />
             <LinearGradient
-              colors={[tintWash, 'rgba(0,0,0,0.44)']}
+              colors={[tintWash, 'rgba(0,0,0,0.36)']}
               style={StyleSheet.absoluteFill}
             />
-            <View style={styles.playlistArtBadge}>
-              <AppMenuIcon ios="music.note.list" android="queue-music" size={11} color="#FFFFFF" />
-              <Text style={styles.playlistArtBadgeText}>{playlist.hymnIds.length}</Text>
+          </View>
+        );
+
+        const rowInner = (
+          <View style={styles.playlistCompactRow}>
+            {IS_IOS ? <Link.AppleZoom>{coverThumb}</Link.AppleZoom> : coverThumb}
+            <View style={styles.playlistCompactTextCol}>
+              <Text numberOfLines={1} style={[styles.playlistCompactTitle, { color: primaryInk }]}>
+                {playlist.name}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.playlistCompactSub, { color: mutedSub, fontVariant: ['tabular-nums'] }]}
+              >
+                {countLabel}
+              </Text>
             </View>
+            <AppMenuIcon
+              ios="chevron.right"
+              android="chevron-right"
+              size={14}
+              weight="semibold"
+              color={mutedSub}
+            />
           </View>
         );
 
         return (
-          <View
-            key={playlist.id}
-            style={[styles.playlistGridCard, { width: gridColumnWidth }]}
-          >
+          <View key={playlist.id}>
+            {(!searchOpen || idx > 0) ? (
+              <View style={[styles.playlistCompactDivider, { backgroundColor: hairline }]} />
+            ) : null}
             {IS_IOS ? (
               <Link href={playlistHref as any} asChild>
                 <Link.Trigger>
@@ -807,15 +810,7 @@ export default function FavoritesScreen() {
                     }}
                     style={styles.playlistGridTrigger}
                   >
-                    <View style={styles.playlistGridArtWrap}>
-                      <Link.AppleZoom>{coverCard}</Link.AppleZoom>
-                    </View>
-                    <Text numberOfLines={1} style={[styles.playlistGridTitle, { color: primaryInk }]}>
-                      {playlist.name}
-                    </Text>
-                    <Text numberOfLines={1} style={[styles.playlistGridSub, { color: mutedSub }]}>
-                      {countLabel}
-                    </Text>
+                    {rowInner}
                   </Pressable>
                 </Link.Trigger>
 
@@ -845,19 +840,13 @@ export default function FavoritesScreen() {
               </Link>
             ) : (
               <TouchableOpacity
-                activeOpacity={0.8}
+                activeOpacity={0.76}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push(playlistHref as any);
                 }}
               >
-                <View style={styles.playlistGridArtWrap}>{coverCard}</View>
-                <Text numberOfLines={1} style={[styles.playlistGridTitle, { color: primaryInk }]}>
-                  {playlist.name}
-                </Text>
-                <Text numberOfLines={1} style={[styles.playlistGridSub, { color: mutedSub }]}>
-                  {countLabel}
-                </Text>
+                {rowInner}
               </TouchableOpacity>
             )}
           </View>
@@ -1683,66 +1672,44 @@ const styles = StyleSheet.create({
     ...fonts.sansMedium,
     fontSize: 13.5,
   },
-  playlistsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-  },
-  playlistGridCard: {
-    marginBottom: 6,
+  playlistsList: {
+    width: '100%',
   },
   /** Plain object style required by Expo Router `<Link.Trigger>` / Radix `<Slot>`. */
   playlistGridTrigger: {
     width: '100%',
   },
-  playlistGridArtWrap: {
-    marginBottom: 8,
-  },
-  playlistGridArt: {
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    overflow: 'hidden',
-    marginBottom: 8,
-    position: 'relative',
-  },
-  newPlaylistGridBox: {
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  newPlaylistPlusCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playlistArtBadge: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
+  playlistCompactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.52)',
+    gap: 13,
+    paddingVertical: 9,
   },
-  playlistArtBadgeText: {
-    ...fonts.sansSemiBold,
-    fontSize: 11.5,
-    color: '#FFFFFF',
+  playlistCompactNewThumb: {
+    width: 54,
+    height: 54,
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  playlistGridTitle: {
+  playlistCompactTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  playlistCompactTitle: {
     ...fonts.sansSemiBold,
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: -0.2,
   },
-  playlistGridSub: {
+  playlistCompactSub: {
     ...fonts.sansRegular,
-    fontSize: 12.5,
-    marginTop: 1,
+    fontSize: 13,
+  },
+  playlistCompactDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 67,
   },
   topSearchRow: {
     flexDirection: 'row',
