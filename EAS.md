@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #12: Account Tap Fix, Tight Oyelo Sheet Top Alignment & Major iOS 26 Native SwiftUI Profile/Coros/Ministries/Admin Overhaul
+
+- **Branch & Source:** `sdk-58` branch (commit `e56cced`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`25ad0eb7-ebc9-4150-a2fc-08a4293cb8a3`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/25ad0eb7-ebc9-4150-a2fc-08a4293cb8a3)
+  - **iOS Update ID:** `01a21367-c02a-7e33-9114-cf6599411476`
+  - **Included Changes:**
+    - Fixed tapping the signed-in Account card (and Quick Access rows) inside the SwiftUI native `<BottomSheet>` (`components/AuthSheet.tsx`, `components/AuthSheetSwiftUI.tsx`) with an idempotent post-dismiss navigation fallback timer (`280ms` alongside `onDismiss`, routed via `useRouter()`) plus `contentShape(shapes.rectangle())` full-row hit targets.
+    - Tightened Auth & Account sheet top spacing via iOS 26 `listSectionMargins({ edges: 'top', length: 6 })` to match Oyelo's `.medium` sheet layout, kept Sign-In controls reachable at `.medium` detent, and added `lineLimit(1)` + `truncationMode('tail')` so long emails stay on one line.
+    - Switched `/my-profile` and `/my-profile/[section]` (`app/_layout.tsx`, `app/my-profile.tsx`) to compact transparent headers with soft progressive scroll-under blur; upgraded `MyProfileOverview.ios.tsx` with a compact Avatar + Name + Obispo seal + single-line email hero card and a dedicated **Administration / Administración** section for Admin access.
+    - Built native iOS 26 SwiftUI `<Form>` sub-pages (`components/screens/ProfileSubPages.ios.tsx`, `ProfileSubPages.tsx`) for **Ministry** (3 inset-grouped sections), **Choir** (with full Admin inline Edit/Delete/Add & instant publish preserved), **My Church** (verified map card, native Liquid Glass Country menu `<Picker>`, `<Toggle>`, prominent capsule Save), **Account Details**, and **Blocked Users**.
+    - Upgraded **Friends** (`FriendsPanel.tsx`: `glassTrack` Liquid Glass segmented control, continuous `20pt` cards, Sacred Ink Dark/Light switch tints), **Notifications** (`NotificationsPanel.tsx`), and **Admin Moderation** (`CommunityModeration.tsx`: live pending summary strip, native SwiftUI chromatic Liquid Glass 4-segment `<Picker>`, continuous grouped cards, Sacred Ink/destructive pills, preserving 100% of Reports, Churches + 10-photo R2 manager, Members/Obispo verification, Choirs, and Pinned Choir Repertoire controls).
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on all 11 touched/created files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, `git diff --check` clean, iOS Hermes export clean (`7.3 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #11: Oyelo Native SwiftUI `<BottomSheet>` Glass, Settings Compact Soft Scroll Blur & Larger Preview Title, Sign-In UI Polish & Scrolling Índice Pills
 
 - **Branch & Source:** `sdk-58` branch (commit `f4d687c`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

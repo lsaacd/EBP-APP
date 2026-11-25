@@ -1,8 +1,8 @@
 # Himnario El Buen Pastor — Agent Handoff Guide (Claude / Codex / Antigravity)
 
-> **Last Updated:** November 25, 2026 (`main`/`app-web-parity`: iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` TestFlight branch**: SDK 58 / Xcode 27.1 iOS Build #39 `85ea3bf4`, latest OTA `3ec1e78f` on `2.1.0-sdk58-2`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`)
+> **Last Updated:** November 25, 2026 (`main`/`app-web-parity`: iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` TestFlight branch**: SDK 58 / Xcode 27.1 iOS Build #39 `85ea3bf4`, latest OTA `25ad0eb7` on `2.1.0-sdk58-2`; Pages `60dba153`; Worker `e8b6bbc6`; D1 `0017_friends_list_visibility`)
 > **Branches:** `main` and `app-web-parity` stay on SDK 54 (`2.0.0-release-5`); active iOS 26 / SDK 58 TestFlight work is on `sdk-58` (`2.1.0-sdk58-2`) (`origin`: `https://github.com/lsaacd/EBP-APP.git`). Pull before working.
-> **App Version & Runtime:** `2.1.0` / `2.1.0-sdk58-2` on `sdk-58` (Build #39, latest OTA `3ec1e78f`); `2.0.0` / `2.0.0-release-5` on `main` (Build #34, latest OTA `3a5900b7`; Build #33 on `2.0.0-notif-4`; Builds #30–#31 on `2.0.0-media-3`)
+> **App Version & Runtime:** `2.1.0` / `2.1.0-sdk58-2` on `sdk-58` (Build #39, latest OTA `25ad0eb7`); `2.0.0` / `2.0.0-release-5` on `main` (Build #34, latest OTA `3a5900b7`; Build #33 on `2.0.0-notif-4`; Builds #30–#31 on `2.0.0-media-3`)
 > **Other agents:** Codex and Antigravity read [AGENTS.md](AGENTS.md), which summarises the rules below and lists open work.
 
 ## 1. Repository Layout
