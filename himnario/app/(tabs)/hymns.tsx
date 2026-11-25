@@ -436,8 +436,9 @@ export default function HymnListScreen() {
   }, [t, indiceSection, localizedEstribillosData, localizedHymnsData]);
 
   // Fixed index row geometry makes distant letter jumps exact without measurement retries.
+  // Account for the scrolling 52px ListHeaderComponent (`indiceToggleWrap`: 8 + 38 + 6).
   const indexLayouts = useMemo(() => {
-    let offset = 0;
+    let offset = 52;
     return indiceData.map(item => {
       const length = (item.type === 'main_header' ? 96 : item.type === 'header' ? 54 : 44) * fontScale;
       const layout = { length, offset };
@@ -996,9 +997,6 @@ export default function HymnListScreen() {
 
     return (
       <View style={styles.flex1}>
-        {/* Leveled directly with the category chips band on Himnos & Estribillos */}
-        {indiceToggleHeader}
-
         <View style={styles.indiceBody}>
           <View style={styles.indiceListContainer}>
             <FlatList
@@ -1018,6 +1016,7 @@ export default function HymnListScreen() {
               initialNumToRender={24}
               maxToRenderPerBatch={24}
               windowSize={7}
+              ListHeaderComponent={indiceToggleHeader}
               renderItem={({ item }) => {
                 if (item.type === 'main_header') {
                   return (
@@ -1948,7 +1947,8 @@ const styles = StyleSheet.create({
 
   // ── Índice & Glass A-Z Scroller (Workstream F) ─────────────
   indiceToggleWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
+    marginLeft: -8,
     paddingTop: 8,
     paddingBottom: 6,
     alignItems: 'flex-start',
@@ -1977,7 +1977,7 @@ const styles = StyleSheet.create({
   indiceBody: {
     flex: 1,
     flexDirection: 'row',
-    paddingTop: 2,
+    paddingTop: 0,
   },
   indiceListContainer: {
     flex: 1,

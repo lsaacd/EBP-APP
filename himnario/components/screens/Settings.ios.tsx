@@ -94,12 +94,14 @@ export default function SettingsScreenIOS() {
     controlSize,
     font,
     foregroundStyle,
+    listSectionSpacing,
     monospacedDigit,
     multilineTextAlignment,
     opacity,
     padding,
     pickerStyle,
     scaleEffect,
+    scrollEdgeEffectStyle,
     tag,
     tint,
   } = swiftUI.modifiers;
@@ -208,7 +210,13 @@ export default function SettingsScreenIOS() {
         colorScheme={scheme}
         seedColor={symbolTint}
       >
-        <Form modifiers={[tint(symbolTint)]}>
+        <Form
+          modifiers={[
+            tint(symbolTint),
+            listSectionSpacing('compact'),
+            scrollEdgeEffectStyle('soft', 'all'),
+          ]}
+        >
           {/* ─── Account & Cloud ─── */}
           <Section
             title={t.accountSectionLabel}
@@ -334,15 +342,15 @@ export default function SettingsScreenIOS() {
               <Spacer />
               <VStack
                 alignment="center"
-                spacing={6}
-                modifiers={[padding({ vertical: 8, horizontal: 4 })]}
+                spacing={8}
+                modifiers={[padding({ vertical: 10, horizontal: 6 })]}
               >
                 <Text
                   modifiers={[
                     font({
                       design: 'serif',
                       weight: 'bold',
-                      size: 18,
+                      size: Math.min(38, Math.max(28, Math.round(currentPx * 1.45))),
                     }),
                     foregroundStyle({ type: 'color', color: accentTint }),
                     multilineTextAlignment('center'),

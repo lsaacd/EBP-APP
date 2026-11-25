@@ -82,7 +82,8 @@ interface AuthSheetProps {
   visible?: boolean;
   onClose?: () => void;
   onOpenShareApp?: () => void;
-  presentationMode?: 'modal' | 'native-sheet';
+  presentationMode?: 'modal' | 'native-sheet' | 'swiftui-sheet';
+  initialPage?: SheetPage;
   originPathname?: string;
 }
 
@@ -91,6 +92,7 @@ export function AuthSheet({
   onClose: propOnClose,
   onOpenShareApp,
   presentationMode = 'modal',
+  initialPage = 'account',
   originPathname,
 }: AuthSheetProps) {
   const {
@@ -108,6 +110,7 @@ export function AuthSheet({
     authSheetVisible,
     pendingAuthSheetPage,
     clearPendingAuthSheetPage,
+    openAuthSheet,
     closeAuthSheet,
     signIn,
     register,
@@ -130,7 +133,7 @@ export function AuthSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'hymn' | 'member' | 'my-profile' | 'home' | null>(null);
+  const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'share-app-page' | 'help-page' | 'reopen-auth' | 'hymn' | 'member' | 'my-profile' | 'home' | null>(null);
   const pendingHymnIdRef = useRef<string | null>(null);
   const pendingMemberIdRef = useRef<string | null>(null);
 
@@ -142,12 +145,13 @@ export function AuthSheet({
   const onClose = propOnClose || closeAuthSheet;
   const isIOS = Platform.OS === 'ios';
   const isNativeSheet = presentationMode === 'native-sheet';
+  const isSwiftUISheet = presentationMode === 'swiftui-sheet';
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
   const hasSwiftUIForm = isIOS && Boolean(getExpoSwiftUI());
   const isNativeGlassSheet = isNativeSheet && hasIOSGlass;
   const es = language !== 'en';
 
-  const [page, setPage] = useState<SheetPage>('account');
+  const [page, setPage] = useState<SheetPage>(initialPage);
   const [aboutParent, setAboutParent] = useState<SheetPage>('account');
   const [mode, setMode] = useState<AuthMode>('login');
   const [name, setName] = useState('');
@@ -196,12 +200,14 @@ export function AuthSheet({
     ++accountActionRef.current;
     setEmailAction(null);
     if (visible) {
+      setPage(initialPage);
       setErrorMessage(null);
       setInfoMessage(null);
       setSubmitting(false);
       setShowPassword(false);
+      pendingPostCloseRef.current = null;
     } else {
-      setPage('account');
+      setPage(initialPage);
       setShareTab('banner');
       setShareStatusMessage(null);
       setSharingImage(false);
@@ -209,9 +215,11 @@ export function AuthSheet({
       setSubmitting(false);
       setShowPassword(false);
       setKeyboardHeight(0);
-      pendingPostCloseRef.current = null;
+      if (!isSwiftUISheet) {
+        pendingPostCloseRef.current = null;
+      }
     }
-  }, [visible]);
+  }, [initialPage, isSwiftUISheet, visible]);
 
   useEffect(() => {
     if (visible && user && pendingAuthSheetPage) {
@@ -269,16 +277,20 @@ export function AuthSheet({
   const dismissingNativeRef = useRef(false);
   const sawVisibleInNativeRef = useRef(false);
   const userChurchIdRef = useRef(user?.churchId ?? null);
+  const currentPathnameRef = useRef(currentPathname);
   const onChurchesScreenRef = useRef(onChurchesScreen);
   const onOpenShareAppRef = useRef(onOpenShareApp);
   const onCloseRef = useRef(onClose);
+  const openAuthSheetRef = useRef(openAuthSheet);
 
   useEffect(() => {
     userChurchIdRef.current = user?.churchId ?? null;
+    currentPathnameRef.current = currentPathname;
     onChurchesScreenRef.current = onChurchesScreen;
     onOpenShareAppRef.current = onOpenShareApp;
     onCloseRef.current = onClose;
-  }, [onChurchesScreen, onClose, onOpenShareApp, user?.churchId]);
+    openAuthSheetRef.current = openAuthSheet;
+  }, [currentPathname, onChurchesScreen, onClose, onOpenShareApp, openAuthSheet, user?.churchId]);
 
   const runPendingPostClose = useCallback(() => {
     const nextAction = pendingPostCloseRef.current;
@@ -298,6 +310,18 @@ export function AuthSheet({
       else globalRouter.push('/churches?scan=1' as any);
     } else if (nextAction === 'share-app' && onOpenShareAppRef.current) {
       onOpenShareAppRef.current();
+    } else if (nextAction === 'share-app-page') {
+      globalRouter.push({
+        pathname: '/auth-sheet',
+        params: { page: 'share-app', from: currentPathnameRef.current },
+      } as any);
+    } else if (nextAction === 'help-page') {
+      globalRouter.push({
+        pathname: '/auth-sheet',
+        params: { page: 'help', from: currentPathnameRef.current },
+      } as any);
+    } else if (nextAction === 'reopen-auth') {
+      openAuthSheetRef.current();
     } else if (nextAction === 'hymn' && pendingHymnIdRef.current) {
       const hymnId = pendingHymnIdRef.current;
       pendingHymnIdRef.current = null;
@@ -309,7 +333,11 @@ export function AuthSheet({
     } else if (nextAction === 'my-profile') {
       globalRouter.push('/my-profile' as any);
     } else if (nextAction === 'home') {
-      globalRouter.navigate('/(tabs)/home' as any);
+      if (globalRouter.canDismiss()) {
+        globalRouter.dismissTo('/(tabs)/home');
+      } else {
+        globalRouter.navigate('/(tabs)/home' as any);
+      }
     }
   }, []);
 
@@ -348,6 +376,10 @@ export function AuthSheet({
   const animateClose = useCallback(() => {
     Keyboard.dismiss();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isSwiftUISheet) {
+      onCloseRef.current();
+      return;
+    }
     if (isNativeSheet) {
       if (dismissingNativeRef.current) return;
       dismissingNativeRef.current = true;
@@ -361,7 +393,12 @@ export function AuthSheet({
     progress.value = withSpring(1, spring, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-  }, [finishClose, isNativeSheet, progress, router]);
+  }, [finishClose, isNativeSheet, isSwiftUISheet, progress, router]);
+
+  const handleSwiftUIDismiss = useCallback(() => {
+    onCloseRef.current();
+    runPendingPostClose();
+  }, [runPendingPostClose]);
 
   const clearPendingPostClose = useCallback(() => {
     pendingPostCloseRef.current = null;
@@ -380,11 +417,16 @@ export function AuthSheet({
       animateClose();
       return;
     }
+    if (isNativeSheet && initialPage !== 'account' && hasSwiftUIForm) {
+      pendingPostCloseRef.current = 'reopen-auth';
+      animateClose();
+      return;
+    }
     Haptics.selectionAsync();
     setErrorMessage(null);
     setInfoMessage(null);
     setPage('account');
-  }, [animateClose, page]);
+  }, [animateClose, hasSwiftUIForm, initialPage, isNativeSheet, page]);
 
   useEffect(() => {
     if (visible) {
@@ -2174,6 +2216,123 @@ export function AuthSheet({
         ? 'person.badge.plus'
         : 'key.fill';
   const plainToolbarTint = isDarkMode ? '#FFFFFF' : '#1C1C18';
+
+  if (isSwiftUISheet) {
+    if (!hasSwiftUIForm) return null;
+    return (
+      <AuthSheetSwiftUI
+        presentation="bottom-sheet"
+        isPresented={visible}
+        onDismiss={handleSwiftUIDismiss}
+        isDarkMode={isDarkMode}
+        user={user}
+        initials={initials}
+        mode={mode}
+        name={name}
+        email={email}
+        password={password}
+        showPassword={showPassword}
+        submitting={submitting}
+        isLoading={isLoading}
+        emailAction={emailAction}
+        isSyncing={isSyncing}
+        syncBlocked={syncBlocked}
+        friendsBadge={friendsBadge}
+        notificationsUnread={notificationsUnread}
+        errorMessage={errorMessage}
+        infoMessage={infoMessage}
+        onChangeMode={(next) => {
+          Keyboard.dismiss();
+          if (next === 'recovery' || mode === 'recovery') {
+            setPassword('');
+            setShowPassword(false);
+          }
+          switchMode(next);
+        }}
+        onChangeName={setName}
+        onChangeEmail={setEmail}
+        onChangePassword={setPassword}
+        onToggleShowPassword={() => {
+          Haptics.selectionAsync();
+          setShowPassword((prev) => !prev);
+        }}
+        onSubmitAuth={() => {
+          void handleSubmit();
+        }}
+        onSendRecovery={() => {
+          void handleEmailAction('recovery');
+        }}
+        onClose={animateClose}
+        onOpenMyProfile={() => {
+          pendingPostCloseRef.current = 'my-profile';
+          animateClose();
+        }}
+        onSyncNow={() => {
+          Haptics.selectionAsync();
+          setErrorMessage(null);
+          setInfoMessage(null);
+          if (syncBlocked) {
+            handleResolveSyncConflict();
+            return;
+          }
+          void (async () => {
+            try {
+              await syncNow();
+            } catch (err: any) {
+              displayAuthError(err);
+              if (err?.message === 'sync_conflict') {
+                handleResolveSyncConflict();
+              }
+            }
+          })();
+        }}
+        onOpenChurches={() => {
+          pendingPostCloseRef.current = 'churches';
+          animateClose();
+        }}
+        onOpenScanQr={() => {
+          pendingPostCloseRef.current = 'scan-qr';
+          animateClose();
+        }}
+        onOpenSettings={() => {
+          pendingPostCloseRef.current = 'settings';
+          animateClose();
+        }}
+        onOpenShareApp={() => {
+          if (onOpenShareApp) {
+            pendingPostCloseRef.current = 'share-app';
+            animateClose();
+          } else {
+            pendingPostCloseRef.current = 'share-app-page';
+            animateClose();
+          }
+        }}
+        onOpenHelp={() => {
+          pendingPostCloseRef.current = 'help-page';
+          animateClose();
+        }}
+        onOpenTerms={() => {
+          void openExternalLink('https://himnarioebp.com/terms.html');
+        }}
+        onOpenPrivacy={() => {
+          void openExternalLink('https://himnarioebp.com/privacy.html');
+        }}
+        onSignOut={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          void (async () => {
+            try {
+              await signOut();
+              pendingPostCloseRef.current = 'home';
+              animateClose();
+            } catch (err: any) {
+              displayAuthError(err);
+            }
+          })();
+        }}
+        onDeleteAccount={handleConfirmDeleteAccount}
+      />
+    );
+  }
 
   if (isNativeSheet) {
     if (page === 'account' && hasSwiftUIForm) {

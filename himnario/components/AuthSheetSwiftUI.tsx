@@ -1,15 +1,20 @@
 /**
  * AuthSheetSwiftUI — True iOS 26 Native SwiftUI Sign-In & Account Form Sheet.
  *
- * Mirrors Oyelo's native SwiftUI `NavigationStack` + `Form` sheet architecture:
+ * Mirrors Oyelo's exact native SwiftUI `.sheet(isPresented:)` + `NavigationStack` + `Form`
+ * architecture:
+ * - Presented directly via `@expo/ui/swift-ui` `<BottomSheet>` with
+ *   `.presentationDetents([.medium, .large])` and `.presentationDragIndicator(.visible)`
+ *   so iOS 26 automatically renders a translucent frosted Liquid Glass sheet and
+ *   frosted glass `<Form>` wells at `.medium` detent, smoothly morphing into crisp
+ *   luminous cards when expanded to `.large`
  * - `.navigationBarTitleDisplayMode(.inline)` with crisp SF Pro Bold 17pt title
  * - Native Liquid Glass `Cancelar` / `Cerrar` cancellation pill on the top-left
- * - Prominent circular Liquid Glass Sacred Ink burgundy `key.fill` (or register /
- *   recovery) action button on the top-right when signed out
- * - `listSectionSpacing('compact')` + `scrollEdgeEffectStyle('soft', 'all')` so
- *   sections render as frosted glass wells at `.medium` detent and morph cleanly
- *   into luminous rounded cards when expanded to `.large`
- * - Native SF Pro Regular 17pt typography and crisp monochrome SF Symbols
+ * - Prominent circular Liquid Glass Sacred Ink `key.fill` / `person.badge.plus` /
+ *   `paperplane.fill` action button on the top-right when signed out
+ * - Borderless floating iOS 26 chromatic Liquid Glass segmented control, leading SF Symbol
+ *   credential inputs, dedicated Sacred Ink capsule CTA, compact account benefits strip,
+ *   and titled Quick Access shortcuts
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import type { TextFieldRef, SecureFieldRef } from '@expo/ui/swift-ui';
@@ -21,6 +26,14 @@ import { getPasswordStrength } from '../utils/passwordStrength';
 export type SwiftUIAuthMode = 'login' | 'register' | 'recovery';
 
 export interface AuthSheetSwiftUIProps {
+  /**
+   * `'bottom-sheet'` presents via SwiftUI's native `.sheet(isPresented:)` (`<BottomSheet>`)
+   * so iOS 26 renders Oyelo's translucent frosted glass material at `.medium` detent.
+   * `'embedded'` renders directly inside an existing modal route.
+   */
+  presentation?: 'embedded' | 'bottom-sheet';
+  isPresented?: boolean;
+  onDismiss?: () => void;
   isDarkMode: boolean;
   user: {
     id: string;
@@ -65,6 +78,9 @@ export interface AuthSheetSwiftUIProps {
 }
 
 export default function AuthSheetSwiftUI({
+  presentation = 'embedded',
+  isPresented = true,
+  onDismiss,
   isDarkMode,
   user,
   initials,
@@ -124,37 +140,42 @@ export default function AuthSheetSwiftUI({
     }
   }, [mode, onSendRecovery, showPassword]);
 
-  // Sync native field value when toggling password visibility or clearing after submit/mode change
+  // Sync native field value when toggling password visibility, reopening, or clearing after submit/mode change
   useEffect(() => {
+    if (presentation === 'bottom-sheet' && !isPresented) return;
     if (showPassword) {
       plainPasswordRef.current?.setText(password).catch(() => {});
     } else {
       securePasswordRef.current?.setText(password).catch(() => {});
     }
-    // Intentionally sync on showPassword/mode transitions or when cleared to empty
+    // Intentionally sync on presentation/showPassword/mode transitions or when cleared to empty
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPassword, mode, password === '']);
+  }, [presentation, isPresented, showPassword, mode, password === '']);
 
   useEffect(() => {
+    if (presentation === 'bottom-sheet' && !isPresented) return;
     if (email) {
       emailRef.current?.setText(email).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [presentation, isPresented, mode]);
 
   useEffect(() => {
+    if (presentation === 'bottom-sheet' && !isPresented) return;
     if (mode === 'register' && name) {
       nameRef.current?.setText(name).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [presentation, isPresented, mode]);
 
   if (!swiftUI) return null;
 
   const {
+    BottomSheet,
     Button,
     Circle,
     Form,
+    Group,
     Host,
     HStack,
     Image: SwiftUIImage,
@@ -176,18 +197,25 @@ export default function AuthSheetSwiftUI({
   const {
     accessibilityLabel,
     autocorrectionDisabled,
+    buttonBorderShape,
     buttonStyle,
+    controlSize,
     disabled,
     font,
     foregroundStyle,
     frame,
     keyboardType,
     labelStyle,
+    listRowBackground,
+    listRowInsets,
     listSectionSpacing,
     navigationBarTitleDisplayMode,
     navigationTitle,
     onSubmit,
     pickerStyle,
+    preferredColorScheme,
+    presentationDetents,
+    presentationDragIndicator,
     scrollDismissesKeyboard,
     scrollEdgeEffectStyle,
     submitLabel,
@@ -220,12 +248,12 @@ export default function AuthSheetSwiftUI({
         ? t.authResetPasswordTitle
         : t.authSignIn;
 
-  const submitActionLabel =
+  const primaryCtaLabel =
     mode === 'recovery'
       ? t.authSendRecovery
       : mode === 'register'
-        ? t.authSubmitRegister
-        : t.authSubmitSignIn;
+        ? t.authCreateAccount
+        : t.authSignIn;
 
   const submitActionIcon: SFSymbol =
     mode === 'recovery'
@@ -273,6 +301,17 @@ export default function AuthSheetSwiftUI({
     />
   );
 
+  const renderFieldLeadingIcon = (systemImage: SFSymbol, size = 16) => (
+    <SwiftUIImage
+      systemName={systemImage}
+      size={size}
+      modifiers={[
+        foregroundStyle(secondaryStyle),
+        frame({ width: 22, alignment: 'center' }),
+      ]}
+    />
+  );
+
   const renderMenuButtonRow = (
     title: string,
     systemImage: SFSymbol,
@@ -302,7 +341,7 @@ export default function AuthSheetSwiftUI({
   );
 
   const appMenuSection = (
-    <Section>
+    <Section title={t.authQuickAccessTitle}>
       {isSignedOut
         ? renderMenuButtonRow(t.profileChurches, 'map', onOpenChurches, t.profileMap)
         : null}
@@ -313,204 +352,209 @@ export default function AuthSheetSwiftUI({
     </Section>
   );
 
-  return (
-    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
-      <NavigationStack>
-        <Toolbar
+  const navigationContent = (
+    <NavigationStack>
+      <Toolbar
+        modifiers={[
+          navigationTitle(authHeaderTitle),
+          navigationBarTitleDisplayMode('inline'),
+        ]}
+      >
+        <Form
           modifiers={[
-            navigationTitle(authHeaderTitle),
-            navigationBarTitleDisplayMode('inline'),
+            tint(symbolTint),
+            listSectionSpacing('compact'),
+            scrollDismissesKeyboard('interactively'),
+            scrollEdgeEffectStyle('soft', 'all'),
           ]}
         >
-          <Form
-            modifiers={[
-              tint(symbolTint),
-              listSectionSpacing('compact'),
-              scrollDismissesKeyboard('interactively'),
-              scrollEdgeEffectStyle('soft', 'all'),
-            ]}
-          >
-            {user ? (
-              <>
-                {/* ── Account Identity Card ── */}
-                <Section>
+          {user ? (
+            <>
+              {/* ── Account Identity Card ── */}
+              <Section>
+                <Button
+                  modifiers={[foregroundStyle(primaryStyle)]}
+                  onPress={onOpenMyProfile}
+                >
+                  <HStack alignment="center" spacing={14}>
+                    <ZStack alignment="center">
+                      <Circle
+                        modifiers={[
+                          foregroundStyle(avatarBg),
+                          frame({ width: 46, height: 46 }),
+                        ]}
+                      />
+                      <Text
+                        modifiers={[
+                          font({ size: 17, weight: 'bold' }),
+                          foregroundStyle(avatarText),
+                        ]}
+                      >
+                        {initials}
+                      </Text>
+                    </ZStack>
+                    <VStack alignment="leading" spacing={2}>
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'body', weight: 'semibold' }),
+                        ]}
+                      >
+                        {user.displayName || user.email.split('@')[0]}
+                      </Text>
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'footnote' }),
+                          foregroundStyle(secondaryStyle),
+                        ]}
+                      >
+                        {user.email}
+                      </Text>
+                    </VStack>
+                    <Spacer />
+                    {unreadTotal > 0 ? (
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'footnote', weight: 'semibold' }),
+                          foregroundStyle('#D64545'),
+                        ]}
+                      >
+                        {String(unreadTotal)}
+                      </Text>
+                    ) : null}
+                    {chevron}
+                  </HStack>
+                </Button>
+
+                {!user.emailVerified ? (
                   <Button
                     modifiers={[foregroundStyle(primaryStyle)]}
                     onPress={onOpenMyProfile}
                   >
-                    <HStack alignment="center" spacing={14}>
-                      <ZStack alignment="center">
-                        <Circle
-                          modifiers={[
-                            foregroundStyle(avatarBg),
-                            frame({ width: 46, height: 46 }),
-                          ]}
-                        />
-                        <Text
-                          modifiers={[
-                            font({ size: 17, weight: 'bold' }),
-                            foregroundStyle(avatarText),
-                          ]}
-                        >
-                          {initials}
-                        </Text>
-                      </ZStack>
-                      <VStack alignment="leading" spacing={2}>
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'body', weight: 'semibold' }),
-                          ]}
-                        >
-                          {user.displayName || user.email.split('@')[0]}
-                        </Text>
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'footnote' }),
-                            foregroundStyle(secondaryStyle),
-                          ]}
-                        >
-                          {user.email}
-                        </Text>
-                      </VStack>
+                    <HStack alignment="center" spacing={10}>
+                      <Label
+                        title={t.authEmailUnverified}
+                        systemImage="envelope.badge"
+                        modifiers={[foregroundStyle(accentTextColor)]}
+                      />
                       <Spacer />
-                      {unreadTotal > 0 ? (
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'footnote', weight: 'semibold' }),
-                            foregroundStyle('#D64545'),
-                          ]}
-                        >
-                          {String(unreadTotal)}
-                        </Text>
-                      ) : null}
                       {chevron}
                     </HStack>
                   </Button>
+                ) : null}
+              </Section>
 
-                  {!user.emailVerified ? (
-                    <Button
-                      modifiers={[foregroundStyle(primaryStyle)]}
-                      onPress={onOpenMyProfile}
-                    >
-                      <HStack alignment="center" spacing={10}>
-                        <Label
-                          title={t.authEmailUnverified}
-                          systemImage="envelope.badge"
-                          modifiers={[foregroundStyle(accentTextColor)]}
-                        />
-                        <Spacer />
-                        {chevron}
-                      </HStack>
-                    </Button>
-                  ) : null}
-                </Section>
-
-                {/* ── Cloud Sync Row ── */}
-                <Section
-                  footer={
-                    errorMessage ? (
-                      <Text modifiers={[foregroundStyle('#D64545')]}>{errorMessage}</Text>
-                    ) : infoMessage ? (
-                      <Text modifiers={[foregroundStyle(accentTextColor)]}>{infoMessage}</Text>
-                    ) : undefined
-                  }
+              {/* ── Cloud Sync Row ── */}
+              <Section
+                footer={
+                  errorMessage ? (
+                    <Text modifiers={[foregroundStyle('#D64545')]}>{errorMessage}</Text>
+                  ) : infoMessage ? (
+                    <Text modifiers={[foregroundStyle(accentTextColor)]}>{infoMessage}</Text>
+                  ) : undefined
+                }
+              >
+                <Button
+                  modifiers={[foregroundStyle(primaryStyle), disabled(isSyncing)]}
+                  onPress={onSyncNow}
                 >
-                  <Button
-                    modifiers={[foregroundStyle(primaryStyle), disabled(isSyncing)]}
-                    onPress={onSyncNow}
-                  >
-                    <HStack alignment="center" spacing={10}>
-                      <Label title={t.accountSync} icon={renderTintedIcon('arrow.clockwise.icloud')} />
-                      <Spacer />
-                      <Text
-                        modifiers={[
-                          font({ textStyle: 'subheadline' }),
-                          foregroundStyle(secondaryStyle),
-                        ]}
-                      >
-                        {syncStatusLabel}
-                      </Text>
-                      {isSyncing ? <ProgressView /> : chevron}
-                    </HStack>
-                  </Button>
-                </Section>
+                  <HStack alignment="center" spacing={10}>
+                    <Label title={t.accountSync} icon={renderTintedIcon('arrow.clockwise.icloud')} />
+                    <Spacer />
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'subheadline' }),
+                        foregroundStyle(secondaryStyle),
+                      ]}
+                    >
+                      {syncStatusLabel}
+                    </Text>
+                    {isSyncing ? <ProgressView /> : chevron}
+                  </HStack>
+                </Button>
+              </Section>
 
-                {/* ── Unified App Menu ── */}
-                {appMenuSection}
+              {/* ── Unified App Menu ── */}
+              {appMenuSection}
 
-                {/* ── Session & Account Lifecycle ── */}
-                <Section>
-                  <Button
-                    modifiers={[foregroundStyle(primaryStyle)]}
-                    onPress={onSignOut}
-                  >
-                    <Label
-                      title={t.authSignOut}
-                      icon={renderTintedIcon('rectangle.portrait.and.arrow.right')}
-                    />
-                  </Button>
-                  <Button
-                    role="destructive"
+              {/* ── Session & Account Lifecycle ── */}
+              <Section>
+                <Button
+                  modifiers={[foregroundStyle(primaryStyle)]}
+                  onPress={onSignOut}
+                >
+                  <Label
+                    title={t.authSignOut}
+                    icon={renderTintedIcon('rectangle.portrait.and.arrow.right')}
+                  />
+                </Button>
+                <Button
+                  role="destructive"
+                  modifiers={[foregroundStyle('#D64545')]}
+                  onPress={onDeleteAccount}
+                >
+                  <Label
+                    title={t.authDeleteAccount}
+                    systemImage="trash"
                     modifiers={[foregroundStyle('#D64545')]}
-                    onPress={onDeleteAccount}
+                  />
+                </Button>
+              </Section>
+            </>
+          ) : (
+            <>
+              {/* ── Floating Chromatic Liquid Glass Mode Switcher (no outer white box) ── */}
+              {mode !== 'recovery' ? (
+                <Section
+                  footer={<Text>{t.authSyncSubtitle}</Text>}
+                >
+                  <Picker
+                    label={t.authSignIn}
+                    selection={mode}
+                    onSelectionChange={(next) => {
+                      if (!isBusy && (next === 'login' || next === 'register')) {
+                        onChangeMode(next);
+                      }
+                    }}
+                    modifiers={[
+                      pickerStyle('segmented'),
+                      listRowBackground('clear'),
+                      listRowInsets({ top: 4, leading: 0, bottom: 4, trailing: 0 }),
+                    ]}
+                  >
+                    <Text modifiers={[tag('login')]}>{t.authSignIn}</Text>
+                    <Text modifiers={[tag('register')]}>{t.authCreateAccount}</Text>
+                  </Picker>
+                </Section>
+              ) : (
+                <Section footer={<Text>{t.authRecoveryHelp}</Text>}>
+                  <Button
+                    modifiers={[foregroundStyle(accentTextColor)]}
+                    onPress={() => onChangeMode('login')}
                   >
                     <Label
-                      title={t.authDeleteAccount}
-                      systemImage="trash"
-                      modifiers={[foregroundStyle('#D64545')]}
+                      title={t.authBackToSignIn}
+                      systemImage="chevron.left"
+                      modifiers={[foregroundStyle(accentTextColor)]}
                     />
                   </Button>
                 </Section>
-              </>
-            ) : (
-              <>
-                {/* ── Login / Register Mode Switcher ── */}
-                {mode !== 'recovery' ? (
-                  <Section
-                    footer={<Text>{t.authSyncSubtitle}</Text>}
-                  >
-                    <Picker
-                      label={t.authSignIn}
-                      selection={mode}
-                      onSelectionChange={(next) => {
-                        if (!isBusy && (next === 'login' || next === 'register')) {
-                          onChangeMode(next);
-                        }
-                      }}
-                      modifiers={[pickerStyle('segmented')]}
-                    >
-                      <Text modifiers={[tag('login')]}>{t.authSignIn}</Text>
-                      <Text modifiers={[tag('register')]}>{t.authCreateAccount}</Text>
-                    </Picker>
-                  </Section>
-                ) : (
-                  <Section footer={<Text>{t.authRecoveryHelp}</Text>}>
-                    <Button
-                      modifiers={[foregroundStyle(accentTextColor)]}
-                      onPress={() => onChangeMode('login')}
-                    >
-                      <Label
-                        title={t.authBackToSignIn}
-                        systemImage="chevron.left"
-                        modifiers={[foregroundStyle(accentTextColor)]}
-                      />
-                    </Button>
-                  </Section>
-                )}
+              )}
 
-                {/* ── Native SwiftUI Credentials Section ── */}
-                <Section
-                  footer={
-                    errorMessage ? (
-                      <Text modifiers={[foregroundStyle('#D64545')]}>{errorMessage}</Text>
-                    ) : infoMessage ? (
-                      <Text modifiers={[foregroundStyle(accentTextColor)]}>{infoMessage}</Text>
-                    ) : (
-                      <Text>{t.authOptionalNote}</Text>
-                    )
-                  }
-                >
-                  {mode === 'register' ? (
+              {/* ── Icon-Prefixed Credentials Section ── */}
+              <Section
+                footer={
+                  errorMessage ? (
+                    <Text modifiers={[foregroundStyle('#D64545')]}>{errorMessage}</Text>
+                  ) : infoMessage ? (
+                    <Text modifiers={[foregroundStyle(accentTextColor)]}>{infoMessage}</Text>
+                  ) : (
+                    <Text>{t.authOptionalNote}</Text>
+                  )
+                }
+              >
+                {mode === 'register' ? (
+                  <HStack alignment="center" spacing={12}>
+                    {renderFieldLeadingIcon('person', 16)}
                     <TextField
                       ref={nameRef}
                       placeholder={t.authNamePlaceholder}
@@ -523,8 +567,11 @@ export default function AuthSheetSwiftUI({
                         disabled(isBusy),
                       ]}
                     />
-                  ) : null}
+                  </HStack>
+                ) : null}
 
+                <HStack alignment="center" spacing={12}>
+                  {renderFieldLeadingIcon('envelope', 15)}
                   <TextField
                     ref={emailRef}
                     placeholder={t.authEmailPlaceholder}
@@ -539,165 +586,261 @@ export default function AuthSheetSwiftUI({
                       disabled(isBusy),
                     ]}
                   />
+                </HStack>
 
-                  {mode !== 'recovery' ? (
-                    <HStack alignment="center" spacing={8}>
-                      {showPassword ? (
-                        <TextField
-                          ref={plainPasswordRef}
-                          placeholder={
-                            mode === 'register'
-                              ? t.authRegisterPasswordPlaceholder
-                              : t.authLoginPasswordPlaceholder
-                          }
-                          onTextChange={onChangePassword}
-                          modifiers={[
-                            textContentType(mode === 'login' ? 'password' : 'newPassword'),
-                            textInputAutocapitalization('never'),
-                            autocorrectionDisabled(true),
-                            submitLabel('done'),
-                            onSubmit(handlePrimarySubmit),
-                            disabled(isBusy),
-                          ]}
-                        />
-                      ) : (
-                        <SecureField
-                          ref={securePasswordRef}
-                          placeholder={
-                            mode === 'register'
-                              ? t.authRegisterPasswordPlaceholder
-                              : t.authLoginPasswordPlaceholder
-                          }
-                          onTextChange={onChangePassword}
-                          modifiers={[
-                            textContentType(mode === 'login' ? 'password' : 'newPassword'),
-                            textInputAutocapitalization('never'),
-                            autocorrectionDisabled(true),
-                            submitLabel('done'),
-                            onSubmit(handlePrimarySubmit),
-                            disabled(isBusy),
-                          ]}
-                        />
-                      )}
-                      <Button
-                        onPress={onToggleShowPassword}
+                {mode !== 'recovery' ? (
+                  <HStack alignment="center" spacing={12}>
+                    {renderFieldLeadingIcon('lock', 16)}
+                    {showPassword ? (
+                      <TextField
+                        ref={plainPasswordRef}
+                        placeholder={
+                          mode === 'register'
+                            ? t.authRegisterPasswordPlaceholder
+                            : t.authLoginPasswordPlaceholder
+                        }
+                        onTextChange={onChangePassword}
                         modifiers={[
-                          buttonStyle('plain'),
-                          foregroundStyle(secondaryStyle),
-                          accessibilityLabel(
-                            showPassword ? t.authHidePassword : t.authShowPassword,
-                          ),
+                          textContentType(mode === 'login' ? 'password' : 'newPassword'),
+                          textInputAutocapitalization('never'),
+                          autocorrectionDisabled(true),
+                          submitLabel('done'),
+                          onSubmit(handlePrimarySubmit),
+                          disabled(isBusy),
                         ]}
-                      >
-                        <SwiftUIImage
-                          systemName={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                          size={17}
-                        />
-                      </Button>
-                    </HStack>
-                  ) : null}
-
-                  {mode === 'register' && strength > 0 ? (
-                    <HStack alignment="center" spacing={8}>
-                      <SwiftUIImage
-                        systemName={strength >= 3 ? 'checkmark.shield.fill' : 'shield.lefthalf.filled'}
-                        size={14}
-                        modifiers={[foregroundStyle(strengthColor)]}
                       />
-                      <Text
+                    ) : (
+                      <SecureField
+                        ref={securePasswordRef}
+                        placeholder={
+                          mode === 'register'
+                            ? t.authRegisterPasswordPlaceholder
+                            : t.authLoginPasswordPlaceholder
+                        }
+                        onTextChange={onChangePassword}
                         modifiers={[
-                          font({ textStyle: 'footnote', weight: 'semibold' }),
-                          foregroundStyle(strengthColor),
+                          textContentType(mode === 'login' ? 'password' : 'newPassword'),
+                          textInputAutocapitalization('never'),
+                          autocorrectionDisabled(true),
+                          submitLabel('done'),
+                          onSubmit(handlePrimarySubmit),
+                          disabled(isBusy),
                         ]}
-                      >
-                        {strengthLabel}
-                      </Text>
-                    </HStack>
-                  ) : null}
+                      />
+                    )}
+                    <Button
+                      onPress={onToggleShowPassword}
+                      modifiers={[
+                        buttonStyle('plain'),
+                        foregroundStyle(secondaryStyle),
+                        accessibilityLabel(
+                          showPassword ? t.authHidePassword : t.authShowPassword,
+                        ),
+                      ]}
+                    >
+                      <SwiftUIImage
+                        systemName={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                        size={17}
+                      />
+                    </Button>
+                  </HStack>
+                ) : null}
 
+                {mode === 'register' && strength > 0 ? (
+                  <HStack alignment="center" spacing={8}>
+                    <SwiftUIImage
+                      systemName={strength >= 3 ? 'checkmark.shield.fill' : 'shield.lefthalf.filled'}
+                      size={14}
+                      modifiers={[foregroundStyle(strengthColor)]}
+                    />
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'footnote', weight: 'semibold' }),
+                        foregroundStyle(strengthColor),
+                      ]}
+                    >
+                      {strengthLabel}
+                    </Text>
+                  </HStack>
+                ) : null}
+              </Section>
+
+              {/* ── Dedicated Prominent Capsule CTA & Forgot Password ── */}
+              <Section>
+                <VStack
+                  alignment="center"
+                  spacing={10}
+                  modifiers={[
+                    listRowBackground('clear'),
+                    listRowInsets({ top: 2, leading: 0, bottom: 2, trailing: 0 }),
+                  ]}
+                >
                   <Button
                     onPress={handlePrimarySubmit}
                     modifiers={[
-                      foregroundStyle(accentTextColor),
+                      buttonStyle('borderedProminent'),
+                      buttonBorderShape('capsule'),
+                      controlSize('large'),
+                      tint(prominentFill),
                       disabled(isBusy),
                     ]}
                   >
-                    <HStack alignment="center" spacing={10}>
-                      <Label
-                        title={submitActionLabel}
-                        systemImage={submitActionIcon}
-                        modifiers={[
-                          font({ textStyle: 'body', weight: 'semibold' }),
-                          foregroundStyle(accentTextColor),
-                        ]}
-                      />
+                    <HStack alignment="center" spacing={8}>
                       <Spacer />
-                      {isBusy ? <ProgressView /> : null}
+                      {isBusy ? (
+                        <ProgressView />
+                      ) : (
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'body', weight: 'semibold' }),
+                            foregroundStyle({ type: 'color', color: prominentInk }),
+                          ]}
+                        >
+                          {primaryCtaLabel}
+                        </Text>
+                      )}
+                      <Spacer />
                     </HStack>
                   </Button>
 
                   {mode === 'login' ? (
                     <Button
                       onPress={() => onChangeMode('recovery')}
-                      modifiers={[foregroundStyle(secondaryStyle), disabled(isBusy)]}
+                      modifiers={[
+                        buttonStyle('plain'),
+                        foregroundStyle(secondaryStyle),
+                        disabled(isBusy),
+                      ]}
                     >
                       <Text modifiers={[font({ textStyle: 'subheadline' })]}>
                         {t.authForgotPassword}
                       </Text>
                     </Button>
                   ) : null}
-                </Section>
+                </VStack>
+              </Section>
 
-                {mode === 'register' ? (
-                  <Section>
-                    {renderMenuButtonRow(t.authTermsLink, 'doc.text', onOpenTerms)}
-                    {renderMenuButtonRow(t.authPrivacyLink, 'hand.raised', onOpenPrivacy)}
-                  </Section>
-                ) : null}
-
-                {/* ── Unified App Menu ── */}
-                {appMenuSection}
-              </>
-            )}
-          </Form>
-
-          <Toolbar.Content>
-            <ToolbarItem placement="cancellationAction">
-              <Button
-                label={isSignedOut ? t.authCancel : t.close}
-                onPress={onClose}
-              />
-            </ToolbarItem>
-
-            {isSignedOut ? (
-              <ToolbarItem placement="confirmationAction">
-                <Button
-                  onPress={handlePrimarySubmit}
-                  modifiers={[
-                    buttonStyle('glassProminent'),
-                    tint(prominentFill),
-                    disabled(isBusy),
-                    accessibilityLabel(submitActionLabel),
-                  ]}
-                >
-                  {isBusy ? (
-                    <ProgressView />
-                  ) : (
-                    <Label
-                      title={submitActionLabel}
-                      systemImage={submitActionIcon}
+              {/* ── Compact Account Benefits Strip ── */}
+              {mode !== 'recovery' ? (
+                <Section title={t.authBenefitsTitle}>
+                  <Label icon={renderTintedIcon('icloud')}>
+                    <Text
                       modifiers={[
-                        labelStyle('iconOnly'),
-                        foregroundStyle({ type: 'color', color: prominentInk }),
+                        font({ textStyle: 'subheadline' }),
+                        foregroundStyle(secondaryStyle),
                       ]}
-                    />
-                  )}
-                </Button>
-              </ToolbarItem>
-            ) : null}
-          </Toolbar.Content>
-        </Toolbar>
-      </NavigationStack>
+                    >
+                      {t.authBenefitSync}
+                    </Text>
+                  </Label>
+                  <Label icon={renderTintedIcon('person.2')}>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'subheadline' }),
+                        foregroundStyle(secondaryStyle),
+                      ]}
+                    >
+                      {t.authBenefitFriends}
+                    </Text>
+                  </Label>
+                  <Label icon={renderTintedIcon('building.columns')}>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'subheadline' }),
+                        foregroundStyle(secondaryStyle),
+                      ]}
+                    >
+                      {t.authBenefitChurch}
+                    </Text>
+                  </Label>
+                </Section>
+              ) : null}
+
+              {mode === 'register' ? (
+                <Section>
+                  {renderMenuButtonRow(t.authTermsLink, 'doc.text', onOpenTerms)}
+                  {renderMenuButtonRow(t.authPrivacyLink, 'hand.raised', onOpenPrivacy)}
+                </Section>
+              ) : null}
+
+              {/* ── Unified App Menu ── */}
+              {appMenuSection}
+            </>
+          )}
+        </Form>
+
+        <Toolbar.Content>
+          <ToolbarItem placement="cancellationAction">
+            <Button
+              label={isSignedOut ? t.authCancel : t.close}
+              onPress={onClose}
+            />
+          </ToolbarItem>
+
+          {isSignedOut ? (
+            <ToolbarItem placement="confirmationAction">
+              <Button
+                onPress={handlePrimarySubmit}
+                modifiers={[
+                  buttonStyle('glassProminent'),
+                  tint(prominentFill),
+                  disabled(isBusy),
+                  accessibilityLabel(primaryCtaLabel),
+                ]}
+              >
+                {isBusy ? (
+                  <ProgressView />
+                ) : (
+                  <Label
+                    title={primaryCtaLabel}
+                    systemImage={submitActionIcon}
+                    modifiers={[
+                      labelStyle('iconOnly'),
+                      foregroundStyle({ type: 'color', color: prominentInk }),
+                    ]}
+                  />
+                )}
+              </Button>
+            </ToolbarItem>
+          ) : null}
+        </Toolbar.Content>
+      </Toolbar>
+    </NavigationStack>
+  );
+
+  if (presentation === 'bottom-sheet') {
+    return (
+      <Host
+        style={{ position: 'absolute', width: 0, height: 0 }}
+        colorScheme={scheme}
+        seedColor={symbolTint}
+      >
+        <BottomSheet
+          isPresented={Boolean(isPresented)}
+          onIsPresentedChange={(next) => {
+            if (!next) {
+              onClose();
+            }
+          }}
+          onDismiss={onDismiss}
+        >
+          <Group
+            modifiers={[
+              presentationDetents(['medium', 'large']),
+              presentationDragIndicator('visible'),
+              preferredColorScheme(scheme),
+            ]}
+          >
+            {navigationContent}
+          </Group>
+        </BottomSheet>
+      </Host>
+    );
+  }
+
+  return (
+    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
+      {navigationContent}
     </Host>
   );
 }

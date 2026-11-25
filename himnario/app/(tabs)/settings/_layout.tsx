@@ -23,25 +23,22 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerLargeTitle: true,
-        headerLargeTitleEnabled: true,
+        headerLargeTitle: false,
+        headerLargeTitleEnabled: false,
+        headerTransparent: true,
+        headerShadowVisible: false,
         headerTintColor: isDarkMode ? '#FFFFFF' : theme.primary,
         headerTitleStyle: { color: titleColor },
-        headerLargeTitleStyle: { color: titleColor },
         headerUserInterfaceStyle: isDarkMode ? 'dark' : 'light',
         statusBarStyle: showFullPlayer || isDarkMode ? 'light' : 'dark',
         scrollEdgeEffects: {
           top: 'soft',
-          bottom: 'automatic',
+          bottom: 'soft',
         },
         ...(isLiquidGlass
           ? {}
           : {
-              headerTransparent: true,
               headerBlurEffect: isDarkMode ? 'dark' : 'light',
-              headerLargeStyle: {
-                backgroundColor: 'transparent',
-              },
             }),
       }}
     >
@@ -49,8 +46,8 @@ export default function SettingsLayout() {
         name="index"
         options={{
           title: t.tabSettings,
-          headerLargeTitle: true,
-          headerLargeTitleEnabled: true,
+          headerLargeTitle: false,
+          headerLargeTitleEnabled: false,
         }}
       />
     </Stack>

@@ -61,7 +61,7 @@ import * as Updates from 'expo-updates';
 import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
-import { isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
+import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 
 // The background playback service is now registered in the root index.js
 
@@ -164,10 +164,13 @@ function ThemedStack() {
   const isTextSizeSheet = pathname === '/text-size-sheet';
   const isFormSheetOverlay = pathname === '/auth-sheet' || pathname === '/about-sheet';
   const isIOSLiquidGlass = isIOSLiquidGlassAvailable();
+  const hasSwiftUIAuthSheet = isIOS && Boolean(getExpoSwiftUI());
 
-  // On iOS, present the unified Auth/Account sheet as a native Liquid Glass formSheet route.
+  // On pre-SwiftUI iOS fallback, present Auth/Account sheet via the /auth-sheet formSheet route.
+  // On iOS 26+ with @expo/ui, AuthSheet mounts SwiftUI's native <BottomSheet> directly so
+  // .medium detent gets Oyelo's authentic translucent frosted Liquid Glass material.
   useEffect(() => {
-    if (!isIOS) return;
+    if (!isIOS || hasSwiftUIAuthSheet) return;
     if (authSheetRequestId === lastAuthRequestIdRef.current) return;
     lastAuthRequestIdRef.current = authSheetRequestId;
     if (pathname !== '/auth-sheet') {
@@ -176,7 +179,7 @@ function ThemedStack() {
         params: { from: pathname },
       } as any);
     }
-  }, [authSheetRequestId, isIOS, pathname, router]);
+  }, [authSheetRequestId, hasSwiftUIAuthSheet, isIOS, pathname, router]);
   const adaptiveTitleColor = isDarkMode ? '#FFFFFF' : '#000000';
   const profileHeaderOptions = isIOS
     ? {
@@ -421,8 +424,12 @@ function ThemedStack() {
         />
       )}
 
-      {/* ── Global Auth & Unified Account/Menu Sheet (Android/Web modal; iOS uses native /auth-sheet formSheet) ── */}
-      {!isIOS && <AuthSheet />}
+      {/* ── Global Auth & Unified Account/Menu Sheet (iOS SwiftUI native <BottomSheet>; Android/Web modal) ── */}
+      {hasSwiftUIAuthSheet ? (
+        <AuthSheet presentationMode="swiftui-sheet" />
+      ) : !isIOS ? (
+        <AuthSheet />
+      ) : null}
     </View>
   );
 }
