@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #10 (`2.2.0-sdk58-1`): Two Home Liquid Glass Circles with Razor-Thin `1.5pt` Avatar Rim
+
+- **Branch & Source:** `sdk-58` branch (feature commit `24249ae`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`c9927961-9bfe-4bed-a263-cd38982fea32`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/c9927961-9bfe-4bed-a263-cd38982fea32)
+  - **iOS Update ID:** `01a21507-1560-7ce0-8ac6-2f6f38fe5c0f`
+- **Included Changes (`himnario/components/HomeHeaderActions.tsx`):**
+  - Restored the two separate `46×46` Liquid Glass circles (`Search` + `Profile`) inside iOS 26 `GlassContainer` (`spacing={8}`) with the magnetic pan gesture.
+  - Enlarged `UserAvatar` to `43pt` (`borderWidth={0}`) inside the `46pt` circle so the circular photo sits with a razor-thin `1.5pt` luminous Liquid Glass rim instead of the older `4pt` gap, with a crisp ringed unread dot on the rim.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, iOS Hermes export clean (`2,642` modules, `7.8 MB` `.hbc`, 129 assets).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #9 (`2.2.0-sdk58-1`): Unified Home Header Liquid Glass Pill Capsule with Full-Bleed Circular Profile Photo
 
 - **Branch & Source:** `sdk-58` branch (feature commit `b1c8ec1`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
