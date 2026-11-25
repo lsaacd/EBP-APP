@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #14: Swipeable Unclipped Índice Pills & Exact Oyelo `GenerationReviewView` Login/Account Sheet Match
+
+- **Branch & Source:** `sdk-58` branch (commit `4c72b92`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`46c740a8-0a35-4dce-aff3-3b68b738c173`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/46c740a8-0a35-4dce-aff3-3b68b738c173)
+  - **iOS Update ID:** `01a2139b-1031-7f93-ab32-716ad95d0577`
+  - **Included Changes:**
+    - **Unclipped horizontal-swipeable Índice pills (`app/(tabs)/hymns.tsx`):** Removed `marginLeft: -8` clipping inside `FlatList`, moved list horizontal padding onto rows/headers, and wrapped `[Himnos] [Estribillos] [Coritos]` in a full-width horizontal `<ScrollView horizontal alwaysBounceHorizontal showsHorizontalScrollIndicator={false}>` with `16pt` horizontal padding.
+    - **Exact Oyelo `GenerationReviewView.swift` Login/Account sheet alignment (`components/AuthSheetSwiftUI.tsx`):** Added `<ToolbarItem placement="principal">` + `navigationTitle('')` so titles sit dead-center under the grabber bar, switched card containers from stark `#FFFFFF` to Oyelo's soft neutral opaque surface (`#E9E9EE` Light / `#262629` Dark), moved the `Iniciar sesión | Crear cuenta` segmented picker into an opaque card row (eliminating dark sunset bleed-through and the extra gap below it), replaced the oversized bottom burgundy bar with a compact Oyelo-style grouped action row card so all 3 sections fit cleanly inside `.medium` detent, and styled `Cancelar` / `Cerrar` with calm monochrome `primary` ink.
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors on both modified files, `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.3 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #13: Centered Índice A–Z Carousel, Coritos Índice Pill (27–124), Settings Large-to-Blur Title, Opaque AuthSheet Cards & Share Sheet / Profile Reopen Fix
 
 - **Branch & Source:** `sdk-58` branch (commit `ac194b9`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
