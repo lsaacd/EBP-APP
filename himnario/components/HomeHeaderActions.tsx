@@ -1,14 +1,6 @@
 import { fonts } from '../theme/theme';
 import React, { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { requireOptionalNativeModule } from 'expo-modules-core';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth, computeUserInitials } from '../context/AuthContext';
@@ -21,43 +13,8 @@ import * as Haptics from '../utils/haptics';
 
 export const APPLE_AVATAR_GRADIENT: [string, string] = ['#9EA9DC', '#7683BE'];
 
-let cachedLiquidContainerAvailable: boolean | null = null;
-let CachedGlassContainer: React.ComponentType<any> | null = null;
-let CachedAnimatedGlassView: React.ComponentType<any> | null = null;
-
-function checkLiquidGlassContainer(): boolean {
-  if (Platform.OS !== 'ios') return false;
-  if (cachedLiquidContainerAvailable !== null) return cachedLiquidContainerAvailable;
-  try {
-    const mod = requireOptionalNativeModule<{
-      isLiquidGlassAvailable?: boolean;
-      isGlassEffectAPIAvailable?: boolean;
-    }>('ExpoGlassEffect');
-    if (mod?.isLiquidGlassAvailable === true && mod.isGlassEffectAPIAvailable === true) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const glassPkg = require('expo-glass-effect');
-      CachedGlassContainer = glassPkg.GlassContainer ?? null;
-      const GlassViewComp = glassPkg.GlassView ?? null;
-      if (CachedGlassContainer && GlassViewComp) {
-        CachedAnimatedGlassView = Animated.createAnimatedComponent(GlassViewComp);
-        cachedLiquidContainerAvailable = true;
-      } else {
-        cachedLiquidContainerAvailable = false;
-      }
-    } else {
-      cachedLiquidContainerAvailable = false;
-    }
-  } catch {
-    cachedLiquidContainerAvailable = false;
-  }
-  return cachedLiquidContainerAvailable;
-}
-
-const SPRING_CONFIG = {
-  damping: 28,
-  stiffness: 420,
-  mass: 0.6,
-};
+const CAPSULE_HEIGHT = 46;
+const CAPSULE_RADIUS = CAPSULE_HEIGHT / 2;
 
 export default function HomeHeaderActions({
   onSearch,
@@ -86,18 +43,6 @@ export default function HomeHeaderActions({
     return () => sub.remove();
   }, [refreshFriendsIfStale, refreshNotificationsIfStale, user?.id]);
 
-  const searchTranslateX = useSharedValue(0);
-  const searchTranslateY = useSharedValue(0);
-  const profileTranslateX = useSharedValue(0);
-  const profileTranslateY = useSharedValue(0);
-
-  const circleButtonStyle = ({ pressed }: { pressed: boolean }) => [
-    styles.circleButton,
-    !isIOS && styles.androidButtonClip,
-    !isIOS && { backgroundColor: pressed ? theme.primary + '18' : 'transparent' },
-    isIOS && pressed && { opacity: 0.86 },
-  ];
-
   const handleSearchPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSearch();
@@ -108,238 +53,155 @@ export default function HomeHeaderActions({
     openAuthSheet();
   };
 
-  const triggerLightHaptic = () => {
-    Haptics.selectionAsync().catch(() => {});
-  };
-
-  const searchPan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .activeOffsetY([-8, 8])
-    .onStart(() => {
-      runOnJS(triggerLightHaptic)();
-    })
-    .onUpdate((e) => {
-      // Subtle taut magnetic nudge toward the profile circle (up to +7pt) without overlapping
-      const clampedX = Math.max(-2, Math.min(7, e.translationX * 0.28));
-      const clampedY = Math.max(-2, Math.min(2, e.translationY * 0.15));
-      searchTranslateX.value = clampedX;
-      searchTranslateY.value = clampedY;
-    })
-    .onFinalize(() => {
-      searchTranslateX.value = withSpring(0, SPRING_CONFIG);
-      searchTranslateY.value = withSpring(0, SPRING_CONFIG);
-    });
-
-  const profilePan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .activeOffsetY([-8, 8])
-    .onStart(() => {
-      runOnJS(triggerLightHaptic)();
-    })
-    .onUpdate((e) => {
-      // Subtle taut magnetic nudge toward the search circle (up to -7pt) without overlapping
-      const clampedX = Math.max(-7, Math.min(2, e.translationX * 0.28));
-      const clampedY = Math.max(-2, Math.min(2, e.translationY * 0.15));
-      profileTranslateX.value = clampedX;
-      profileTranslateY.value = clampedY;
-    })
-    .onFinalize(() => {
-      profileTranslateX.value = withSpring(0, SPRING_CONFIG);
-      profileTranslateY.value = withSpring(0, SPRING_CONFIG);
-    });
-
-  const searchAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: searchTranslateX.value },
-      { translateY: searchTranslateY.value },
-    ],
-  }));
-
-  const profileAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: profileTranslateX.value },
-      { translateY: profileTranslateY.value },
-    ],
-  }));
-
   const userInitials = user
     ? user.initials || computeUserInitials(user.displayName, user.email)
     : null;
+  const hasAvatarPhoto = Boolean(user?.avatarUrl);
+  const showUnreadDot = Boolean(user && (friendsBadge > 0 || notificationsUnread > 0));
 
   const profileAccessibilityLabel = user
     ? `${t.authAccountTitle}: ${user.displayName || user.email}`
     : `${t.authAccountTitle} · ${t.homeMenu}`;
 
-  const searchButtonNode = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.searchPlaceholder}
-      onPress={handleSearchPress}
-      android_ripple={{ color: theme.primary + '20', borderless: false }}
-      style={circleButtonStyle}
-    >
-      <AppMenuIcon
-        ios="magnifyingglass"
-        android="search"
-        size={24}
-        containerSize={28}
-        scale="large"
-        weight="medium"
-        color={theme.primary}
-      />
-    </Pressable>
-  );
+  const dividerColor = isDarkMode ? 'rgba(255,255,255,0.16)' : 'rgba(60,60,67,0.16)';
+  const badgeRingColor = isDarkMode ? '#010101' : '#FFFFFF';
 
-  const profileButtonNode = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={profileAccessibilityLabel}
-      onPress={handleProfilePress}
-      android_ripple={{ color: theme.primary + '20', borderless: false }}
-      style={circleButtonStyle}
+  return (
+    <GlassSurface
+      refreshKey={glassEpoch}
+      glassEffectStyle="regular"
+      intensity={58}
+      isInteractive
+      style={[
+        styles.capsule,
+        { paddingRight: hasAvatarPhoto ? 0 : 4 },
+        !isIOS && styles.androidCapsule,
+      ]}
     >
-      {user?.avatarUrl ? (
-        <UserAvatar
-          uri={user.avatarUrl}
-          initials={userInitials || ''}
-          size={38}
-          fontSize={14}
-          backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
-          textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
-          borderColor={isDarkMode ? 'rgba(255,255,255,0.22)' : 'rgba(110,22,25,0.20)'}
-          borderWidth={StyleSheet.hairlineWidth}
-        />
-      ) : userInitials ? (
-        <Text
-          style={[
-            styles.classicAvatarInitials,
-            { color: isDarkMode ? '#FDF9F2' : theme.primary },
-          ]}
-        >
-          {userInitials}
-        </Text>
-      ) : (
+      {/* Left slot: Search icon */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.searchPlaceholder}
+        onPress={handleSearchPress}
+        android_ripple={{ color: theme.primary + '20', borderless: false }}
+        style={({ pressed }) => [
+          styles.searchSlot,
+          hasAvatarPhoto && styles.searchSlotWithAvatar,
+          !isIOS && pressed && { backgroundColor: theme.primary + '16' },
+          isIOS && pressed && { opacity: 0.72 },
+        ]}
+      >
         <AppMenuIcon
-          ios="person.crop.circle"
-          android="account-circle"
-          size={24}
-          containerSize={28}
+          ios="magnifyingglass"
+          android="search"
+          size={22}
+          containerSize={26}
           scale="large"
           weight="medium"
           color={theme.primary}
         />
-      )}
-      {user && (friendsBadge > 0 || notificationsUnread > 0) ? (
-        <View
-          pointerEvents="none"
-          style={styles.badgeDot}
-        />
+      </Pressable>
+
+      {/* Subtle hairline divider when no full-bleed photo forms the visual boundary */}
+      {!hasAvatarPhoto ? (
+        <View pointerEvents="none" style={[styles.divider, { backgroundColor: dividerColor }]} />
       ) : null}
-    </Pressable>
-  );
 
-  // iOS 26+ Native UIGlassContainerEffect:
-  // Direct GlassView children inside GlassContainer morph and connect with a Liquid Glass metaball bridge!
-  if (
-    isIOS &&
-    checkLiquidGlassContainer() &&
-    CachedGlassContainer &&
-    CachedAnimatedGlassView
-  ) {
-    const GlassContainerComp = CachedGlassContainer;
-    const AnimatedGlassViewComp = CachedAnimatedGlassView;
-    const scheme = isDarkMode ? 'dark' : 'light';
-
-    return (
-      <GlassContainerComp
-        key={glassEpoch > 0 ? `glass-container-${glassEpoch}` : undefined}
-        spacing={8}
-        style={styles.actionsRow}
+      {/* Right slot: Full-bleed circular profile photo (edge-to-edge) or monogram/icon */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={profileAccessibilityLabel}
+        onPress={handleProfilePress}
+        android_ripple={{ color: theme.primary + '20', borderless: false }}
+        style={({ pressed }) => [
+          hasAvatarPhoto ? styles.avatarPhotoSlot : styles.profileIconSlot,
+          !isIOS && pressed && { backgroundColor: theme.primary + '16' },
+          isIOS && pressed && { opacity: 0.84 },
+        ]}
       >
-        <AnimatedGlassViewComp
-          glassEffectStyle="regular"
-          colorScheme={scheme}
-          isInteractive
-          style={[styles.largeCircle, searchAnimatedStyle]}
-        >
-          <GestureDetector gesture={searchPan}>
-            {searchButtonNode}
-          </GestureDetector>
-        </AnimatedGlassViewComp>
+        {hasAvatarPhoto ? (
+          <UserAvatar
+            uri={user?.avatarUrl}
+            initials={userInitials || ''}
+            size={CAPSULE_HEIGHT}
+            fontSize={15}
+            backgroundColor={isDarkMode ? '#2C2C2E' : '#E5E5EA'}
+            textColor={isDarkMode ? '#FFFFFF' : '#111111'}
+            borderWidth={0}
+          />
+        ) : userInitials ? (
+          <Text
+            style={[
+              styles.classicAvatarInitials,
+              { color: isDarkMode ? '#FDF9F2' : theme.primary },
+            ]}
+          >
+            {userInitials}
+          </Text>
+        ) : (
+          <AppMenuIcon
+            ios="person.crop.circle"
+            android="account-circle"
+            size={22}
+            containerSize={26}
+            scale="large"
+            weight="medium"
+            color={theme.primary}
+          />
+        )}
 
-        <AnimatedGlassViewComp
-          glassEffectStyle="regular"
-          colorScheme={scheme}
-          isInteractive
-          style={[styles.largeCircle, profileAnimatedStyle]}
-        >
-          <GestureDetector gesture={profilePan}>
-            {profileButtonNode}
-          </GestureDetector>
-        </AnimatedGlassViewComp>
-      </GlassContainerComp>
-    );
-  }
-
-  return (
-    <View style={styles.actionsRow}>
-      {/* Left Large Circular Glass Capsule: Search */}
-      <GlassSurface
-        refreshKey={glassEpoch}
-        intensity={58}
-        isInteractive
-        style={[styles.largeCircle, !isIOS && styles.androidCircle]}
-      >
-        {searchButtonNode}
-      </GlassSurface>
-
-      {/* Far-Right Large Circular Glass Capsule: Apple Books Profile / Menu */}
-      <GlassSurface
-        refreshKey={glassEpoch}
-        intensity={58}
-        isInteractive
-        style={[styles.largeCircle, !isIOS && styles.androidCircle]}
-      >
-        {profileButtonNode}
-      </GlassSurface>
-    </View>
+        {showUnreadDot ? (
+          <View
+            pointerEvents="none"
+            style={[
+              hasAvatarPhoto ? styles.badgeDotPhoto : styles.badgeDotIcon,
+              hasAvatarPhoto && { borderColor: badgeRingColor },
+            ]}
+          />
+        ) : null}
+      </Pressable>
+    </GlassSurface>
   );
 }
 
 const styles = StyleSheet.create({
-  actionsRow: {
+  capsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexShrink: 0,
-  },
-  largeCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    height: CAPSULE_HEIGHT,
+    borderRadius: CAPSULE_RADIUS,
     borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingLeft: 4,
     flexShrink: 0,
   },
-  androidCircle: {
-    borderRadius: 23,
-  },
-  circleButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  androidButtonClip: {
+  androidCapsule: {
     overflow: 'hidden',
   },
-  classicAvatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
+  searchSlot: {
+    width: 44,
+    height: CAPSULE_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchSlotWithAvatar: {
+    width: 46,
+    paddingRight: 2,
+  },
+  divider: {
+    width: StyleSheet.hairlineWidth,
+    height: 20,
+    marginHorizontal: 1,
+  },
+  avatarPhotoSlot: {
+    width: CAPSULE_HEIGHT,
+    height: CAPSULE_HEIGHT,
+    borderRadius: CAPSULE_RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileIconSlot: {
+    width: 44,
+    height: CAPSULE_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,7 +212,17 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlign: 'center',
   },
-  badgeDot: {
+  badgeDotPhoto: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    borderWidth: 1.5,
+    backgroundColor: '#D64545',
+  },
+  badgeDotIcon: {
     position: 'absolute',
     top: 7,
     right: 7,
