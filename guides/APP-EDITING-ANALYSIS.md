@@ -1,5 +1,17 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #6 (`2.2.0-sdk58-1`): Near Me Close-Up Above 52% Half-Sheet & Compact Minimalist Playlists Rows (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`7b4ba50`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #6:** Group [`3a83d9ba-4499-49e0-9873-d5fa0f5b6ec0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3a83d9ba-4499-49e0-9873-d5fa0f5b6ec0) · iOS update `01a214d5-0d1b-7c2d-aad3-4a5b3e105f7f`.
+- **What Changed:**
+  - **Near Me & Church Close-Up Framing (`himnario/app/churches.tsx`):** Capped `sheetHalf` at `52%` of screen height so tall church detail cards don't auto-expand near full-screen; replaced `requestNearMe`'s `fitToCoordinates` with shared `animateChurchFocus` (`0.0024` delta / `340m` 3D altitude, delayed `140ms` for `mapPadding.bottom`) so **Near Me**, pin taps, and church header swipes all center an enlarged view of the church cleanly above the half-sheet grabber.
+  - **Compact Minimalist Playlists Rows (`himnario/components/screens/FavoritesScreen.tsx`):** Switched Playlists from giant 2-column cards to sleek compact Apple Music horizontal rows (`54×54` tinted album artwork + title/count + subtle chevron + inset hairlines + matching compact `+ New Playlist` row), preserving `<Link.AppleZoom>` and `<Link.Menu>`.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 27/27 `scripts/test-church-sheet.cjs` passed, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB`, 129 assets).
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #5 (`2.2.0-sdk58-1`): Playlists AppleZoom Card Fix, Moonlitt Map Shade/Scrim Fix, Bottom-Left 3D Placement & 3-Icon Chromatic Swipe Bubble (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`09afd72`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

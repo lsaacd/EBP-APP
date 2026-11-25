@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #6 (`2.2.0-sdk58-1`): Near Me Close-Up Framing Above 52% Half-Sheet & Compact Minimalist Playlists Rows
+
+- **Branch & Source:** `sdk-58` branch (feature commit `7b4ba50`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`3a83d9ba-4499-49e0-9873-d5fa0f5b6ec0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3a83d9ba-4499-49e0-9873-d5fa0f5b6ec0)
+  - **iOS Update ID:** `01a214d5-0d1b-7c2d-aad3-4a5b3e105f7f`
+- **Included Changes:**
+  - **Churches `Near Me` & Church Focus Framing (`app/churches.tsx`):** Capped `sheetHalf` at `52%` of screen height so tall church cards never auto-expand to nearly full-screen (leaving a generous map window above the grabber pill and keeping Apple Maps' `Legal` watermark out of the top bar); replaced `requestNearMe`'s `fitToCoordinates` with shared `animateChurchFocus` so both **Near Me** and pin taps center a closer neighborhood/building enlargement (`0.0024` delta / `340m` 3D altitude) cleanly above the half-sheet grabber.
+  - **Compact Minimalist Playlists Rows (`components/screens/FavoritesScreen.tsx`):** Replaced large 2-column square cards with compact Apple Music Library–style horizontal rows (`54×54` tinted album artwork + bold title/count + subtle chevron + inset hairlines + matching compact `+ New Playlist` row), preserving `<Link.AppleZoom>` transitions and native `<Link.Menu>` long-press actions.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 27/27 `scripts/test-church-sheet.cjs` passed, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB` `.hbc`, 129 assets).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #5 (`2.2.0-sdk58-1`): Playlists AppleZoom Card Fix, Moonlitt Map Shade & Top Scrim Fix, Bottom-Left 3D Placement & 3-Icon Native Swipe Bubble
 
 - **Branch & Source:** `sdk-58` branch (feature commit `09afd72`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
