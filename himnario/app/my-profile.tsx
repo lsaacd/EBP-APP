@@ -39,6 +39,7 @@ import { useFriends } from '../utils/friendsStore';
 import { useNotifications } from '../utils/notificationsStore';
 import CommunityProfile, { type CommunitySubPage } from '../components/CommunityProfile';
 import MyProfileOverview from '../components/screens/MyProfileOverview';
+import ProfileSubPages, { type NativeProfileSubPage } from '../components/screens/ProfileSubPages';
 import AppMenuIcon from '../components/AppMenuIcon';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
 import * as Haptics from '../utils/haptics';
@@ -184,8 +185,8 @@ export default function MyProfileScreen() {
     );
   }
 
-  const bg = isDarkMode ? '#010101' : '#fcf9f2';
-  const cardBg = isDarkMode ? '#1A1A1D' : '#FFFFFF';
+  const bg = isDarkMode ? '#010101' : isIOS ? '#F2F2F7' : '#fcf9f2';
+  const cardBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant + '55';
   const mutedText = isDarkMode ? 'rgba(235,235,245,0.62)' : theme.onSurfaceVariant;
   const divider = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant + '60';
@@ -210,15 +211,23 @@ export default function MyProfileScreen() {
     moderation: t.profileModeration,
   };
 
-  const useNativeIOSOverview = isIOS && section === 'overview' && Boolean(getExpoSwiftUI());
+  const hasSwiftUI = isIOS && Boolean(getExpoSwiftUI());
+  const useNativeIOSOverview = hasSwiftUI && section === 'overview';
+  const isNativeSubPage =
+    hasSwiftUI &&
+    (section === 'ministry' ||
+      section === 'choir' ||
+      section === 'church-location' ||
+      section === 'account-edit' ||
+      section === 'blocks');
   const headerAccent = isDarkMode ? '#ffffff' : theme.primary;
 
   const screenHeaderConfig = (
     <Stack.Screen
       options={{
         title: sectionTitleMap[section],
-        headerLargeTitle: isIOS && section === 'overview',
-        headerLargeTitleEnabled: isIOS && section === 'overview',
+        headerLargeTitle: false,
+        headerLargeTitleEnabled: false,
         headerRight:
           isIOS && section === 'overview'
             ? () => (
@@ -254,13 +263,33 @@ export default function MyProfileScreen() {
     />
   );
 
-  // Return SwiftUI Host directly without wrapper Views so UIKit binds large-title collapse cleanly.
+  // Return SwiftUI Host directly without wrapper Views so UIKit binds soft scroll-under blur cleanly.
   if (useNativeIOSOverview) {
     return (
       <>
         {screenHeaderConfig}
         <MyProfileOverview
           onOpenSection={openSection}
+          onConfirmDeleteAccount={handleConfirmDeleteAccount}
+        />
+      </>
+    );
+  }
+
+  if (isNativeSubPage) {
+    return (
+      <>
+        {screenHeaderConfig}
+        <ProfileSubPages
+          section={section as NativeProfileSubPage}
+          onBack={handleBack}
+          onOpenChurchesMap={() => {
+            router.push(
+              (user.churchId
+                ? `/churches?id=${encodeURIComponent(user.churchId)}`
+                : '/churches') as any,
+            );
+          }}
           onConfirmDeleteAccount={handleConfirmDeleteAccount}
         />
       </>

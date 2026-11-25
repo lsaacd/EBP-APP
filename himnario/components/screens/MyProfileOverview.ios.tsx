@@ -1,17 +1,18 @@
 /**
- * MyProfileOverview (iOS 26 Native SwiftUI Form) — Modeled after Inkigo's `Profile.ios.tsx`.
+ * MyProfileOverview (iOS 26 Native SwiftUI Form) — Modeled after Oyelo & Inkigo's Form UI.
  *
  * Uses @expo/ui/swift-ui `Form`, `Section`, `LabeledContent`, `Label`, `Button`,
- * `Image`, `Spacer`, and `refreshable` pull-to-refresh inside an inset-grouped
- * iOS 26 layout while keeping all EBP App rules intact (churchDisplayName,
- * choirDisplayName, cross-free SF Symbols, and LanguageContext strings).
+ * `Image`, `Spacer`, `Circle`, `ZStack`, and `refreshable` pull-to-refresh inside an
+ * inset-grouped iOS 26 layout with compact top margins, soft progressive scroll-under
+ * blur, full-row hit testing (`contentShape`), cross-free SF Symbols, Sacred Ink
+ * Light/Dark tokens, and a dedicated Administration section for admin access.
  */
 import React from 'react';
 import { useRouter } from 'expo-router';
 import * as Haptics from '../../utils/haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, computeUserInitials } from '../../context/AuthContext';
 import { useFavorites } from '../../context/FavoritesContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
 import { useNowPlaying } from '../../context/NowPlayingContext';
@@ -50,6 +51,7 @@ export default function MyProfileOverviewIOS({
 
   const {
     Button,
+    Circle,
     Form,
     Host,
     HStack,
@@ -60,27 +62,39 @@ export default function MyProfileOverviewIOS({
     Spacer,
     Text,
     VStack,
+    ZStack,
   } = swiftUI.ui;
 
   const {
+    contentShape,
     font,
     foregroundStyle,
+    frame,
+    lineLimit,
+    listSectionMargins,
+    listSectionSpacing,
     monospacedDigit,
     padding,
     refreshable,
+    scrollEdgeEffectStyle,
+    shapes,
     tint,
+    truncationMode,
   } = swiftUI.modifiers;
 
   const es = language !== 'en';
   const scheme = isDarkMode ? 'dark' : 'light';
-  const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const accentTint = isDarkMode ? '#fdf9f2' : theme.primary;
   const symbolTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
+  const avatarText = isDarkMode ? '#1A1A1A' : '#FFFFFF';
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
   const hasMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
 
   const displayName = user.displayName || user.email.split('@')[0];
+  const initials = user.initials || computeUserInitials(user.displayName, user.email);
   const ministryLabel =
     (user.ministry &&
       (MINISTRIES as Record<string, [string, string]>)[user.ministry]?.[es ? 0 : 1]) ||
@@ -108,7 +122,11 @@ export default function MyProfileOverviewIOS({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await signOut();
-      router.dismissTo('/(tabs)/home');
+      if (router.canDismiss()) {
+        router.dismissTo('/(tabs)/home');
+      } else {
+        router.navigate('/(tabs)/home' as any);
+      }
     } catch {
       // AuthContext handles error state
     }
@@ -136,7 +154,11 @@ export default function MyProfileOverviewIOS({
         onPress();
       }}
     >
-      <HStack alignment="center" spacing={8}>
+      <HStack
+        alignment="center"
+        spacing={8}
+        modifiers={[contentShape(shapes.rectangle())]}
+      >
         <Label
           title={title}
           icon={
@@ -154,6 +176,8 @@ export default function MyProfileOverviewIOS({
               foregroundStyle(
                 highlightDetail ? { type: 'color', color: '#D64545' } : secondaryStyle,
               ),
+              lineLimit(1),
+              truncationMode('tail'),
             ]}
           >
             {detail}
@@ -166,25 +190,78 @@ export default function MyProfileOverviewIOS({
 
   return (
     <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
-      <Form modifiers={[refreshable(handleRefresh), tint(symbolTint)]}>
-        {/* ─── Account (Inkigo Profile Style) ─── */}
-        <Section title={t.authAccountTitle}>
-          <LabeledContent label={t.authNameLabel}>
-            <HStack alignment="center" spacing={6}>
-              <Text>{displayName}</Text>
-              {user.badgeVerified && user.ministry === 'obispo' ? (
-                <SwiftUIImage
-                  systemName="checkmark.seal.fill"
-                  size={15}
-                  color={accentTint}
+      <Form
+        modifiers={[
+          refreshable(handleRefresh),
+          tint(symbolTint),
+          listSectionSpacing('compact'),
+          scrollEdgeEffectStyle('soft', 'all'),
+        ]}
+      >
+        {/* ─── Compact Identity Header Card ─── */}
+        <Section modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}>
+          <Button
+            modifiers={[foregroundStyle(primaryStyle)]}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              onOpenSection('account-edit');
+            }}
+          >
+            <HStack
+              alignment="center"
+              spacing={14}
+              modifiers={[contentShape(shapes.rectangle())]}
+            >
+              <ZStack alignment="center">
+                <Circle
+                  modifiers={[
+                    foregroundStyle(avatarBg),
+                    frame({ width: 52, height: 52 }),
+                  ]}
                 />
-              ) : null}
+                <Text
+                  modifiers={[
+                    font({ size: 19, weight: 'bold' }),
+                    foregroundStyle(avatarText),
+                  ]}
+                >
+                  {initials}
+                </Text>
+              </ZStack>
+              <VStack alignment="leading" spacing={3}>
+                <HStack alignment="center" spacing={6}>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'headline', weight: 'semibold' }),
+                      lineLimit(1),
+                      truncationMode('tail'),
+                    ]}
+                  >
+                    {displayName}
+                  </Text>
+                  {user.badgeVerified && user.ministry === 'obispo' ? (
+                    <SwiftUIImage
+                      systemName="checkmark.seal.fill"
+                      size={15}
+                      modifiers={[foregroundStyle({ type: 'color', color: accentTint })]}
+                    />
+                  ) : null}
+                </HStack>
+                <Text
+                  modifiers={[
+                    font({ textStyle: 'footnote' }),
+                    foregroundStyle(secondaryStyle),
+                    lineLimit(1),
+                    truncationMode('tail'),
+                  ]}
+                >
+                  {user.email}
+                </Text>
+              </VStack>
+              <Spacer />
+              {chevron}
             </HStack>
-          </LabeledContent>
-
-          <LabeledContent label={t.authEmailLabel}>
-            <Text modifiers={[foregroundStyle(secondaryStyle)]}>{user.email}</Text>
-          </LabeledContent>
+          </Button>
 
           <LabeledContent label={t.accountStatus}>
             <Text
@@ -205,8 +282,6 @@ export default function MyProfileOverviewIOS({
               {`${favoriteIds.length} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`}
             </Text>
           </LabeledContent>
-
-          {navRow(t.editProfileAction, 'pencil', null, () => onOpenSection('account-edit'))}
 
           {!user.emailVerified
             ? navRow(
@@ -253,12 +328,19 @@ export default function MyProfileOverviewIOS({
             );
           })}
           {navRow(t.profileBlocked, 'hand.raised', null, () => onOpenSection('blocks'))}
-          {isAdmin
-            ? navRow(t.profileModeration, 'shield', null, () =>
-                onOpenSection('moderation'),
-              )
-            : null}
         </Section>
+
+        {/* ─── Dedicated Admin Section (strictly gated for Admin) ─── */}
+        {isAdmin ? (
+          <Section title={t.adminSectionTitle}>
+            {navRow(
+              t.profileModeration,
+              'shield.lefthalf.filled',
+              null,
+              () => onOpenSection('moderation'),
+            )}
+          </Section>
+        ) : null}
 
         {/* ─── Session ─── */}
         <Section>
@@ -266,15 +348,22 @@ export default function MyProfileOverviewIOS({
             modifiers={[foregroundStyle(primaryStyle)]}
             onPress={() => void handleSignOut()}
           >
-            <Label
-              title={t.authSignOut}
-              icon={
-                <SwiftUIImage
-                  systemName="rectangle.portrait.and.arrow.right"
-                  modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
-                />
-              }
-            />
+            <HStack
+              alignment="center"
+              spacing={10}
+              modifiers={[contentShape(shapes.rectangle())]}
+            >
+              <Label
+                title={t.authSignOut}
+                icon={
+                  <SwiftUIImage
+                    systemName="rectangle.portrait.and.arrow.right"
+                    modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+                  />
+                }
+              />
+              <Spacer />
+            </HStack>
           </Button>
         </Section>
 

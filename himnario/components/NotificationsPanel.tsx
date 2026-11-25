@@ -72,10 +72,10 @@ export default function NotificationsPanel({
     void getPushPermissionStatus().then(setPushStatus);
   }, [refresh]);
 
-  const cardBg = isDarkMode ? '#222225' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '50';
-  const mutedText = isDarkMode ? 'rgba(235,235,245,0.58)' : theme.onSurfaceVariant;
-  const divider = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant;
+  const cardBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(60,60,67,0.08)';
+  const mutedText = isDarkMode ? 'rgba(235,235,245,0.60)' : theme.onSurfaceVariant;
+  const divider = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(60,60,67,0.12)';
 
   const handleEnablePush = async () => {
     if (enablingPush) return;
@@ -166,7 +166,7 @@ export default function NotificationsPanel({
         onValueChange={(next) => saveSwitch(key, next)}
         trackColor={{
           false: isDarkMode ? 'rgba(255,255,255,0.16)' : theme.outlineVariant,
-          true: isDarkMode ? '#8d2d2d' : theme.primary,
+          true: isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary,
         }}
         thumbColor="#ffffff"
       />
@@ -181,13 +181,13 @@ export default function NotificationsPanel({
           <View
             style={[
               styles.pushIconWrap,
-              { backgroundColor: isDarkMode ? 'rgba(181,69,69,0.22)' : theme.primary + '14' },
+              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.10)' : theme.primary + '14' },
             ]}
           >
             <AppMenuIcon
               ios="bell.badge.fill"
               android="notifications-active"
-              color={isDarkMode ? '#F0A8A8' : theme.primary}
+              color={isDarkMode ? '#fdf9f2' : theme.primary}
               size={20}
             />
           </View>
@@ -205,7 +205,7 @@ export default function NotificationsPanel({
             onPress={() => void handleEnablePush()}
             style={({ pressed }) => ({
               backgroundColor: theme.primary,
-              borderRadius: 12,
+              borderRadius: 999,
               paddingHorizontal: 14,
               paddingVertical: 8,
               opacity: enablingPush ? 0.6 : pressed ? 0.85 : 1,
@@ -289,7 +289,7 @@ export default function NotificationsPanel({
                       styles.row,
                       !item.read && {
                         backgroundColor: isDarkMode
-                          ? 'rgba(181,69,69,0.10)'
+                          ? 'rgba(255,255,255,0.05)'
                           : theme.primary + '0A',
                       },
                       pressed && {
@@ -423,7 +423,7 @@ export default function NotificationsPanel({
 
 const styles = StyleSheet.create({
   sectionHeader: { ...fonts.sansSemiBold, fontSize: 12, letterSpacing: 0.9, paddingHorizontal: 14 },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  card: { borderRadius: 20, borderCurve: 'continuous', borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   emptyCard: { padding: 24, alignItems: 'center', gap: 8 },
   pushBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   pushIconWrap: {

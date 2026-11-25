@@ -199,6 +199,7 @@ export default function AuthSheetSwiftUI({
     autocorrectionDisabled,
     buttonBorderShape,
     buttonStyle,
+    contentShape,
     controlSize,
     disabled,
     font,
@@ -206,8 +207,10 @@ export default function AuthSheetSwiftUI({
     frame,
     keyboardType,
     labelStyle,
+    lineLimit,
     listRowBackground,
     listRowInsets,
+    listSectionMargins,
     listSectionSpacing,
     navigationBarTitleDisplayMode,
     navigationTitle,
@@ -218,11 +221,13 @@ export default function AuthSheetSwiftUI({
     presentationDragIndicator,
     scrollDismissesKeyboard,
     scrollEdgeEffectStyle,
+    shapes,
     submitLabel,
     tag,
     textContentType,
     textInputAutocapitalization,
     tint,
+    truncationMode,
   } = swiftUI.modifiers;
 
   const scheme = isDarkMode ? 'dark' : 'light';
@@ -322,7 +327,11 @@ export default function AuthSheetSwiftUI({
       modifiers={[foregroundStyle(primaryStyle)]}
       onPress={onPress}
     >
-      <HStack alignment="center" spacing={10}>
+      <HStack
+        alignment="center"
+        spacing={10}
+        modifiers={[contentShape(shapes.rectangle())]}
+      >
         <Label title={title} icon={renderTintedIcon(systemImage)} />
         <Spacer />
         {rightValue ? (
@@ -330,6 +339,7 @@ export default function AuthSheetSwiftUI({
             modifiers={[
               font({ textStyle: 'subheadline' }),
               foregroundStyle(secondaryStyle),
+              lineLimit(1),
             ]}
           >
             {rightValue}
@@ -371,12 +381,16 @@ export default function AuthSheetSwiftUI({
           {user ? (
             <>
               {/* ── Account Identity Card ── */}
-              <Section>
+              <Section modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}>
                 <Button
                   modifiers={[foregroundStyle(primaryStyle)]}
                   onPress={onOpenMyProfile}
                 >
-                  <HStack alignment="center" spacing={14}>
+                  <HStack
+                    alignment="center"
+                    spacing={14}
+                    modifiers={[contentShape(shapes.rectangle())]}
+                  >
                     <ZStack alignment="center">
                       <Circle
                         modifiers={[
@@ -397,6 +411,8 @@ export default function AuthSheetSwiftUI({
                       <Text
                         modifiers={[
                           font({ textStyle: 'body', weight: 'semibold' }),
+                          lineLimit(1),
+                          truncationMode('tail'),
                         ]}
                       >
                         {user.displayName || user.email.split('@')[0]}
@@ -405,6 +421,8 @@ export default function AuthSheetSwiftUI({
                         modifiers={[
                           font({ textStyle: 'footnote' }),
                           foregroundStyle(secondaryStyle),
+                          lineLimit(1),
+                          truncationMode('tail'),
                         ]}
                       >
                         {user.email}
@@ -430,7 +448,11 @@ export default function AuthSheetSwiftUI({
                     modifiers={[foregroundStyle(primaryStyle)]}
                     onPress={onOpenMyProfile}
                   >
-                    <HStack alignment="center" spacing={10}>
+                    <HStack
+                      alignment="center"
+                      spacing={10}
+                      modifiers={[contentShape(shapes.rectangle())]}
+                    >
                       <Label
                         title={t.authEmailUnverified}
                         systemImage="envelope.badge"
@@ -457,7 +479,11 @@ export default function AuthSheetSwiftUI({
                   modifiers={[foregroundStyle(primaryStyle), disabled(isSyncing)]}
                   onPress={onSyncNow}
                 >
-                  <HStack alignment="center" spacing={10}>
+                  <HStack
+                    alignment="center"
+                    spacing={10}
+                    modifiers={[contentShape(shapes.rectangle())]}
+                  >
                     <Label title={t.accountSync} icon={renderTintedIcon('arrow.clockwise.icloud')} />
                     <Spacer />
                     <Text
@@ -502,10 +528,11 @@ export default function AuthSheetSwiftUI({
             </>
           ) : (
             <>
-              {/* ── Floating Chromatic Liquid Glass Mode Switcher (no outer white box) ── */}
+              {/* ── Floating Chromatic Liquid Glass Mode Switcher (tight at top, no outer white box) ── */}
               {mode !== 'recovery' ? (
                 <Section
-                  footer={<Text>{t.authSyncSubtitle}</Text>}
+                  modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}
+                  footer={mode === 'register' ? <Text>{t.authSyncSubtitle}</Text> : undefined}
                 >
                   <Picker
                     label={t.authSignIn}
@@ -518,7 +545,7 @@ export default function AuthSheetSwiftUI({
                     modifiers={[
                       pickerStyle('segmented'),
                       listRowBackground('clear'),
-                      listRowInsets({ top: 4, leading: 0, bottom: 4, trailing: 0 }),
+                      listRowInsets({ top: 0, leading: 0, bottom: 2, trailing: 0 }),
                     ]}
                   >
                     <Text modifiers={[tag('login')]}>{t.authSignIn}</Text>
@@ -526,7 +553,10 @@ export default function AuthSheetSwiftUI({
                   </Picker>
                 </Section>
               ) : (
-                <Section footer={<Text>{t.authRecoveryHelp}</Text>}>
+                <Section
+                  modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}
+                  footer={<Text>{t.authRecoveryHelp}</Text>}
+                >
                   <Button
                     modifiers={[foregroundStyle(accentTextColor)]}
                     onPress={() => onChangeMode('login')}

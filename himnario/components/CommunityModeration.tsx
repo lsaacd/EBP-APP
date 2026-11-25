@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   Image,
+  Platform,
   ScrollView,
   Linking,
   StyleSheet,
@@ -20,6 +21,7 @@ import { useApprovedChoirs } from "../utils/choirsStore";
 import * as Haptics from "../utils/haptics";
 import { AnimatedField } from "./AnimatedField";
 import AppMenuIcon from "./AppMenuIcon";
+import { getExpoSwiftUI } from "../utils/expoSwiftUI";
 import { fonts } from "../theme/theme";
 type Report = {
   id: string;
@@ -159,6 +161,23 @@ export default function CommunityModeration({
     }
   }, [alwaysExpanded, isAdmin]);
   if (!isAdmin) return null;
+  const swiftUI = Platform.OS === "ios" ? getExpoSwiftUI() : null;
+  const cardSurface = isDarkMode ? "#1C1C1E" : "#FFFFFF";
+  const cardStroke = isDarkMode ? "rgba(255,255,255,0.09)" : "rgba(60,60,67,0.09)";
+  const pendingChurchesCount = churches.filter((c) => c.status === "pending").length;
+  const pendingChoirsCount = modChoirs.filter((c) => c.status === "pending").length;
+
+  const selectModTab = (key: "reports" | "members" | "choirs" | "churches") => {
+    Haptics.selectionAsync().catch(() => {});
+    setTab(key);
+    if (key === "churches" && churches.length === 0) {
+      void run(() => loadChurches());
+    }
+    if (key === "choirs" && modChoirs.length === 0) {
+      void run(() => loadChoirs());
+    }
+  };
+
   const button = (
     text: string,
     action: () => Promise<void>,
@@ -166,11 +185,17 @@ export default function CommunityModeration({
   ) => (
     <Pressable
       disabled={busy}
-      style={[
+      style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: theme.surfaceVariants.containerHighest,
-          opacity: busy ? 0.5 : 1,
+          backgroundColor: danger
+            ? isDarkMode
+              ? "rgba(255, 85, 85, 0.16)"
+              : "rgba(214, 69, 69, 0.11)"
+            : isDarkMode
+              ? "rgba(255,255,255,0.10)"
+              : theme.primary + "12",
+          opacity: busy ? 0.5 : pressed ? 0.78 : 1,
         },
       ]}
       onPress={() => {
@@ -193,7 +218,22 @@ export default function CommunityModeration({
         else void run(action);
       }}
     >
-      <Text style={{ color: theme.primary }}>{text}</Text>
+      <Text
+        style={{
+          color: danger
+            ? isDarkMode
+              ? "#FF6B6B"
+              : "#C93535"
+            : isDarkMode
+              ? "#fdf9f2"
+              : theme.primary,
+          ...fonts.sansSemiBold,
+          fontSize: 13.5,
+          textAlign: "center",
+        }}
+      >
+        {text}
+      </Text>
     </Pressable>
   );
   const input = (
@@ -213,12 +253,16 @@ export default function CommunityModeration({
       multiline={multiline}
       style={[
         styles.input,
-        { color: theme.onSurface, borderColor: theme.outlineVariant },
+        {
+          color: theme.onSurface,
+          backgroundColor: cardSurface,
+          borderColor: cardStroke,
+        },
       ]}
     />
   );
   return (
-    <View style={[styles.root, !alwaysExpanded && { borderColor: theme.outlineVariant, borderWidth: 1, borderRadius: 14, padding: 12 }]}>
+    <View style={[styles.root, !alwaysExpanded && { borderColor: cardStroke, backgroundColor: cardSurface, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, padding: 14 }]}>
       {!alwaysExpanded && (
         <Pressable
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 }}
@@ -242,57 +286,162 @@ export default function CommunityModeration({
       )}
       {(alwaysExpanded || expanded) && (
         <>
-          <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
+          {/* Live Pending Summary Strip */}
+          <View style={styles.summaryStrip}>
             {(
               [
-                ["reports", l(`Reports (${reports.length})`, `Reportes (${reports.length})`)],
-                ["churches", l(`Churches (${churches.filter((c) => c.status === "pending").length})`, `Iglesias (${churches.filter((c) => c.status === "pending").length})`)],
-                ["members", l("Members", "Miembros")],
-                [
-                  "choirs",
-                  (() => {
-                    const n = modChoirs.filter((c) => c.status === "pending").length;
-                    return n > 0 ? l(`Choirs (${n})`, `Coros (${n})`) : l("Choirs", "Coros");
-                  })(),
-                ],
-              ] as const
-            ).map(([key, labelText]) => {
-              const active = tab === key;
+                {
+                  key: "reports" as const,
+                  icon: "flag.fill" as const,
+                  androidIcon: "flag" as const,
+                  label: l("Reports", "Reportes"),
+                  count: reports.length,
+                },
+                {
+                  key: "churches" as const,
+                  icon: "building.columns.fill" as const,
+                  androidIcon: "account-balance" as const,
+                  label: l("Churches", "Iglesias"),
+                  count: pendingChurchesCount,
+                },
+                {
+                  key: "choirs" as const,
+                  icon: "music.note.list" as const,
+                  androidIcon: "queue-music" as const,
+                  label: l("Choirs", "Coros"),
+                  count: pendingChoirsCount,
+                },
+              ]
+            ).map((stat) => {
+              const active = tab === stat.key;
               return (
                 <Pressable
-                  key={key}
-                  onPress={() => {
-                    setTab(key);
-                    if (key === "churches" && churches.length === 0) {
-                      void run(() => loadChurches());
-                    }
-                    if (key === "choirs" && modChoirs.length === 0) {
-                      void run(() => loadChoirs());
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    alignItems: "center",
-                    backgroundColor: active
-                      ? theme.primary
-                      : theme.surfaceVariants.containerHigh,
-                  }}
+                  key={stat.key}
+                  accessibilityRole="button"
+                  onPress={() => selectModTab(stat.key)}
+                  style={({ pressed }) => [
+                    styles.summaryCard,
+                    {
+                      backgroundColor: cardSurface,
+                      borderColor: active
+                        ? isDarkMode
+                          ? "rgba(253,249,242,0.35)"
+                          : theme.primary + "55"
+                        : cardStroke,
+                      opacity: pressed ? 0.8 : 1,
+                    },
+                  ]}
                 >
+                  <AppMenuIcon
+                    ios={stat.icon}
+                    android={stat.androidIcon}
+                    color={stat.count > 0 ? "#D64545" : isDarkMode ? "#fdf9f2" : theme.primary}
+                    size={15}
+                  />
                   <Text
                     style={{
-                      color: active ? theme.onPrimary : theme.onSurface,
-                      ...fonts.sansSemiBold,
-                      fontSize: 12,
+                      ...fonts.sansBold,
+                      fontSize: 16,
+                      color: stat.count > 0 ? "#D64545" : theme.onSurface,
                     }}
                   >
-                    {labelText}
+                    {stat.count}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      ...fonts.sansMedium,
+                      fontSize: 11,
+                      color: theme.onSurfaceVariant,
+                    }}
+                  >
+                    {stat.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
+
+          {/* Native iOS 26 Chromatic Liquid Glass Segmented Control (Android/Web fallback below) */}
+          {swiftUI ? (
+            <swiftUI.ui.Host
+              colorScheme={isDarkMode ? "dark" : "light"}
+              seedColor={theme.primary}
+              style={{ height: 38, width: "100%" }}
+            >
+              <swiftUI.ui.Picker
+                label={t.profileModeration}
+                selection={tab}
+                onSelectionChange={(next) => {
+                  if (
+                    next === "reports" ||
+                    next === "churches" ||
+                    next === "members" ||
+                    next === "choirs"
+                  ) {
+                    selectModTab(next);
+                  }
+                }}
+                modifiers={[swiftUI.modifiers.pickerStyle("segmented")]}
+              >
+                <swiftUI.ui.Text modifiers={[swiftUI.modifiers.tag("reports")]}>
+                  {l("Reports", "Reportes")}
+                </swiftUI.ui.Text>
+                <swiftUI.ui.Text modifiers={[swiftUI.modifiers.tag("churches")]}>
+                  {l("Churches", "Iglesias")}
+                </swiftUI.ui.Text>
+                <swiftUI.ui.Text modifiers={[swiftUI.modifiers.tag("members")]}>
+                  {l("Members", "Miembros")}
+                </swiftUI.ui.Text>
+                <swiftUI.ui.Text modifiers={[swiftUI.modifiers.tag("choirs")]}>
+                  {l("Choirs", "Coros")}
+                </swiftUI.ui.Text>
+              </swiftUI.ui.Picker>
+            </swiftUI.ui.Host>
+          ) : (
+            <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
+              {(
+                [
+                  ["reports", l(`Reports (${reports.length})`, `Reportes (${reports.length})`)],
+                  ["churches", l(`Churches (${pendingChurchesCount})`, `Iglesias (${pendingChurchesCount})`)],
+                  ["members", l("Members", "Miembros")],
+                  [
+                    "choirs",
+                    pendingChoirsCount > 0
+                      ? l(`Choirs (${pendingChoirsCount})`, `Coros (${pendingChoirsCount})`)
+                      : l("Choirs", "Coros"),
+                  ],
+                ] as const
+              ).map(([key, labelText]) => {
+                const active = tab === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => selectModTab(key)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      backgroundColor: active
+                        ? theme.primary
+                        : theme.surfaceVariants.containerHigh,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: active ? theme.onPrimary : theme.onSurface,
+                        ...fonts.sansSemiBold,
+                        fontSize: 12,
+                      }}
+                    >
+                      {labelText}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
           {tab === "reports" && (
             <>
               <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>
@@ -310,7 +459,7 @@ export default function CommunityModeration({
           {reports.map((r) => (
             <View
               key={r.id}
-              style={[styles.card, { borderColor: theme.outlineVariant }]}
+              style={[styles.card, { backgroundColor: cardSurface, borderColor: cardStroke }]}
             >
               <Text
                 style={{
@@ -382,7 +531,7 @@ export default function CommunityModeration({
           {people.map((p) => (
             <View
               key={p.id}
-              style={[styles.card, { borderColor: theme.outlineVariant }]}
+              style={[styles.card, { backgroundColor: cardSurface, borderColor: cardStroke }]}
             >
               <Text style={{ color: theme.onSurface }}>
                 {p.name} · {p.ministry || "—"}{" "}
@@ -509,8 +658,8 @@ export default function CommunityModeration({
                         style={[
                           styles.card,
                           {
-                            borderColor: theme.outlineVariant,
-                            backgroundColor: theme.surfaceVariants.containerLow,
+                            borderColor: cardStroke,
+                            backgroundColor: cardSurface,
                           },
                         ]}
                       >
@@ -618,15 +767,13 @@ export default function CommunityModeration({
                 {t.choirPublishedListTitle}
               </Text>
               <View
-                style={[
-                  styles.groupedFieldsCard,
-                  {
-                    backgroundColor: theme.surfaceVariants.containerLowest,
-                    borderColor: isDarkMode
-                      ? "rgba(255,255,255,0.12)"
-                      : theme.outlineVariant + "60",
-                  },
-                ]}
+                  style={[
+                    styles.groupedFieldsCard,
+                    {
+                      backgroundColor: cardSurface,
+                      borderColor: cardStroke,
+                    },
+                  ]}
               >
                 {(modChoirs.filter((c) => c.status === "approved").length > 0
                   ? modChoirs.filter((c) => c.status === "approved")
@@ -880,15 +1027,13 @@ export default function CommunityModeration({
               </View>
 
               <View
-                style={[
-                  styles.groupedFieldsCard,
-                  {
-                    backgroundColor: theme.surfaceVariants.containerLowest,
-                    borderColor: isDarkMode
-                      ? "rgba(255,255,255,0.12)"
-                      : theme.outlineVariant + "60",
-                  },
-                ]}
+                  style={[
+                    styles.groupedFieldsCard,
+                    {
+                      backgroundColor: cardSurface,
+                      borderColor: cardStroke,
+                    },
+                  ]}
               >
                 <AnimatedField
                   grouped
@@ -951,7 +1096,7 @@ export default function CommunityModeration({
               {churches.map((c) => (
                 <View
                   key={c.id}
-                  style={[styles.card, { borderColor: theme.outlineVariant }]}
+                  style={[styles.card, { backgroundColor: cardSurface, borderColor: cardStroke }]}
                 >
                   <Text
                     style={{
@@ -1214,23 +1359,48 @@ export default function CommunityModeration({
   );
 }
 const styles = StyleSheet.create({
-  root: { gap: 10 },
-  heading: { ...fonts.sansSemiBold, fontSize: 17 },
-  button: {
-    minHeight: 44,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 16 },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
-    padding: 12,
+  root: { gap: 14 },
+  summaryStrip: {
+    flexDirection: "row",
     gap: 8,
   },
-  groupedFieldsCard: {
+  summaryCard: {
+    flex: 1,
+    borderRadius: 16,
+    borderCurve: "continuous",
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 3,
+  },
+  heading: { ...fonts.sansSemiBold, fontSize: 17 },
+  button: {
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  input: {
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
+    borderCurve: "continuous",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  card: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
+    borderCurve: "continuous",
+    padding: 14,
+    gap: 10,
+  },
+  groupedFieldsCard: {
+    borderRadius: 18,
+    borderCurve: "continuous",
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
@@ -1238,9 +1408,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderCurve: "continuous",
     borderWidth: 1,
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

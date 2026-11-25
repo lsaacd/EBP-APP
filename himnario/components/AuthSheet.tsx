@@ -134,6 +134,7 @@ export function AuthSheet({
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const pendingPostCloseRef = useRef<'settings' | 'churches' | 'scan-qr' | 'share-app' | 'share-app-page' | 'help-page' | 'reopen-auth' | 'hymn' | 'member' | 'my-profile' | 'home' | null>(null);
+  const postCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHymnIdRef = useRef<string | null>(null);
   const pendingMemberIdRef = useRef<string | null>(null);
 
@@ -282,6 +283,7 @@ export function AuthSheet({
   const onOpenShareAppRef = useRef(onOpenShareApp);
   const onCloseRef = useRef(onClose);
   const openAuthSheetRef = useRef(openAuthSheet);
+  const routerRef = useRef(router);
 
   useEffect(() => {
     userChurchIdRef.current = user?.churchId ?? null;
@@ -290,33 +292,48 @@ export function AuthSheet({
     onOpenShareAppRef.current = onOpenShareApp;
     onCloseRef.current = onClose;
     openAuthSheetRef.current = openAuthSheet;
-  }, [currentPathname, onChurchesScreen, onClose, onOpenShareApp, openAuthSheet, user?.churchId]);
+    routerRef.current = router;
+  }, [currentPathname, onChurchesScreen, onClose, onOpenShareApp, openAuthSheet, router, user?.churchId]);
+
+  useEffect(() => {
+    return () => {
+      if (postCloseTimerRef.current) {
+        clearTimeout(postCloseTimerRef.current);
+        postCloseTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const runPendingPostClose = useCallback(() => {
+    if (postCloseTimerRef.current) {
+      clearTimeout(postCloseTimerRef.current);
+      postCloseTimerRef.current = null;
+    }
     const nextAction = pendingPostCloseRef.current;
     pendingPostCloseRef.current = null;
     if (!nextAction) return;
+    const nav = routerRef.current || globalRouter;
     const churchId = userChurchIdRef.current;
     if (nextAction === 'settings') {
-      globalRouter.navigate('/(tabs)/settings');
+      nav.navigate('/(tabs)/settings' as any);
     } else if (nextAction === 'churches') {
       // Already on the map (e.g. this sheet was opened from it): closing the
       // sheet is enough. Pushing again would stack a second map screen.
       if (!onChurchesScreenRef.current) {
-        globalRouter.push((churchId ? `/churches?id=${encodeURIComponent(churchId)}` : '/churches') as any);
+        nav.push((churchId ? `/churches?id=${encodeURIComponent(churchId)}` : '/churches') as any);
       }
     } else if (nextAction === 'scan-qr') {
-      if (onChurchesScreenRef.current) globalRouter.replace('/churches?scan=1' as any);
-      else globalRouter.push('/churches?scan=1' as any);
+      if (onChurchesScreenRef.current) nav.replace('/churches?scan=1' as any);
+      else nav.push('/churches?scan=1' as any);
     } else if (nextAction === 'share-app' && onOpenShareAppRef.current) {
       onOpenShareAppRef.current();
     } else if (nextAction === 'share-app-page') {
-      globalRouter.push({
+      nav.push({
         pathname: '/auth-sheet',
         params: { page: 'share-app', from: currentPathnameRef.current },
       } as any);
     } else if (nextAction === 'help-page') {
-      globalRouter.push({
+      nav.push({
         pathname: '/auth-sheet',
         params: { page: 'help', from: currentPathnameRef.current },
       } as any);
@@ -325,18 +342,18 @@ export function AuthSheet({
     } else if (nextAction === 'hymn' && pendingHymnIdRef.current) {
       const hymnId = pendingHymnIdRef.current;
       pendingHymnIdRef.current = null;
-      globalRouter.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+      nav.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
     } else if (nextAction === 'member' && pendingMemberIdRef.current) {
       const memberId = pendingMemberIdRef.current;
       pendingMemberIdRef.current = null;
-      globalRouter.push(`/member/${encodeURIComponent(memberId)}` as any);
+      nav.push(`/member/${encodeURIComponent(memberId)}` as any);
     } else if (nextAction === 'my-profile') {
-      globalRouter.push('/my-profile' as any);
+      nav.push('/my-profile' as any);
     } else if (nextAction === 'home') {
-      if (globalRouter.canDismiss()) {
-        globalRouter.dismissTo('/(tabs)/home');
+      if (nav.canDismiss()) {
+        nav.dismissTo('/(tabs)/home');
       } else {
-        globalRouter.navigate('/(tabs)/home' as any);
+        nav.navigate('/(tabs)/home' as any);
       }
     }
   }, []);
@@ -378,6 +395,16 @@ export function AuthSheet({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isSwiftUISheet) {
       onCloseRef.current();
+      // SwiftUI's `.sheet(isPresented:onDismiss:)` does not always fire `onDismiss`
+      // on programmatic `isPresented = false` transitions. Schedule a guaranteed
+      // post-dismiss fallback; `runPendingPostClose()` is idempotent and clears this timer.
+      if (pendingPostCloseRef.current) {
+        if (postCloseTimerRef.current) clearTimeout(postCloseTimerRef.current);
+        postCloseTimerRef.current = setTimeout(() => {
+          postCloseTimerRef.current = null;
+          runPendingPostClose();
+        }, 280);
+      }
       return;
     }
     if (isNativeSheet) {

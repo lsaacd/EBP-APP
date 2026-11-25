@@ -184,19 +184,22 @@ function ThemedStack() {
   const profileHeaderOptions = isIOS
     ? {
         headerShown: true,
+        headerLargeTitle: false,
+        headerLargeTitleEnabled: false,
+        headerTransparent: true,
+        headerShadowVisible: false,
         headerBackButtonDisplayMode: 'minimal' as const,
         headerTintColor: isDarkMode ? '#FFFFFF' : theme.primary,
         headerTitleStyle: { color: adaptiveTitleColor },
-        headerLargeTitleStyle: { color: adaptiveTitleColor },
         headerUserInterfaceStyle: (isDarkMode ? 'dark' : 'light') as 'dark' | 'light',
+        scrollEdgeEffects: {
+          top: 'soft' as const,
+          bottom: 'soft' as const,
+        },
         ...(isIOSLiquidGlass
           ? {}
           : {
-              headerTransparent: true,
               headerBlurEffect: (isDarkMode ? 'dark' : 'light') as 'dark' | 'light',
-              headerLargeStyle: {
-                backgroundColor: 'transparent',
-              },
             }),
       }
     : {

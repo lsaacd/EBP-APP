@@ -129,10 +129,10 @@ export default function FriendsPanel({
     return map;
   }, [displayHymnLang]);
 
-  const cardBg = isDarkMode ? '#222225' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '50';
-  const mutedText = isDarkMode ? 'rgba(235,235,245,0.58)' : theme.onSurfaceVariant;
-  const divider = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant;
+  const cardBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(60,60,67,0.08)';
+  const mutedText = isDarkMode ? 'rgba(235,235,245,0.60)' : theme.onSurfaceVariant;
+  const divider = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(60,60,67,0.12)';
 
   const { bySlug: choirsBySlug } = useApprovedChoirs();
   const roleLine = (person: FriendProfile) =>
@@ -383,7 +383,7 @@ export default function FriendsPanel({
         onValueChange={(next) => saveSwitch(key, next)}
         trackColor={{
           false: isDarkMode ? 'rgba(255,255,255,0.16)' : theme.outlineVariant,
-          true: isDarkMode ? '#8d2d2d' : theme.primary,
+          true: isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary,
         }}
         thumbColor="#ffffff"
       />
@@ -850,6 +850,7 @@ export default function FriendsPanel({
       {/* Animated iOS 26 Liquid Glass Segmented Control */}
       <LiquidGlassSegmented
         compact
+        glassTrack
         value={activeTab}
         onChange={(next) => switchTab(next)}
         items={[
@@ -1100,7 +1101,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
+    borderCurve: 'continuous',
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
