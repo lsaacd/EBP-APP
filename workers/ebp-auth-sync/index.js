@@ -124,6 +124,7 @@ function serializeUser(user) {
   return {
     id: user.id, email: user.email, name: user.name,
     initials: computeInitials(user.name, user.email),
+    avatarUrl: user.avatar_url ?? null,
     emailVerified: user.email_verified_at != null,
     ministry: user.ministry ?? null, choir: user.choir ?? null,
     churchId: user.church_id ?? null,
@@ -163,7 +164,7 @@ async function authenticateRequest(request, env) {
   const tokenHash = await sha256Hex(match[1]);
   const now = Date.now();
   const row = await env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.created_at, u.email_verified_at, u.role, u.suspended_at, u.ministry, u.choir, u.church_id, u.church_name, u.location, u.show_church_location, u.share_favorites_with_friends, u.show_friends_list, u.suggest_to_church_members, u.directory_visible_to_all, u.notify_comment_likes, u.notify_comment_replies, u.notify_friends, u.badge_verified, u.ugc_terms_accepted_at, s.token_hash
+    `SELECT u.id, u.email, u.name, u.avatar_url, u.created_at, u.email_verified_at, u.role, u.suspended_at, u.ministry, u.choir, u.church_id, u.church_name, u.location, u.show_church_location, u.share_favorites_with_friends, u.show_friends_list, u.suggest_to_church_members, u.directory_visible_to_all, u.notify_comment_likes, u.notify_comment_replies, u.notify_friends, u.badge_verified, u.ugc_terms_accepted_at, s.token_hash
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ?1 AND s.expires_at > ?2`,

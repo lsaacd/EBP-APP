@@ -13,6 +13,7 @@ export type VerseComment = {
   userId: string | null;
   authorName: string;
   authorInitials: string;
+  authorAvatarUrl?: string | null;
   ministry: string | null;
   choir: string | null;
   badgeVerified: boolean;

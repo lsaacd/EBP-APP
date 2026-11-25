@@ -206,6 +206,7 @@ function publicComment(row) {
     userId: row.user_id,
     authorName: name,
     authorInitials: row.user_id ? initials(name) : "—",
+    authorAvatarUrl: row.user_id ? (row.avatar_url ?? null) : null,
     ministry: row.user_id ? row.ministry : null,
     choir: row.user_id ? row.choir : null,
     badgeVerified:
@@ -219,11 +220,99 @@ function publicComment(row) {
     likedByMe: Boolean(row.liked_by_me),
   };
 }
-const publicSelect = `SELECT c.*,u.name,u.ministry,u.choir,u.badge_verified,(SELECT count(*) FROM verse_comment_likes l WHERE l.comment_id=c.id) AS likes_count,EXISTS(SELECT 1 FROM verse_comment_likes l WHERE l.comment_id=c.id AND l.user_id=?2) AS liked_by_me FROM verse_comments c LEFT JOIN users u ON u.id=c.user_id`;
+const publicSelect = `SELECT c.*,u.name,u.avatar_url,u.ministry,u.choir,u.badge_verified,(SELECT count(*) FROM verse_comment_likes l WHERE l.comment_id=c.id) AS likes_count,EXISTS(SELECT 1 FROM verse_comment_likes l WHERE l.comment_id=c.id AND l.user_id=?2) AS liked_by_me FROM verse_comments c LEFT JOIN users u ON u.id=c.user_id`;
 const visibility = `c.hidden_at IS NULL AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM verse_comments p WHERE p.id=c.parent_id AND p.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM user_blocks pb WHERE (pb.blocker_user_id=?2 AND pb.blocked_user_id=p.user_id) OR (pb.blocked_user_id=?2 AND pb.blocker_user_id=p.user_id))))
  AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?2 AND b.blocked_user_id=c.user_id) OR (b.blocked_user_id=?2 AND b.blocker_user_id=c.user_id))`;
 
+const AVATAR_ORIGIN = "https://audio.himnarioebp.com/";
+const AVATAR_PREFIX = "https://audio.himnarioebp.com/avatars/";
+const MAX_AVATAR_BYTES = 524_288; // 512 KB decoded
+const MAX_AVATAR_JSON_BYTES = 760_000; // ~512 KB base64 + JSON envelope
+
+function detectAvatarFormat(bytes) {
+  if (!bytes || bytes.byteLength < 12) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return { ext: "jpg", mime: "image/jpeg" };
+  }
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return { ext: "png", mime: "image/png" };
+  }
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return { ext: "webp", mime: "image/webp" };
+  }
+  return null;
+}
+
+async function readBoundedBytes(request, maxBytes) {
+  const cl = Number(request.headers.get("Content-Length"));
+  if (Number.isFinite(cl) && cl > maxBytes) fail(413, "photo_too_large");
+  const reader = request.body?.getReader?.();
+  if (!reader) {
+    const ab = await request.arrayBuffer();
+    if (ab.byteLength > maxBytes) fail(413, "photo_too_large");
+    return new Uint8Array(ab);
+  }
+  const chunks = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      if (length > maxBytes) {
+        await reader.cancel().catch(() => {});
+        fail(413, "photo_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const out = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
+async function deleteUserAvatarObject(env, userId, avatarUrl) {
+  if (
+    !env.MEDIA_BUCKET ||
+    typeof env.MEDIA_BUCKET.delete !== "function" ||
+    typeof avatarUrl !== "string" ||
+    !avatarUrl.startsWith(`${AVATAR_PREFIX}${userId}/`)
+  ) {
+    return;
+  }
+  const key = avatarUrl.slice(AVATAR_ORIGIN.length);
+  try {
+    await env.MEDIA_BUCKET.delete(key);
+  } catch {}
+}
+
 export async function deleteCommunityAccount(env, id) {
+  const existingUser = await env.DB.prepare(
+    "SELECT avatar_url FROM users WHERE id=?1",
+  )
+    .bind(id)
+    .first()
+    .catch(() => null);
   await env.DB.batch([
     env.DB.prepare(
       "UPDATE verse_comments SET user_id=NULL,author_name_snapshot='Cuenta eliminada' WHERE user_id=?1",
@@ -251,6 +340,7 @@ export async function deleteCommunityAccount(env, id) {
     ),
     env.DB.prepare("DELETE FROM users WHERE id=?1").bind(id),
   ]);
+  await deleteUserAvatarObject(env, id, existingUser?.avatar_url ?? null);
 }
 
 const VALID_EXPO_PUSH_TOKEN = /^ExponentPushToken\[[A-Za-z0-9_-]{10,64}\]$/;
@@ -376,7 +466,7 @@ export async function handleCommunity(
     !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends|playlists|notifications)(\/|$)/.test(
       path,
     ) &&
-    !["/auth/profile", "/auth/ugc-terms/accept"].includes(path)
+    !["/auth/profile", "/auth/ugc-terms/accept", "/auth/avatar"].includes(path)
   )
     return null;
   const method = request.method,
@@ -534,6 +624,82 @@ export async function handleCommunity(
         ...user,
         ugc_terms_accepted_at: user.ugc_terms_accepted_at ?? now,
       }),
+    });
+  }
+  if (path === "/auth/avatar" && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `avatar-upload:${user.id}`, admin ? 40 : 10, 3600000);
+    await quota(env, `avatar-upload-ip:${ip}`, 30, 3600000);
+    const ct = (request.headers.get("content-type") || "").toLowerCase();
+    let bytes;
+    if (ct.includes("application/json")) {
+      const rawBytes = await readBoundedBytes(request, MAX_AVATAR_JSON_BYTES);
+      let parsed;
+      try {
+        parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(rawBytes));
+      } catch {
+        fail(400, "invalid_json");
+      }
+      if (!parsed || typeof parsed.base64 !== "string" || !parsed.base64.trim()) {
+        fail(400, "invalid_photo");
+      }
+      const cleaned = parsed.base64
+        .replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "")
+        .replace(/\s+/g, "");
+      if (cleaned.length > 710_000) fail(413, "photo_too_large");
+      let bin;
+      try {
+        bin = atob(cleaned);
+      } catch {
+        fail(400, "invalid_photo");
+      }
+      bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } else {
+      bytes = await readBoundedBytes(request, MAX_AVATAR_BYTES);
+    }
+    if (!bytes || bytes.byteLength < 12) fail(400, "invalid_photo");
+    if (bytes.byteLength > MAX_AVATAR_BYTES) fail(413, "photo_too_large");
+    const fmt = detectAvatarFormat(bytes);
+    if (!fmt) fail(400, "invalid_photo_format");
+    if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function") {
+      fail(503, "avatar_storage_unavailable");
+    }
+    const key = `avatars/${user.id}/${crypto.randomUUID()}.${fmt.ext}`;
+    await env.MEDIA_BUCKET.put(key, bytes, {
+      httpMetadata: {
+        contentType: fmt.mime,
+        cacheControl: "public, max-age=31536000, immutable",
+      },
+    });
+    const newAvatarUrl = `${AVATAR_ORIGIN}${key}`;
+    const previousAvatarUrl = user.avatar_url ?? null;
+    await env.DB.prepare("UPDATE users SET avatar_url=?2 WHERE id=?1")
+      .bind(user.id, newAvatarUrl)
+      .run();
+    if (previousAvatarUrl && previousAvatarUrl !== newAvatarUrl) {
+      await deleteUserAvatarObject(env, user.id, previousAvatarUrl);
+    }
+    return json({
+      ok: true,
+      avatarUrl: newAvatarUrl,
+      user: serializeUser({ ...user, avatar_url: newAvatarUrl }),
+    });
+  }
+  if (path === "/auth/avatar" && method === "DELETE") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `avatar-delete:${user.id}`, 20, 3600000);
+    const previousAvatarUrl = user.avatar_url ?? null;
+    await env.DB.prepare("UPDATE users SET avatar_url=NULL WHERE id=?1")
+      .bind(user.id)
+      .run();
+    if (previousAvatarUrl) {
+      await deleteUserAvatarObject(env, user.id, previousAvatarUrl);
+    }
+    return json({
+      ok: true,
+      avatarUrl: null,
+      user: serializeUser({ ...user, avatar_url: null }),
     });
   }
   const verseRoute = path.match(
@@ -905,7 +1071,7 @@ export async function handleCommunity(
   if (publicProfileRoute && method === "GET") {
     const targetId = publicProfileRoute[1];
     const target = await env.DB.prepare(
-      "SELECT id,name,ministry,choir,church_id,church_name,location,show_church_location,show_friends_list,share_favorites_with_friends,badge_verified,suspended_at,created_at FROM users WHERE id=?1",
+      "SELECT id,name,avatar_url,ministry,choir,church_id,church_name,location,show_church_location,show_friends_list,share_favorites_with_friends,badge_verified,suspended_at,created_at FROM users WHERE id=?1",
     )
       .bind(targetId)
       .first();
@@ -954,6 +1120,7 @@ export async function handleCommunity(
         name: target.name,
         displayName: target.name,
         initials: initials(target.name),
+        avatarUrl: blocked ? null : (target.avatar_url ?? null),
         ministry: target.ministry ?? null,
         choir: target.choir ?? null,
         badgeVerified:
@@ -969,6 +1136,7 @@ export async function handleCommunity(
     id: row.id,
     name: row.name,
     initials: initials(row.name),
+    avatarUrl: row.avatar_url ?? null,
     ministry: row.ministry ?? null,
     choir: row.choir ?? null,
     badgeVerified: row.ministry === "obispo" && row.badge_verified === 1,
@@ -1012,7 +1180,7 @@ export async function handleCommunity(
       );
     }
     const rows = await all(
-      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
+      `SELECT u.id,u.name,u.avatar_url,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
               vf.status AS vf_status, vf.requested_by AS vf_requested_by
        FROM friendships f
        JOIN users u ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
@@ -1051,7 +1219,7 @@ export async function handleCommunity(
     // The other person of each pair, leaving out suspended accounts and
     // anyone blocked in either direction.
     const rows = await all(
-      `SELECT f.status,f.requested_by,f.created_at AS requested_at,u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+      `SELECT f.status,f.requested_by,f.created_at AS requested_at,u.id,u.name,u.avatar_url,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
        FROM friendships f JOIN users u ON u.id=CASE WHEN f.user_low=?1 THEN f.user_high ELSE f.user_low END
        WHERE (f.user_low=?1 OR f.user_high=?1) AND u.suspended_at IS NULL
          AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))
@@ -1153,7 +1321,7 @@ export async function handleCommunity(
          AND ${visibilityCondition}
          AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_user_id=?1 AND b.blocked_user_id=u.id) OR (b.blocked_user_id=?1 AND b.blocker_user_id=u.id))`;
     const [rows, countRow] = await Promise.all([all(
-      `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
+      `SELECT u.id,u.name,u.avatar_url,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at,
               f.status AS f_status, f.requested_by AS f_requested_by
        FROM users u
        LEFT JOIN friendships f
@@ -1196,7 +1364,7 @@ export async function handleCommunity(
       return json({ users: [], hasChurch: false }, 200, { "Cache-Control": "private, no-store" });
     const [rows, directory, churchRow] = await Promise.all([
       all(
-        `SELECT u.id,u.name,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
+        `SELECT u.id,u.name,u.avatar_url,u.ministry,u.choir,u.badge_verified,u.church_id,u.church_name,u.location,u.show_church_location,u.created_at
          FROM users u
          WHERE u.church_id=?2 AND u.id<>?1 AND u.suspended_at IS NULL AND u.email_verified_at IS NOT NULL
            AND (COALESCE(u.suggest_to_church_members,u.show_church_location)=1 OR u.directory_visible_to_all=1)
@@ -1350,7 +1518,7 @@ export async function handleCommunity(
   if (path === "/playlists/shared" && method === "GET") {
     if (!user) fail(401, "unauthorized");
     const rows = await all(
-      `SELECT s.id,s.from_user,s.name,s.hymn_ids_json,s.created_at,s.seen_at,u.name AS from_name
+      `SELECT s.id,s.from_user,s.name,s.hymn_ids_json,s.created_at,s.seen_at,u.name AS from_name,u.avatar_url AS from_avatar_url
        FROM shared_playlists s
        JOIN users u ON u.id=s.from_user
        WHERE s.to_user=?1 AND u.suspended_at IS NULL
@@ -1375,6 +1543,7 @@ export async function handleCommunity(
         fromUserId: r.from_user,
         fromName: r.from_name,
         fromInitials: initials(r.from_name),
+        fromAvatarUrl: r.from_avatar_url ?? null,
         name: r.name,
         hymnIds,
         createdAt: r.created_at,
@@ -1445,7 +1614,7 @@ export async function handleCommunity(
     if (!user) fail(401, "unauthorized");
     const [rows, unreadRow] = await Promise.all([
       all(
-        `SELECT n.id,n.actor_id,n.type,n.target_id,n.context_id,n.preview,n.created_at,n.read_at,u.name AS actor_name
+        `SELECT n.id,n.actor_id,n.type,n.target_id,n.context_id,n.preview,n.created_at,n.read_at,u.name AS actor_name,u.avatar_url AS actor_avatar_url
          FROM notifications n
          LEFT JOIN users u ON u.id=n.actor_id
          WHERE n.user_id=?1
@@ -1471,6 +1640,7 @@ export async function handleCommunity(
           actorId: r.actor_id ?? null,
           actorName: r.actor_name || "Miembro",
           actorInitials: r.actor_name ? initials(r.actor_name) : "—",
+          actorAvatarUrl: r.actor_avatar_url ?? null,
           type: r.type,
           targetId: r.target_id,
           contextId: r.context_id ?? null,

@@ -11,6 +11,7 @@ export type FriendProfile = {
   id: string;
   name: string;
   initials: string;
+  avatarUrl?: string | null;
   ministry: string | null;
   choir: string | null;
   badgeVerified: boolean;
@@ -66,6 +67,7 @@ export function parseFriendLists(payload: unknown): FriendLists {
             id: row.id,
             name: row.name,
             initials: typeof row.initials === 'string' ? row.initials : '',
+            avatarUrl: typeof row.avatarUrl === 'string' && row.avatarUrl.trim() ? row.avatarUrl.trim() : null,
             ministry: typeof row.ministry === 'string' ? row.ministry : null,
             choir: typeof row.choir === 'string' ? row.choir : null,
             badgeVerified: row.badgeVerified === true,

@@ -27,7 +27,8 @@ import Animated, {
 import * as Haptics from '../../utils/haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage, type Language } from '../../context/LanguageContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, computeUserInitials } from '../../context/AuthContext';
+import UserAvatar from '../UserAvatar';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import {
@@ -119,12 +120,14 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
     Label,
     LabeledContent,
     Picker,
+    RNHostView,
     Section,
     Slider,
     Spacer,
     Text,
     Toggle,
     VStack,
+    ZStack,
   } = swiftUI.ui;
 
   const {
@@ -136,6 +139,7 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
     controlSize,
     font,
     foregroundStyle,
+    frame,
     listRowBackground,
     listRowInsets,
     listSectionMargins,
@@ -320,22 +324,57 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
                   router.push('/my-profile' as any);
                 }}
               >
-                <HStack alignment="center" spacing={10}>
-                  <Label icon={renderTintedIcon('person.crop.circle')}>
-                    <VStack alignment="leading" spacing={2}>
-                      <Text modifiers={[font({ textStyle: 'body', weight: 'semibold' })]}>
-                        {user.displayName || user.email.split('@')[0]}
-                      </Text>
-                      <Text
-                        modifiers={[
-                          font({ textStyle: 'footnote' }),
-                          foregroundStyle(secondaryStyle),
-                        ]}
+                <HStack alignment="center" spacing={12}>
+                  {user.avatarUrl && typeof RNHostView === 'function' ? (
+                    <>
+                      <ZStack
+                        alignment="center"
+                        modifiers={[frame({ width: 38, height: 38 })]}
                       >
-                        {`${user.email} · ${syncStatusLabel}`}
-                      </Text>
-                    </VStack>
-                  </Label>
+                        <RNHostView matchContents>
+                          <UserAvatar
+                            uri={user.avatarUrl}
+                            initials={
+                              user.initials ||
+                              computeUserInitials(user.displayName, user.email)
+                            }
+                            size={38}
+                            backgroundColor={isDarkMode ? '#F3EEE8' : '#6e1619'}
+                            textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+                          />
+                        </RNHostView>
+                      </ZStack>
+                      <VStack alignment="leading" spacing={2}>
+                        <Text modifiers={[font({ textStyle: 'body', weight: 'semibold' })]}>
+                          {user.displayName || user.email.split('@')[0]}
+                        </Text>
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'footnote' }),
+                            foregroundStyle(secondaryStyle),
+                          ]}
+                        >
+                          {`${user.email} · ${syncStatusLabel}`}
+                        </Text>
+                      </VStack>
+                    </>
+                  ) : (
+                    <Label icon={renderTintedIcon('person.crop.circle')}>
+                      <VStack alignment="leading" spacing={2}>
+                        <Text modifiers={[font({ textStyle: 'body', weight: 'semibold' })]}>
+                          {user.displayName || user.email.split('@')[0]}
+                        </Text>
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'footnote' }),
+                            foregroundStyle(secondaryStyle),
+                          ]}
+                        >
+                          {`${user.email} · ${syncStatusLabel}`}
+                        </Text>
+                      </VStack>
+                    </Label>
+                  )}
                   <Spacer />
                   {chevron}
                 </HStack>

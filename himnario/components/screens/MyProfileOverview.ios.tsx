@@ -22,6 +22,8 @@ import { useApprovedChoirs } from '../../utils/choirsStore';
 import { MINISTRIES, choirDisplayName } from '../../data/communityRules';
 import { churchDisplayName } from '../../utils/churchName';
 import { getExpoSwiftUI } from '../../utils/expoSwiftUI';
+import { useAvatarPicker } from '../../utils/useAvatarPicker';
+import UserAvatar from '../UserAvatar';
 import type { CommunitySubPage } from '../CommunityProfile';
 
 export type ProfileOverviewSection = 'overview' | 'account-edit' | CommunitySubPage;
@@ -46,6 +48,7 @@ export default function MyProfileOverviewIOS({
   const { lists: friendsLists, badgeCount: friendsBadge, refreshIfStale: refreshFriends } = useFriends();
   const { unreadCount: notificationsUnread, refreshIfStale: refreshNotifications } = useNotifications();
   const { bySlug: choirsBySlug } = useApprovedChoirs();
+  const { updatingAvatar, openAvatarMenu } = useAvatarPicker();
 
   if (!swiftUI || !user) return null;
 
@@ -58,6 +61,8 @@ export default function MyProfileOverviewIOS({
     Image: SwiftUIImage,
     Label,
     LabeledContent,
+    ProgressView,
+    RNHostView,
     Section,
     Spacer,
     Text,
@@ -70,6 +75,7 @@ export default function MyProfileOverviewIOS({
     animation,
     contentShape,
     contentTransition,
+    disabled,
     font,
     foregroundStyle,
     frame,
@@ -223,22 +229,39 @@ export default function MyProfileOverviewIOS({
               spacing={14}
               modifiers={[contentShape(shapes.rectangle())]}
             >
-              <ZStack alignment="center">
-                <Circle
-                  modifiers={[
-                    foregroundStyle(avatarBg),
-                    frame({ width: 52, height: 52 }),
-                  ]}
-                />
-                <Text
-                  modifiers={[
-                    font({ size: 19, weight: 'bold' }),
-                    foregroundStyle(avatarText),
-                  ]}
+              {user.avatarUrl && typeof RNHostView === 'function' ? (
+                <ZStack
+                  alignment="center"
+                  modifiers={[frame({ width: 52, height: 52 })]}
                 >
-                  {initials}
-                </Text>
-              </ZStack>
+                  <RNHostView matchContents>
+                    <UserAvatar
+                      uri={user.avatarUrl}
+                      initials={initials}
+                      size={52}
+                      backgroundColor={avatarBg}
+                      textColor={avatarText}
+                    />
+                  </RNHostView>
+                </ZStack>
+              ) : (
+                <ZStack alignment="center">
+                  <Circle
+                    modifiers={[
+                      foregroundStyle(avatarBg),
+                      frame({ width: 52, height: 52 }),
+                    ]}
+                  />
+                  <Text
+                    modifiers={[
+                      font({ size: 19, weight: 'bold' }),
+                      foregroundStyle(avatarText),
+                    ]}
+                  >
+                    {initials}
+                  </Text>
+                </ZStack>
+              )}
               <VStack alignment="leading" spacing={3}>
                 <HStack alignment="center" spacing={6}>
                   <Text
@@ -271,6 +294,29 @@ export default function MyProfileOverviewIOS({
               </VStack>
               <Spacer />
               {chevron}
+            </HStack>
+          </Button>
+
+          <Button
+            modifiers={[foregroundStyle(primaryStyle), disabled(updatingAvatar)]}
+            onPress={openAvatarMenu}
+          >
+            <HStack
+              alignment="center"
+              spacing={10}
+              modifiers={[contentShape(shapes.rectangle())]}
+            >
+              <Label
+                title={updatingAvatar ? t.avatarUpdating : t.avatarChangeAction}
+                icon={
+                  <SwiftUIImage
+                    systemName="camera"
+                    modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+                  />
+                }
+              />
+              <Spacer />
+              {updatingAvatar ? <ProgressView /> : chevron}
             </HStack>
           </Button>
 

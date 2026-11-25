@@ -14,7 +14,9 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 import * as Haptics from '../../utils/haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, computeUserInitials } from '../../context/AuthContext';
+import { useAvatarPicker } from '../../utils/useAvatarPicker';
+import UserAvatar from '../UserAvatar';
 import { useFavorites } from '../../context/FavoritesContext';
 import { usePlaylists } from '../../context/PlaylistsContext';
 import { useNowPlaying } from '../../context/NowPlayingContext';
@@ -100,6 +102,7 @@ export default function ProfileSubPagesIOS({
     refresh: refreshApprovedChoirs,
   } = useApprovedChoirs();
   const api = useCommunityApi();
+  const { updatingAvatar, openAvatarMenu, runRemove } = useAvatarPicker();
 
   const es = language !== 'en';
   const isAdminUser =
@@ -619,12 +622,14 @@ export default function ProfileSubPagesIOS({
     LabeledContent,
     Picker,
     ProgressView,
+    RNHostView,
     Section,
     Spacer,
     Text,
     TextField,
     Toggle,
     VStack,
+    ZStack,
   } = swiftUI.ui;
 
   const {
@@ -1426,6 +1431,10 @@ export default function ProfileSubPagesIOS({
       nameDraft.trim().length > 0 &&
       nameDraft.trim() !== (user.displayName || '').trim();
     const statsSummary = `${favoriteIds.length} ${t.tabFavorites.toLowerCase()} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`;
+    const avatarInitials =
+      user.initials || computeUserInitials(user.displayName, user.email);
+    const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
+    const avatarText = isDarkMode ? '#1A1A1A' : '#FFFFFF';
 
     return (
       <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
@@ -1440,9 +1449,76 @@ export default function ProfileSubPagesIOS({
           {renderStatusBanner()}
 
           <Section
-            title={t.authNameLabel}
             modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}
+            footer={<Text>{t.avatarHint}</Text>}
           >
+            {typeof RNHostView === 'function' ? (
+              <HStack alignment="center">
+                <Spacer />
+                <VStack
+                  alignment="center"
+                  spacing={10}
+                  modifiers={[padding({ vertical: 10 })]}
+                >
+                  <Button
+                    modifiers={[buttonStyle('plain'), disabled(updatingAvatar)]}
+                    onPress={openAvatarMenu}
+                  >
+                    <ZStack
+                      alignment="center"
+                      modifiers={[frame({ width: 78, height: 78 })]}
+                    >
+                      <RNHostView matchContents>
+                        <UserAvatar
+                          uri={user.avatarUrl}
+                          initials={avatarInitials}
+                          size={76}
+                          fontSize={28}
+                          backgroundColor={avatarBg}
+                          textColor={avatarText}
+                          showEditBadge
+                          editBadgeBg={prominentFill}
+                          editBadgeIconColor={prominentInk}
+                          editBadgeBorderColor={isDarkMode ? '#1C1C1E' : '#FFFFFF'}
+                        />
+                      </RNHostView>
+                    </ZStack>
+                  </Button>
+                </VStack>
+                <Spacer />
+              </HStack>
+            ) : null}
+
+            <Button
+              modifiers={[foregroundStyle(primaryStyle), disabled(updatingAvatar)]}
+              onPress={openAvatarMenu}
+            >
+              <HStack
+                alignment="center"
+                spacing={10}
+                modifiers={[contentShape(shapes.rectangle())]}
+              >
+                <Label
+                  title={updatingAvatar ? t.avatarUpdating : t.avatarChangeAction}
+                  icon={renderTintedIcon('camera')}
+                />
+                <Spacer />
+                {updatingAvatar ? <ProgressView /> : chevron}
+              </HStack>
+            </Button>
+
+            {user.avatarUrl ? (
+              <Button
+                role="destructive"
+                modifiers={[disabled(updatingAvatar)]}
+                onPress={() => void runRemove()}
+              >
+                <Label title={t.avatarRemovePhoto} systemImage="trash" />
+              </Button>
+            ) : null}
+          </Section>
+
+          <Section title={t.authNameLabel}>
             <HStack alignment="center" spacing={10}>
               {renderLeadingFieldIcon('person')}
               <TextField

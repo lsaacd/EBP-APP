@@ -10,6 +10,7 @@ export interface CachedMemberProfile {
   id: string;
   name: string;
   initials: string;
+  avatarUrl?: string | null;
   ministry: string | null;
   choir: string | null;
   badgeVerified: boolean;
@@ -31,6 +32,7 @@ export interface MemberPreviewSeed {
   id: string;
   name: string;
   initials?: string | null;
+  avatarUrl?: string | null;
   ministry?: string | null;
   choir?: string | null;
   badgeVerified?: boolean;
@@ -85,6 +87,7 @@ export function buildInitialMemberProfile(
       ...existing,
       name: seed.name || existing.name,
       initials: seed.initials || existing.initials,
+      avatarUrl: seed.avatarUrl !== undefined ? seed.avatarUrl : existing.avatarUrl ?? null,
       ministry: seed.ministry !== undefined ? seed.ministry : existing.ministry,
       choir: seed.choir !== undefined ? seed.choir : existing.choir,
       badgeVerified: seed.badgeVerified ?? existing.badgeVerified,
@@ -100,6 +103,7 @@ export function buildInitialMemberProfile(
     id: seed.id,
     name: seed.name,
     initials: seed.initials || computeFallbackInitials(seed.name),
+    avatarUrl: seed.avatarUrl ?? null,
     ministry: seed.ministry ?? null,
     choir: seed.choir ?? null,
     badgeVerified: Boolean(seed.badgeVerified),
@@ -152,6 +156,7 @@ export function sanitizeCachedMemberProfile(raw: unknown): CachedMemberProfile |
       typeof r.initials === 'string' && r.initials.trim()
         ? r.initials.trim().slice(0, 3)
         : computeFallbackInitials(name),
+    avatarUrl: typeof r.avatarUrl === 'string' && r.avatarUrl.trim() ? r.avatarUrl.trim() : null,
     ministry: typeof r.ministry === 'string' ? r.ministry : null,
     choir: typeof r.choir === 'string' ? r.choir : null,
     badgeVerified: r.badgeVerified === true,

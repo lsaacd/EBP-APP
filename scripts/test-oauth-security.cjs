@@ -107,6 +107,7 @@ function makeDeps(db, env, jwksMap) {
       id: u.id,
       email: u.email,
       name: u.name,
+      avatarUrl: u.avatar_url ?? null,
       emailVerified: u.email_verified_at != null,
       role: u.role === 'admin' && u.email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
     }),
@@ -359,4 +360,203 @@ test('Apple & Google OAuth verification, account linking, nonce checks, and reje
       ),
     (err) => err.status === 401 && err.code === 'oauth_email_unverified',
   );
+});
+
+test('Google PFP auto-import to R2, SSRF guard, and /auth/avatar upload/delete/account cleanup', async () => {
+  const oauthMod = await import(pathToFileURL(path.join(ROOT, 'workers/ebp-auth-sync/oauth.js')).href);
+  const communityMod = await import(pathToFileURL(path.join(ROOT, 'workers/ebp-auth-sync/community.js')).href);
+  const { handleOAuth, clearJwksCacheForTests, isAllowedGoogleAvatarUrl } = oauthMod;
+  const { handleCommunity, deleteCommunityAccount } = communityMod;
+  clearJwksCacheForTests();
+
+  const db = initDb();
+  const googleKey = await createRsaKeyPair('google-pfp-k1');
+  const GOOGLE_IOS_CLIENT = '242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce.apps.googleusercontent.com';
+
+  // In-memory R2 mock
+  const r2Store = new Map();
+  const mediaBucket = {
+    async put(key, value, opts) {
+      r2Store.set(key, { value: new Uint8Array(value), opts });
+    },
+    async delete(key) {
+      r2Store.delete(key);
+    },
+  };
+
+  const env = {
+    DB: makeD1(db),
+    MEDIA_BUCKET: mediaBucket,
+    GOOGLE_CLIENT_IDS: GOOGLE_IOS_CLIENT,
+  };
+  const jwksMap = {
+    'https://www.googleapis.com/oauth2/v3/certs': { keys: [googleKey.publicJwk] },
+  };
+  const deps = makeDeps(db, env, jwksMap);
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  // Valid minimal JPEG bytes (FF D8 FF E0 ...)
+  const sampleJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0xff, 0xd9]);
+  const samplePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48]);
+
+  // 1. SSRF allowlist checks
+  assert.equal(isAllowedGoogleAvatarUrl('https://lh3.googleusercontent.com/a/test=s96-c'), true);
+  assert.equal(isAllowedGoogleAvatarUrl('http://lh3.googleusercontent.com/a/test'), false);
+  assert.equal(isAllowedGoogleAvatarUrl('https://evil.example.com/lh3.googleusercontent.com/a.jpg'), false);
+  assert.equal(isAllowedGoogleAvatarUrl('https://169.254.169.254/latest/meta-data'), false);
+
+  // 2. Google OAuth auto-imports valid picture claim into R2
+  let fetchedUrls = [];
+  const mockFetchAvatar = async (url) => {
+    fetchedUrls.push(url);
+    return new Response(sampleJpeg, { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
+  };
+  const googleWithPic = await signJwt(
+    {
+      iss: 'https://accounts.google.com',
+      aud: GOOGLE_IOS_CLIENT,
+      sub: 'google-pfp-user-1',
+      email: 'maria@gmail.com',
+      email_verified: true,
+      name: 'María López',
+      picture: 'https://lh3.googleusercontent.com/a/ACg8ocTestAvatar=s96-c',
+      iat: nowSec,
+      exp: nowSec + 600,
+    },
+    googleKey.privateKey,
+    googleKey.kid,
+  );
+  const gRes = await handleOAuth(
+    new Request('https://api.example/auth/oauth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: googleWithPic }),
+    }),
+    env,
+    null,
+    { ...deps, path: '/auth/oauth/google', fetchAvatar: mockFetchAvatar },
+  );
+  assert.equal(gRes.status, 200);
+  const gBody = await gRes.json();
+  assert.ok(gBody.user.avatarUrl.startsWith(`https://audio.himnarioebp.com/avatars/${gBody.user.id}/`));
+  assert.ok(gBody.user.avatarUrl.endsWith('.jpg'));
+  assert.equal(fetchedUrls[0], 'https://lh3.googleusercontent.com/a/ACg8ocTestAvatar=s384-c');
+  assert.equal(r2Store.size, 1);
+
+  const importedKey = gBody.user.avatarUrl.slice('https://audio.himnarioebp.com/'.length);
+  assert.ok(r2Store.has(importedKey));
+
+  // 3. Subsequent Google sign-in with SSRF or different picture preserves existing custom/imported avatar
+  fetchedUrls = [];
+  const googleAgain = await signJwt(
+    {
+      iss: 'https://accounts.google.com',
+      aud: GOOGLE_IOS_CLIENT,
+      sub: 'google-pfp-user-1',
+      email: 'maria@gmail.com',
+      email_verified: true,
+      name: 'María López',
+      picture: 'https://evil.example/ssrf.jpg',
+      iat: nowSec,
+      exp: nowSec + 600,
+    },
+    googleKey.privateKey,
+    googleKey.kid,
+  );
+  const gRes2 = await handleOAuth(
+    new Request('https://api.example/auth/oauth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: googleAgain }),
+    }),
+    env,
+    null,
+    { ...deps, path: '/auth/oauth/google', fetchAvatar: mockFetchAvatar },
+  );
+  assert.equal(gRes2.status, 200);
+  const gBody2 = await gRes2.json();
+  assert.equal(gBody2.user.avatarUrl, gBody.user.avatarUrl);
+  assert.equal(fetchedUrls.length, 0);
+
+  // 4. POST /auth/avatar uploads new PNG, replaces avatar_url, and deletes previous R2 object
+  const authenticate = async (req) => {
+    const h = req.headers.get('Authorization') || '';
+    if (!h.startsWith('Bearer ')) return null;
+    return db.prepare('SELECT * FROM users WHERE id = ?1').get(gBody.user.id) ?? null;
+  };
+  const pngB64 = Buffer.from(samplePng).toString('base64');
+  const uploadRes = await handleCommunity(
+    new Request('https://api.example/auth/avatar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${gBody.token}`,
+      },
+      body: JSON.stringify({ base64: pngB64 }),
+    }),
+    env,
+    null,
+    { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  assert.equal(uploadRes.status, 200);
+  const uploadBody = await uploadRes.json();
+  assert.ok(uploadBody.avatarUrl.endsWith('.png'));
+  assert.equal(uploadBody.user.avatarUrl, uploadBody.avatarUrl);
+  assert.equal(r2Store.has(importedKey), false, 'Old R2 avatar must be deleted when replaced');
+  assert.equal(r2Store.size, 1);
+
+  // 5. Reject invalid magic bytes on POST /auth/avatar
+  const badBase64 = Buffer.from('not-an-image-at-all-123456').toString('base64');
+  await assert.rejects(
+    () =>
+      handleCommunity(
+        new Request('https://api.example/auth/avatar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${gBody.token}`,
+          },
+          body: JSON.stringify({ base64: badBase64 }),
+        }),
+        env,
+        null,
+        { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
+      ),
+    (err) => err.status === 400 && err.code === 'invalid_photo_format',
+  );
+
+  // 6. DELETE /auth/avatar clears avatar_url and deletes R2 object
+  const delRes = await handleCommunity(
+    new Request('https://api.example/auth/avatar', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${gBody.token}` },
+    }),
+    env,
+    null,
+    { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  assert.equal(delRes.status, 200);
+  const delBody = await delRes.json();
+  assert.equal(delBody.avatarUrl, null);
+  assert.equal(delBody.user.avatarUrl, null);
+  assert.equal(r2Store.size, 0);
+
+  // 7. Re-upload and verify deleteCommunityAccount cleans up R2 object
+  const uploadRes2 = await handleCommunity(
+    new Request('https://api.example/auth/avatar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${gBody.token}`,
+      },
+      body: JSON.stringify({ base64: pngB64 }),
+    }),
+    env,
+    null,
+    { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  assert.equal(uploadRes2.status, 200);
+  assert.equal(r2Store.size, 1);
+  await deleteCommunityAccount(env, gBody.user.id);
+  assert.equal(r2Store.size, 0, 'Deleting account must remove R2 avatar object');
 });

@@ -37,6 +37,7 @@ import {
 import { shouldCollapsePlayer } from "../utils/gestureMotion";
 import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import { seedMemberPreview } from "../utils/memberProfileCache";
+import UserAvatar from "./UserAvatar";
 import { useRouter } from "expo-router";
 import { uuid } from "expo-modules-core";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -238,6 +239,7 @@ export default function VerseDiscussionSheet({
         id: uid,
         name: c.authorName,
         initials: c.authorInitials,
+        avatarUrl: c.authorAvatarUrl ?? null,
         ministry: c.ministry,
         choir: c.choir,
         badgeVerified: c.badgeVerified,
@@ -564,6 +566,7 @@ export default function VerseDiscussionSheet({
         userId: user.id,
         authorName: user.displayName || user.email.split("@")[0],
         authorInitials: user.initials || "—",
+        authorAvatarUrl: user.avatarUrl ?? null,
         ministry: user.ministry || null,
         choir: user.choir || null,
         badgeVerified: Boolean(user.badgeVerified),
@@ -927,16 +930,14 @@ export default function VerseDiscussionSheet({
               },
             ]}
           >
-            <View
-              style={[
-                styles.avatar,
-                { backgroundColor: theme.surfaceVariants.containerHighest },
-              ]}
-            >
-              <Text style={{ color, ...fonts.sansSemiBold }}>
-                {c.authorInitials}
-              </Text>
-            </View>
+            <UserAvatar
+              uri={c.userId ? c.authorAvatarUrl : null}
+              initials={c.authorInitials}
+              size={34}
+              fontSize={13}
+              backgroundColor={theme.surfaceVariants.containerHighest}
+              textColor={color}
+            />
             <View style={{ flex: 1 }}>
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 5 }}

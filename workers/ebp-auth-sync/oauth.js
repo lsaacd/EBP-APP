@@ -176,6 +176,136 @@ function isEmailVerifiedClaim(val) {
   return val === true || val === 'true';
 }
 
+const AVATAR_CDN_ORIGIN = 'https://audio.himnarioebp.com/';
+const MAX_GOOGLE_AVATAR_BYTES = 1_048_576; // 1 MB
+
+function detectAvatarImageFormat(bytes) {
+  if (!bytes || bytes.byteLength < 12) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return { ext: 'jpg', mime: 'image/jpeg' };
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return { ext: 'png', mime: 'image/png' };
+  }
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return { ext: 'webp', mime: 'image/webp' };
+  }
+  return null;
+}
+
+export function isAllowedGoogleAvatarUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return false;
+  const trimmed = rawUrl.trim();
+  if (!trimmed || trimmed.length > 1024) return false;
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  if (parsed.username || parsed.password || parsed.port) return false;
+  const host = parsed.hostname.toLowerCase();
+  return host === 'lh3.googleusercontent.com' || host.endsWith('.googleusercontent.com');
+}
+
+async function readResponseUpTo(response, maxBytes) {
+  const cl = Number(response.headers?.get?.('Content-Length'));
+  if (Number.isFinite(cl) && cl > maxBytes) return null;
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const ab = await response.arrayBuffer();
+    if (ab.byteLength > maxBytes) return null;
+    return new Uint8Array(ab);
+  }
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
+async function importGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
+  if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== 'function') return null;
+  if (!isAllowedGoogleAvatarUrl(pictureUrl)) return null;
+
+  const doFetch = typeof fetchAvatar === 'function' ? fetchAvatar : fetch;
+  // Request a crisp Retina resolution when Google provides a standard =s96-c suffix,
+  // falling back to the exact claim URL if the higher-res variant fails.
+  const upgraded = pictureUrl.replace(/=s\d+-c$/, '=s384-c');
+  const candidates = upgraded !== pictureUrl ? [upgraded, pictureUrl] : [pictureUrl];
+
+  for (const candidateUrl of candidates) {
+    if (!isAllowedGoogleAvatarUrl(candidateUrl)) continue;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    try {
+      let res = await doFetch(candidateUrl, {
+        method: 'GET',
+        redirect: 'manual',
+        signal: controller.signal,
+      });
+      if (res && res.status >= 300 && res.status < 400) {
+        const loc = res.headers?.get?.('Location');
+        if (loc && isAllowedGoogleAvatarUrl(loc)) {
+          res = await doFetch(loc, {
+            method: 'GET',
+            redirect: 'manual',
+            signal: controller.signal,
+          });
+        } else {
+          continue;
+        }
+      }
+      if (!res || !res.ok) continue;
+      const bytes = await readResponseUpTo(res, MAX_GOOGLE_AVATAR_BYTES);
+      const fmt = detectAvatarImageFormat(bytes);
+      if (!fmt) continue;
+
+      const key = `avatars/${userId}/${crypto.randomUUID()}.${fmt.ext}`;
+      await env.MEDIA_BUCKET.put(key, bytes, {
+        httpMetadata: {
+          contentType: fmt.mime,
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
+      });
+      return `${AVATAR_CDN_ORIGIN}${key}`;
+    } catch {
+      // Best-effort only: try fallback candidate or continue login cleanly.
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return null;
+}
+
 async function resolveOrCreateOAuthUser(env, {
   provider,
   providerUserId,
@@ -310,6 +440,7 @@ export async function handleOAuth(request, env, _ctx, deps) {
     rateLimitResponse,
     json,
     fetchJwks,
+    fetchAvatar,
   } = deps;
 
   if (request.method !== 'POST') return null;
@@ -380,7 +511,7 @@ export async function handleOAuth(request, env, _ctx, deps) {
     throw new RequestError(401, 'oauth_email_unverified');
   }
 
-  const { user, data } = await resolveOrCreateOAuthUser(env, {
+  let { user, data } = await resolveOrCreateOAuthUser(env, {
     provider: 'google',
     providerUserId: payload.sub,
     email: payload.email,
@@ -390,6 +521,28 @@ export async function handleOAuth(request, env, _ctx, deps) {
     randomHex,
     safeParseJson,
   });
+
+  if (!user.avatar_url && typeof payload.picture === 'string' && payload.picture.trim()) {
+    const importedAvatarUrl = await importGoogleAvatarToR2(
+      env,
+      user.id,
+      payload.picture.trim(),
+      fetchAvatar,
+    );
+    if (importedAvatarUrl) {
+      const updated = await env.DB.prepare(
+        `UPDATE users SET avatar_url = ?1 WHERE id = ?2 AND avatar_url IS NULL`,
+      )
+        .bind(importedAvatarUrl, user.id)
+        .run();
+      if (updated?.meta?.changes === 1) {
+        user = { ...user, avatar_url: importedAvatarUrl };
+      } else if (env.MEDIA_BUCKET && typeof env.MEDIA_BUCKET.delete === 'function') {
+        const orphanKey = importedAvatarUrl.slice(AVATAR_CDN_ORIGIN.length);
+        await env.MEDIA_BUCKET.delete(orphanKey).catch(() => {});
+      }
+    }
+  }
 
   const token = await createSession(env, user.id);
   return json({ token, user: serializeUser(user), data });

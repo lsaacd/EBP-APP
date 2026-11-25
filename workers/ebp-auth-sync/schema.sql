@@ -279,3 +279,6 @@ CREATE TABLE IF NOT EXISTS oauth_identities (
   PRIMARY KEY (provider, provider_user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_identities_user ON oauth_identities(user_id);
+
+-- Cloud-synced user profile photos (Google OAuth import & custom R2 uploads).
+ALTER TABLE users ADD COLUMN avatar_url TEXT;

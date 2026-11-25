@@ -291,6 +291,7 @@ function fixture(saved = new Map(), opts = {}) {
     "./AppMenuIcon": { default: "AppMenuIcon" },
     "./SheetGrabber": { default: "SheetGrabber" },
     "./FriendButton": { default: "FriendButton" },
+    "./UserAvatar": { default: "UserAvatar" },
     "../utils/friends": {
       memberSinceLabel: () => "",
       parseFriendStatus: (v) => v ?? null,

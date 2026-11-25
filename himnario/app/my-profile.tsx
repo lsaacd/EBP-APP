@@ -41,7 +41,9 @@ import CommunityProfile, { type CommunitySubPage } from '../components/Community
 import MyProfileOverview from '../components/screens/MyProfileOverview';
 import ProfileSubPages, { type NativeProfileSubPage } from '../components/screens/ProfileSubPages';
 import AppMenuIcon from '../components/AppMenuIcon';
+import UserAvatar from '../components/UserAvatar';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
+import { useAvatarPicker } from '../utils/useAvatarPicker';
 import * as Haptics from '../utils/haptics';
 
 type ProfileSection = 'overview' | 'account-edit' | CommunitySubPage;
@@ -83,6 +85,7 @@ export default function MyProfileScreen() {
   const { bySlug: choirsBySlug } = useApprovedChoirs();
   const { lists: friendsLists, refreshIfStale: refreshFriendsIfStale } = useFriends();
   const { refreshIfStale: refreshNotificationsIfStale } = useNotifications();
+  const { updatingAvatar, openAvatarMenu } = useAvatarPicker();
 
   const isIOS = Platform.OS === 'ios';
   const es = language !== 'en';
@@ -373,11 +376,29 @@ export default function MyProfileScreen() {
           <Animated.View key="my-profile-overview" entering={FadeIn.duration(160)} style={{ gap: 16 }}>
             {/* ── Hero Profile Card ── */}
             <View style={[styles.card, styles.heroCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={[styles.heroAvatar, { backgroundColor: theme.primary }]}>
-                <Text style={{ ...fonts.bold, fontSize: 28, color: theme.onPrimary }}>
-                  {initials}
-                </Text>
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.avatarChangeAction}
+                disabled={updatingAvatar}
+                onPress={openAvatarMenu}
+                style={({ pressed }) => ({
+                  marginBottom: 4,
+                  opacity: updatingAvatar ? 0.6 : pressed ? 0.82 : 1,
+                })}
+              >
+                <UserAvatar
+                  uri={user.avatarUrl}
+                  initials={initials}
+                  size={76}
+                  fontSize={28}
+                  backgroundColor={theme.primary}
+                  textColor={theme.onPrimary}
+                  showEditBadge
+                  editBadgeBg={theme.primary}
+                  editBadgeIconColor={theme.onPrimary}
+                  editBadgeBorderColor={cardBg}
+                />
+              </Pressable>
 
               <View style={styles.nameRow}>
                 <Text style={[styles.heroName, { color: theme.onSurface }]}>
@@ -491,6 +512,43 @@ export default function MyProfileScreen() {
           </Animated.View>
         ) : section === 'account-edit' ? (
           <Animated.View key="my-profile-edit" entering={FadeIn.duration(160)} style={{ gap: 16 }}>
+            {/* Cloud Profile Photo Card */}
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, padding: 18, alignItems: 'center', gap: 10 }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.avatarChangeAction}
+                disabled={updatingAvatar}
+                onPress={openAvatarMenu}
+                style={({ pressed }) => ({ opacity: updatingAvatar ? 0.6 : pressed ? 0.82 : 1 })}
+              >
+                <UserAvatar
+                  uri={user.avatarUrl}
+                  initials={initials}
+                  size={76}
+                  fontSize={28}
+                  backgroundColor={theme.primary}
+                  textColor={theme.onPrimary}
+                  showEditBadge
+                  editBadgeBg={theme.primary}
+                  editBadgeIconColor={theme.onPrimary}
+                  editBadgeBorderColor={cardBg}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={updatingAvatar}
+                onPress={openAvatarMenu}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <Text style={{ ...fonts.sansSemiBold, fontSize: 15, color: theme.primary }}>
+                  {updatingAvatar ? t.avatarUpdating : t.avatarChangeAction}
+                </Text>
+              </Pressable>
+              <Text style={{ ...fonts.sansRegular, fontSize: 12.5, color: mutedText, textAlign: 'center' }}>
+                {t.avatarHint}
+              </Text>
+            </View>
+
             {/* Name Edit Card */}
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, padding: 16, gap: 10 }]}>
               <Text style={{ ...fonts.sansSemiBold, fontSize: 12, letterSpacing: 0.8, color: mutedText, textTransform: 'uppercase' }}>

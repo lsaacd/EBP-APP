@@ -22,6 +22,8 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
 import { useLanguage } from '../context/LanguageContext';
 import { getPasswordStrength } from '../utils/passwordStrength';
+import OAuthButtonsStack from './OAuthButtonsStack';
+import UserAvatar from './UserAvatar';
 
 export type SwiftUIAuthMode = 'login' | 'register' | 'recovery';
 
@@ -40,6 +42,7 @@ export interface AuthSheetSwiftUIProps {
     displayName?: string | null;
     email: string;
     emailVerified?: boolean;
+    avatarUrl?: string | null;
   } | null;
   initials: string;
   mode: SwiftUIAuthMode;
@@ -65,6 +68,7 @@ export interface AuthSheetSwiftUIProps {
   onSendRecovery: () => void;
   canSignInWithApple?: boolean;
   canSignInWithGoogle?: boolean;
+  oauthBusyProvider?: 'apple' | 'google' | null;
   onSignInWithApple?: () => void;
   onSignInWithGoogle?: () => void;
   onClose: () => void;
@@ -111,6 +115,7 @@ export default function AuthSheetSwiftUI({
   onSendRecovery,
   canSignInWithApple = false,
   canSignInWithGoogle = false,
+  oauthBusyProvider = null,
   onSignInWithApple,
   onSignInWithGoogle,
   onClose,
@@ -191,6 +196,7 @@ export default function AuthSheetSwiftUI({
     NavigationStack,
     Picker,
     ProgressView,
+    RNHostView,
     Section,
     SecureField,
     Spacer,
@@ -400,22 +406,39 @@ export default function AuthSheetSwiftUI({
                     spacing={14}
                     modifiers={[contentShape(shapes.rectangle())]}
                   >
-                    <ZStack alignment="center">
-                      <Circle
-                        modifiers={[
-                          foregroundStyle(avatarBg),
-                          frame({ width: 46, height: 46 }),
-                        ]}
-                      />
-                      <Text
-                        modifiers={[
-                          font({ size: 17, weight: 'bold' }),
-                          foregroundStyle(avatarText),
-                        ]}
+                    {user.avatarUrl && typeof RNHostView === 'function' ? (
+                      <ZStack
+                        alignment="center"
+                        modifiers={[frame({ width: 46, height: 46 })]}
                       >
-                        {initials}
-                      </Text>
-                    </ZStack>
+                        <RNHostView matchContents>
+                          <UserAvatar
+                            uri={user.avatarUrl}
+                            initials={initials}
+                            size={46}
+                            backgroundColor={avatarBg}
+                            textColor={avatarText}
+                          />
+                        </RNHostView>
+                      </ZStack>
+                    ) : (
+                      <ZStack alignment="center">
+                        <Circle
+                          modifiers={[
+                            foregroundStyle(avatarBg),
+                            frame({ width: 46, height: 46 }),
+                          ]}
+                        />
+                        <Text
+                          modifiers={[
+                            font({ size: 17, weight: 'bold' }),
+                            foregroundStyle(avatarText),
+                          ]}
+                        >
+                          {initials}
+                        </Text>
+                      </ZStack>
+                    )}
                     <VStack alignment="leading" spacing={2}>
                       <Text
                         modifiers={[
@@ -579,6 +602,37 @@ export default function AuthSheetSwiftUI({
                   </Button>
                 </Section>
               )}
+
+              {/* ── Social-First Official Apple & 4-Color Google Sign-In Buttons ── */}
+              {mode !== 'recovery' &&
+              typeof RNHostView === 'function' &&
+              (canSignInWithApple || canSignInWithGoogle) ? (
+                <Section>
+                  <VStack
+                    alignment="center"
+                    modifiers={[
+                      listRowBackground('clear'),
+                      listRowInsets({ top: 4, leading: 0, bottom: 2, trailing: 0 }),
+                    ]}
+                  >
+                    <RNHostView matchContents={{ vertical: true }}>
+                      <OAuthButtonsStack
+                        isDarkMode={isDarkMode}
+                        canSignInWithApple={Boolean(canSignInWithApple && onSignInWithApple)}
+                        canSignInWithGoogle={Boolean(canSignInWithGoogle && onSignInWithGoogle)}
+                        appleLabel={t.authContinueWithApple}
+                        googleLabel={t.authContinueWithGoogle}
+                        dividerLabel={t.authOrEmailDivider}
+                        showDivider
+                        disabled={isBusy}
+                        busyProvider={oauthBusyProvider}
+                        onPressApple={onSignInWithApple}
+                        onPressGoogle={onSignInWithGoogle}
+                      />
+                    </RNHostView>
+                  </VStack>
+                </Section>
+              ) : null}
 
               {/* ── Icon-Prefixed Credentials Section ── */}
               <Section
@@ -787,83 +841,6 @@ export default function AuthSheetSwiftUI({
                   </Button>
                 ) : null}
               </Section>
-
-              {/* ── 1-Tap OAuth Sign-In (Apple & Google) ── */}
-              {mode !== 'recovery' && (canSignInWithApple || canSignInWithGoogle) ? (
-                <Section>
-                  {canSignInWithApple && onSignInWithApple ? (
-                    <Button
-                      onPress={onSignInWithApple}
-                      modifiers={[
-                        foregroundStyle(primaryStyle),
-                        disabled(isBusy),
-                        listRowBackground(cardRowBg),
-                      ]}
-                    >
-                      <HStack
-                        alignment="center"
-                        spacing={10}
-                        modifiers={[contentShape(shapes.rectangle())]}
-                      >
-                        <SwiftUIImage
-                          systemName="apple.logo"
-                          size={16}
-                          modifiers={[
-                            foregroundStyle(primaryStyle),
-                            frame({ width: 22, alignment: 'center' }),
-                          ]}
-                        />
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'body', weight: 'semibold' }),
-                            foregroundStyle(primaryStyle),
-                          ]}
-                        >
-                          {t.authContinueWithApple}
-                        </Text>
-                        <Spacer />
-                        {chevron}
-                      </HStack>
-                    </Button>
-                  ) : null}
-
-                  {canSignInWithGoogle && onSignInWithGoogle ? (
-                    <Button
-                      onPress={onSignInWithGoogle}
-                      modifiers={[
-                        foregroundStyle(primaryStyle),
-                        disabled(isBusy),
-                        listRowBackground(cardRowBg),
-                      ]}
-                    >
-                      <HStack
-                        alignment="center"
-                        spacing={10}
-                        modifiers={[contentShape(shapes.rectangle())]}
-                      >
-                        <SwiftUIImage
-                          systemName="g.circle.fill"
-                          size={16}
-                          modifiers={[
-                            foregroundStyle({ type: 'color', color: symbolTint }),
-                            frame({ width: 22, alignment: 'center' }),
-                          ]}
-                        />
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'body', weight: 'semibold' }),
-                            foregroundStyle(primaryStyle),
-                          ]}
-                        >
-                          {t.authContinueWithGoogle}
-                        </Text>
-                        <Spacer />
-                        {chevron}
-                      </HStack>
-                    </Button>
-                  ) : null}
-                </Section>
-              ) : null}
 
               {/* ── Compact Account Benefits Strip ── */}
               {mode !== 'recovery' ? (

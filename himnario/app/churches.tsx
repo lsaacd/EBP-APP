@@ -60,6 +60,7 @@ import ChurchQrSheet from "../components/ChurchQrSheet";
 import FriendButton from "../components/FriendButton";
 import { mergeChurchMembers, parseChurchMembers, parseChurchMembersOffset, type ChurchMemberProfile } from "../utils/friends";
 import { seedMemberPreview } from "../utils/memberProfileCache";
+import UserAvatar from "../components/UserAvatar";
 import { MINISTRIES, choirDisplayName } from "../data/communityRules";
 import { useApprovedChoirs } from "../utils/choirsStore";
 import { parseServiceTimes } from "../utils/churchSchedule";
@@ -3200,6 +3201,7 @@ export default function ChurchesScreen() {
                                       id: member.id,
                                       name: member.name,
                                       initials: member.initials,
+                                      avatarUrl: member.avatarUrl ?? null,
                                       ministry: member.ministry,
                                       choir: member.choir,
                                       badgeVerified: member.badgeVerified,
@@ -3219,26 +3221,14 @@ export default function ChurchesScreen() {
                                     opacity: pressed ? 0.75 : 1,
                                   })}
                                 >
-                                  <View
-                                    style={{
-                                      width: 34,
-                                      height: 34,
-                                      borderRadius: 17,
-                                      backgroundColor: theme.primary,
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                    }}
-                                  >
-                                    <Text
-                                      style={{
-                                        ...fonts.sansBold,
-                                        fontSize: 12.5,
-                                        color: theme.onPrimary,
-                                      }}
-                                    >
-                                      {member.initials}
-                                    </Text>
-                                  </View>
+                                  <UserAvatar
+                                    uri={member.avatarUrl}
+                                    initials={member.initials}
+                                    size={34}
+                                    fontSize={12.5}
+                                    backgroundColor={theme.primary}
+                                    textColor={theme.onPrimary}
+                                  />
                                   <View style={{ flex: 1, gap: 1 }}>
                                     <Text
                                       numberOfLines={1}

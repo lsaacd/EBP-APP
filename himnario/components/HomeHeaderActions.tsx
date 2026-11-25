@@ -16,6 +16,7 @@ import { useFriends } from '../utils/friendsStore';
 import { useNotifications } from '../utils/notificationsStore';
 import GlassSurface from './GlassSurface';
 import AppMenuIcon from './AppMenuIcon';
+import UserAvatar from './UserAvatar';
 import * as Haptics from '../utils/haptics';
 
 export const APPLE_AVATAR_GRADIENT: [string, string] = ['#9EA9DC', '#7683BE'];
@@ -197,7 +198,18 @@ export default function HomeHeaderActions({
       android_ripple={{ color: theme.primary + '20', borderless: false }}
       style={circleButtonStyle}
     >
-      {userInitials ? (
+      {user?.avatarUrl ? (
+        <UserAvatar
+          uri={user.avatarUrl}
+          initials={userInitials || ''}
+          size={38}
+          fontSize={14}
+          backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+          textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+          borderColor={isDarkMode ? 'rgba(255,255,255,0.22)' : 'rgba(110,22,25,0.20)'}
+          borderWidth={StyleSheet.hairlineWidth}
+        />
+      ) : userInitials ? (
         <Text
           style={[
             styles.classicAvatarInitials,

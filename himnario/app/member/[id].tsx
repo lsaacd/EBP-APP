@@ -45,6 +45,7 @@ import GlassSurface from '../../components/GlassSurface';
 import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import FriendButton from '../../components/FriendButton';
+import UserAvatar from '../../components/UserAvatar';
 import * as Haptics from '../../utils/haptics';
 
 type ProfileTab = 'friends' | 'favorites';
@@ -138,6 +139,7 @@ export default function MemberProfileScreen() {
             id: string;
             name: string;
             initials?: string;
+            avatarUrl?: string | null;
             ministry?: string | null;
             choir?: string | null;
             badgeVerified?: boolean;
@@ -194,6 +196,7 @@ export default function MemberProfileScreen() {
           id: u.id,
           name: u.name,
           initials: u.initials || base?.initials || '—',
+          avatarUrl: u.avatarUrl ?? null,
           ministry: u.ministry ?? null,
           choir: u.choir ?? null,
           badgeVerified: Boolean(u.badgeVerified),
@@ -286,6 +289,7 @@ export default function MemberProfileScreen() {
         id: person.id,
         name: person.name,
         initials: person.initials,
+        avatarUrl: person.avatarUrl ?? null,
         ministry: person.ministry,
         choir: person.choir,
         badgeVerified: person.badgeVerified,
@@ -521,10 +525,15 @@ export default function MemberProfileScreen() {
           <>
             {/* Hero Profile Card */}
             <View style={[styles.card, styles.heroCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={[styles.heroAvatar, { backgroundColor: theme.primary }]}>
-                <Text style={{ ...fonts.bold, fontSize: 28, color: theme.onPrimary }}>
-                  {profile.initials}
-                </Text>
+              <View style={{ marginBottom: 4 }}>
+                <UserAvatar
+                  uri={profile.avatarUrl}
+                  initials={profile.initials}
+                  size={76}
+                  fontSize={28}
+                  backgroundColor={theme.primary}
+                  textColor={theme.onPrimary}
+                />
               </View>
 
               <View style={styles.nameRow}>
@@ -791,11 +800,14 @@ export default function MemberProfileScreen() {
                               },
                             ]}
                           >
-                            <View style={[styles.rowAvatar, { backgroundColor: theme.primary }]}>
-                              <Text style={{ ...fonts.sansBold, fontSize: 13.5, color: theme.onPrimary }}>
-                                {person.initials}
-                              </Text>
-                            </View>
+                            <UserAvatar
+                              uri={person.avatarUrl}
+                              initials={person.initials}
+                              size={38}
+                              fontSize={13.5}
+                              backgroundColor={theme.primary}
+                              textColor={theme.onPrimary}
+                            />
                             <View style={{ flex: 1, gap: 2 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                 <Text

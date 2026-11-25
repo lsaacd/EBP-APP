@@ -30,6 +30,7 @@ import { useNavigation } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth, computeUserInitials } from '../../context/AuthContext';
+import UserAvatar from '../UserAvatar';
 import { APPLE_AVATAR_GRADIENT } from '../HomeHeaderActions';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -119,24 +120,16 @@ export default function SettingsScreen() {
           <View style={styles.cardRow}>
             <View style={styles.cardInfo}>
               {user ? (
-                <View
-                  style={[
-                    styles.accountAvatarGradient,
-                    {
-                      backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
-                      borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.accountAvatarInitials,
-                      { color: isDarkMode ? '#1A1A1A' : '#FFFFFF' },
-                    ]}
-                  >
-                    {user.initials || computeUserInitials(user.displayName, user.email)}
-                  </Text>
-                </View>
+                <UserAvatar
+                  uri={user.avatarUrl}
+                  initials={user.initials || computeUserInitials(user.displayName, user.email)}
+                  size={44}
+                  fontSize={16}
+                  backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+                  textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+                  borderColor={isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38'}
+                  borderWidth={StyleSheet.hairlineWidth}
+                />
               ) : (
                 <View
                   style={[

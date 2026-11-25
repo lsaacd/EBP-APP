@@ -67,6 +67,8 @@ import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
 import LiquidGlassSegmented from './LiquidGlassSegmented';
 import AuthSheetSwiftUI from './AuthSheetSwiftUI';
+import OAuthButtonsStack from './OAuthButtonsStack';
+import UserAvatar from './UserAvatar';
 import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 import { isAppleSignInAvailable, isGoogleSignInConfigured } from '../utils/oauthClient';
 import { showSuccessToast } from '../utils/toast';
@@ -171,6 +173,7 @@ export function AuthSheet({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [oauthBusyProvider, setOauthBusyProvider] = useState<'apple' | 'google' | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const googleAvailable = isGoogleSignInConfigured();
   const [emailAction, setEmailAction] = useState<'recovery' | 'verification' | 'refresh' | null>(null);
@@ -675,6 +678,7 @@ export function AuthSheet({
     setErrorMessage(null);
     setInfoMessage(null);
     setSubmitting(true);
+    setOauthBusyProvider(provider);
     Keyboard.dismiss();
     try {
       if (provider === 'apple') {
@@ -690,6 +694,7 @@ export function AuthSheet({
       displayAuthError(err);
       triggerFormShake();
     } finally {
+      setOauthBusyProvider(null);
       setSubmitting(false);
     }
   };
@@ -1086,27 +1091,14 @@ export function AuthSheet({
       <>
         {/* Clean iOS Apple ID-Style Compact Hero */}
         <View style={{ alignItems: 'center', paddingVertical: 6, gap: 6 }}>
-          <View
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 32,
-              backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              style={{
-                ...fonts.sansBold,
-                fontSize: 23,
-                color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
-                letterSpacing: 0.4,
-              }}
-            >
-              {initials}
-            </Text>
-          </View>
+          <UserAvatar
+            uri={user.avatarUrl}
+            initials={initials}
+            size={64}
+            fontSize={23}
+            backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+            textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+          />
           <Text
             style={{
               ...fonts.bold,
@@ -1347,28 +1339,17 @@ export function AuthSheet({
             },
           ]}
         >
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              style={{
-                ...fonts.sansBold,
-                fontSize: 18,
-                color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
-                letterSpacing: 0.4,
-              }}
-            >
-              {initials}
-            </Text>
+          <View style={{ position: 'relative' }}>
+            <UserAvatar
+              uri={user.avatarUrl}
+              initials={initials}
+              size={48}
+              fontSize={18}
+              backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+              textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+              borderColor={isDarkMode ? 'rgba(255,255,255,0.22)' : theme.primary + '38'}
+              borderWidth={StyleSheet.hairlineWidth}
+            />
             {(friendsBadge > 0 || notificationsUnread > 0) && (
               <View
                 style={{
@@ -1698,6 +1679,24 @@ export function AuthSheet({
               })}
             </View>
           )
+        )}
+
+        {mode !== 'recovery' && (appleAvailable || googleAvailable) && (
+          <View style={styles.oauthBlock}>
+            <OAuthButtonsStack
+              isDarkMode={isDarkMode}
+              canSignInWithApple={appleAvailable}
+              canSignInWithGoogle={googleAvailable}
+              appleLabel={t.authContinueWithApple}
+              googleLabel={t.authContinueWithGoogle}
+              dividerLabel={t.authOrEmailDivider}
+              showDivider
+              disabled={submitting || isLoading || !!emailAction}
+              busyProvider={oauthBusyProvider}
+              onPressApple={() => void handleOAuthProvider('apple')}
+              onPressGoogle={() => void handleOAuthProvider('google')}
+            />
+          </View>
         )}
 
         {/* Auth Form Card */}
@@ -2122,77 +2121,6 @@ export function AuthSheet({
           {t.authOptionalNote}
         </Text>
 
-        {mode !== 'recovery' && (appleAvailable || googleAvailable) && (
-          <View style={styles.oauthBlock}>
-            <View style={styles.oauthDividerRow}>
-              <View style={[styles.oauthDividerLine, { backgroundColor: dividerColor }]} />
-              <Text style={[styles.oauthDividerText, { color: mutedText }]}>
-                {t.authOrEmailDivider}
-              </Text>
-              <View style={[styles.oauthDividerLine, { backgroundColor: dividerColor }]} />
-            </View>
-            <View style={styles.oauthButtonsCol}>
-              {appleAvailable && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.authContinueWithApple}
-                  disabled={submitting || isLoading || !!emailAction}
-                  onPress={() => void handleOAuthProvider('apple')}
-                  style={({ pressed }) => [
-                    styles.oauthButton,
-                    {
-                      backgroundColor: isDarkMode ? '#FFFFFF' : '#111111',
-                      borderColor: 'transparent',
-                      opacity: submitting || emailAction ? 0.6 : pressed ? 0.84 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="apple.logo"
-                    android="login"
-                    color={isDarkMode ? '#111111' : '#FFFFFF'}
-                    size={18}
-                  />
-                  <Text
-                    style={[
-                      styles.oauthButtonText,
-                      { color: isDarkMode ? '#111111' : '#FFFFFF' },
-                    ]}
-                  >
-                    {t.authContinueWithApple}
-                  </Text>
-                </Pressable>
-              )}
-              {googleAvailable && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.authContinueWithGoogle}
-                  disabled={submitting || isLoading || !!emailAction}
-                  onPress={() => void handleOAuthProvider('google')}
-                  style={({ pressed }) => [
-                    styles.oauthButton,
-                    {
-                      backgroundColor: cardBg,
-                      borderColor: cardBorder,
-                      opacity: submitting || emailAction ? 0.6 : pressed ? 0.84 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="g.circle.fill"
-                    android="account-circle"
-                    color={iconTint}
-                    size={18}
-                  />
-                  <Text style={[styles.oauthButtonText, { color: theme.onSurface }]}>
-                    {t.authContinueWithGoogle}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-        )}
-
         {/* Unified App Menu Section (Share App, Settings, Help, History) */}
         {renderUnifiedAppMenuSection()}
       </>
@@ -2427,6 +2355,7 @@ export function AuthSheet({
         }}
         canSignInWithApple={appleAvailable}
         canSignInWithGoogle={googleAvailable}
+        oauthBusyProvider={oauthBusyProvider}
         onSignInWithApple={() => {
           void handleOAuthProvider('apple');
         }}
@@ -2549,6 +2478,7 @@ export function AuthSheet({
           }}
           canSignInWithApple={appleAvailable}
           canSignInWithGoogle={googleAvailable}
+          oauthBusyProvider={oauthBusyProvider}
           onSignInWithApple={() => {
             void handleOAuthProvider('apple');
           }}

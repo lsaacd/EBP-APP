@@ -39,6 +39,7 @@ import { seedMemberPreview } from '../utils/memberProfileCache';
 import AppMenuIcon from './AppMenuIcon';
 import LiquidGlassSegmented from './LiquidGlassSegmented';
 import FriendButton from './FriendButton';
+import UserAvatar from './UserAvatar';
 
 type Table = Record<string, [string, string]>;
 type FriendsTab = 'friends' | 'requests' | 'church';
@@ -97,6 +98,7 @@ export default function FriendsPanel({
         id: friend.id,
         name: friend.name,
         initials: friend.initials,
+        avatarUrl: friend.avatarUrl ?? null,
         ministry: friend.ministry,
         choir: friend.choir,
         badgeVerified: friend.badgeVerified,
@@ -149,6 +151,7 @@ export default function FriendsPanel({
       id: person.id,
       name: person.name,
       initials: person.initials,
+      avatarUrl: person.avatarUrl ?? null,
       ministry: person.ministry,
       choir: person.choir,
       badgeVerified: person.badgeVerified,
@@ -209,22 +212,14 @@ export default function FriendsPanel({
                       },
                     ]}
                   >
-                    <View
-                      style={[
-                        styles.avatar,
-                        { backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          ...fonts.sansBold,
-                          fontSize: 14,
-                          color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
-                        }}
-                      >
-                        {person.initials}
-                      </Text>
-                    </View>
+                    <UserAvatar
+                      uri={person.avatarUrl}
+                      initials={person.initials}
+                      size={40}
+                      fontSize={14}
+                      backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+                      textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+                    />
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <Text
@@ -720,22 +715,14 @@ export default function FriendsPanel({
                         },
                       ]}
                     >
-                      <View
-                        style={[
-                          styles.avatar,
-                          { backgroundColor: isDarkMode ? '#F3EEE8' : theme.primary },
-                        ]}
-                      >
-                        <Text
-                          style={{
-                            ...fonts.sansBold,
-                            fontSize: 14,
-                            color: isDarkMode ? '#1A1A1A' : '#FFFFFF',
-                          }}
-                        >
-                          {person.initials}
-                        </Text>
-                      </View>
+                      <UserAvatar
+                        uri={person.avatarUrl}
+                        initials={person.initials}
+                        size={40}
+                        fontSize={14}
+                        backgroundColor={isDarkMode ? '#F3EEE8' : theme.primary}
+                        textColor={isDarkMode ? '#1A1A1A' : '#FFFFFF'}
+                      />
                       <View style={{ flex: 1, gap: 2 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Text
