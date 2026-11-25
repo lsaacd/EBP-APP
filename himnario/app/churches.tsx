@@ -50,7 +50,7 @@ import GlassSurface, { GlassGroup } from "../components/GlassSurface";
 import LiquidGlassSegmented from "../components/LiquidGlassSegmented";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
-import { isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI";
+import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI";
 import { LinearGradient } from "expo-linear-gradient";
 import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
@@ -1603,6 +1603,7 @@ export default function ChurchesScreen() {
           : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
 
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
+  const expoSwiftUI = isIOS ? getExpoSwiftUI() : null;
   const bgSurface = isDarkMode ? "#0D0D0F" : "#F6F3EC";
   const cardBg = hasIOSGlass
     ? isDarkMode
@@ -2068,18 +2069,64 @@ export default function ChurchesScreen() {
         <View style={styles.pillControlsRow}>
           {Platform.OS !== "web" &&
             (isIOS ? (
-              <View style={styles.iosModeSegmentedWrap}>
-                <LiquidGlassSegmented
-                  compact
-                  glassTrack
-                  value={sheetMode}
-                  onChange={(m) => handleModeChange(m)}
-                  items={[
-                    { key: "map", label: t.profileMap, iosIcon: "map.fill", androidIcon: "map" },
-                    { key: "list", label: t.churchList, iosIcon: "list.bullet", androidIcon: "format-list-bulleted" },
-                  ]}
-                />
-              </View>
+              expoSwiftUI ? (() => {
+                const { Host, Image: SwiftImage, Picker: SwiftPicker } = expoSwiftUI.ui;
+                const {
+                  accessibilityLabel,
+                  controlSize,
+                  glassEffect,
+                  pickerStyle,
+                  tag,
+                } = expoSwiftUI.modifiers;
+                return (
+                  <Host
+                    style={styles.iosNativeModePickerHost}
+                    colorScheme={isDarkMode ? "dark" : "light"}
+                    seedColor={theme.primary}
+                  >
+                    <SwiftPicker
+                      label={t.profileMap}
+                      selection={sheetMode}
+                      onSelectionChange={(next) => {
+                        if ((next === "map" || next === "list") && next !== sheetMode) {
+                          Haptics.selectionAsync();
+                          handleModeChange(next);
+                        }
+                      }}
+                      modifiers={[
+                        pickerStyle("segmented"),
+                        controlSize("large"),
+                        glassEffect({
+                          glass: { variant: "regular", interactive: true },
+                          shape: "capsule",
+                        }),
+                      ]}
+                    >
+                      <SwiftImage
+                        systemName="map.fill"
+                        modifiers={[tag("map"), accessibilityLabel(t.profileMap)]}
+                      />
+                      <SwiftImage
+                        systemName="list.bullet"
+                        modifiers={[tag("list"), accessibilityLabel(t.churchList)]}
+                      />
+                    </SwiftPicker>
+                  </Host>
+                );
+              })() : (
+                <View style={styles.iosModeSegmentedWrap}>
+                  <LiquidGlassSegmented
+                    compact
+                    glassTrack
+                    value={sheetMode}
+                    onChange={(m) => handleModeChange(m)}
+                    items={[
+                      { key: "map", label: t.profileMap, iosIcon: "map.fill", androidIcon: "map" },
+                      { key: "list", label: t.churchList, iosIcon: "list.bullet", androidIcon: "format-list-bulleted" },
+                    ]}
+                  />
+                </View>
+              )
             ) : (
               <GlassSurface
                 glassEffectStyle="regular"
@@ -4833,6 +4880,10 @@ const styles = StyleSheet.create({
     height: 45,
     alignItems: "center",
     justifyContent: "flex-end",
+  },
+  iosNativeModePickerHost: {
+    width: 118,
+    height: 40,
   },
   iosModeSegmentedWrap: {
     width: 192,
