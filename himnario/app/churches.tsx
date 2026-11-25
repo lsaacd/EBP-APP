@@ -1603,7 +1603,6 @@ export default function ChurchesScreen() {
           : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
 
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
-  const prominentBurgundy = isDarkMode ? "#9E2A32" : "#6e1619";
   const bgSurface = isDarkMode ? "#0D0D0F" : "#F6F3EC";
   const cardBg = hasIOSGlass
     ? isDarkMode
@@ -1905,18 +1904,18 @@ export default function ChurchesScreen() {
                   onPress={handleConfirmPinPicker}
                   style={[
                     styles.actionBtnPrimary,
-                    { backgroundColor: prominentBurgundy },
+                    { backgroundColor: theme.primary },
                   ]}
                 >
                   <AppMenuIcon
                     ios="checkmark.circle.fill"
                     android="check-circle"
-                    color="#FFFFFF"
+                    color={theme.onPrimary}
                     size={17}
                   />
                   <Text
                     style={{
-                      color: "#FFFFFF",
+                      color: theme.onPrimary,
                       ...fonts.sansSemiBold,
                       fontSize: 14.5,
                     }}
@@ -2072,11 +2071,12 @@ export default function ChurchesScreen() {
               <View style={styles.iosModeSegmentedWrap}>
                 <LiquidGlassSegmented
                   compact
+                  glassTrack
                   value={sheetMode}
                   onChange={(m) => handleModeChange(m)}
                   items={[
-                    { key: "map", label: t.profileMap },
-                    { key: "list", label: t.churchList },
+                    { key: "map", label: t.profileMap, iosIcon: "map.fill", androidIcon: "map" },
+                    { key: "list", label: t.churchList, iosIcon: "list.bullet", androidIcon: "format-list-bulleted" },
                   ]}
                 />
               </View>
@@ -3736,18 +3736,18 @@ export default function ChurchesScreen() {
                       style={({ pressed }) => [
                         styles.submitProminentCircle,
                         {
-                          backgroundColor: prominentBurgundy,
+                          backgroundColor: theme.primary,
                           opacity: submitting ? 0.6 : pressed ? 0.85 : 1,
                         },
                       ]}
                     >
                       {submitting ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={theme.onPrimary} />
                       ) : (
                         <AppMenuIcon
                           ios={isAdmin ? "checkmark" : "paperplane.fill"}
                           android={isAdmin ? "check" : "send"}
-                          color="#FFFFFF"
+                          color={theme.onPrimary}
                           size={17}
                           weight="bold"
                         />
@@ -4835,7 +4835,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   iosModeSegmentedWrap: {
-    width: 168,
+    width: 192,
   },
   topChrome: {
     position: "absolute",

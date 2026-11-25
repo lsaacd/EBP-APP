@@ -74,7 +74,7 @@ export default function MyProfileOverviewIOS({
   const es = language !== 'en';
   const scheme = isDarkMode ? 'dark' : 'light';
   const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
-  const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
+  const symbolTint = isDarkMode ? '#FFFFFF' : theme.primary;
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
@@ -137,7 +137,15 @@ export default function MyProfileOverviewIOS({
       }}
     >
       <HStack alignment="center" spacing={8}>
-        <Label title={title} systemImage={systemImage} />
+        <Label
+          title={title}
+          icon={
+            <SwiftUIImage
+              systemName={systemImage}
+              modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+            />
+          }
+        />
         <Spacer />
         {detail ? (
           <Text
@@ -157,8 +165,8 @@ export default function MyProfileOverviewIOS({
   );
 
   return (
-    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={monochromeInk}>
-      <Form modifiers={[refreshable(handleRefresh), tint(monochromeInk)]}>
+    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
+      <Form modifiers={[refreshable(handleRefresh), tint(symbolTint)]}>
         {/* ─── Account (Inkigo Profile Style) ─── */}
         <Section title={t.authAccountTitle}>
           <LabeledContent label={t.authNameLabel}>
@@ -260,7 +268,12 @@ export default function MyProfileOverviewIOS({
           >
             <Label
               title={t.authSignOut}
-              systemImage="rectangle.portrait.and.arrow.right"
+              icon={
+                <SwiftUIImage
+                  systemName="rectangle.portrait.and.arrow.right"
+                  modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+                />
+              }
             />
           </Button>
         </Section>

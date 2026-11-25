@@ -62,7 +62,7 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
   const iosPillBottom = Math.max(insets.bottom, 22);
   const iosPopoverBottom = miniPlayerVisible
     ? iosPillBottom + 55 + resolvedMiniPlayerHeight + 2
-    : iosPillBottom + 60 + 2;
+    : iosPillBottom + 54 + 4;
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const [inputText, setInputText] = useState(String(currentPx));

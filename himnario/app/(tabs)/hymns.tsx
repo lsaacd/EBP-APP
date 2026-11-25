@@ -437,9 +437,9 @@ export default function HymnListScreen() {
 
   // Fixed index row geometry makes distant letter jumps exact without measurement retries.
   const indexLayouts = useMemo(() => {
-    let offset = 8;
+    let offset = 0;
     return indiceData.map(item => {
-      const length = (item.type === 'main_header' ? 104 : item.type === 'header' ? 52 : 40) * fontScale;
+      const length = (item.type === 'main_header' ? 96 : item.type === 'header' ? 54 : 44) * fontScale;
       const layout = { length, offset };
       offset += length;
       return layout;
@@ -996,13 +996,15 @@ export default function HymnListScreen() {
 
     return (
       <View style={styles.flex1}>
+        {/* Leveled directly with the category chips band on Himnos & Estribillos */}
+        {indiceToggleHeader}
+
         <View style={styles.indiceBody}>
           <View style={styles.indiceListContainer}>
             <FlatList
               ref={indiceListRef}
               data={indiceData}
               extraData={`${language}-${offline.saved}-${indiceSection}`}
-              ListHeaderComponent={indiceToggleHeader}
               keyExtractor={(item, index) =>
                 item.type +
                 '_' +
@@ -1022,7 +1024,7 @@ export default function HymnListScreen() {
                     <Text
                       style={[
                         styles.indiceMainHeader,
-                        { color: theme.onSurface, height: 104 * fontScale, marginTop: 0, marginBottom: 0, textAlignVertical: 'center' },
+                        { color: theme.onSurface, height: 96 * fontScale, marginTop: 0, marginBottom: 0, textAlignVertical: 'center' },
                       ]}
                     >
                       {item.title}
@@ -1031,9 +1033,12 @@ export default function HymnListScreen() {
                 }
                 if (item.type === 'header') {
                   return (
-                    <View style={[styles.indiceLetterHeader, { height: 52 * fontScale, marginTop: 0 }]}>
+                    <View style={[styles.indiceLetterHeader, { height: 54 * fontScale, marginTop: 0 }]}>
                       <Text
-                        style={[styles.indiceLetterText, { color: theme.onSurfaceVariant }]}
+                        style={[
+                          styles.indiceLetterText,
+                          { color: isDarkMode ? '#fdf9f2' : '#4a3533' },
+                        ]}
                       >
                         --{item.letter}--
                       </Text>
@@ -1045,7 +1050,7 @@ export default function HymnListScreen() {
                   <HymnRowLink
                     hymn={item.hymn}
                     href={`/hymn/${item.hymn.id}`}
-                    style={[styles.indiceItemRow, { height: 40 * fontScale }]}
+                    style={[styles.indiceItemRow, { height: 44 * fontScale }]}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -1057,12 +1062,21 @@ export default function HymnListScreen() {
                     {isSaved && (
                       <MaterialIcons
                         name="offline-pin"
-                        size={13}
+                        size={14}
                         color={theme.primary}
-                        style={{ marginLeft: 5 }}
+                        style={{ marginLeft: 6 }}
                       />
                     )}
-                    <View style={[styles.indiceDotsWrapper, { borderBottomWidth: 1, borderStyle: 'dotted', borderColor: theme.outlineVariant }]} />
+                    <View
+                      style={[
+                        styles.indiceDotsWrapper,
+                        {
+                          borderBottomWidth: 1,
+                          borderStyle: 'dotted',
+                          borderColor: isDarkMode ? 'rgba(255,255,255,0.22)' : '#cbb8b2',
+                        },
+                      ]}
+                    />
                     <Text style={[styles.indiceItemNumber, { color: theme.onSurface }]}>
                       {item.hymn.number}
                     </Text>
@@ -1934,19 +1948,17 @@ const styles = StyleSheet.create({
 
   // ── Índice & Glass A-Z Scroller (Workstream F) ─────────────
   indiceToggleWrap: {
-    paddingHorizontal: 24,
-    paddingTop: 6,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 6,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   indiceTogglePill: {
     flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-    maxWidth: 320,
+    gap: 8,
+    alignItems: 'center',
   },
   indiceToggleBtnWrap: {
-    flex: 1,
     borderRadius: 12,
   },
   indiceToggleOption: {
@@ -1954,7 +1966,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
   },
   indiceToggleText: {
     fontFamily: SYSTEM_FONT,
@@ -1965,44 +1977,47 @@ const styles = StyleSheet.create({
   indiceBody: {
     flex: 1,
     flexDirection: 'row',
-    paddingTop: 8,
+    paddingTop: 2,
   },
   indiceListContainer: {
     flex: 1,
     paddingLeft: 24,
-    paddingRight: 8,
+    paddingRight: 10,
   },
   indiceMainHeader: {
     ...fonts.bold,
     fontSize: 22,
     textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 12,
     letterSpacing: 1,
   },
   indiceLetterHeader: {
     alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 12,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginTop: 8,
   },
   indiceLetterText: {
     ...fonts.bold,
-    fontSize: 16,
-    letterSpacing: 2,
+    fontSize: 18,
+    letterSpacing: 1.5,
   },
   indiceItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   indiceItemTitle: {
     ...fonts.regular,
-    fontSize: 18,
+    fontSize: 19,
     maxWidth: '72%',
   },
   indiceDotsWrapper: {
     flex: 1,
-    marginHorizontal: 8,
+    height: 1,
+    marginHorizontal: 10,
+    marginTop: 5,
     overflow: 'hidden',
   },
   indiceDots: {
@@ -2012,7 +2027,8 @@ const styles = StyleSheet.create({
   },
   indiceItemNumber: {
     ...fonts.bold,
-    fontSize: 18,
+    fontSize: 19,
+    fontVariant: ['tabular-nums'],
   },
   alphabetSidebarWrapper: {
     paddingRight: 6,

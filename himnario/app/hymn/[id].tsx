@@ -44,7 +44,7 @@ import AppMenuIcon from '../../components/AppMenuIcon';
 import WebIcon from '../../components/WebIcon';
 import AndroidReaderControls from '../../components/AndroidReaderControls';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../../components/androidBottomLayout';
-import GlassSurface from '../../components/GlassSurface';
+import GlassSurface, { GlassGroup } from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
@@ -212,7 +212,7 @@ export default function HymnDetail() {
     miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 57;
   const dockTop = Platform.OS === 'android'
     ? androidBottomInset(insets.bottom) + ANDROID_BOTTOM_BAR_HEIGHT + (miniPlayerVisible ? resolvedMiniPlayerHeight : 0)
-    : Math.max(insets.bottom, 22) + (miniPlayerVisible ? 55 + resolvedMiniPlayerHeight : 60);
+    : Math.max(insets.bottom, 22) + (miniPlayerVisible ? 55 + resolvedMiniPlayerHeight : 54);
   const navBtnBottom = dockTop + 4;
 
   const hymnAudio = (h: any) => hasHymnAudio(String(h?.id ?? ''));
@@ -657,85 +657,141 @@ export default function HymnDetail() {
         </SafeAreaView>
       </PageFlipTransition>
 
-      {/* Android matches the website; iOS retains its reading pill. */}
+      {/* Android matches the website; iOS uses Apple Books–style split Liquid Glass toolbar + bottom scrim. */}
       {Platform.OS === 'android' ? (
         <AndroidReaderControls onText={() => setTextSizeSheetVisible(true)} onTheme={toggleTheme}
           onAudio={() => handlePlayAudio(hymn)} hasAudio={hymnAudio(hymn)} />
-      ) : <View style={[
-        styles.floatWrap, 
-        { bottom: Math.max(insets.bottom, 22) } 
-      ]}>
-        <GlassSurface
-          intensity={55}
-          isInteractive
-          tonalColor={theme.surfaceVariants.containerLow}
-          style={[
-            styles.floatPill,
-            { shadowColor: theme.onSurface },
-          ]}
-        >
-          {/* Text Size — floating Liquid Glass popover card on iOS, bottom sheet on Android */}
-          <TouchableOpacity style={styles.controlItem} onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setTextSizeSheetVisible(true);
-          }}>
-            <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
-              <MaterialIcons name="format-size" size={20} color={theme.onSurfaceVariant} />
-            </View>
-            <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{t.textSize}</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
-
-          {/* Dark / Light Mode */}
-          <TouchableOpacity style={styles.controlItem} onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            toggleTheme();
-          }}>
-            <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
-              <MaterialIcons name={isDarkMode ? "light-mode" : "dark-mode"} size={20} color={theme.onSurfaceVariant} />
-            </View>
-            <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{isDarkMode ? t.lightMode : t.darkMode}</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
-
-          {/* Audio Play — always visible; red if available, grey if not */}
-          <TouchableOpacity
-            style={styles.controlItem}
-            onPress={() => handlePlayAudio(hymn)}
-            disabled={!hymnAudio(hymn)}
+      ) : (
+        <>
+          <LinearGradient
+            pointerEvents="none"
+            colors={[
+              isDarkMode ? 'rgba(1,1,1,0)' : 'rgba(252,249,242,0)',
+              isDarkMode ? 'rgba(1,1,1,0.82)' : 'rgba(252,249,242,0.86)',
+              isDarkMode ? '#010101' : '#fcf9f2',
+            ]}
+            locations={[0, 0.56, 1]}
+            style={[styles.bottomScrim, { height: Math.max(insets.bottom, 22) + 96 }]}
+          />
+          <View
+            pointerEvents="box-none"
+            style={[styles.floatWrap, { bottom: Math.max(insets.bottom, 22) }]}
           >
-            <View style={[styles.controlCircle, {
-              backgroundColor: !hymnAudio(hymn)
-                ? theme.outlineVariant + '33'
-                : isDarkMode
-                  ? theme.surfaceVariants.containerHigh
-                  : '#7B1F1D',
-            }]}>
-              <MaterialIcons
-                name="play-arrow"
-                size={20}
-                color={!hymnAudio(hymn)
-                  ? theme.onSurfaceVariant + '66'
-                  : isDarkMode
-                    ? theme.onSurfaceVariant
-                    : '#ffffff'}
-              />
-              {offlineSnapshot.savedIds.has(String(hymn.id)) && (
-                <View style={[styles.savedBadgeDot, { backgroundColor: theme.primary }]} />
+            <GlassGroup spacing={10} style={styles.readerGlassGroup}>
+              {/* Left/Center Frosted Liquid Glass Reading Controls Capsule */}
+              <GlassSurface
+                intensity={60}
+                isInteractive
+                glassEffectStyle="regular"
+                tonalColor={theme.surfaceVariants.containerLow}
+                style={[styles.readerControlsPill, { shadowColor: theme.onSurface }]}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.textSize}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setTextSizeSheetVisible(true);
+                  }}
+                  style={({ pressed }) => [styles.readerControlBtn, pressed && { opacity: 0.65 }]}
+                >
+                  <AppMenuIcon
+                    ios="textformat.size"
+                    android="format-size"
+                    size={19}
+                    containerSize={22}
+                    weight="medium"
+                    color={theme.primary}
+                  />
+                  <Text style={[styles.readerControlLabel, { color: theme.onSurface }]} numberOfLines={1}>
+                    {t.textSize}
+                  </Text>
+                </Pressable>
+
+                <View style={[styles.controlDivider, { backgroundColor: theme.outlineVariant }]} />
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={isDarkMode ? t.lightMode : t.darkMode}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    toggleTheme();
+                  }}
+                  style={({ pressed }) => [styles.readerControlBtn, pressed && { opacity: 0.65 }]}
+                >
+                  <AppMenuIcon
+                    ios={isDarkMode ? 'sun.max.fill' : 'moon.fill'}
+                    android={isDarkMode ? 'light-mode' : 'dark-mode'}
+                    size={18}
+                    containerSize={22}
+                    weight="medium"
+                    color={theme.primary}
+                  />
+                  <Text style={[styles.readerControlLabel, { color: theme.onSurface }]} numberOfLines={1}>
+                    {isDarkMode ? t.lightMode : t.darkMode}
+                  </Text>
+                </Pressable>
+              </GlassSurface>
+
+              {/* Right Detached Prominent Play Circle (Sacred Ink Primary) */}
+              {hymnAudio(hymn) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Audio"
+                  onPress={() => handlePlayAudio(hymn)}
+                  style={({ pressed }) => [
+                    styles.readerAudioCircle,
+                    {
+                      backgroundColor: theme.primary,
+                      shadowColor: '#000000',
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="play.fill"
+                    android="play-arrow"
+                    size={20}
+                    containerSize={22}
+                    weight="semibold"
+                    color={theme.onPrimary}
+                  />
+                  {offlineSnapshot.savedIds.has(String(hymn.id)) && (
+                    <View
+                      style={[
+                        styles.savedBadgeDot,
+                        {
+                          backgroundColor: '#34C759',
+                          borderColor: theme.primary,
+                          top: 6,
+                          right: 6,
+                        },
+                      ]}
+                    />
+                  )}
+                </Pressable>
+              ) : (
+                <GlassSurface
+                  intensity={55}
+                  glassEffectStyle="regular"
+                  style={[styles.readerAudioCircle, { opacity: 0.42 }]}
+                >
+                  <View style={styles.readerAudioDisabledInner}>
+                    <AppMenuIcon
+                      ios="speaker.slash"
+                      android="volume-off"
+                      size={18}
+                      containerSize={22}
+                      weight="medium"
+                      color={theme.onSurfaceVariant}
+                    />
+                  </View>
+                </GlassSurface>
               )}
-            </View>
-            <Text style={[styles.controlLabel, {
-              color: !hymnAudio(hymn)
-                ? theme.onSurfaceVariant + '66'
-                : isDarkMode
-                  ? theme.onSurfaceVariant
-                  : '#7B1F1D',
-            }]}>AUDIO</Text>
-          </TouchableOpacity>
-        </GlassSurface>{/* floatPill */}
-      </View>}{/* floatWrap */}
+            </GlassGroup>
+          </View>
+        </>
+      )}
 
 
       {/* ── Prev / Next hymn navigation buttons (bottom edges) ───── */}
@@ -988,14 +1044,70 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Floating pill controls
+  // Floating pill controls (Apple Books split Liquid Glass toolbar + bottom scrim)
+  bottomScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 40,
+  },
   floatWrap: {
     position: 'absolute',
     bottom: 32,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    paddingHorizontal: 18,
     zIndex: 50,
+  },
+  readerGlassGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  readerControlsPill: {
+    flex: 1,
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 10,
+    borderRadius: 27,
+    borderCurve: 'continuous',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+  },
+  readerControlBtn: {
+    flex: 1,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 8,
+  },
+  readerControlLabel: {
+    ...fonts.sansSemiBold,
+    fontSize: 14,
+    letterSpacing: -0.1,
+  },
+  readerAudioCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  readerAudioDisabledInner: {
+    width: 54,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   floatPill: {
     flexDirection: 'row',

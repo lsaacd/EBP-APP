@@ -198,9 +198,10 @@ export default function AuthSheetSwiftUI({
   } = swiftUI.modifiers;
 
   const scheme = isDarkMode ? 'dark' : 'light';
-  const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
-  const prominentBurgundy = isDarkMode ? '#9E2A32' : '#6e1619';
-  const accentTextColor = isDarkMode ? '#E37C83' : '#6e1619';
+  const symbolTint = isDarkMode ? '#FFFFFF' : '#6e1619';
+  const prominentFill = isDarkMode ? '#fdf9f2' : '#6e1619';
+  const prominentInk = isDarkMode ? '#010101' : '#FFFFFF';
+  const accentTextColor = isDarkMode ? '#fdf9f2' : '#6e1619';
   const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
   const avatarText = isDarkMode ? '#1A1A1A' : '#FFFFFF';
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
@@ -265,6 +266,13 @@ export default function AuthSheetSwiftUI({
     />
   );
 
+  const renderTintedIcon = (systemImage: SFSymbol) => (
+    <SwiftUIImage
+      systemName={systemImage}
+      modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+    />
+  );
+
   const renderMenuButtonRow = (
     title: string,
     systemImage: SFSymbol,
@@ -276,7 +284,7 @@ export default function AuthSheetSwiftUI({
       onPress={onPress}
     >
       <HStack alignment="center" spacing={10}>
-        <Label title={title} systemImage={systemImage} />
+        <Label title={title} icon={renderTintedIcon(systemImage)} />
         <Spacer />
         {rightValue ? (
           <Text
@@ -306,7 +314,7 @@ export default function AuthSheetSwiftUI({
   );
 
   return (
-    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={monochromeInk}>
+    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
       <NavigationStack>
         <Toolbar
           modifiers={[
@@ -316,7 +324,7 @@ export default function AuthSheetSwiftUI({
         >
           <Form
             modifiers={[
-              tint(monochromeInk),
+              tint(symbolTint),
               listSectionSpacing('compact'),
               scrollDismissesKeyboard('interactively'),
               scrollEdgeEffectStyle('soft', 'all'),
@@ -412,7 +420,7 @@ export default function AuthSheetSwiftUI({
                     onPress={onSyncNow}
                   >
                     <HStack alignment="center" spacing={10}>
-                      <Label title={t.accountSync} systemImage="arrow.clockwise.icloud" />
+                      <Label title={t.accountSync} icon={renderTintedIcon('arrow.clockwise.icloud')} />
                       <Spacer />
                       <Text
                         modifiers={[
@@ -438,7 +446,7 @@ export default function AuthSheetSwiftUI({
                   >
                     <Label
                       title={t.authSignOut}
-                      systemImage="rectangle.portrait.and.arrow.right"
+                      icon={renderTintedIcon('rectangle.portrait.and.arrow.right')}
                     />
                   </Button>
                   <Button
@@ -667,7 +675,7 @@ export default function AuthSheetSwiftUI({
                   onPress={handlePrimarySubmit}
                   modifiers={[
                     buttonStyle('glassProminent'),
-                    tint(prominentBurgundy),
+                    tint(prominentFill),
                     disabled(isBusy),
                     accessibilityLabel(submitActionLabel),
                   ]}
@@ -678,7 +686,10 @@ export default function AuthSheetSwiftUI({
                     <Label
                       title={submitActionLabel}
                       systemImage={submitActionIcon}
-                      modifiers={[labelStyle('iconOnly')]}
+                      modifiers={[
+                        labelStyle('iconOnly'),
+                        foregroundStyle({ type: 'color', color: prominentInk }),
+                      ]}
                     />
                   )}
                 </Button>

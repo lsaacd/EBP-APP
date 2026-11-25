@@ -1,11 +1,11 @@
-/**
- * FavoritesScreen — Apple Music–inspired Liquid Glass Favorites & Playlists hub.
+﻿/**
+ * FavoritesScreen â€” Apple Musicâ€“inspired Liquid Glass Favorites & Playlists hub.
  *
  * - Native iOS 26 LiquidGlassSegmented control (Mis Favoritos / Listas)
- * - Apple Music–style Top Liquid Glass Search Takeover (pill search bar + X circle + scope bar)
+ * - Apple Musicâ€“style Top Liquid Glass Search Takeover (pill search bar + X circle + scope bar)
  * - Top-right iOS 26 GlassContainer paired circular capsules (Search/+ & Sort MenuView with SF Symbols)
  * - Live Favorites sort-order sync with NowPlayingContext (`setQueue`) so Next/Prev immediately
- *   follows Recently added / By number / A–Z order
+ *   follows Recently added / By number / Aâ€“Z order
  * - Localized hymn titles following app language (`en` / `es`) with bilingual search
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   Pressable,
   Animated,
+  Image,
   Platform,
   TextInput,
   Alert,
@@ -50,16 +51,17 @@ import { hasHymnAudio } from '../../data/audioRegistry';
 import { fonts } from '../../theme/theme';
 import * as Haptics from '../../utils/haptics';
 import { useNowPlaying } from '../../context/NowPlayingContext';
-import TabSwipeWrapper from '../../components/TabSwipeWrapper';
-import GlassSurface, { GlassGroup } from '../../components/GlassSurface';
-import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
-import AppMenuIcon from '../../components/AppMenuIcon';
-import SheetGrabber from '../../components/SheetGrabber';
-import HymnRowLink from '../../components/HymnRowLink';
+import TabSwipeWrapper from '../TabSwipeWrapper';
+import GlassSurface, { GlassGroup } from '../GlassSurface';
+import LiquidGlassSegmented from '../LiquidGlassSegmented';
+import AppMenuIcon from '../AppMenuIcon';
+import SheetGrabber from '../SheetGrabber';
+import HymnRowLink from '../HymnRowLink';
 import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
 
 const IS_IOS = Platform.OS === 'ios';
 const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
+const EBP_HYMN_COVER = require('../../assets/images/EBP_HYMN_COVER.png');
 
 type FavSort = 'recent' | 'number' | 'alpha';
 type PlaylistSort = 'recent' | 'alpha' | 'count';
@@ -180,7 +182,7 @@ export default function FavoritesScreen() {
     setSearchOpen(false);
   }, []);
 
-  // ── Data resolution & sorting ─────────────────────────────────────────────
+  // â”€â”€ Data resolution & sorting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const allHymnsMap = useMemo(() => {
     const map = new Map<string, any>();
     for (const h of hymnsData) map.set(String(h.id), h);
@@ -259,7 +261,7 @@ export default function FavoritesScreen() {
     return list.filter((p) => p.name.toLowerCase().includes(q));
   }, [playlists, playlistSort, searchOpen, searchQuery]);
 
-  // ── 1-Tap Play / Shuffle Favorites ────────────────────────────────────────
+  // â”€â”€ 1-Tap Play / Shuffle Favorites â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handlePlayFavorites = useCallback(
     (shuffle: boolean) => {
       if (playableFavoriteIds.length === 0) {
@@ -284,7 +286,7 @@ export default function FavoritesScreen() {
     [sortedFavoriteQueueIds, openPlayer, t.myFavorites],
   );
 
-  // ── Scroll state ──────────────────────────────────────────────────────────
+  // â”€â”€ Scroll state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const scrollViewRef = useRef<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -576,7 +578,7 @@ export default function FavoritesScreen() {
     <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder, marginTop: searchOpen ? 0 : 14 }]}>
       {sortedPlaylists.map((playlist, index) => {
         const playableCount = playlist.hymnIds.filter(hasHymnAudio).length;
-        const playlistHref = { pathname: '/playlist/[id]', params: { id: playlist.id } } as const;
+        const playlistHref = { pathname: '/(tabs)/favorites/playlist/[id]', params: { id: playlist.id } } as const;
         return (
           <View key={playlist.id}>
             {index > 0 && (
@@ -602,14 +604,11 @@ export default function FavoritesScreen() {
                     <View style={styles.playlistRow}>
                       <Link.AppleZoom>
                         <View style={styles.playlistThumbZoom}>
-                          <LinearGradient
-                            colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.playlistThumbFill}
-                          >
-                            <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
-                          </LinearGradient>
+                          <Image
+                            source={EBP_HYMN_COVER}
+                            style={styles.playlistThumbImg}
+                            resizeMode="cover"
+                          />
                         </View>
                       </Link.AppleZoom>
                       <View style={{ flex: 1, gap: 2 }}>
@@ -659,14 +658,13 @@ export default function FavoritesScreen() {
                   router.push(playlistHref as any);
                 }}
               >
-                <LinearGradient
-                  colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.playlistThumb}
-                >
-                  <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
-                </LinearGradient>
+                <View style={styles.playlistThumbZoom}>
+                  <Image
+                    source={EBP_HYMN_COVER}
+                    style={styles.playlistThumbImg}
+                    resizeMode="cover"
+                  />
+                </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
                     {playlist.name}
@@ -739,9 +737,9 @@ export default function FavoritesScreen() {
   );
 
   const scrollContent = searchOpen ? (
-    /* ══════════════════════════════════════════════════════════════════════════
-     * APPLE MUSIC–STYLE TOP NATIVE LIQUID GLASS SEARCH TAKEOVER
-     * ══════════════════════════════════════════════════════════════════════════ */
+    /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     * APPLE MUSICâ€“STYLE TOP NATIVE LIQUID GLASS SEARCH TAKEOVER
+     * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
     <Reanimated.View key="search-takeover" entering={FadeIn.duration(160)}>
       <GlassGroup spacing={8} style={styles.topSearchRow}>
         <GlassSurface
@@ -839,9 +837,9 @@ export default function FavoritesScreen() {
       <View style={{ height: bottomClearance }} />
     </Reanimated.View>
   ) : (
-    /* ══════════════════════════════════════════════════════════════════════════
+    /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      * STANDARD FAVORITES & PLAYLISTS HUB
-     * ══════════════════════════════════════════════════════════════════════════ */
+     * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
     <>
       <View style={styles.heroRow}>
         <View style={{ flex: 1 }}>
@@ -878,7 +876,7 @@ export default function FavoritesScreen() {
         </GlassSurface>
       </View>
 
-      {/* ── Genuine Liquid Glass Sliding Segmented Control ── */}
+      {/* â”€â”€ Genuine Liquid Glass Sliding Segmented Control â”€â”€ */}
       <View style={{ marginBottom: 18 }}>
         <LiquidGlassSegmented
           value={activeTab}
@@ -890,7 +888,7 @@ export default function FavoritesScreen() {
         />
       </View>
 
-      {/* ── TAB 1: MIS FAVORITOS ── */}
+      {/* â”€â”€ TAB 1: MIS FAVORITOS â”€â”€ */}
       {activeTab === 'favorites' ? (
         favoriteIds.length === 0 ? (
           <View style={styles.emptyState}>
@@ -912,7 +910,7 @@ export default function FavoritesScreen() {
           </View>
         ) : (
           <>
-            {/* Apple Music–style Play & Liquid Glass Shuffle Hero Capsules */}
+            {/* Apple Musicâ€“style Play & Liquid Glass Shuffle Hero Capsules */}
             <View style={styles.playShuffleRow}>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -971,7 +969,7 @@ export default function FavoritesScreen() {
           </>
         )
       ) : (
-        /* ── TAB 2: LISTAS DE REPRODUCCIÓN ── */
+        /* â”€â”€ TAB 2: LISTAS DE REPRODUCCIÃ“N â”€â”€ */
         <>
           <Pressable
             onPress={openCreateSheet}
@@ -1011,7 +1009,7 @@ export default function FavoritesScreen() {
         </>
       )}
 
-      {/* ── Scripture Quote ── */}
+      {/* â”€â”€ Scripture Quote â”€â”€ */}
       <View style={styles.quoteBlock}>
         <MaterialIcons name="auto-awesome" size={32} color={theme.primary} style={{ marginBottom: 14 }} />
         <Text style={[styles.quoteText, { color: theme.onSurface }]}>{t.favoritesQuoteText}</Text>
@@ -1054,7 +1052,7 @@ export default function FavoritesScreen() {
         {scrollContent}
       </Animated.ScrollView>
 
-      {/* ── Create New Playlist Sheet (Glorify backdrop swipe-down) ── */}
+      {/* â”€â”€ Create New Playlist Sheet (Glorify backdrop swipe-down) â”€â”€ */}
       <Modal
         visible={createOpen}
         transparent
@@ -1398,7 +1396,12 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 13,
+    borderCurve: 'continuous',
     overflow: 'hidden',
+  },
+  playlistThumbImg: {
+    width: '100%',
+    height: '100%',
   },
   playlistThumbFill: {
     flex: 1,

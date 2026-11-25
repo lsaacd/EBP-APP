@@ -731,7 +731,8 @@ export function AuthSheet({
     .replace('{favs}', String(favoriteIds.length))
     .replace('{lists}', String(playlists.length));
 
-  const prominentBurgundy = isDarkMode ? '#9E2A32' : '#6e1619';
+  const prominentFill = theme.primary;
+  const prominentInk = theme.onPrimary;
   const cardBg = isNativeGlassSheet
     ? isDarkMode
       ? 'rgba(255,255,255,0.085)'
@@ -1713,15 +1714,15 @@ export function AuthSheet({
                 styles.primaryButton,
                 styles.nativePrimaryButton,
                 {
-                  backgroundColor: prominentBurgundy,
+                  backgroundColor: prominentFill,
                   opacity: submitting || emailAction ? 0.65 : pressed ? 0.86 : 1,
                 },
               ]}
             >
               {submitting || emailAction ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={prominentInk} />
               ) : (
-                <Text style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
+                <Text style={[styles.primaryButtonText, { color: prominentInk }]}>
                   {mode === 'recovery'
                     ? t.authSendRecovery
                     : mode === 'register'
@@ -2353,18 +2354,18 @@ export function AuthSheet({
               style={({ pressed }) => [
                 styles.headerActionCircle,
                 {
-                  backgroundColor: prominentBurgundy,
+                  backgroundColor: prominentFill,
                   opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
                 },
               ]}
             >
               {submitting || emailAction ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={prominentInk} />
               ) : (
                 <AppMenuIcon
                   ios={submitActionIcon}
                   android="vpn-key"
-                  color="#FFFFFF"
+                  color={prominentInk}
                   size={18}
                   weight="semibold"
                 />
@@ -2486,13 +2487,13 @@ export function AuthSheet({
           style={({ pressed }) => [
             styles.headerActionCircle,
             {
-              backgroundColor: prominentBurgundy,
+              backgroundColor: prominentFill,
               opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
             },
           ]}
         >
           {submitting || emailAction ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={prominentInk} />
           ) : (
             <AppMenuIcon
               ios={
@@ -2509,7 +2510,7 @@ export function AuthSheet({
                     ? 'person-add'
                     : 'vpn-key'
               }
-              color="#FFFFFF"
+              color={prominentInk}
               size={18}
               weight="semibold"
             />

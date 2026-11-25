@@ -105,11 +105,12 @@ export default function SettingsScreenIOS() {
   } = swiftUI.modifiers;
 
   const scheme = isDarkMode ? 'dark' : 'light';
-  const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
-  const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
-  const starBurgundy = isDarkMode ? '#D14D56' : theme.primary;
-  const starUnselectedBurgundy = isDarkMode ? '#6E3237' : '#C99EA2';
-  const ctaBurgundy = isDarkMode ? '#9E2A32' : theme.primary;
+  const accentTint = isDarkMode ? '#fdf9f2' : theme.primary;
+  const symbolTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const starFilledColor = isDarkMode ? '#fdf9f2' : theme.primary;
+  const starUnselectedColor = isDarkMode ? '#525252' : '#C99EA2';
+  const ctaFillColor = theme.primary;
+  const ctaInkColor = theme.onPrimary;
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
@@ -193,14 +194,21 @@ export default function SettingsScreenIOS() {
     />
   );
 
+  const renderTintedIcon = (systemName: any) => (
+    <SwiftUIImage
+      systemName={systemName}
+      modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+    />
+  );
+
   return (
     <>
       <Host
         style={{ flex: 1 }}
         colorScheme={scheme}
-        seedColor={monochromeInk}
+        seedColor={symbolTint}
       >
-        <Form modifiers={[tint(monochromeInk)]}>
+        <Form modifiers={[tint(symbolTint)]}>
           {/* ─── Account & Cloud ─── */}
           <Section
             title={t.accountSectionLabel}
@@ -215,7 +223,7 @@ export default function SettingsScreenIOS() {
                 }}
               >
                 <HStack alignment="center" spacing={10}>
-                  <Label systemImage="person.crop.circle">
+                  <Label icon={renderTintedIcon('person.crop.circle')}>
                     <VStack alignment="leading" spacing={2}>
                       <Text modifiers={[font({ textStyle: 'body', weight: 'semibold' })]}>
                         {user.displayName || user.email.split('@')[0]}
@@ -243,7 +251,7 @@ export default function SettingsScreenIOS() {
                 }}
               >
                 <HStack alignment="center" spacing={10}>
-                  <Label systemImage="person.crop.circle.badge.plus">
+                  <Label icon={renderTintedIcon('person.crop.circle.badge.plus')}>
                     <VStack alignment="leading" spacing={2}>
                       <Text modifiers={[font({ textStyle: 'body', weight: 'semibold' })]}>
                         {t.authSignIn}
@@ -277,14 +285,17 @@ export default function SettingsScreenIOS() {
             >
               <Label
                 title={t.darkModeTitle}
-                systemImage={isDarkMode ? 'moon.fill' : 'sun.max'}
+                icon={renderTintedIcon(isDarkMode ? 'moon.fill' : 'sun.max')}
                 modifiers={[foregroundStyle(primaryStyle)]}
               />
             </Toggle>
 
             <LabeledContent
               label={
-                <Label title={t.fontSize} systemImage="textformat.size" />
+                <Label
+                  title={t.fontSize}
+                  icon={renderTintedIcon('textformat.size')}
+                />
               }
             >
               <HStack alignment="center" spacing={8}>
@@ -361,8 +372,12 @@ export default function SettingsScreenIOS() {
           {/* ─── Languages ─── */}
           <Section title={t.languagesSectionTitle}>
             <Picker
-              label={t.appLanguage}
-              systemImage="globe"
+              label={
+                <Label
+                  title={t.appLanguage}
+                  icon={renderTintedIcon('globe')}
+                />
+              }
               selection={language}
               onSelectionChange={(next) => {
                 if (next === 'es' || next === 'en') {
@@ -377,8 +392,12 @@ export default function SettingsScreenIOS() {
             </Picker>
 
             <Picker
-              label={t.hymnLanguage}
-              systemImage="character.book.closed"
+              label={
+                <Label
+                  title={t.hymnLanguage}
+                  icon={renderTintedIcon('character.book.closed')}
+                />
+              }
               selection={hymnLanguage}
               onSelectionChange={(next) => {
                 if (next === 'es' || next === 'en') {
@@ -410,7 +429,10 @@ export default function SettingsScreenIOS() {
           >
             <LabeledContent
               label={
-                <Label title={t.offlineAudioTitle} systemImage="arrow.down.circle" />
+                <Label
+                  title={t.offlineAudioTitle}
+                  icon={renderTintedIcon('arrow.down.circle')}
+                />
               }
             >
               <Text
@@ -435,7 +457,7 @@ export default function SettingsScreenIOS() {
               >
                 <Label
                   title={offline.cancelling ? t.offlineAudioCancelling : t.offlineAudioCancel}
-                  systemImage="pause.circle"
+                  icon={renderTintedIcon('pause.circle')}
                 />
               </Button>
             ) : !complete ? (
@@ -447,7 +469,10 @@ export default function SettingsScreenIOS() {
                     : confirmDownload
                 }
               >
-                <Label title={downloadActionTitle} systemImage="icloud.and.arrow.down" />
+                <Label
+                  title={downloadActionTitle}
+                  icon={renderTintedIcon('icloud.and.arrow.down')}
+                />
               </Button>
             ) : null}
 
@@ -458,7 +483,7 @@ export default function SettingsScreenIOS() {
             )}
           </Section>
 
-          {/* ─── Sacred Ink Burgundy 5-Star Rating Card ─── */}
+          {/* ─── Sacred Ink 5-Star Rating Card (Dark Red Light / Warm White Dark) ─── */}
           <Section title={t.rateApp}>
             <HStack alignment="center">
               <Spacer />
@@ -486,7 +511,7 @@ export default function SettingsScreenIOS() {
                           modifiers={[
                             foregroundStyle({
                               type: 'color',
-                              color: isFilled ? starBurgundy : starUnselectedBurgundy,
+                              color: isFilled ? starFilledColor : starUnselectedColor,
                             }),
                             opacity(selectedStars === 0 ? restOpacity : 1),
                           ]}
@@ -522,7 +547,7 @@ export default function SettingsScreenIOS() {
                   modifiers={[
                     buttonStyle('borderedProminent'),
                     buttonBorderShape('capsule'),
-                    tint(ctaBurgundy),
+                    tint(ctaFillColor),
                     padding({ top: 2 }),
                   ]}
                   onPress={
@@ -538,7 +563,7 @@ export default function SettingsScreenIOS() {
                     <Text
                       modifiers={[
                         font({ textStyle: 'subheadline', weight: 'semibold' }),
-                        foregroundStyle({ type: 'color', color: '#FFFFFF' }),
+                        foregroundStyle({ type: 'color', color: ctaInkColor }),
                       ]}
                     >
                       {showFeedbackCta ? t.sendFeedback : t.rateAppButton}
@@ -546,7 +571,7 @@ export default function SettingsScreenIOS() {
                     <SwiftUIImage
                       systemName={showFeedbackCta ? 'envelope' : 'arrow.up.right'}
                       size={13}
-                      modifiers={[foregroundStyle({ type: 'color', color: '#FFFFFF' })]}
+                      modifiers={[foregroundStyle({ type: 'color', color: ctaInkColor })]}
                     />
                   </HStack>
                 </Button>
@@ -602,7 +627,7 @@ export default function SettingsScreenIOS() {
               }}
             >
               <HStack alignment="center">
-                <Label title={t.sendFeedback} systemImage="envelope" />
+                <Label title={t.sendFeedback} icon={renderTintedIcon('envelope')} />
                 <Spacer />
                 {chevron}
               </HStack>
@@ -616,7 +641,7 @@ export default function SettingsScreenIOS() {
               }}
             >
               <HStack alignment="center">
-                <Label title={t.authShareAppRow} systemImage="square.and.arrow.up" />
+                <Label title={t.authShareAppRow} icon={renderTintedIcon('square.and.arrow.up')} />
                 <Spacer />
                 {chevron}
               </HStack>
@@ -630,7 +655,7 @@ export default function SettingsScreenIOS() {
               }}
             >
               <HStack alignment="center">
-                <Label title={t.about} systemImage="info.circle" />
+                <Label title={t.about} icon={renderTintedIcon('info.circle')} />
                 <Spacer />
                 {chevron}
               </HStack>

@@ -63,7 +63,6 @@ export default function ChurchQrSheet({
       ? 'rgba(255,255,255,0.10)'
       : 'rgba(0,0,0,0.07)';
   const mutedText = isDarkMode ? 'rgba(235,235,245,0.68)' : theme.onSurfaceVariant;
-  const prominentBurgundy = isDarkMode ? '#9E2A32' : '#6e1619';
 
   const title = church ? churchDisplayName(church.name, church.city) : '';
   const address = church
@@ -168,16 +167,16 @@ export default function ChurchQrSheet({
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.action,
-                    { backgroundColor: prominentBurgundy, opacity: pressed ? 0.88 : 1 },
+                    { backgroundColor: theme.primary, opacity: pressed ? 0.88 : 1 },
                   ]}
                 >
                   <AppMenuIcon
                     ios="square.and.arrow.up"
                     android="share"
-                    color="#FFFFFF"
+                    color={theme.onPrimary}
                     size={16}
                   />
-                  <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: '#FFFFFF' }}>
+                  <Text style={{ ...fonts.sansSemiBold, fontSize: 14, color: theme.onPrimary }}>
                     {t.churchQrShare}
                   </Text>
                 </Pressable>
