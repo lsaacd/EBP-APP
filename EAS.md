@@ -1,5 +1,17 @@
 # Native builds and updates
 
+## November 24, 2026 — SDK 58 iOS OTA: True iOS 26/27 Liquid Glass Icons & `GlassGroup` Containers
+
+- **Branch & Source:** `sdk-58` branch (commit `2dd989c`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`85d0b1c5-122e-4b16-ba53-0c95a01bac8f`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/85d0b1c5-122e-4b16-ba53-0c95a01bac8f)
+  - **iOS Update ID:** `01a210f5-6e25-7ce2-8e81-821c097c9814`
+  - **Included Fixes:**
+    - **`GlassSurface` & `GlassGroup` (`components/GlassSurface.tsx`):** Removed SDK 54 focus/AppState forced-remount `key` hack (handled natively by `expo-glass-effect@58`), added automatic iOS 26 style sanitization (stripping `overflow: 'hidden'`, synthetic borders, and opaque backgrounds while setting `borderCurve: 'continuous'`), forwarded `tintColor`, and exported `GlassGroup` (`UIGlassContainerEffect`).
+    - **Grouped Glass Icon Bars & Capsules:** Wrapped paired/grouped icon bars in `<GlassGroup>` across Churches top bar (`app/churches.tsx`), Hymn Reader top-right actions (`app/hymn/[id].tsx`), Favorites search takeover & hero actions (`app/(tabs)/favorites.tsx`), and Verse Discussion sheet (`components/VerseDiscussionSheet.tsx`); removed stale remount keys in `HomeHeaderActions.tsx` and `favorites.tsx`.
+    - **Upgraded Interactive Glass Icons & SF Symbols:** Converted remaining flat iOS icons/pills to interactive Liquid Glass + SF Symbols across Hymns search bar & A–Z scrubber (`app/(tabs)/hymns.tsx`), Hymn Reader close/nav/floating pill (`app/hymn/[id].tsx`), MusicPlayer top `✕`/`⌄` & tinted Lyrics pill (`components/MusicPlayer.tsx`), MiniPlayer controls (`components/MiniPlayer.tsx`), Projector exit/reveal/toolbar (`components/ProjectorModal.tsx`), Churches sheet `✕`, photo viewer **Done**, and QR scanner **Close** (`app/churches.tsx`), VerseCard dark-art adaptive glass (`components/VerseCard.tsx`), and `ActionToast.tsx`.
+  - **Verification:** `tsc --noEmit` 0 errors, all Node test suites passed, `git diff --check` clean, `npx expo lint` 0 errors (223 warnings), iOS & Android Hermes exports clean. Physical iPhone TestFlight verification pending.
+
 ## November 24, 2026 — SDK 58 iOS OTA Polish (Fabric church pins, Settings scroll header, Light-Mode status bar, classic gold 5-star rating)
 
 - **Branch & Source:** `sdk-58` branch (commit `cffa278`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
