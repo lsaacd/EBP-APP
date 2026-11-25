@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 24, 2026 — SDK 58 iOS OTA: Original Hymn Reader & Hymns Search Bar Restored + Dark Mode Toggle Switch
+
+- **Branch & Source:** `sdk-58` branch (commit `8402ec7`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`6b1a8c22-8cb7-49c1-ad6e-ccd2f7b21aa0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/6b1a8c22-8cb7-49c1-ad6e-ccd2f7b21aa0)
+  - **iOS Update ID:** `01a21108-522c-77df-a08a-7f1d065d98f7`
+  - **Included Changes:**
+    - Restored original Hymn Reader top bar and prev/next buttons (`app/hymn/[id].tsx`), original Hymns search bar (`app/(tabs)/hymns.tsx`), and original non-glass controls on `MusicPlayer.tsx`, `MiniPlayer.tsx`, `ProjectorModal.tsx`, and Churches sheets/overlays (`app/churches.tsx`), keeping SDK 58 Liquid Glass upgrades strictly on existing Liquid Glass controls (`GlassSurface.tsx`, `HomeHeaderActions.tsx`, `favorites.tsx`, Churches top bar, `VerseCard.tsx`, `VerseDiscussionSheet.tsx`, `ActionToast.tsx`, `LiquidGlassSegmented.tsx`).
+    - Replaced the Settings Appearance dropdown picker (`components/screens/Settings.ios.tsx`) with a native iOS 26 SwiftUI `<Toggle>` switch (`Modo Oscuro` / `Dark Mode`, monochrome SF Symbol, iOS green `#34C759` tint).
+  - **Verification:** `tsc --noEmit` 0 errors, `git diff --check` clean, all Node test suites passed, `npx expo lint` 0 errors, iOS & Android Hermes exports clean.
+
 ## November 24, 2026 — SDK 58 iOS OTA: True iOS 26/27 Liquid Glass Icons & `GlassGroup` Containers
 
 - **Branch & Source:** `sdk-58` branch (commit `2dd989c`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
