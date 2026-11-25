@@ -197,10 +197,8 @@ export default function AuthSheetSwiftUI({
   const {
     accessibilityLabel,
     autocorrectionDisabled,
-    buttonBorderShape,
     buttonStyle,
     contentShape,
-    controlSize,
     disabled,
     font,
     foregroundStyle,
@@ -237,7 +235,9 @@ export default function AuthSheetSwiftUI({
   const accentTextColor = isDarkMode ? '#fdf9f2' : '#6e1619';
   const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
   const avatarText = isDarkMode ? '#1A1A1A' : '#FFFFFF';
-  const cardRowBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
+  // Oyelo-matched soft neutral grouped card surface (opaque so dark photos behind the sheet
+  // never turn rows muddy, while harmonizing smoothly with the frosted iOS 26 sheet).
+  const cardRowBg = isDarkMode ? '#262629' : '#E9E9EE';
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
@@ -367,7 +367,7 @@ export default function AuthSheetSwiftUI({
     <NavigationStack>
       <Toolbar
         modifiers={[
-          navigationTitle(authHeaderTitle),
+          navigationTitle(''),
           navigationBarTitleDisplayMode('inline'),
         ]}
       >
@@ -533,12 +533,9 @@ export default function AuthSheetSwiftUI({
             </>
           ) : (
             <>
-              {/* ── Floating Chromatic Liquid Glass Mode Switcher (tight at top, no outer white box) ── */}
+              {/* ── Mode Switcher inside an opaque Oyelo-toned card (zero dark bleed-through) ── */}
               {mode !== 'recovery' ? (
-                <Section
-                  modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}
-                  footer={mode === 'register' ? <Text>{t.authSyncSubtitle}</Text> : undefined}
-                >
+                <Section modifiers={[listSectionMargins({ edges: 'top', length: 6 })]}>
                   <Picker
                     label={t.authSignIn}
                     selection={mode}
@@ -549,8 +546,8 @@ export default function AuthSheetSwiftUI({
                     }}
                     modifiers={[
                       pickerStyle('segmented'),
-                      listRowBackground('clear'),
-                      listRowInsets({ top: 0, leading: 0, bottom: 2, trailing: 0 }),
+                      listRowBackground(cardRowBg),
+                      listRowInsets({ top: 6, leading: 8, bottom: 6, trailing: 8 }),
                     ]}
                   >
                     <Text modifiers={[tag('login')]}>{t.authSignIn}</Text>
@@ -716,59 +713,71 @@ export default function AuthSheetSwiftUI({
                 ) : null}
               </Section>
 
-              {/* ── Dedicated Prominent Capsule CTA & Forgot Password ── */}
+              {/* ── Oyelo-style Clean Action Row Card (matches Oyelo's "Prepare for listening" row) ── */}
               <Section>
-                <VStack
-                  alignment="center"
-                  spacing={10}
+                <Button
+                  onPress={handlePrimarySubmit}
                   modifiers={[
-                    listRowBackground('clear'),
-                    listRowInsets({ top: 2, leading: 0, bottom: 2, trailing: 0 }),
+                    foregroundStyle({ type: 'color', color: accentTextColor }),
+                    disabled(isBusy),
+                    listRowBackground(cardRowBg),
                   ]}
                 >
-                  <Button
-                    onPress={handlePrimarySubmit}
-                    modifiers={[
-                      buttonStyle('borderedProminent'),
-                      buttonBorderShape('capsule'),
-                      controlSize('large'),
-                      tint(prominentFill),
-                      disabled(isBusy),
-                    ]}
+                  <HStack
+                    alignment="center"
+                    spacing={10}
+                    modifiers={[contentShape(shapes.rectangle())]}
                   >
-                    <HStack alignment="center" spacing={8}>
-                      <Spacer />
-                      {isBusy ? (
-                        <ProgressView />
-                      ) : (
-                        <Text
-                          modifiers={[
-                            font({ textStyle: 'body', weight: 'semibold' }),
-                            foregroundStyle({ type: 'color', color: prominentInk }),
-                          ]}
-                        >
-                          {primaryCtaLabel}
-                        </Text>
-                      )}
-                      <Spacer />
-                    </HStack>
-                  </Button>
-
-                  {mode === 'login' ? (
-                    <Button
-                      onPress={() => onChangeMode('recovery')}
+                    {isBusy ? (
+                      <ProgressView />
+                    ) : (
+                      renderTintedIcon(submitActionIcon)
+                    )}
+                    <Text
                       modifiers={[
-                        buttonStyle('plain'),
-                        foregroundStyle(secondaryStyle),
-                        disabled(isBusy),
+                        font({ textStyle: 'body', weight: 'semibold' }),
+                        foregroundStyle({ type: 'color', color: accentTextColor }),
                       ]}
                     >
-                      <Text modifiers={[font({ textStyle: 'subheadline' })]}>
+                      {primaryCtaLabel}
+                    </Text>
+                    <Spacer />
+                    {chevron}
+                  </HStack>
+                </Button>
+
+                {mode === 'login' ? (
+                  <Button
+                    onPress={() => onChangeMode('recovery')}
+                    modifiers={[
+                      foregroundStyle(secondaryStyle),
+                      disabled(isBusy),
+                      listRowBackground(cardRowBg),
+                    ]}
+                  >
+                    <HStack
+                      alignment="center"
+                      spacing={10}
+                      modifiers={[contentShape(shapes.rectangle())]}
+                    >
+                      <SwiftUIImage
+                        systemName="key.horizontal"
+                        size={15}
+                        modifiers={[foregroundStyle(secondaryStyle)]}
+                      />
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'subheadline' }),
+                          foregroundStyle(secondaryStyle),
+                        ]}
+                      >
                         {t.authForgotPassword}
                       </Text>
-                    </Button>
-                  ) : null}
-                </VStack>
+                      <Spacer />
+                      {chevron}
+                    </HStack>
+                  </Button>
+                ) : null}
               </Section>
 
               {/* ── Compact Account Benefits Strip ── */}
@@ -834,7 +843,20 @@ export default function AuthSheetSwiftUI({
             <Button
               label={isSignedOut ? t.authCancel : t.close}
               onPress={onClose}
+              modifiers={[foregroundStyle(primaryStyle)]}
             />
+          </ToolbarItem>
+
+          <ToolbarItem placement="principal">
+            <Text
+              modifiers={[
+                font({ textStyle: 'headline', weight: 'semibold' }),
+                foregroundStyle(primaryStyle),
+                lineLimit(1),
+              ]}
+            >
+              {authHeaderTitle}
+            </Text>
           </ToolbarItem>
 
           {isSignedOut ? (

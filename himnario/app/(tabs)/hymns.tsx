@@ -939,7 +939,13 @@ export default function HymnListScreen() {
 
     const indiceToggleHeader = (
       <View style={styles.indiceToggleWrap}>
-        <View style={styles.indiceTogglePill}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          alwaysBounceHorizontal
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.indiceTogglePill}
+        >
           {(
             [
               { key: 'himnos', label: himnosLabel },
@@ -1037,7 +1043,7 @@ export default function HymnListScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
     );
 
@@ -1996,15 +2002,14 @@ const styles = StyleSheet.create({
 
   // ── Índice & Glass A-Z Scroller (Workstream F) ─────────────
   indiceToggleWrap: {
-    paddingHorizontal: 0,
-    marginLeft: -8,
     paddingTop: 8,
     paddingBottom: 6,
-    alignItems: 'flex-start',
   },
   indiceTogglePill: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
     alignItems: 'center',
   },
   indiceToggleBtnWrap: {
@@ -2015,7 +2020,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   indiceToggleText: {
     fontFamily: SYSTEM_FONT,
@@ -2030,8 +2035,6 @@ const styles = StyleSheet.create({
   },
   indiceListContainer: {
     flex: 1,
-    paddingLeft: 24,
-    paddingRight: 10,
   },
   indiceMainHeader: {
     ...fonts.bold,
@@ -2039,12 +2042,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     marginBottom: 12,
+    paddingLeft: 24,
+    paddingRight: 10,
     letterSpacing: 1,
   },
   indiceLetterHeader: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
+    paddingLeft: 24,
+    paddingRight: 10,
     marginTop: 8,
   },
   indiceLetterText: {
@@ -2056,6 +2063,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
+    paddingLeft: 24,
+    paddingRight: 10,
   },
   indiceItemTitle: {
     ...fonts.regular,
