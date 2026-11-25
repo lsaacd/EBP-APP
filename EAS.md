@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #8: Fix Row Layout & Single-Tap Close, Flush Reader Dock, Oyelo SwiftUI Auth Sheet & Maps Liquid Glass
+
+- **Branch & Source:** `sdk-58` branch (commit `b1067b6`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`03f8b07c-5b27-4d04-af7c-f28ec15cc8b1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/03f8b07c-5b27-4d04-af7c-f28ec15cc8b1)
+  - **iOS Update ID:** `01a2130c-b4a9-763e-a365-558d22126418`
+  - **Included Changes:**
+    - Fixed production vertical row stacking in Favorites, Playlists, and Índice by using a plain-object `<Pressable>` wrapper around `<View style={...}>` inside Expo Router's `<Link.Trigger>` (`components/HymnRowLink.tsx`, `app/(tabs)/favorites.tsx`), and added a 450ms tap debounce guard.
+    - Fixed single-tap `×` close in `app/hymn/[id].tsx` by popping the entire nested `hymn` stack (and any stacked `hymn` entries) in one tap.
+    - Exposed live measured `miniPlayerHeight` via `NowPlayingContext.tsx` / `app/_layout.tsx` and anchored both `TextSizeSheet.tsx` and prev/next page number buttons (`< N` / `N >`) flush directly above `MiniPlayer` (or directly above the bottom control bar when hidden).
+    - Upgraded `/auth-sheet` on iOS to native SwiftUI `<NavigationStack>` + `<Form>` (`components/AuthSheetSwiftUI.tsx`, `components/AuthSheet.tsx`, `app/_layout.tsx` with `headerShown: false`, `sheetAllowedDetents: [0.68, 1.0]`, `listSectionSpacing('compact')`, `scrollEdgeEffectStyle('soft', 'all')`, `Cancelar`/`Cerrar` cancellation pills, and prominent circular burgundy `key.fill` button).
+    - Upgraded all Churches Maps pop-ups & icons (`app/churches.tsx`, `components/ChurchQrSheet.tsx`) to genuine iOS 26 Liquid Glass (translucent inset cards, `DetentSheet` header `×` circles, Admin Pending chips, Look Around / My Church / QR action buttons, Drop-a-Pin confirmation card, Submit/Edit Church sheet with `Cancelar` pill, Fullscreen Photo `Done` pill, QR Camera Scanner `Close` & hint pills, and floating Liquid Glass `ChurchQrSheet`).
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on all 10 touched files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #7: Apple Fluid Zoom (`Link.AppleZoom`) on Playlists + Long-Press `Link.Preview` & `Link.Menu` on Hymn Rows
 
 - **Branch & Source:** `sdk-58` branch (commit `006b8e7`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
