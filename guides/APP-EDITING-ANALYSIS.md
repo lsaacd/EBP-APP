@@ -1,5 +1,53 @@
 # App editing
 
+## November 24–25, 2026 — Expo SDK 58 / iOS 26 Native Liquid Glass Polish & TestFlight Build #39 (`sdk-58` branch)
+
+### Handoff for continuing on another desktop
+
+- **Branch & Latest Commit:** Start on `sdk-58` (`git fetch origin && git checkout sdk-58 && git pull --ff-only`). Latest code commit before this handoff is `aff8654` (`EAS.md` logged at `d28a785`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Native Build Live on TestFlight:** iOS `production` **Build `#39` (`2.1.0 (39)`, runtime `2.1.0-sdk58-2`)** — EAS Build [`85ea3bf4-1464-450a-8ac3-a4214dc4902a`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/85ea3bf4-1464-450a-8ac3-a4214dc4902a), auto-submitted (`2ff03642-7c40-4f72-84fc-fa202635d082`; never run manual `eas submit`). Built on `macos-tahoe-26.6-xcode-27.1-sdk-58` (Xcode 27.1). Adds `@expo/ui@~58.0.29` (SwiftUI bridge) and keeps all 3 active patches (`@react-native-menu+menu+2.0.0.patch`, `react-native+0.88.1.patch`, `react-native-track-player+4.1.2.patch`).
+- **Latest Live iOS OTA (`production` branch, `runtimeVersion: "2.1.0-sdk58-2"`, Build `#39` only):**
+  - **OTA #4 (current live):** Group [`4df30934-e6b0-4217-be0f-7bea42337fe0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/4df30934-e6b0-4217-be0f-7bea42337fe0) · iOS update `01a2110f-da6a-7630-9e4e-d23f9c1816b5` (commit `aff8654`) — Sacred Ink theme tint on Settings Dark Mode `<Toggle>` (`#525252` in Dark Mode, `#6e1619` in Light Mode).
+  - **Earlier SDK 58 OTAs (superseded by `#4`, full details in [EAS.md](../EAS.md)):**
+    - OTA `#3` `6b1a8c22` (`8402ec7`): Restored original Hymn Reader top bar & prev/next controls, original Hymns search bar, and original non-glass buttons on MusicPlayer/MiniPlayer/Projector/Churches sheets; switched Settings Appearance dropdown to native iOS `<Toggle>` switch.
+    - OTA `#2` `85d0b1c5` (`2dd989c`): Upgraded `GlassSurface` + exported `GlassGroup` (`UIGlassContainerEffect`) for `expo-glass-effect@58` (`sanitizeNativeGlassStyle`, `borderCurve: 'continuous'`, `tintColor`, removed SDK 54 focus/AppState remount hacks).
+    - OTA `#1` `55086d4d` (`cffa278`): Fixed Fabric invisible church map pins, Churches top scrim & frosted `DetentSheet`, Settings large-title scroll collapse & `NativeTabs` scroll minimization, Light-Mode status bar visibility, and restored classic iOS warm-gold 5-star rating card.
+
+### Summary of everything changed on `sdk-58`
+
+1. **Expo SDK 54 → 58 Upgrade (commits `828176e`..`8873fea`):**
+   - Upgraded stepwise through SDK 55/56/57/58 (`expo@^58.0.26`, React Native `0.88.1`, React `19.3.0`, Reanimated `4.7.1`, Gesture Handler `~3.3.0`, `react-native-screens@~4.30.1`, `expo-router/native-tabs` stable, UIKit `SceneDelegate` lifecycle).
+   - Removed unused `sharp` devDependency (`922407d`), patched `@react-native-menu/menu` `#import "RCTBridge.h"` for RN 0.88 (`825db8d`), regenerated `react-native+0.88.1.patch`, retired `react-native-screens+4.16.0.patch`.
+2. **iOS 26 Native SwiftUI (`@expo/ui`) Settings, Profile, Segmented Pickers & `formSheet`s (`143b1d3`, `cffa278`, `8402ec7`, `aff8654`):**
+   - Added Android/Web/Node-safe loader `himnario/utils/expoSwiftUI.ts` (`getExpoSwiftUI`, `isIOSLiquidGlassAvailable`).
+   - Built native SwiftUI Settings (`himnario/components/screens/Settings.ios.tsx`, `app/(tabs)/settings/_layout.tsx` & `index.tsx`; Android/Web keep `Settings.legacy.tsx`): direct `<Host><Form>` root so UIKit binds large-title collapse and `NativeTabs` `minimizeBehavior="onScrollDown"`, native `<Toggle>` for Dark Mode with Sacred Ink theme tint (`#525252` dark / `#6e1619` light), live serif hymn font preview + native `Slider`, inline `Picker`s for App & Hymn Languages, offline audio status/download/delete, interactive warm-gold 5-star rating card (4–5 stars → App Store review; 1–3 stars → feedback), Share & About links, and centered signature footer.
+   - Built native SwiftUI Profile overview (`himnario/components/screens/MyProfileOverview.ios.tsx` + transparent large-title stack in `app/my-profile.tsx` & `app/_layout.tsx`).
+   - Adopted native SwiftUI `Picker(.segmented)` in `LiquidGlassSegmented.tsx` across `hymns.tsx`, `favorites.tsx`, `churches.tsx`, `AuthSheet.tsx`, `AppShareSheet.tsx`, `FriendsPanel.tsx`, `member/[id].tsx`.
+   - Added translucent iOS 26 Liquid Glass `formSheet` routes `app/text-size-sheet.tsx` and `app/about-sheet.tsx`.
+   - Fixed Light-Mode status bar contrast (`statusBarStyle` on root, settings, and hymn `<Stack>` `screenOptions`).
+3. **Churches Map Pins & UI Fixes (`cffa278`, `2dd989c`, `8402ec7`):**
+   - Replaced `<Marker image={...}>` (invisible under RN `0.88.1` Bridgeless Fabric) with `<ChurchPinMarker>` explicit-sized child `<Image>` (`app/churches.tsx`), added initial camera framing for nearest church + user dot, top status-bar scrim, frosted `DetentSheet` backing, inside grabber (`components/DetentSheet.tsx`), half-sheet default for `<= 3` churches, and `LiquidGlassSegmented` for `Mapa | Lista`.
+4. **SDK 58 `expo-glass-effect@58` Upgrade on Existing Liquid Glass Surfaces (`2dd989c`, `8402ec7`):**
+   - Upgraded `components/GlassSurface.tsx` (removed SDK 54 `AppState`/focus forced-remount `key` hack, added `sanitizeNativeGlassStyle()` to strip `overflow: 'hidden'` / synthetic borders / opaque backgrounds on iOS 26+ while enforcing `borderCurve: 'continuous'`, forwarded `tintColor`, exported `GlassGroup` wrapping `GlassContainer`).
+   - Upgraded existing Liquid Glass controls in `HomeHeaderActions.tsx`, `favorites.tsx` (unified on `GlassGroup` + `GlassSurface` without forced remount keys), `churches.tsx` top bar (`GlassGroup`), `hymns.tsx` existing glass chips/scrubber, `VerseDiscussionSheet.tsx` (`GlassGroup`), `VerseCard.tsx`, `ActionToast.tsx`, and `LiquidGlassSegmented.tsx`.
+
+### Owner UI Preferences Locked In During Testing (Do Not Regress)
+
+- **Only keep Liquid Glass on controls that were already Liquid Glass** (Home header `🔍`/`ID`, Favorites top capsules & search takeover, Churches top map bar, existing chips/scrubber, sheet close circles, MiniPlayer, VerseCard/Discussion).
+- **Keep original Hymn Reader (`app/hymn/[id].tsx`)** top bar (no glass circles squeezing `"Himnario..."`), original bottom `< N` / `N >` prev/next pills, and original floating pill; **keep original Hymns search bar (`app/(tabs)/hymns.tsx`)**; **keep original non-glass buttons** on `MusicPlayer.tsx`, `ProjectorModal.tsx`, and Churches sheet `✕` / photo viewer / QR overlays.
+- **Settings Dark Mode:** Keep as a native SwiftUI `<Toggle>` switch (not a 3-choice dropdown) tinted with Sacred Ink theme colors (`isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary`). Keep the classic warm-gold 5-star rating card in Settings.
+
+### Verification & Remaining Work Before Merging `sdk-58` → `main`
+
+- **Verified automated:** `npx tsc --noEmit` (0 errors), all 11 `scripts/test-*.cjs` suites (196/196) + `test-web-search.js` (761 items), `git diff --check` (0), `npx expo lint` (0 errors), iOS & Android Hermes exports clean.
+- **Verified on owner's iPhone (TestFlight Build `#39`):** Settings large-title collapse, `NativeTabs` scroll minimization, Dark Mode switch layout, existing Liquid Glass Home header circles.
+- **Still pending:**
+  1. Final iPhone check on OTA `4df30934` (Dark Mode switch tint `#525252`/`#6e1619`, restored Hymn Reader & Hymns search bar, Churches pins & Look Around, audio playback & lock-screen controls, QR/photo upload, account sync & Friends).
+  2. Matching **Android native rebuild** on `2.1.0-sdk58-2` (Android is still on `2.0.0-securestore-1`).
+  3. Merging `sdk-58` into `main` & `app-web-parity` once TestFlight sign-off is complete.
+
+---
+
 ## November 24, 2026 — Swipe-down Home doctrine sheet & editorial cards (released)
 
 - **Source:** commit `b3581eb` (pushed to `app-web-parity` and `main`).

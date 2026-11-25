@@ -1,6 +1,6 @@
 # Expo SDK 58 / Xcode 27 upgrade — deferred task
 
-> **Status (November 24, 2026):** **iOS SDK 58 / Xcode 27.1 Build `#39` (`85ea3bf4`, `2.1.0-sdk58-2`, commit `143b1d3`) with `@expo/ui` iOS 26 Native Liquid Glass UI FINISHED & auto-submitted to TestFlight** on the `sdk-58` branch (superseding Build `#38` `4ce09aa6`). Physical iPhone TestFlight verification and the matching Android `2.1.0-sdk58-2` rebuild remain before merging `sdk-58` into `main` / `app-web-parity`.
+> **Status (November 25, 2026):** **iOS SDK 58 / Xcode 27.1 Build `#39` (`85ea3bf4`, `2.1.0-sdk58-2`, commit `143b1d3`) with `@expo/ui` iOS 26 Native Liquid Glass UI FINISHED & live on TestFlight**, plus 4 iOS OTAs through [`4df30934`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/4df30934-e6b0-4217-be0f-7bea42337fe0) (commit `aff8654`: Fabric church map pins, Settings large-title scroll & `NativeTabs` minimization, Light-Mode status bar, warm-gold 5-star rating card, `expo-glass-effect@58` `GlassSurface`/`GlassGroup` upgrades on existing glass controls, and Sacred Ink tinted Dark Mode `<Toggle>` switch). See [APP-EDITING-ANALYSIS.md](APP-EDITING-ANALYSIS.md) and [EAS.md](../EAS.md) for the full changelog. Full device sign-off on OTA `4df30934` and the matching Android `2.1.0-sdk58-2` rebuild remain before merging `sdk-58` into `main` / `app-web-parity`.
 > **Deadline:** April 2027.
 > Any agent (Claude, Codex, Antigravity) may pick this up. Read this whole file first.
 
