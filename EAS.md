@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #10: Native SwiftUI Chromatic Liquid Glass Segmented Picker on Maps (`map.fill | list.bullet`)
+
+- **Branch & Source:** `sdk-58` branch (commit `8f59624`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`8a06a50a-bb43-413b-83c3-078b584ff805`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/8a06a50a-bb43-413b-83c3-078b584ff805)
+  - **iOS Update ID:** `01a2133e-47b4-7090-b52d-03be7a088211`
+  - **Included Changes:**
+    - Replaced the iOS Maps `Mapa | Lista` switcher (`himnario/app/churches.tsx`) with a compact (`118×40`) native SwiftUI `<Host><Picker>` (`pickerStyle('segmented')`, `controlSize('large')`, interactive `glassEffect` capsule, Sacred Ink `seedColor={theme.primary}`) rendering SF Symbols `map.fill` and `list.bullet` with bilingual accessibility labels (`t.profileMap` / `t.churchList`) for authentic Apple iOS 26 chromatic refractive Liquid Glass swipe-bubble behavior.
+    - Kept `LiquidGlassSegmented` fallback for pre-SwiftUI iOS versions and left Favorites (count badges) and Android untouched.
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on `app/churches.tsx` 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #9: Maps Liquid Glass Swipe Bubble + Icons, Classic Índice + Leveled Pills, Apple Music Playlist Tab Bar + EBP Cover Art, Sacred Ink Palette & Split Reader Bar
 
 - **Branch & Source:** `sdk-58` branch (commit `7990c2f`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
