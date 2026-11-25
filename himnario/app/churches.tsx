@@ -1987,17 +1987,6 @@ export default function ChurchesScreen() {
         </MapView>
       ) : null}
 
-      {/* ── Moonlitt-style subtle twilight atmospheric color grade on Satellite imagery ── */}
-      {Platform.OS !== "web" && mapLayer === "satellite" && (
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(6, 13, 24, 0.16)" },
-          ]}
-        />
-      )}
-
       {/* ── Dynamic status bar polarity matching active map layer (white on Satellite & Night 3D) ── */}
       {Platform.OS !== "web" && (
         <>

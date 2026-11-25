@@ -66,6 +66,7 @@ import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
 import WhatsNewSheet from '../components/WhatsNewSheet';
+import AppIntentHandler from '../components/AppIntentHandler';
 import { WHATS_NEW_STORAGE_KEY } from '../data/whatsNewCatalog';
 import { syncDailyVerseWidget } from '../utils/widgetSync';
 import * as Haptics from '../utils/haptics';
@@ -498,6 +499,9 @@ function ThemedStack() {
 
       {/* ── One-time What's New Release Highlights Sheet ── */}
       <WhatsNewSheet visible={whatsNewVisible} onClose={handleDismissWhatsNew} />
+
+      {/* ── Apple App Intents (Siri, Shortcuts, Spotlight) root dispatcher & catalog sync ── */}
+      <AppIntentHandler />
 
       {/* ── Global Native-feeling Pill Toast Host (`sonner-native`) ── */}
       <Toaster

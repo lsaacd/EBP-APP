@@ -2,7 +2,7 @@
   "expo": {
     "name": "Himnario El Buen Pastor",
     "slug": "ElBuenPastorHimnario",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "orientation": "default",
     "icon": "./assets/images/android-legacy-app-logo.png",
     "scheme": [
@@ -47,7 +47,8 @@
       "bundleIdentifier": "com.elbuenpastor",
       "associatedDomains": [
         "applinks:himnarioebp.com",
-        "applinks:www.himnarioebp.com"
+        "applinks:www.himnarioebp.com",
+        "webcredentials:himnarioebp.com"
       ]
     },
     "android": {
@@ -57,13 +58,34 @@
         "foregroundImage": "./assets/images/android-foreground-app.png",
         "monochromeImage": "./assets/images/android-monochrome-app-logo.png"
       },
-      "predictiveBackGestureEnabled": false,
+      "predictiveBackGestureEnabled": true,
       "package": "com.elbuenpastor.himnario",
       "permissions": [
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            { "scheme": "https", "host": "himnarioebp.com", "pathPrefix": "/h/" },
+            { "scheme": "https", "host": "himnarioebp.com", "pathPrefix": "/hymn/" },
+            { "scheme": "https", "host": "himnarioebp.com", "pathPrefix": "/himno/" },
+            { "scheme": "https", "host": "himnarioebp.com", "pathPrefix": "/member" },
+            { "scheme": "https", "host": "himnarioebp.com", "pathPrefix": "/churches" },
+            { "scheme": "https", "host": "www.himnarioebp.com", "pathPrefix": "/h/" },
+            { "scheme": "https", "host": "www.himnarioebp.com", "pathPrefix": "/hymn/" },
+            { "scheme": "https", "host": "www.himnarioebp.com", "pathPrefix": "/himno/" },
+            { "scheme": "https", "host": "www.himnarioebp.com", "pathPrefix": "/member" },
+            { "scheme": "https", "host": "www.himnarioebp.com", "pathPrefix": "/churches" }
+          ]
+        }
       ]
     },
     "web": {
@@ -156,6 +178,7 @@
         {
           "bundleIdentifier": "com.elbuenpastor.ExpoWidgetsTarget",
           "groupIdentifier": "group.com.elbuenpastor",
+          "enableAndroid": true,
           "widgets": [
             {
               "name": "DailyVerseWidget",
@@ -167,16 +190,30 @@
                 "systemLarge",
                 "accessoryRectangular"
               ],
-              "contentMarginsDisabled": true
+              "contentMarginsDisabled": true,
+              "android": {
+                "minWidth": 180,
+                "minHeight": 110,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "both",
+                "initialLayout": "./widgets/DailyVerseWidget.android.tsx"
+              }
             }
           ]
         }
       ],
-      "./plugins/withWidgetContainerBackground"
+      "./plugins/withWidgetContainerBackground",
+      "expo-app-intents"
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "inlineModules": {
+        "watchedDirectories": [
+          "app-intents"
+        ]
+      }
     },
     "extra": {
       "router": {},
@@ -186,7 +223,7 @@
       }
     },
     "owner": "isaacduran",
-    "runtimeVersion": "2.2.0-sdk58-1",
+    "runtimeVersion": "2.3.0-sdk58-1",
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

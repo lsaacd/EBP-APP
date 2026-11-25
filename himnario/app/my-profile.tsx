@@ -422,7 +422,7 @@ export default function MyProfileScreen() {
     );
   }
 
-  if (hasSwiftUI && section === 'moderation') {
+  if ((hasSwiftUI || Platform.OS === 'android') && section === 'moderation') {
     return (
       <>
         {screenHeaderConfig}

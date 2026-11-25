@@ -1,0 +1,110 @@
+diff --git a/node_modules/react-native-maps/ios/AirMaps/AIRMap.mm b/node_modules/react-native-maps/ios/AirMaps/AIRMap.mm
+index d3b0723..3014271 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/AIRMap.mm
++++ b/node_modules/react-native-maps/ios/AirMaps/AIRMap.mm
+@@ -857,6 +857,18 @@ const NSInteger AIRMapMaxZoomLevel = 20;
+ - (void) handleMemoryWarning
+ {
+     NSLog(@"handleMemoryWarning warning");
++    if (@available(iOS 16.0, *)) {
++        MKMapConfiguration *savedConfig = [self.preferredConfiguration copy];
++        if (savedConfig) {
++            if ([savedConfig isKindOfClass:[MKImageryMapConfiguration class]]) {
++                self.preferredConfiguration = [[MKStandardMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic];
++            } else {
++                self.preferredConfiguration = [[MKImageryMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic];
++            }
++            self.preferredConfiguration = savedConfig;
++            return;
++        }
++    }
+     MKMapType type = self.mapType;
+     if (type == MKMapTypeSatellite){
+         self.mapType = MKMapTypeStandard;
+diff --git a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+index fcee5e2..013bca4 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
++++ b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+@@ -124,6 +124,65 @@ using namespace facebook::react;
+     return concreteComponentDescriptorProvider<RNMapsMapViewComponentDescriptor>();
+ }
+ 
++MKMapType mapRNTypeToMKMapType(RNMapsMapViewMapType rnMapType);
++
++static void applyRNMapsPreferredConfiguration(AIRMap *mapView, RNMapsMapViewMapType rnMapType) {
++    if (@available(iOS 16.0, *)) {
++        MKPointOfInterestFilter *existingFilter = nil;
++        BOOL existingTraffic = mapView.showsTraffic;
++        if ([mapView.preferredConfiguration isKindOfClass:[MKStandardMapConfiguration class]]) {
++            MKStandardMapConfiguration *prev = (MKStandardMapConfiguration *)mapView.preferredConfiguration;
++            existingFilter = prev.pointOfInterestFilter;
++            existingTraffic = prev.showsTraffic;
++        } else if ([mapView.preferredConfiguration isKindOfClass:[MKHybridMapConfiguration class]]) {
++            MKHybridMapConfiguration *prev = (MKHybridMapConfiguration *)mapView.preferredConfiguration;
++            existingFilter = prev.pointOfInterestFilter;
++            existingTraffic = prev.showsTraffic;
++        }
++
++        MKMapConfiguration *config = nil;
++        switch (rnMapType) {
++            case RNMapsMapViewMapType::Satellite:
++            case RNMapsMapViewMapType::SatelliteFlyover: {
++                config = [[MKImageryMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic];
++                break;
++            }
++            case RNMapsMapViewMapType::Hybrid:
++            case RNMapsMapViewMapType::HybridFlyover: {
++                MKHybridMapConfiguration *hybrid = [[MKHybridMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic];
++                hybrid.showsTraffic = existingTraffic;
++                if (existingFilter) {
++                    hybrid.pointOfInterestFilter = existingFilter;
++                }
++                config = hybrid;
++                break;
++            }
++            case RNMapsMapViewMapType::MutedStandard: {
++                MKStandardMapConfiguration *muted = [[MKStandardMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic emphasisStyle:MKStandardMapEmphasisStyleMuted];
++                muted.showsTraffic = existingTraffic;
++                if (existingFilter) {
++                    muted.pointOfInterestFilter = existingFilter;
++                }
++                config = muted;
++                break;
++            }
++            case RNMapsMapViewMapType::Standard:
++            default: {
++                MKStandardMapConfiguration *standard = [[MKStandardMapConfiguration alloc] initWithElevationStyle:MKMapElevationStyleRealistic emphasisStyle:MKStandardMapEmphasisStyleDefault];
++                standard.showsTraffic = existingTraffic;
++                if (existingFilter) {
++                    standard.pointOfInterestFilter = existingFilter;
++                }
++                config = standard;
++                break;
++            }
++        }
++        mapView.preferredConfiguration = config;
++    } else {
++        mapView.mapType = mapRNTypeToMKMapType(rnMapType);
++    }
++}
++
+ - (void) prepareMapView
+ {
+     if (_legacyMapManager && _view) return;
+@@ -133,6 +192,7 @@ using namespace facebook::react;
+     _view = (AIRMap *)[_legacyMapManager view];
+ 
+     self.contentView = _view;
++    applyRNMapsPreferredConfiguration(_view, RNMapsMapViewMapType::Standard);
+ 
+     _view.onLongPress = [self](NSDictionary* dictionary) {
+         if (_eventEmitter) {
+@@ -604,7 +664,7 @@ newViewProps.name.right);           \
+     REMAP_MAPVIEW_STRING_PROP(userLocationAnnotationTitle)
+ 
+     if (oldViewProps.mapType != newViewProps.mapType){
+-        _view.mapType = mapRNTypeToMKMapType(newViewProps.mapType);
++        applyRNMapsPreferredConfiguration(_view, newViewProps.mapType);
+     }
+     if (oldViewProps.userInterfaceStyle != newViewProps.userInterfaceStyle){
+         switch (newViewProps.userInterfaceStyle) {

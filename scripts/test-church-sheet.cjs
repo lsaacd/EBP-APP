@@ -688,3 +688,24 @@ test('profileShareUrl and resolveDeepLinkPath normalize Universal Links and cust
   assert.equal(resolveDeepLinkPath('https://himnarioebp.com/app/'), '/(tabs)/home');
   assert.equal(resolveDeepLinkPath('trackplayer://notification.click'), '/(tabs)/home');
 });
+
+test('buildHymnIntentCatalog prioritizes favorites & recents and produces 761 unique valid entities', () => {
+  const alabanzasPaginas = load('himnario/data/alabanzasPaginas.js');
+  const alabanzasEnglish = load('himnario/data/alabanzasEnglish.ts');
+  const { buildHymnIntentCatalog } = load('himnario/utils/appIntentsSync.ts', {
+    'react-native': { Platform: { OS: 'ios' } },
+    '../data/alabanzasPaginas': alabanzasPaginas,
+    '../data/alabanzasEnglish': alabanzasEnglish,
+  });
+  const catalog = buildHymnIntentCatalog('es', ['100', 'E12'], ['1', '100']);
+  assert.equal(catalog.length, 761);
+  assert.equal(catalog[0].id, '100');
+  assert.equal(catalog[1].id, 'E12');
+  assert.equal(catalog[2].id, '1');
+  const ids = new Set(catalog.map((e) => e.id));
+  assert.equal(ids.size, 761);
+  assert.ok(catalog.every((e) => e.id.trim().length > 0 && e.title.trim().length > 0));
+  assert.ok(catalog[0].synonyms.includes('100'));
+  assert.ok(catalog[0].synonyms.includes('Himno 100'));
+  assert.ok(catalog[0].synonyms.includes('Hymn 100'));
+});
