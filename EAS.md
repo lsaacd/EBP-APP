@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #7: Apple Fluid Zoom (`Link.AppleZoom`) on Playlists + Long-Press `Link.Preview` & `Link.Menu` on Hymn Rows
+
+- **Branch & Source:** `sdk-58` branch (commit `006b8e7`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`374dd6a9-cf0e-4eb5-af64-97ebac08939d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/374dd6a9-cf0e-4eb5-af64-97ebac08939d)
+  - **iOS Update ID:** `01a212ea-087f-7eaf-8805-12ec37c80156`
+  - **Included Changes:**
+    - Added reusable `HymnRowLink` (`himnario/components/HymnRowLink.tsx`) wrapping iOS hymn rows across `home.tsx` (*Himnos Recientes*), `hymns.tsx` (*Himnos*, *Estribillos*, *Índice*, and Search results), `favorites.tsx` (*Mis Favoritos*), and `playlist/[id].tsx` with lazy live `<Link.Preview />` + native Liquid Glass `<Link.Menu>` (*Play*, *Save/Remove Favorite*, 1-tap *Add to playlist…* `isOn` checkmark submenu, *Share hymn*, and destructive *Remove from playlist*). Android/Web keep plain `TouchableOpacity` rows.
+    - Guarded `addRecent` in `himnario/app/hymn/[id].tsx` with `useIsFocused()` so peeking via long-press `<Link.Preview />` never pollutes *Himnos Recientes* unless opened.
+    - Added Apple Fluid Zoom (`Link.AppleZoom` → `Link.AppleZoomTarget`) from Playlist cards in `favorites.tsx` into the centered Hero Artwork on `playlist/[id].tsx`, plus long-press `<Link.Menu>` (*Play*, *Shuffle*, *Delete Playlist*).
+    - Added bilingual context-menu strings (`contextSaveFavorite`, `contextRemoveFavorite`, `contextRemoveFromPlaylist`) in `LanguageContext.tsx`.
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on all 7 touched files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #6: Native iOS 26 Liquid Glass `formSheet` Auth & Account Sheet
 
 - **Branch & Source:** `sdk-58` branch (commit `1ec5ffe`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
