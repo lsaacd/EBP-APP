@@ -47,7 +47,6 @@ import { TOP_HYMNS_FILTER, rankByLikes, useTopHymns } from '../../utils/topHymns
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
-import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import {
   create as createSearchEngine,
@@ -577,23 +576,6 @@ export default function HymnListScreen() {
   };
 
   const renderSubTabs = () => {
-    if (Platform.OS === 'ios') {
-      return (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
-          <LiquidGlassSegmented
-            compact
-            value={activeSubTab}
-            onChange={(next) => selectSubTab(next)}
-            items={[
-              { key: 'himnos', label: t.subTabHimnos || 'Himnos' },
-              { key: 'estribillos', label: t.subTabEstribillos || 'Estribillos' },
-              { key: 'indice', label: t.subTabIndice || 'Índice' },
-            ]}
-          />
-        </View>
-      );
-    }
-
     return (
       <View style={styles.subTabBar}>
         {[

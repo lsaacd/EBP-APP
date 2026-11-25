@@ -1469,8 +1469,16 @@ export function AuthSheet({
             styles.group,
             styles.authFormCard,
             {
-              backgroundColor: theme.surfaceVariants.containerLow,
-              borderColor: cardStroke,
+              backgroundColor: isIOS
+                ? isDarkMode
+                  ? 'rgba(255,255,255,0.09)'
+                  : 'rgba(255,255,255,0.72)'
+                : theme.surfaceVariants.containerLow,
+              borderColor: isIOS
+                ? isDarkMode
+                  ? 'rgba(255,255,255,0.14)'
+                  : 'rgba(255,255,255,0.88)'
+                : cardStroke,
             },
             formShakeStyle,
           ]}
@@ -1829,9 +1837,17 @@ export function AuthSheet({
   const sheetMaxHeight = Math.max(300, Math.min(availableHeight, 840));
   const sheetBg = isDarkMode ? '#141416' : '#F6F3EC';
   const glassIconColor = isDarkMode ? '#FFFFFF' : theme.onSurface;
+  const isSignedOutLogin = page === 'account' && !user;
+  const authHeaderTitle = isSignedOutLogin
+    ? mode === 'register'
+      ? t.authCreateAccount
+      : mode === 'recovery'
+        ? t.authForgotPassword
+        : t.authSignIn
+    : pageTitles[page];
 
   const headerBar = (
-    <View style={[styles.header, isIOS && { paddingTop: 14, paddingBottom: 10, paddingHorizontal: 18 }]}>
+    <View style={[styles.header, isIOS && { paddingTop: 16, paddingBottom: 10, paddingHorizontal: 18 }]}>
       {page !== 'account' ? (
         <GlassSurface
           isInteractive
@@ -1854,38 +1870,102 @@ export function AuthSheet({
             />
           </Pressable>
         </GlassSurface>
+      ) : isSignedOutLogin ? (
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={56}
+          style={styles.glassCancelPill}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.authCancel}
+            onPress={animateClose}
+            style={({ pressed }) => [styles.glassCancelHit, pressed && { opacity: 0.72 }]}
+          >
+            <Text style={[styles.glassCancelText, { color: theme.onSurface }]}>
+              {t.authCancel}
+            </Text>
+          </Pressable>
+        </GlassSurface>
       ) : (
         <View style={styles.glassCircleSpacer} />
       )}
 
       <Text
         numberOfLines={1}
-        style={[styles.headerTitle, { color: theme.onSurface }]}
+        style={[styles.headerTitle, { color: theme.onSurface, flex: 1, textAlign: 'center', marginHorizontal: 8 }]}
       >
-        {pageTitles[page]}
+        {authHeaderTitle}
       </Text>
 
-      <GlassSurface
-        isInteractive
-        glassEffectStyle="regular"
-        intensity={56}
-        style={styles.glassCircleBtn}
-      >
+      {isSignedOutLogin ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.close}
-          onPress={animateClose}
-          style={styles.glassCircleHit}
+          accessibilityLabel={
+            mode === 'recovery'
+              ? t.authSendRecovery
+              : mode === 'register'
+                ? t.authSubmitRegister
+                : t.authSubmitSignIn
+          }
+          disabled={submitting || isLoading || !!emailAction}
+          onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+          style={({ pressed }) => [
+            styles.headerActionCircle,
+            {
+              backgroundColor: isDarkMode ? '#FFFFFF' : theme.primary,
+              opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
+            },
+          ]}
         >
-          <AppMenuIcon
-            ios="xmark"
-            android="close"
-            color={glassIconColor}
-            size={17}
-            weight="semibold"
-          />
+          {submitting || emailAction ? (
+            <ActivityIndicator size="small" color={isDarkMode ? '#141416' : theme.onPrimary} />
+          ) : (
+            <AppMenuIcon
+              ios={
+                mode === 'recovery'
+                  ? 'paperplane.fill'
+                  : mode === 'register'
+                    ? 'person.badge.plus'
+                    : 'key.fill'
+              }
+              android={
+                mode === 'recovery'
+                  ? 'send'
+                  : mode === 'register'
+                    ? 'person-add'
+                    : 'vpn-key'
+              }
+              color={isDarkMode ? '#141416' : theme.onPrimary}
+              size={18}
+              weight="semibold"
+            />
+          )}
         </Pressable>
-      </GlassSurface>
+      ) : (
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={56}
+          style={styles.glassCircleBtn}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.close}
+            onPress={animateClose}
+            style={styles.glassCircleHit}
+          >
+            <AppMenuIcon
+              ios="xmark"
+              android="close"
+              color={glassIconColor}
+              size={17}
+              weight="semibold"
+            />
+          </Pressable>
+        </GlassSurface>
+      )}
     </View>
   );
 
@@ -1934,7 +2014,13 @@ export function AuthSheet({
               style={[
                 styles.sheet,
                 {
-                  backgroundColor: sheetBg,
+                  backgroundColor: isIOS ? 'transparent' : sheetBg,
+                  borderColor: isIOS
+                    ? isDarkMode
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.58)'
+                    : 'transparent',
+                  borderWidth: isIOS ? StyleSheet.hairlineWidth : 0,
                   maxHeight: sheetMaxHeight,
                   marginBottom: !isIOS && keyboardHeight > 0 ? keyboardHeight : 0,
                   paddingBottom: keyboardHeight > 0 ? 8 : Math.max(insets.bottom, 18),
@@ -1942,13 +2028,20 @@ export function AuthSheet({
                 },
               ]}
             >
+              {isIOS ? (
+                <GlassSurface
+                  glassEffectStyle="regular"
+                  intensity={76}
+                  style={styles.iosSheetGlassBg}
+                />
+              ) : null}
               <GestureDetector gesture={pan}>
                 <View style={styles.dragZone}>
-                  <View style={styles.handleWrap}>
-                    <View
-                      style={styles.handle}
-                    />
-                  </View>
+                  {!isIOS && (
+                    <View style={styles.handleWrap}>
+                      <View style={styles.handle} />
+                    </View>
+                  )}
                   {headerBar}
                 </View>
               </GestureDetector>
@@ -1989,11 +2082,44 @@ const styles = StyleSheet.create({
   },
   sheet: {
     width: '100%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderBottomWidth: 0,
+    borderCurve: 'continuous',
+  },
+  iosSheetGlassBg: {
+    ...StyleSheet.absoluteFill,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  glassCancelPill: {
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glassCancelHit: {
+    height: 38,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glassCancelText: {
+    ...fonts.sansSemiBold,
+    fontSize: 15,
+  },
+  headerActionCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   dragZone: {
     width: '100%',

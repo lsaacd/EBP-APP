@@ -213,7 +213,7 @@ function IOSTabs() {
         default: inactiveColor,
         selected: activeColor,
       }}
-      minimizeBehavior="onScrollDown"
+      minimizeBehavior="never"
       titlePositionAdjustment={{ vertical: -2 }}
       labelStyle={{
         default: {

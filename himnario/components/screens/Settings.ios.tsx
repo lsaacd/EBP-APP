@@ -107,7 +107,9 @@ export default function SettingsScreenIOS() {
   const scheme = isDarkMode ? 'dark' : 'light';
   const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
   const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
-  const starGold = isDarkMode ? '#FFB800' : '#E59A00';
+  const starBurgundy = isDarkMode ? '#D14D56' : theme.primary;
+  const starUnselectedBurgundy = isDarkMode ? '#6E3237' : '#C99EA2';
+  const ctaBurgundy = isDarkMode ? '#9E2A32' : theme.primary;
   const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
@@ -456,37 +458,36 @@ export default function SettingsScreenIOS() {
             )}
           </Section>
 
-          {/* ─── Classic iOS Warm-Gold 5-Star Rating Card ─── */}
+          {/* ─── Sacred Ink Burgundy 5-Star Rating Card ─── */}
           <Section title={t.rateApp}>
             <HStack alignment="center">
               <Spacer />
               <VStack
                 alignment="center"
-                spacing={10}
-                modifiers={[padding({ vertical: 10, horizontal: 6 })]}
+                spacing={12}
+                modifiers={[padding({ vertical: 14, horizontal: 8 })]}
               >
-                <HStack alignment="center" spacing={10}>
+                <HStack alignment="center" spacing={12}>
                   {STAR_INDICES.map((star) => {
                     const isFilled = selectedStars === 0 || star <= selectedStars;
-                    const restOpacity = 1 - Math.abs(star - 3) * 0.14;
+                    const restOpacity = 1 - Math.abs(star - 3) * 0.12;
                     return (
                       <Button
                         key={star}
                         modifiers={[
                           buttonStyle('borderless'),
-                          scaleEffect(star === selectedStars ? 1.14 : 1),
+                          scaleEffect(star === selectedStars ? 1.16 : 1),
                         ]}
                         onPress={() => handleStarPress(star)}
                       >
                         <SwiftUIImage
                           systemName={isFilled ? 'star.fill' : 'star'}
-                          size={28}
+                          size={30}
                           modifiers={[
-                            foregroundStyle(
-                              isFilled
-                                ? { type: 'color', color: starGold }
-                                : tertiaryStyle,
-                            ),
+                            foregroundStyle({
+                              type: 'color',
+                              color: isFilled ? starBurgundy : starUnselectedBurgundy,
+                            }),
                             opacity(selectedStars === 0 ? restOpacity : 1),
                           ]}
                         />
@@ -495,32 +496,34 @@ export default function SettingsScreenIOS() {
                   })}
                 </HStack>
 
-                <Text
-                  modifiers={[
-                    font({ design: 'serif', weight: 'bold', size: 19 }),
-                    foregroundStyle(primaryStyle),
-                    multilineTextAlignment('center'),
-                  ]}
-                >
-                  {t.rateApp}
-                </Text>
+                <VStack alignment="center" spacing={4}>
+                  <Text
+                    modifiers={[
+                      font({ design: 'serif', weight: 'bold', size: 20 }),
+                      foregroundStyle(primaryStyle),
+                      multilineTextAlignment('center'),
+                    ]}
+                  >
+                    {t.rateApp}
+                  </Text>
 
-                <Text
-                  modifiers={[
-                    font({ design: 'serif', textStyle: 'subheadline' }),
-                    foregroundStyle(secondaryStyle),
-                    multilineTextAlignment('center'),
-                  ]}
-                >
-                  {ratingSubtitle}
-                </Text>
+                  <Text
+                    modifiers={[
+                      font({ design: 'serif', textStyle: 'subheadline' }),
+                      foregroundStyle(secondaryStyle),
+                      multilineTextAlignment('center'),
+                    ]}
+                  >
+                    {ratingSubtitle}
+                  </Text>
+                </VStack>
 
                 <Button
                   modifiers={[
                     buttonStyle('borderedProminent'),
                     buttonBorderShape('capsule'),
-                    tint(theme.primary),
-                    padding({ top: 4 }),
+                    tint(ctaBurgundy),
+                    padding({ top: 2 }),
                   ]}
                   onPress={
                     showFeedbackCta
@@ -531,11 +534,11 @@ export default function SettingsScreenIOS() {
                       : openRateApp
                   }
                 >
-                  <HStack alignment="center" spacing={6} modifiers={[padding({ horizontal: 8, vertical: 2 })]}>
+                  <HStack alignment="center" spacing={6} modifiers={[padding({ horizontal: 12, vertical: 4 })]}>
                     <Text
                       modifiers={[
                         font({ textStyle: 'subheadline', weight: 'semibold' }),
-                        foregroundStyle({ type: 'color', color: theme.onPrimary }),
+                        foregroundStyle({ type: 'color', color: '#FFFFFF' }),
                       ]}
                     >
                       {showFeedbackCta ? t.sendFeedback : t.rateAppButton}
@@ -543,7 +546,7 @@ export default function SettingsScreenIOS() {
                     <SwiftUIImage
                       systemName={showFeedbackCta ? 'envelope' : 'arrow.up.right'}
                       size={13}
-                      modifiers={[foregroundStyle({ type: 'color', color: theme.onPrimary })]}
+                      modifiers={[foregroundStyle({ type: 'color', color: '#FFFFFF' })]}
                     />
                   </HStack>
                 </Button>

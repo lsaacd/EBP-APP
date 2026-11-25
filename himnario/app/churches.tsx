@@ -2161,15 +2161,15 @@ export default function ChurchesScreen() {
           index={snapIndex}
           onIndexChange={handleSheetIndexChange}
           headerGesture={headerSwipe}
-          grabberPlacement="inside"
+          grabberPlacement="floating"
           style={
             isIOS
               ? {
                   backgroundColor: "transparent",
                   borderColor: isDarkMode
-                    ? "rgba(255,255,255,0.14)"
-                    : "rgba(110,22,25,0.10)",
-                  shadowOpacity: isDarkMode ? 0.34 : 0.14,
+                    ? "rgba(255,255,255,0.16)"
+                    : "rgba(255,255,255,0.55)",
+                  shadowOpacity: isDarkMode ? 0.34 : 0.16,
                 }
               : { backgroundColor: bgSurface, borderColor: cardBorder }
           }
@@ -2178,10 +2178,10 @@ export default function ChurchesScreen() {
               <GlassSurface
                 glassEffectStyle="regular"
                 intensity={76}
-                // Always use a frosted backing so list & detail cards stay crisp
-                // and never turn washed-out green over park tiles on the map.
-                stableBackdrop
-                style={StyleSheet.absoluteFill}
+                style={[
+                  StyleSheet.absoluteFill,
+                  { borderTopLeftRadius: 26, borderTopRightRadius: 26 },
+                ]}
               />
             ) : undefined
           }

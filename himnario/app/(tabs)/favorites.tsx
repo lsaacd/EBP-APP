@@ -764,34 +764,18 @@ export default function FavoritesScreen() {
           </Text>
         </View>
 
-        <GlassGroup spacing={8} style={styles.actionsRow}>
-          {activeTab === 'playlists' ? (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={58}
-              style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-            >
-              {createTriggerNode}
-            </GlassSurface>
-          ) : null}
-          <GlassSurface
-            isInteractive
-            glassEffectStyle="regular"
-            intensity={58}
-            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-          >
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={58}
+          style={[styles.actionsCapsule, !IS_IOS && styles.androidCircleClip]}
+        >
+          <View style={styles.actionsCapsuleInner}>
             {searchTriggerNode}
-          </GlassSurface>
-          <GlassSurface
-            isInteractive
-            glassEffectStyle="regular"
-            intensity={58}
-            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-          >
+            {activeTab === 'playlists' ? createTriggerNode : null}
             {sortMenuNode}
-          </GlassSurface>
-        </GlassGroup>
+          </View>
+        </GlassSurface>
       </View>
 
       {/* ── Genuine Liquid Glass Sliding Segmented Control ── */}
@@ -1133,6 +1117,18 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 0,
   },
+  actionsCapsule: {
+    height: 44,
+    borderRadius: 22,
+    flexShrink: 0,
+    justifyContent: 'center',
+  },
+  actionsCapsuleInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    gap: 2,
+  },
   glassCircle: {
     width: 44,
     height: 44,
@@ -1145,9 +1141,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   circleHit: {
-    width: 44,
+    width: 40,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
