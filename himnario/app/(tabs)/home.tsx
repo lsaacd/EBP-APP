@@ -44,6 +44,7 @@ import Reanimated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import TactilePressable from '../../components/TactilePressable';
 import { fonts } from '../../theme/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
@@ -223,7 +224,7 @@ export default function HomeScreen() {
         ]}
       >
         <View style={IS_IPAD ? styles.tabletCenter : undefined}>
-          <TouchableOpacity
+          <TactilePressable
             style={[
               styles.heroSurface,
               {
@@ -232,9 +233,7 @@ export default function HomeScreen() {
               },
               !isDarkMode && styles.lightCardShadow,
             ]}
-            activeOpacity={0.82}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push({
                 pathname: '/hymns',
                 params: { tab: 'himnos', t: String(Date.now()) },
@@ -286,7 +285,7 @@ export default function HomeScreen() {
               size={24}
               color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#99999E'}
             />
-          </TouchableOpacity>
+          </TactilePressable>
         </View>
       </LinearGradient>
 

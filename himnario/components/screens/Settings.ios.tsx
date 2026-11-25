@@ -13,6 +13,7 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Alert, Linking, Platform, StyleSheet, Text as RNText, View } from 'react-native';
 import Constants from 'expo-constants';
+import * as StoreReview from 'expo-store-review';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,7 @@ import {
   deleteSavedHymnAudio,
 } from '../../audio/offline-audio';
 import { getExpoSwiftUI, type ExpoSwiftUIBundle } from '../../utils/expoSwiftUI';
+import WhatsNewSheet from '../WhatsNewSheet';
 import SettingsLegacy from './Settings.legacy';
 
 const BASE_PX = 22;
@@ -75,6 +77,7 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
 
   const [selectedStars, setSelectedStars] = useState(0);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const lastHapticPxRef = useRef(currentPx);
@@ -125,8 +128,11 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
   } = swiftUI.ui;
 
   const {
+    Animation,
+    animation,
     buttonBorderShape,
     buttonStyle,
+    contentTransition,
     controlSize,
     font,
     foregroundStyle,
@@ -222,7 +228,17 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
 
   const openRateApp = () => {
     Haptics.selectionAsync().catch(() => {});
-    Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review').catch(() => {});
+    void (async () => {
+      try {
+        if (await StoreReview.isAvailableAsync()) {
+          await StoreReview.requestReview();
+          return;
+        }
+      } catch {
+        // Fall back to App Store review URL
+      }
+      Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review').catch(() => {});
+    })();
   };
 
   const handleStarPress = (star: number) => {
@@ -394,6 +410,8 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
                 <Text
                   modifiers={[
                     monospacedDigit(),
+                    contentTransition('numericText'),
+                    animation(Animation.default, currentPx),
                     font({ textStyle: 'body', weight: 'semibold' }),
                     foregroundStyle(secondaryStyle),
                   ]}
@@ -520,6 +538,8 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
               <Text
                 modifiers={[
                   monospacedDigit(),
+                  contentTransition('numericText'),
+                  animation(Animation.default, offline.saved),
                   foregroundStyle(secondaryStyle),
                 ]}
               >
@@ -736,6 +756,20 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
               modifiers={[foregroundStyle(primaryStyle)]}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
+                setShowWhatsNew(true);
+              }}
+            >
+              <HStack alignment="center">
+                <Label title={t.settingsWhatsNewRow} icon={renderTintedIcon('sparkles')} />
+                <Spacer />
+                {chevron}
+              </HStack>
+            </Button>
+
+            <Button
+              modifiers={[foregroundStyle(primaryStyle)]}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
                 router.push('/about-sheet' as any);
               }}
             >
@@ -790,6 +824,8 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
           </RNText>
         </Animated.View>
       </Animated.View>
+
+      <WhatsNewSheet visible={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
     </View>
   );
 }

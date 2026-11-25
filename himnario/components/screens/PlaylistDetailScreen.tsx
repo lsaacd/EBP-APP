@@ -57,9 +57,11 @@ import AppMenuIcon from '../AppMenuIcon';
 import GlassSurface from '../GlassSurface';
 import SheetGrabber from '../SheetGrabber';
 import HymnRowLink from '../HymnRowLink';
+import ListSortMenu, { type ListSortOption } from '../ListSortMenu';
 import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
 
 const IS_IOS = Platform.OS === 'ios';
+const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
 const EBP_HYMN_COVER = require('../../assets/images/EBP_HYMN_COVER.png');
 
 export default function PlaylistDetailScreen() {
@@ -68,7 +70,9 @@ export default function PlaylistDetailScreen() {
   const { theme, isDarkMode } = useTheme();
   const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isWideTablet = IS_IPAD || screenWidth >= 700;
+  const ipadTopOffset = IS_IPAD ? 50 : 0;
   const { currentHymnId, isPlaying, openPlayer } = useNowPlaying();
   const bottomClearance = Math.max(insets.bottom, 20) + (currentHymnId ? 196 : 124);
 
@@ -96,6 +100,16 @@ export default function PlaylistDetailScreen() {
   // Rename sheet state
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [playlistSort, setPlaylistSort] = useState<'manual' | 'number' | 'az'>('manual');
+
+  const playlistSortOptions = useMemo<readonly ListSortOption<'manual' | 'number' | 'az'>[]>(
+    () => [
+      { value: 'manual', label: t.sortManual, shortLabel: t.sortManualShort, iosIcon: 'list.bullet' },
+      { value: 'number', label: t.sortByNumber, shortLabel: t.sortByNumberShort, iosIcon: 'number' },
+      { value: 'az', label: t.sortByAZ, shortLabel: t.sortByAZShort, iosIcon: 'textformat.abc' },
+    ],
+    [t.sortByAZ, t.sortByAZShort, t.sortByNumber, t.sortByNumberShort, t.sortManual, t.sortManualShort],
+  );
 
   const playlist = playlists.find((p) => p.id === id);
   const displayHymnLang = language === 'en' ? 'en' : hymnLanguage;
@@ -117,12 +131,31 @@ export default function PlaylistDetailScreen() {
 
   const playlistHymns = useMemo(() => {
     if (!playlist) return [];
-    return playlist.hymnIds.map((hId) => hymnMap.get(String(hId))).filter(Boolean);
-  }, [playlist, hymnMap]);
+    const base = playlist.hymnIds.map((hId) => hymnMap.get(String(hId))).filter(Boolean);
+    if (playlistSort === 'number') {
+      return [...base].sort((a: any, b: any) => {
+        const aE = String(a.id).startsWith('E') ? 1 : 0;
+        const bE = String(b.id).startsWith('E') ? 1 : 0;
+        if (aE !== bE) return aE - bE;
+        return Number(a.number) - Number(b.number);
+      });
+    }
+    if (playlistSort === 'az') {
+      return [...base].sort((a: any, b: any) =>
+        String(a.title || '').localeCompare(String(b.title || '')),
+      );
+    }
+    return base;
+  }, [playlist, hymnMap, playlistSort]);
+
+  const sortedPlaylistIds = useMemo(
+    () => playlistHymns.map((h: any) => String(h.id)),
+    [playlistHymns],
+  );
 
   const playableIds = useMemo(
-    () => (playlist ? playlist.hymnIds.filter(hasHymnAudio) : []),
-    [playlist],
+    () => sortedPlaylistIds.filter(hasHymnAudio),
+    [sortedPlaylistIds],
   );
 
   const filteredPickerHymns = useMemo(() => {
@@ -205,9 +238,9 @@ export default function PlaylistDetailScreen() {
       const startId = shuffle
         ? playableIds[Math.floor(Math.random() * playableIds.length)]
         : playableIds[0];
-      openPlayer(startId, playlist.hymnIds, { label: playlist.name, shuffle });
+      openPlayer(startId, sortedPlaylistIds, { label: playlist.name, shuffle });
     },
-    [playlist, playableIds, openPlayer, t.favoritesNoAudioAlert],
+    [playlist, playableIds, sortedPlaylistIds, openPlayer, t.favoritesNoAudioAlert],
   );
 
   const handleOpenShareWithFriend = () => {
@@ -315,11 +348,11 @@ export default function PlaylistDetailScreen() {
           isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.96)',
           isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
         ]}
-        style={[styles.topScrim, { height: insets.top + 64 }]}
+        style={[styles.topScrim, { height: insets.top + ipadTopOffset + 64 }]}
         pointerEvents="none"
       />
 
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + ipadTopOffset + 8 }]}>
         <GlassSurface
           isInteractive
           glassEffectStyle="regular"
@@ -434,7 +467,11 @@ export default function PlaylistDetailScreen() {
       </View>
 
       <Animated.ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 66 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + ipadTopOffset + 66 },
+          isWideTablet && styles.tabletContent,
+        ]}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true },
@@ -542,6 +579,22 @@ export default function PlaylistDetailScreen() {
           <Text style={[styles.addHymnsText, { color: theme.onSurface }]}>{t.playlistAddHymns}</Text>
           <MaterialIcons name="chevron-right" size={22} color={theme.outline} />
         </Pressable>
+
+        {/* ── Sort Header when playlist has multiple hymns ── */}
+        {playlistHymns.length > 1 && (
+          <View style={styles.sortRow}>
+            <Text style={[styles.sortCountLabel, { color: theme.onSurfaceVariant }]}>
+              {playlistHymns.length} {t.songCount_other}
+            </Text>
+            <ListSortMenu
+              pill
+              value={playlistSort}
+              onChange={setPlaylistSort}
+              options={playlistSortOptions}
+              menuTitle={t.sortMenuTitle}
+            />
+          </View>
+        )}
 
         {/* ── Hymns List ── */}
         {playlistHymns.length === 0 ? (
@@ -1064,6 +1117,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexGrow: 1,
   },
+  tabletContent: {
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
+  },
   heroSection: {
     alignItems: 'center',
     marginBottom: 22,
@@ -1222,6 +1280,20 @@ const styles = StyleSheet.create({
     ...fonts.sansRegular,
     fontSize: 15,
     textAlign: 'center',
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sortCountLabel: {
+    ...fonts.sansSemiBold,
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   modalBackdropWrap: {
     flex: 1,

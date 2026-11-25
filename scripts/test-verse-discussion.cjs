@@ -209,6 +209,7 @@ function fixture(saved = new Map(), opts = {}) {
   const deps = {
     react,
     "react-native": native,
+    "react-native-keyboard-controller": { KeyboardAvoidingView: "KeyboardAvoidingView" },
     "@react-native-menu/menu": { MenuView: "MenuView" },
     "@react-native-async-storage/async-storage": {
       default: {

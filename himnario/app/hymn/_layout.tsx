@@ -1,10 +1,27 @@
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useNowPlaying } from '../../context/NowPlayingContext';
+import { restoreSanctuaryBrightness } from '../../utils/sanctuaryBrightness';
 
 export default function HymnsLayout() {
   const { isDarkMode } = useTheme();
   const { showFullPlayer } = useNowPlaying();
+
+  // Always restore the user's system brightness when leaving the Hymn Reader
+  // or when the app moves into the background.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        void restoreSanctuaryBrightness();
+      }
+    });
+    return () => {
+      sub.remove();
+      void restoreSanctuaryBrightness();
+    };
+  }, []);
 
   return (
     <Stack

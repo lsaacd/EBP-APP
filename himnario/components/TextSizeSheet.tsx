@@ -42,6 +42,12 @@ import { useNowPlaying } from '../context/NowPlayingContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
 import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
+import {
+  hasSanctuaryBrightnessOverride,
+  readCurrentBrightness,
+  restoreSanctuaryBrightness,
+  setSanctuaryBrightness,
+} from '../utils/sanctuaryBrightness';
 
 const BASE_PX = 22;
 const MIN_PX = 12;
@@ -67,10 +73,27 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const [inputText, setInputText] = useState(String(currentPx));
   const lastHapticPx = useRef(currentPx);
+  const [brightnessPct, setBrightnessPct] = useState<number | null>(null);
+  const [brightnessOverridden, setBrightnessOverridden] = useState(() =>
+    hasSanctuaryBrightnessOverride(),
+  );
 
   useEffect(() => {
     setInputText(String(currentPx));
   }, [currentPx, visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    void readCurrentBrightness().then((val) => {
+      if (!active || val === null) return;
+      setBrightnessPct(Math.min(100, Math.max(8, Math.round(val * 100))));
+      setBrightnessOverridden(hasSanctuaryBrightnessOverride());
+    });
+    return () => {
+      active = false;
+    };
+  }, [visible]);
 
   const applyPx = (px: number, withHaptic = true) => {
     const clamped = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(px)));
@@ -288,6 +311,66 @@ export default function TextSizeSheet({ visible, onClose }: TextSizeSheetProps) 
           <MaterialIcons name="add" size={20} color={theme.primary} />
         </TouchableOpacity>
       </View>
+
+      {/* Sanctuary Reading Brightness */}
+      {brightnessPct !== null && (
+        <View
+          style={[
+            styles.brightnessWrap,
+            { borderTopColor: theme.outlineVariant + '30' },
+          ]}
+        >
+          <View style={styles.brightnessHeader}>
+            <Text style={[styles.brightnessLabel, { color: theme.onSurface }]}>
+              {t.brightnessTitle}
+            </Text>
+            <View style={styles.headerActions}>
+              <Text style={[styles.brightnessVal, { color: theme.onSurfaceVariant }]}>
+                {`${brightnessPct}%`}
+              </Text>
+              {brightnessOverridden && (
+                <TouchableOpacity
+                  style={[styles.resetBtn, { backgroundColor: theme.primary + '16' }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setBrightnessOverridden(false);
+                    void restoreSanctuaryBrightness().then((restored) => {
+                      if (typeof restored === 'number') {
+                        setBrightnessPct(Math.min(100, Math.max(8, Math.round(restored * 100))));
+                      }
+                    });
+                  }}
+                >
+                  <Text style={[styles.resetText, { color: theme.primary }]}>
+                    {t.brightnessReset}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.controlsRow}>
+            <MaterialIcons name="brightness-low" size={19} color={theme.onSurfaceVariant} />
+            <Slider
+              style={styles.slider}
+              minimumValue={8}
+              maximumValue={100}
+              step={1}
+              value={brightnessPct}
+              onValueChange={(val) => {
+                const next = Math.min(100, Math.max(8, Math.round(val)));
+                setBrightnessPct(next);
+                setBrightnessOverridden(true);
+                void setSanctuaryBrightness(next / 100);
+              }}
+              minimumTrackTintColor={theme.primary}
+              maximumTrackTintColor={theme.surfaceVariants.containerHighest}
+              thumbTintColor={theme.primary}
+            />
+            <MaterialIcons name="brightness-high" size={20} color={theme.primary} />
+          </View>
+        </View>
+      )}
     </View>
   );
 
@@ -361,6 +444,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 18,
+    maxWidth: 540,
+    width: '100%',
+    alignSelf: 'center',
   },
   androidSheet: {
     borderTopLeftRadius: 28,
@@ -368,6 +454,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 10,
     elevation: 16,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
   inner: {
     gap: 14,
@@ -453,6 +542,24 @@ const styles = StyleSheet.create({
   slider: {
     flex: 1,
     height: 40,
+  },
+  brightnessWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 12,
+    gap: 6,
+  },
+  brightnessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brightnessLabel: {
+    ...fonts.sansSemiBold,
+    fontSize: 14,
+  },
+  brightnessVal: {
+    ...fonts.sansSemiBold,
+    fontSize: 13,
   },
 });
 

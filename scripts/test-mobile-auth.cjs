@@ -46,6 +46,7 @@ function fixture(raw=null, readGate=null) {
       clearAuthSession:()=>serialize(async()=>{stored=null;}),
     },
     '../utils/pushNotifications':{getStoredPushToken:async()=>null,clearStoredPushToken:async()=>{}},
+    '../utils/oauthClient':{performAppleSignIn:async()=>{throw new Error('auth_cancelled');},performGoogleSignIn:async()=>{throw new Error('auth_cancelled');}},
     './FavoritesContext':{useFavorites:()=>({favoriteIds:local.favorites,setAllFavorites})},
     './PlaylistsContext':{usePlaylists:()=>({playlists:local.playlists,setAllPlaylists})},
     './RecentHymnsContext':{useRecentHymns:()=>({recentIds:local.recents,setAllRecents})},

@@ -40,6 +40,7 @@ import Animated, {
 import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from '../utils/haptics';
+import { showSuccessToast } from '../utils/toast';
 import { MaterialIcons } from '@expo/vector-icons';
 import HymnQrPanel from './HymnQrPanel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -193,6 +194,7 @@ export default function ShareSheet({ visible, onClose, hymn, variant = 'reader' 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await Clipboard.setStringAsync(fullLyricsText);
     setStatusMessage(t.shareLyricsCopied);
+    showSuccessToast(t.toastLyricsCopied);
   };
 
   const options = [

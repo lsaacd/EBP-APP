@@ -54,6 +54,7 @@ import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI"
 import { LinearGradient } from "expo-linear-gradient";
 import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
+import ListSortMenu, { type ListSortOption } from "../components/ListSortMenu";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
 import FriendButton from "../components/FriendButton";
@@ -738,6 +739,17 @@ export default function ChurchesScreen() {
       .map(([country]) => country);
   }, [churches]);
 
+  const [churchSort, setChurchSort] = useState<"nearest" | "az" | "region">("nearest");
+
+  const churchSortOptions = useMemo<readonly ListSortOption<"nearest" | "az" | "region">[]>(
+    () => [
+      { value: "nearest", label: t.sortNearest, shortLabel: t.sortNearestShort, iosIcon: "location" },
+      { value: "az", label: t.sortByAZ, shortLabel: t.sortByAZShort, iosIcon: "textformat.abc" },
+      { value: "region", label: t.sortByRegion, shortLabel: t.sortByRegionShort, iosIcon: "globe" },
+    ],
+    [t.sortByAZ, t.sortByAZShort, t.sortByRegion, t.sortByRegionShort, t.sortNearest, t.sortNearestShort],
+  );
+
   const enrichedChurches = useMemo(() => {
     const fold = (s: string) =>
       s
@@ -767,13 +779,31 @@ export default function ChurchesScreen() {
           ].join(" "),
         ).includes(q);
       });
-    if (userCoords) {
+    if (churchSort === "az") {
+      list.sort((a, b) =>
+        churchDisplayName(a.name, a.city).localeCompare(
+          churchDisplayName(b.name, b.city),
+        ),
+      );
+    } else if (churchSort === "region") {
+      list.sort((a, b) => {
+        const cmpCountry = (a.country || "").localeCompare(b.country || "");
+        if (cmpCountry !== 0) return cmpCountry;
+        const cmpState = (a.state || "").localeCompare(b.state || "");
+        if (cmpState !== 0) return cmpState;
+        const cmpCity = (a.city || "").localeCompare(b.city || "");
+        if (cmpCity !== 0) return cmpCity;
+        return churchDisplayName(a.name, a.city).localeCompare(
+          churchDisplayName(b.name, b.city),
+        );
+      });
+    } else if (userCoords) {
       list.sort(
         (a, b) => (a.distanceMiles ?? 99999) - (b.distanceMiles ?? 99999),
       );
     }
     return list;
-  }, [churches, countryFilter, search, userCoords]);
+  }, [churches, churchSort, countryFilter, search, userCoords]);
 
   const mapPins = useMemo(
     () => buildChurchMapPins(enrichedChurches, mapRegion, selectedChurch?.id),
@@ -781,11 +811,16 @@ export default function ChurchesScreen() {
   );
 
 
-  const closestChurch = useMemo(
-    () =>
-      userCoords && enrichedChurches.length > 0 ? enrichedChurches[0] : null,
-    [enrichedChurches, userCoords],
-  );
+  const closestChurch = useMemo(() => {
+    if (!userCoords || enrichedChurches.length === 0) return null;
+    let best = enrichedChurches[0];
+    for (const c of enrichedChurches) {
+      if ((c.distanceMiles ?? 99999) < (best.distanceMiles ?? 99999)) {
+        best = c;
+      }
+    }
+    return best;
+  }, [enrichedChurches, userCoords]);
 
   const focusChurchOnMap = useCallback((church: VerifiedChurch) => {
     Haptics.selectionAsync();
@@ -2452,6 +2487,16 @@ export default function ChurchesScreen() {
                 >
                   {sheetSummary}
                 </Text>
+                {enrichedChurches.length > 1 && (
+                  <View style={{ marginRight: 6 }}>
+                    <ListSortMenu
+                      value={churchSort}
+                      onChange={setChurchSort}
+                      options={churchSortOptions}
+                      menuTitle={t.sortMenuTitle}
+                    />
+                  </View>
+                )}
                 <GlassSurface
                   isInteractive
                   glassEffectStyle="regular"

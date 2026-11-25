@@ -68,6 +68,8 @@ import { AnimatedField } from './AnimatedField';
 import LiquidGlassSegmented from './LiquidGlassSegmented';
 import AuthSheetSwiftUI from './AuthSheetSwiftUI';
 import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
+import { isAppleSignInAvailable, isGoogleSignInConfigured } from '../utils/oauthClient';
+import { showSuccessToast } from '../utils/toast';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -116,6 +118,8 @@ export function AuthSheet({
     closeAuthSheet,
     signIn,
     register,
+    signInWithApple,
+    signInWithGoogle,
     requestPasswordRecovery,
     requestEmailVerification,
     refreshUser,
@@ -167,7 +171,19 @@ export function AuthSheet({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const googleAvailable = isGoogleSignInConfigured();
   const [emailAction, setEmailAction] = useState<'recovery' | 'verification' | 'refresh' | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void isAppleSignInAvailable().then((avail) => {
+      if (active) setAppleAvailable(avail);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const accountActionRef = useRef(0);
   const [linkError, setLinkError] = useState(false);
 
@@ -553,7 +569,16 @@ export function AuthSheet({
     else if (message === 'invalid_email') setErrorMessage(t.authErrorEmailRequired);
     else if (message === 'weak_password') setErrorMessage(t.authErrorWeakPassword);
     else if (message === 'account_suspended') setErrorMessage(t.authErrorAccountSuspended);
-    else if (message === 'auth_failed' || message === 'invalid_sync_data' || message === 'email_request_failed' || message === 'account_refresh_failed') {
+    else if (message === 'oauth_provider_unavailable') setErrorMessage(t.authOAuthProviderUnavailable);
+    else if (
+      message === 'oauth_failed' ||
+      message === 'invalid_oauth_token' ||
+      message === 'unverified_oauth_email' ||
+      message === 'oauth_email_required' ||
+      message === 'invalid_nonce'
+    ) {
+      setErrorMessage(t.authOAuthFailed);
+    } else if (message === 'auth_failed' || message === 'invalid_sync_data' || message === 'email_request_failed' || message === 'account_refresh_failed') {
       setErrorMessage(t.authErrorGeneric);
     } else if (message.startsWith('rate_limited:')) {
       setErrorMessage(t.authRateLimitedError.replace('{secs}', message.split(':')[1] || '60'));
@@ -637,6 +662,30 @@ export function AuthSheet({
 
       }
     } catch (err: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      displayAuthError(err);
+      triggerFormShake();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOAuthProvider = async (provider: 'apple' | 'google') => {
+    if (submitting || isLoading || emailAction) return;
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setSubmitting(true);
+    Keyboard.dismiss();
+    try {
+      if (provider === 'apple') {
+        await signInWithApple();
+      } else {
+        await signInWithGoogle();
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showSuccessToast(t.toastSynced);
+    } catch (err: any) {
+      if (String(err?.message || '') === 'auth_cancelled') return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       displayAuthError(err);
       triggerFormShake();
@@ -784,6 +833,7 @@ export function AuthSheet({
     setShareStatusMessage(
       t.shareLinkCopied
     );
+    showSuccessToast(t.toastLinkCopied);
   };
 
   // ── Titles & Helpers ──────────────────────────────────────────────────────
@@ -2072,6 +2122,77 @@ export function AuthSheet({
           {t.authOptionalNote}
         </Text>
 
+        {mode !== 'recovery' && (appleAvailable || googleAvailable) && (
+          <View style={styles.oauthBlock}>
+            <View style={styles.oauthDividerRow}>
+              <View style={[styles.oauthDividerLine, { backgroundColor: dividerColor }]} />
+              <Text style={[styles.oauthDividerText, { color: mutedText }]}>
+                {t.authOrEmailDivider}
+              </Text>
+              <View style={[styles.oauthDividerLine, { backgroundColor: dividerColor }]} />
+            </View>
+            <View style={styles.oauthButtonsCol}>
+              {appleAvailable && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.authContinueWithApple}
+                  disabled={submitting || isLoading || !!emailAction}
+                  onPress={() => void handleOAuthProvider('apple')}
+                  style={({ pressed }) => [
+                    styles.oauthButton,
+                    {
+                      backgroundColor: isDarkMode ? '#FFFFFF' : '#111111',
+                      borderColor: 'transparent',
+                      opacity: submitting || emailAction ? 0.6 : pressed ? 0.84 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="apple.logo"
+                    android="login"
+                    color={isDarkMode ? '#111111' : '#FFFFFF'}
+                    size={18}
+                  />
+                  <Text
+                    style={[
+                      styles.oauthButtonText,
+                      { color: isDarkMode ? '#111111' : '#FFFFFF' },
+                    ]}
+                  >
+                    {t.authContinueWithApple}
+                  </Text>
+                </Pressable>
+              )}
+              {googleAvailable && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.authContinueWithGoogle}
+                  disabled={submitting || isLoading || !!emailAction}
+                  onPress={() => void handleOAuthProvider('google')}
+                  style={({ pressed }) => [
+                    styles.oauthButton,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: cardBorder,
+                      opacity: submitting || emailAction ? 0.6 : pressed ? 0.84 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="g.circle.fill"
+                    android="account-circle"
+                    color={iconTint}
+                    size={18}
+                  />
+                  <Text style={[styles.oauthButtonText, { color: theme.onSurface }]}>
+                    {t.authContinueWithGoogle}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Unified App Menu Section (Share App, Settings, Help, History) */}
         {renderUnifiedAppMenuSection()}
       </>
@@ -2304,6 +2425,14 @@ export function AuthSheet({
         onSendRecovery={() => {
           void handleEmailAction('recovery');
         }}
+        canSignInWithApple={appleAvailable}
+        canSignInWithGoogle={googleAvailable}
+        onSignInWithApple={() => {
+          void handleOAuthProvider('apple');
+        }}
+        onSignInWithGoogle={() => {
+          void handleOAuthProvider('google');
+        }}
         onClose={animateClose}
         onOpenMyProfile={() => {
           pendingPostCloseRef.current = 'my-profile';
@@ -2418,6 +2547,14 @@ export function AuthSheet({
           onSendRecovery={() => {
             void handleEmailAction('recovery');
           }}
+          canSignInWithApple={appleAvailable}
+          canSignInWithGoogle={googleAvailable}
+          onSignInWithApple={() => {
+            void handleOAuthProvider('apple');
+          }}
+          onSignInWithGoogle={() => {
+            void handleOAuthProvider('google');
+          }}
           onClose={animateClose}
           onOpenMyProfile={() => {
             pendingPostCloseRef.current = 'my-profile';
@@ -2434,6 +2571,7 @@ export function AuthSheet({
             void (async () => {
               try {
                 await syncNow();
+                showSuccessToast(t.toastSynced);
               } catch (err: any) {
                 displayAuthError(err);
                 if (err?.message === 'sync_conflict') {
@@ -3565,5 +3703,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  oauthBlock: {
+    gap: 12,
+    marginTop: 4,
+  },
+  oauthDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  oauthDividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  oauthDividerText: {
+    ...fonts.sansMedium,
+    fontSize: 12.5,
+  },
+  oauthButtonsCol: {
+    gap: 10,
+  },
+  oauthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+  },
+  oauthButtonText: {
+    ...fonts.sansSemiBold,
+    fontSize: 15,
   },
 });

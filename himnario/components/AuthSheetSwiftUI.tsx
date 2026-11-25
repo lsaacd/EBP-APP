@@ -63,6 +63,10 @@ export interface AuthSheetSwiftUIProps {
   onToggleShowPassword: () => void;
   onSubmitAuth: () => void;
   onSendRecovery: () => void;
+  canSignInWithApple?: boolean;
+  canSignInWithGoogle?: boolean;
+  onSignInWithApple?: () => void;
+  onSignInWithGoogle?: () => void;
   onClose: () => void;
   onOpenMyProfile: () => void;
   onSyncNow: () => void;
@@ -105,6 +109,10 @@ export default function AuthSheetSwiftUI({
   onToggleShowPassword,
   onSubmitAuth,
   onSendRecovery,
+  canSignInWithApple = false,
+  canSignInWithGoogle = false,
+  onSignInWithApple,
+  onSignInWithGoogle,
   onClose,
   onOpenMyProfile,
   onSyncNow,
@@ -779,6 +787,83 @@ export default function AuthSheetSwiftUI({
                   </Button>
                 ) : null}
               </Section>
+
+              {/* ── 1-Tap OAuth Sign-In (Apple & Google) ── */}
+              {mode !== 'recovery' && (canSignInWithApple || canSignInWithGoogle) ? (
+                <Section>
+                  {canSignInWithApple && onSignInWithApple ? (
+                    <Button
+                      onPress={onSignInWithApple}
+                      modifiers={[
+                        foregroundStyle(primaryStyle),
+                        disabled(isBusy),
+                        listRowBackground(cardRowBg),
+                      ]}
+                    >
+                      <HStack
+                        alignment="center"
+                        spacing={10}
+                        modifiers={[contentShape(shapes.rectangle())]}
+                      >
+                        <SwiftUIImage
+                          systemName="apple.logo"
+                          size={16}
+                          modifiers={[
+                            foregroundStyle(primaryStyle),
+                            frame({ width: 22, alignment: 'center' }),
+                          ]}
+                        />
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'body', weight: 'semibold' }),
+                            foregroundStyle(primaryStyle),
+                          ]}
+                        >
+                          {t.authContinueWithApple}
+                        </Text>
+                        <Spacer />
+                        {chevron}
+                      </HStack>
+                    </Button>
+                  ) : null}
+
+                  {canSignInWithGoogle && onSignInWithGoogle ? (
+                    <Button
+                      onPress={onSignInWithGoogle}
+                      modifiers={[
+                        foregroundStyle(primaryStyle),
+                        disabled(isBusy),
+                        listRowBackground(cardRowBg),
+                      ]}
+                    >
+                      <HStack
+                        alignment="center"
+                        spacing={10}
+                        modifiers={[contentShape(shapes.rectangle())]}
+                      >
+                        <SwiftUIImage
+                          systemName="g.circle.fill"
+                          size={16}
+                          modifiers={[
+                            foregroundStyle({ type: 'color', color: symbolTint }),
+                            frame({ width: 22, alignment: 'center' }),
+                          ]}
+                        />
+                        <Text
+                          modifiers={[
+                            font({ textStyle: 'body', weight: 'semibold' }),
+                            foregroundStyle(primaryStyle),
+                          ]}
+                        >
+                          {t.authContinueWithGoogle}
+                        </Text>
+                        <Spacer />
+                        {chevron}
+                      </HStack>
+                    </Button>
+                  ) : null}
+                </Section>
+              ) : null}
 
               {/* ── Compact Account Benefits Strip ── */}
               {mode !== 'recovery' ? (

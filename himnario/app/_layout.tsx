@@ -34,8 +34,12 @@ import {
   PublicSans_700Bold,
   PublicSans_800ExtraBold,
 } from '@expo-google-fonts/public-sans';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View, Image, StyleSheet, useColorScheme, Platform, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { PressablesConfig } from 'pressto';
+import { Toaster } from 'sonner-native';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { PlaylistsProvider } from '../context/PlaylistsContext';
@@ -61,6 +65,10 @@ import * as Updates from 'expo-updates';
 import MiniPlayer from '../components/MiniPlayer';
 import { ANDROID_BOTTOM_BAR_HEIGHT, androidBottomInset } from '../components/androidBottomLayout';
 import MusicPlayer from '../components/MusicPlayer';
+import WhatsNewSheet from '../components/WhatsNewSheet';
+import { WHATS_NEW_STORAGE_KEY } from '../data/whatsNewCatalog';
+import { syncDailyVerseWidget } from '../utils/widgetSync';
+import * as Haptics from '../utils/haptics';
 import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 
 // The background playback service is now registered in the root index.js
@@ -103,7 +111,7 @@ function isIOS26OrLater(): boolean {
 function ThemedStack() {
   const { theme, isDarkMode } = useTheme();
   const { language, t } = useLanguage();
-  const { user, isLoading, authSheetRequestId } = useAuth();
+  const { user, isLoading, authSheetVisible, authSheetRequestId } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
@@ -121,6 +129,46 @@ function ThemedStack() {
   const checkingUpdateRef = useRef(false);
   const lastAuthRequestIdRef = useRef(authSheetRequestId);
   const [stableSheetMiniPlayerBottom, setStableSheetMiniPlayerBottom] = useState<number | null>(null);
+  const [whatsNewVisible, setWhatsNewVisible] = useState(false);
+  const whatsNewCheckedRef = useRef(false);
+
+  // Sync the iOS "Versículo del Día" Home Screen & Lock Screen widget 7-day timeline.
+  useEffect(() => {
+    syncDailyVerseWidget(language);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        syncDailyVerseWidget(language);
+      }
+    });
+    return () => sub.remove();
+  }, [language]);
+
+  // Show the one-time release highlights sheet once per major version once on Home.
+  useEffect(() => {
+    if (whatsNewCheckedRef.current || Platform.OS === 'web') return;
+    if (pathname !== '/home' && pathname !== '/(tabs)/home') return;
+    if (authSheetVisible || showFullPlayer) return;
+    whatsNewCheckedRef.current = true;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    void AsyncStorage.getItem(WHATS_NEW_STORAGE_KEY)
+      .then((seen) => {
+        if (cancelled || seen === '1') return;
+        timer = setTimeout(() => {
+          if (!cancelled) setWhatsNewVisible(true);
+        }, 900);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [authSheetVisible, pathname, showFullPlayer]);
+
+  const handleDismissWhatsNew = useCallback(() => {
+    setWhatsNewVisible(false);
+    void AsyncStorage.setItem(WHATS_NEW_STORAGE_KEY, '1').catch(() => {});
+  }, []);
 
   // Configure foreground banner handling and route tapped lock-screen notifications.
   useEffect(() => {
@@ -341,7 +389,7 @@ function ThemedStack() {
           options={{
             presentation: 'formSheet',
             sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.48, 0.65],
+            sheetAllowedDetents: [0.62, 0.78],
             headerShown: false,
             contentStyle: {
               backgroundColor: isIOSLiquidGlass
@@ -447,6 +495,17 @@ function ThemedStack() {
       ) : !isIOS ? (
         <AuthSheet />
       ) : null}
+
+      {/* ── One-time What's New Release Highlights Sheet ── */}
+      <WhatsNewSheet visible={whatsNewVisible} onClose={handleDismissWhatsNew} />
+
+      {/* ── Global Native-feeling Pill Toast Host (`sonner-native`) ── */}
+      <Toaster
+        theme={isDarkMode ? 'dark' : 'light'}
+        position="top-center"
+        offset={isPad ? Math.max(insets.top, 20) + 64 : insets.top + 8}
+        swipeToDismissDirection="up"
+      />
     </View>
   );
 }
@@ -495,25 +554,38 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <LanguageProvider>
-          <ThemeProvider>
-            <FavoritesProvider>
-              <PlaylistsProvider>
-                <RecentHymnsProvider>
-                  <AuthProvider>
-                    <NowPlayingProvider>
-                      <HymnFilterProvider>
-                        <ThemedStack />
-                      </HymnFilterProvider>
-                    </NowPlayingProvider>
-                  </AuthProvider>
-                </RecentHymnsProvider>
-              </PlaylistsProvider>
-            </FavoritesProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <PressablesConfig
+          config={{ minScale: 0.97 }}
+          globalHandlers={{
+            onPress: () => {
+              if (Platform.OS !== 'web') {
+                Haptics.selectionAsync().catch(() => {});
+              }
+            },
+          }}
+        >
+          <SafeAreaProvider>
+            <LanguageProvider>
+              <ThemeProvider>
+                <FavoritesProvider>
+                  <PlaylistsProvider>
+                    <RecentHymnsProvider>
+                      <AuthProvider>
+                        <NowPlayingProvider>
+                          <HymnFilterProvider>
+                            <ThemedStack />
+                          </HymnFilterProvider>
+                        </NowPlayingProvider>
+                      </AuthProvider>
+                    </RecentHymnsProvider>
+                  </PlaylistsProvider>
+                </FavoritesProvider>
+              </ThemeProvider>
+            </LanguageProvider>
+          </SafeAreaProvider>
+        </PressablesConfig>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

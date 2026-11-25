@@ -1,6 +1,7 @@
 import { handleCommunity, deleteCommunityAccount } from './community.js';
 import { RequestError, parseJsonBody, validateSync, checkRateLimit, secureResponse } from './security.js';
 import { handleEmailAuth, emailLanguage, sendRegistrationVerification } from './email-auth.js';
+import { handleOAuth } from './oauth.js';
 /**
  * Cloudflare Worker: EBP Himnario Auth & Cloud Sync Service
  * Backed by Cloudflare D1 (ebp-himnario-db)
@@ -208,6 +209,18 @@ const handler = {
         path, authenticate: authenticateRequest, serializeUser, hashPassword, json: jsonResponse,
       });
       if (emailResponse) return emailResponse;
+
+      const oauthResponse = await handleOAuth(request, env, ctx, {
+        path,
+        createSession,
+        serializeUser,
+        safeParseJson,
+        randomHex,
+        getClientIp,
+        rateLimitResponse,
+        json: jsonResponse,
+      });
+      if (oauthResponse) return oauthResponse;
 
       if (path === '/auth/register' && request.method === 'POST') {
         const startMs = Date.now();

@@ -39,6 +39,7 @@ import { sendFeedbackEmail } from '../../utils/feedback';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import OfflineAudioCard from '../OfflineAudioCard';
 import AppShareSheet from '../AppShareSheet';
+import WhatsNewSheet from '../WhatsNewSheet';
 import TabSwipeWrapper from '../TabSwipeWrapper';
 
 const IS_IPAD = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
@@ -55,6 +56,7 @@ export default function SettingsScreen() {
   const [langPickerTarget, setLangPickerTarget] = useState<'app' | 'hymn' | null>(null);
   const [showAbout, setShowAbout] = useState(false);
   const [showShareApp, setShowShareApp] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const scrollViewRef = useRef<any>(null);
   const isSlidingFont = useRef(false);
   const slidingResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -455,6 +457,32 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* What's New / Novedades */}
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}
+          onPress={() => setShowWhatsNew(true)}
+        >
+          <View style={styles.cardRow}>
+            <View style={styles.cardInfo}>
+              <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, { color: theme.onSurface }]}>
+                  {t.settingsWhatsNewRow}
+                </Text>
+                <Text style={[styles.cardDesc, { color: theme.onSurfaceVariant }]}>
+                  {`${t.hymnalVersionLabel} ${Constants.expoConfig?.version ?? '2.2.0'}`}
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={theme.onSurfaceVariant}
+              style={{ opacity: 0.5 }}
+            />
+          </View>
+        </TouchableOpacity>
+
         {/* Share App / Compartir aplicación */}
         <TouchableOpacity
           style={[styles.card, { backgroundColor: theme.surfaceVariants.containerLow }]}
@@ -636,6 +664,7 @@ export default function SettingsScreen() {
       </Modal>
 
       <AppShareSheet visible={showShareApp} onClose={() => setShowShareApp(false)} />
+      <WhatsNewSheet visible={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
     </>
   );
 

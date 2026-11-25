@@ -9,7 +9,6 @@ import {
   Pressable,
   ScrollView,
   RefreshControl,
-  KeyboardAvoidingView,
   Platform,
   Alert,
   StyleSheet,
@@ -19,6 +18,7 @@ import {
   Keyboard,
   Linking,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   useSharedValue,

@@ -5,7 +5,9 @@
   "vars": {
     "EMAIL_ENABLED": "true",
     "EMAIL_FROM": "Himnario El Buen Pastor <cuenta@auth.himnarioebp.com>",
-    "ACCOUNT_ACTION_URL": "https://himnarioebp.com/account.html"
+    "ACCOUNT_ACTION_URL": "https://himnarioebp.com/account.html",
+    "APPLE_CLIENT_IDS": "com.elbuenpastor",
+    "GOOGLE_CLIENT_IDS": "242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce.apps.googleusercontent.com"
   },
   "send_email": [
     {

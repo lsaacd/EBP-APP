@@ -2,13 +2,17 @@
   "expo": {
     "name": "Himnario El Buen Pastor",
     "slug": "ElBuenPastorHimnario",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "orientation": "default",
     "icon": "./assets/images/android-legacy-app-logo.png",
-    "scheme": "el-buen-pastor-himnario",
+    "scheme": [
+      "el-buen-pastor-himnario",
+      "com.googleusercontent.apps.242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce"
+    ],
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "icon": "./assets/images/AppIcon.icon",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -145,7 +149,30 @@
       "expo-font",
       "expo-image",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-apple-authentication",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.elbuenpastor.ExpoWidgetsTarget",
+          "groupIdentifier": "group.com.elbuenpastor",
+          "widgets": [
+            {
+              "name": "DailyVerseWidget",
+              "displayName": "Versículo del Día",
+              "description": "Un versículo diario de las Escrituras en tu pantalla de inicio.",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "systemLarge",
+                "accessoryRectangular"
+              ],
+              "contentMarginsDisabled": true
+            }
+          ]
+        }
+      ],
+      "./plugins/withWidgetContainerBackground"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -153,12 +180,13 @@
     },
     "extra": {
       "router": {},
+      "googleIosClientId": "242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce.apps.googleusercontent.com",
       "eas": {
         "projectId": "74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
       }
     },
     "owner": "isaacduran",
-    "runtimeVersion": "2.1.0-sdk58-2",
+    "runtimeVersion": "2.2.0-sdk58-1",
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

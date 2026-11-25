@@ -45,6 +45,7 @@ import * as Sharing from 'expo-sharing';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from '../utils/haptics';
+import { showSuccessToast } from '../utils/toast';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
@@ -140,6 +141,7 @@ export function AppShareContent({
     setStatusMessage(
       t.shareLinkCopied
     );
+    showSuccessToast(t.toastLinkCopied);
   };
 
   const isIOS = Platform.OS === 'ios';

@@ -2,13 +2,19 @@
  * TextSizeSheet Route (`/text-size-sheet`) — Native iOS 26 Liquid Glass `formSheet`
  * pop-up for adjusting hymn reading font size, modeled after Oyelo's Create Audio sheet.
  */
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
+import {
+  hasSanctuaryBrightnessOverride,
+  readCurrentBrightness,
+  restoreSanctuaryBrightness,
+  setSanctuaryBrightness,
+} from '../utils/sanctuaryBrightness';
 import TextSizeSheet from '../components/TextSizeSheet';
 
 const BASE_PX = 22;
@@ -23,6 +29,24 @@ export default function TextSizeSheetScreen() {
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
   const lastHapticPxRef = useRef(currentPx);
+  const [brightnessPct, setBrightnessPct] = useState<number | null>(null);
+  const [brightnessOverridden, setBrightnessOverridden] = useState(() =>
+    hasSanctuaryBrightnessOverride(),
+  );
+  const lastBrightnessStepRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void readCurrentBrightness().then((val) => {
+      if (!active || val === null) return;
+      const pct = Math.min(100, Math.max(8, Math.round(val * 100)));
+      lastBrightnessStepRef.current = Math.round(pct / 5);
+      setBrightnessPct(pct);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (Platform.OS !== 'ios' || !swiftUI) {
     return <TextSizeSheet visible onClose={() => router.back()} />;
@@ -33,6 +57,8 @@ export default function TextSizeSheetScreen() {
     Form,
     Host,
     HStack,
+    Image: SwiftUIImage,
+    Label,
     LabeledContent,
     Section,
     Slider,
@@ -42,8 +68,11 @@ export default function TextSizeSheetScreen() {
   } = swiftUI.ui;
 
   const {
+    Animation,
+    animation,
     buttonBorderShape,
     buttonStyle,
+    contentTransition,
     controlSize,
     disabled,
     font,
@@ -69,6 +98,28 @@ export default function TextSizeSheetScreen() {
       Haptics.selectionAsync().catch(() => {});
     }
     setFontSizeMultiplier(clamped / BASE_PX);
+  };
+
+  const applyBrightnessPct = (nextPct: number) => {
+    const clamped = Math.min(100, Math.max(8, Math.round(nextPct)));
+    const stepBucket = Math.round(clamped / 5);
+    if (lastBrightnessStepRef.current !== stepBucket) {
+      lastBrightnessStepRef.current = stepBucket;
+      Haptics.selectionAsync().catch(() => {});
+    }
+    setBrightnessPct(clamped);
+    setBrightnessOverridden(true);
+    void setSanctuaryBrightness(clamped / 100);
+  };
+
+  const resetBrightness = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setBrightnessOverridden(false);
+    void restoreSanctuaryBrightness().then((restored) => {
+      if (typeof restored === 'number') {
+        setBrightnessPct(Math.min(100, Math.max(8, Math.round(restored * 100))));
+      }
+    });
   };
 
   return (
@@ -154,6 +205,8 @@ export default function TextSizeSheetScreen() {
                 <Text
                   modifiers={[
                     monospacedDigit(),
+                    contentTransition('numericText'),
+                    animation(Animation.default, currentPx),
                     font({ textStyle: 'body', weight: 'semibold' }),
                     foregroundStyle(secondaryStyle),
                   ]}
@@ -210,6 +263,66 @@ export default function TextSizeSheetScreen() {
                 />
               </HStack>
             </Section>
+
+            {/* Sanctuary Reading Brightness Slider (Apple Books style, auto-restores on reader exit) */}
+            {brightnessPct !== null ? (
+              <Section footer={<Text>{t.brightnessAutoRestoreHint}</Text>}>
+                <LabeledContent
+                  label={
+                    <Label
+                      title={t.brightnessTitle}
+                      icon={
+                        <SwiftUIImage
+                          systemName="sun.max"
+                          modifiers={[foregroundStyle({ type: 'color', color: accentTint })]}
+                        />
+                      }
+                    />
+                  }
+                >
+                  <HStack alignment="center" spacing={8}>
+                    {brightnessOverridden ? (
+                      <Button
+                        label={t.brightnessReset}
+                        onPress={resetBrightness}
+                        modifiers={[buttonStyle('bordered'), controlSize('mini'), tint(accentTint)]}
+                      />
+                    ) : null}
+                    <Text
+                      modifiers={[
+                        monospacedDigit(),
+                        contentTransition('numericText'),
+                        animation(Animation.default, brightnessPct),
+                        font({ textStyle: 'body', weight: 'semibold' }),
+                        foregroundStyle(secondaryStyle),
+                      ]}
+                    >
+                      {`${brightnessPct}%`}
+                    </Text>
+                  </HStack>
+                </LabeledContent>
+
+                <HStack alignment="center" spacing={10}>
+                  <SwiftUIImage
+                    systemName="sun.min"
+                    size={15}
+                    modifiers={[foregroundStyle(secondaryStyle)]}
+                  />
+                  <Slider
+                    value={brightnessPct}
+                    min={8}
+                    max={100}
+                    step={1}
+                    onValueChange={applyBrightnessPct}
+                  />
+                  <SwiftUIImage
+                    systemName="sun.max.fill"
+                    size={17}
+                    modifiers={[foregroundStyle({ type: 'color', color: accentTint })]}
+                  />
+                </HStack>
+              </Section>
+            ) : null}
           </Form>
         </VStack>
       </Host>

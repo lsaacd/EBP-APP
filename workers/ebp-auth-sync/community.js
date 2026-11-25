@@ -246,7 +246,7 @@ export async function deleteCommunityAccount(env, id) {
       "DELETE FROM notifications WHERE user_id=?1 OR actor_id=?1",
     ).bind(id),
     env.DB.prepare("DELETE FROM push_tokens WHERE user_id=?1").bind(id),
-    ...["user_data", "sessions", "email_tokens", "hymn_reactions"].map((t) =>
+    ...["user_data", "sessions", "email_tokens", "hymn_reactions", "oauth_identities"].map((t) =>
       env.DB.prepare(`DELETE FROM ${t} WHERE user_id=?1`).bind(id),
     ),
     env.DB.prepare("DELETE FROM users WHERE id=?1").bind(id),

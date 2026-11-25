@@ -66,7 +66,10 @@ export default function MyProfileOverviewIOS({
   } = swiftUI.ui;
 
   const {
+    Animation,
+    animation,
     contentShape,
+    contentTransition,
     font,
     foregroundStyle,
     frame,
@@ -146,6 +149,7 @@ export default function MyProfileOverviewIOS({
     detail: string | null,
     onPress: () => void,
     highlightDetail = false,
+    numericAnimValue?: number,
   ) => (
     <Button
       modifiers={[foregroundStyle(primaryStyle)]}
@@ -176,6 +180,13 @@ export default function MyProfileOverviewIOS({
               foregroundStyle(
                 highlightDetail ? { type: 'color', color: '#D64545' } : secondaryStyle,
               ),
+              ...(numericAnimValue !== undefined
+                ? [
+                    monospacedDigit(),
+                    contentTransition('numericText'),
+                    animation(Animation.default, numericAnimValue),
+                  ]
+                : []),
               lineLimit(1),
               truncationMode('tail'),
             ]}
@@ -278,7 +289,14 @@ export default function MyProfileOverviewIOS({
           </LabeledContent>
 
           <LabeledContent label={t.tabFavorites}>
-            <Text modifiers={[monospacedDigit(), foregroundStyle(secondaryStyle)]}>
+            <Text
+              modifiers={[
+                monospacedDigit(),
+                contentTransition('numericText'),
+                animation(Animation.default, favoriteIds.length * 1000 + playlists.length),
+                foregroundStyle(secondaryStyle),
+              ]}
+            >
               {`${favoriteIds.length} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`}
             </Text>
           </LabeledContent>
@@ -303,6 +321,7 @@ export default function MyProfileOverviewIOS({
               : String(friendsLists.friends.length),
             () => onOpenSection('friends'),
             friendsBadge > 0,
+            friendsLists.friends.length * 1000 + friendsBadge,
           )}
           {navRow(
             t.notificationsTitle,
@@ -310,6 +329,7 @@ export default function MyProfileOverviewIOS({
             notificationsUnread > 0 ? String(notificationsUnread) : null,
             () => onOpenSection('notifications'),
             notificationsUnread > 0,
+            notificationsUnread,
           )}
           {navRow(t.profileMinistry, 'person.text.rectangle', ministryLabel, () =>
             onOpenSection('ministry'),

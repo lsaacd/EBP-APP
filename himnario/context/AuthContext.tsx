@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { readAuthSession, writeAuthSession, clearAuthSession } from '../utils/authSessionStorage';
 import { clearStoredPushToken, getStoredPushToken } from '../utils/pushNotifications';
+import { performAppleSignIn, performGoogleSignIn } from '../utils/oauthClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFavorites } from './FavoritesContext';
 import { usePlaylists, Playlist } from './PlaylistsContext';
@@ -127,6 +128,8 @@ interface AuthContextType {
   closeAuthSheet: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string, verifyName?: string) => Promise<void>;
   requestPasswordRecovery: (email: string) => Promise<void>;
   requestEmailVerification: () => Promise<void>;
@@ -171,6 +174,8 @@ const AuthContext = createContext<AuthContextType>({
   closeAuthSheet: () => {},
   signIn: async () => {},
   register: async () => {},
+  signInWithApple: async () => {},
+  signInWithGoogle: async () => {},
   resetPassword: async () => {},
   requestPasswordRecovery: async () => {},
   requestEmailVerification: async () => {},
@@ -564,6 +569,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authenticate('register', email, password, name)
   ), [authenticate]);
 
+  const completeOAuth = useCallback(async (
+    provider: 'apple' | 'google',
+    payload: Record<string, unknown>,
+  ) => {
+    const priorAccountId = userRef.current?.id || null;
+    const epoch = invalidateRequests();
+    sessionPendingRef.current = true;
+    setIsLoading(true);
+    setIsSyncing(false);
+    const controller = new AbortController();
+    requestsRef.current.add(controller);
+    try {
+      const res = await fetch(`${AUTH_SYNC_API_URL}/auth/oauth/${provider}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-EBP-Client': 'himnario-v2' },
+        body: JSON.stringify({
+          ...payload,
+          localData: snapshotRef.current,
+        }),
+        signal: controller.signal,
+      });
+      const data = await res.json().catch(() => ({}));
+      assertCurrent(epoch);
+      if (!res.ok) {
+        if (res.status === 429) throw new Error(`rate_limited:${data?.retryAfterSeconds || 60}`);
+        throw new Error(data?.error || data?.message || 'oauth_failed');
+      }
+      if (typeof data.token !== 'string' || !data.token || !data.user?.id) {
+        throw new Error('oauth_failed');
+      }
+      const syncObj = data.data || data.sync;
+      const revision = parseRevision(syncObj?.updatedAt);
+      const localSnapshotBeforeReplace = JSON.stringify(snapshotRef.current);
+      try {
+        await AsyncStorage.setItem(
+          LOCAL_BACKUP_KEY_PREFIX + (priorAccountId ? `account:${encodeURIComponent(priorAccountId)}` : 'guest'),
+          JSON.stringify({
+            version: 1,
+            priorAccountId,
+            savedAt: new Date().toISOString(),
+            data: JSON.parse(localSnapshotBeforeReplace),
+          }),
+        );
+      } catch {
+        throw new Error('local_backup_failed');
+      }
+      assertCurrent(epoch);
+      if (JSON.stringify(snapshotRef.current) !== localSnapshotBeforeReplace) {
+        throw new Error('local_backup_failed');
+      }
+      revisionRef.current = revision;
+      syncBlockedRef.current = revision === null;
+      setSyncBlocked(syncBlockedRef.current);
+      applyServerSync(syncObj);
+      await saveSession(
+        epoch,
+        data.token,
+        normalizeUser(data.user),
+        revision === null || revision === 0 ? null : new Date(revision).toISOString(),
+      );
+    } catch (error) {
+      assertCurrent(epoch);
+      throw error;
+    } finally {
+      requestsRef.current.delete(controller);
+      if (isCurrent(epoch)) {
+        sessionPendingRef.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, [applyServerSync, assertCurrent, invalidateRequests, isCurrent, saveSession]);
+
+  const signInWithApple = useCallback(async () => {
+    const applePayload = await performAppleSignIn();
+    await completeOAuth('apple', {
+      identityToken: applePayload.identityToken,
+      nonce: applePayload.nonce,
+      email: applePayload.email,
+      fullName: applePayload.fullName,
+    });
+  }, [completeOAuth]);
+
+  const signInWithGoogle = useCallback(async () => {
+    const googlePayload = await performGoogleSignIn();
+    await completeOAuth('google', {
+      idToken: googlePayload.idToken,
+    });
+  }, [completeOAuth]);
+
   // These endpoints only send email. Tokens and new passwords are handled on account.html.
   const requestAccountEmail = useCallback(async (kind: 'recovery' | 'verification', email?: string) => {
     const epoch = sessionEpochRef.current;
@@ -917,6 +1011,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAuthSheet,
         signIn,
         register,
+        signInWithApple,
+        signInWithGoogle,
         resetPassword,
         requestPasswordRecovery,
         requestEmailVerification,

@@ -49,6 +49,7 @@ import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import HymnRowLink from '../../components/HymnRowLink';
+import ListSortMenu, { type ListSortOption } from '../../components/ListSortMenu';
 import { ANDROID_BOTTOM_BAR_HEIGHT } from '../../components/androidBottomLayout';
 import {
   create as createSearchEngine,
@@ -163,6 +164,16 @@ export default function HymnListScreen() {
   const [draggingLetter, setDraggingLetter] = useState<string | null>(null);
   const [indiceSection, setIndiceSection] = useState<'himnos' | 'estribillos' | 'coritos'>('himnos');
   const [indiceBodyHeight, setIndiceBodyHeight] = useState(0);
+  const [hymnSort, setHymnSort] = useState<'number' | 'az' | 'audio'>('number');
+
+  const hymnSortOptions = useMemo<readonly ListSortOption<'number' | 'az' | 'audio'>[]>(
+    () => [
+      { value: 'number', label: t.sortByNumber, shortLabel: t.sortByNumberShort, iosIcon: 'number' },
+      { value: 'az', label: t.sortByAZ, shortLabel: t.sortByAZShort, iosIcon: 'textformat.abc' },
+      { value: 'audio', label: t.sortAudioFirst, shortLabel: t.sortAudioFirstShort, iosIcon: 'speaker.wave.2' },
+    ],
+    [t.sortAudioFirst, t.sortAudioFirstShort, t.sortByAZ, t.sortByAZShort, t.sortByNumber, t.sortByNumberShort],
+  );
 
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const bubbleFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,8 +274,22 @@ export default function HymnListScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    return activeSubTab === 'estribillos' ? localizedEstribillosData : localizedHymnsData;
-  }, [activeSubTab, localizedEstribillosData, localizedHymnsData]);
+    const base = activeSubTab === 'estribillos' ? localizedEstribillosData : localizedHymnsData;
+    if (hymnSort === 'az') {
+      return [...base].sort((a, b) =>
+        normalizeSearch(a.title).localeCompare(normalizeSearch(b.title))
+      );
+    }
+    if (hymnSort === 'audio') {
+      return [...base].sort((a, b) => {
+        const aAudio = hasHymnAudio(String(a.id)) ? 0 : 1;
+        const bAudio = hasHymnAudio(String(b.id)) ? 0 : 1;
+        if (aAudio !== bAudio) return aAudio - bAudio;
+        return Number(a.number) - Number(b.number);
+      });
+    }
+    return base;
+  }, [activeSubTab, localizedEstribillosData, localizedHymnsData, hymnSort]);
 
   const scrubFrame = useRef<number | null>(null);
   const latestScrubFraction = useRef(0);
@@ -637,7 +662,7 @@ export default function HymnListScreen() {
         <FlashList
           ref={flatListRef}
           data={filtered}
-          extraData={`${language}-${offline.saved}`}
+          extraData={`${language}-${offline.saved}-${hymnSort}`}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={[styles.scroll, { paddingRight: 28 }]}
           showsVerticalScrollIndicator={false}
@@ -662,6 +687,16 @@ export default function HymnListScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chips}
               >
+                <ListSortMenu
+                  pill
+                  value={hymnSort}
+                  onChange={(nextSort) => {
+                    setHymnSort(nextSort);
+                    flatListRef.current?.scrollToOffset?.({ offset: 0, animated: false });
+                  }}
+                  options={hymnSortOptions}
+                  menuTitle={t.sortMenuTitle}
+                />
                 {currentFilters.map((f) => {
                   const isAll = f === 'Todos' || f === 'All';
                   const activeIsAll = searchFilter === 'Todos' || searchFilter === 'All';

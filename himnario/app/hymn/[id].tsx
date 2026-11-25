@@ -50,6 +50,7 @@ import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import { sendFeedbackEmail } from '../../utils/feedback';
 import { useHymnCommunity } from '../../utils/hymnCommunity';
+import { showSuccessToast } from '../../utils/toast';
 import PageFlipTransition, { type FlipDirection } from '../../components/PageFlipTransition';
 
 // Module-level constants — defined outside the component so they are never
@@ -260,8 +261,11 @@ export default function HymnDetail() {
   };
 
   const handleBookmark = (h: any) => {
+    const idStr = String(h.id);
+    const wasFav = isFavorite(idStr);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    toggleFavorite(String(h.id));
+    toggleFavorite(idStr);
+    showSuccessToast(wasFav ? t.toastFavoriteRemoved : t.toastFavoriteAdded);
   };
 
   // "HIMNO N.º 243" / "HYMN NO. 243" above the title (choruses say ESTRIBILLO / CHORUS).

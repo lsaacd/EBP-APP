@@ -268,3 +268,14 @@ ALTER TABLE users ADD COLUMN directory_visible_to_all INTEGER NOT NULL DEFAULT 0
 
 -- Signed-in members can view accepted friend names by default; opt-out hides names.
 ALTER TABLE users ADD COLUMN show_friends_list INTEGER NOT NULL DEFAULT 1 CHECK(show_friends_list IN (0,1));
+
+-- External OAuth identities (Sign in with Apple & Google) linked to users.
+CREATE TABLE IF NOT EXISTS oauth_identities (
+  provider TEXT NOT NULL CHECK (provider IN ('apple', 'google')),
+  provider_user_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (provider, provider_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_identities_user ON oauth_identities(user_id);
