@@ -271,7 +271,7 @@ export default function SettingsScreenIOS() {
                 Haptics.selectionAsync().catch(() => {});
                 setAppearanceMode(nextOn ? 'dark' : 'light');
               }}
-              modifiers={[tint('#34C759')]}
+              modifiers={[tint(isDarkMode ? theme.surfaceVariants.containerHighest : theme.primary)]}
             >
               <Label
                 title={t.darkModeTitle}
