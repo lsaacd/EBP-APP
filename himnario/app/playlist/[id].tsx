@@ -25,7 +25,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MenuView } from '@react-native-menu/menu';
@@ -55,6 +55,7 @@ import { churchDisplayName } from '../../utils/churchName';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import GlassSurface from '../../components/GlassSurface';
 import SheetGrabber from '../../components/SheetGrabber';
+import HymnRowLink from '../../components/HymnRowLink';
 import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
 
 const IS_IOS = Platform.OS === 'ios';
@@ -439,16 +440,33 @@ export default function PlaylistDetailScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Centered Hero Artwork + Title (Apple Music Style) ── */}
+        {/* ── Centered Hero Artwork + Title (Apple Music Style + AppleZoom Target) ── */}
         <View style={styles.heroSection}>
-          <LinearGradient
-            colors={isDarkMode ? ['#55171b', '#22080a'] : ['#841d21', '#4c0d10']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroArtwork}
-          >
-            <MaterialIcons name="queue-music" size={68} color="rgba(255,255,255,0.9)" />
-          </LinearGradient>
+          <View style={styles.heroArtworkOuter}>
+            {IS_IOS ? (
+              <Link.AppleZoomTarget>
+                <View style={styles.heroArtworkTarget}>
+                  <LinearGradient
+                    colors={isDarkMode ? ['#55171b', '#22080a'] : ['#841d21', '#4c0d10']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.heroArtworkFill}
+                  >
+                    <MaterialIcons name="queue-music" size={68} color="rgba(255,255,255,0.9)" />
+                  </LinearGradient>
+                </View>
+              </Link.AppleZoomTarget>
+            ) : (
+              <LinearGradient
+                colors={isDarkMode ? ['#55171b', '#22080a'] : ['#841d21', '#4c0d10']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroArtwork}
+              >
+                <MaterialIcons name="queue-music" size={68} color="rgba(255,255,255,0.9)" />
+              </LinearGradient>
+            )}
+          </View>
 
           <Text style={[styles.heroTitle, { color: theme.onSurface }]}>{playlist.name}</Text>
           <Text style={[styles.heroSub, { color: theme.onSurfaceVariant }]}>
@@ -550,7 +568,12 @@ export default function PlaylistDetailScreen() {
                       ]}
                     />
                   )}
-                  <TouchableOpacity
+                  <HymnRowLink
+                    hymn={hymn}
+                    href={{ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } }}
+                    queueIds={playlist.hymnIds}
+                    queueLabel={playlist.name}
+                    playlistIdToRemoveFrom={String(playlist.id)}
                     style={[
                       styles.hymnRow,
                       isCurrent && {
@@ -558,10 +581,6 @@ export default function PlaylistDetailScreen() {
                       },
                     ]}
                     activeOpacity={0.78}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push({ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } });
-                    }}
                   >
                     <View
                       style={[
@@ -637,7 +656,7 @@ export default function PlaylistDetailScreen() {
                     >
                       <MaterialIcons name="remove-circle-outline" size={22} color={theme.outline} />
                     </Pressable>
-                  </TouchableOpacity>
+                  </HymnRowLink>
                 </View>
               );
             })}
@@ -1051,17 +1070,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 22,
   },
+  heroArtworkOuter: {
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  heroArtworkTarget: {
+    width: 176,
+    height: 176,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  heroArtworkFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heroArtwork: {
     width: 176,
     height: 176,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   heroTitle: {

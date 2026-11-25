@@ -54,6 +54,7 @@ import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import VerseCard from '../../components/VerseCard';
 import HomeHeaderActions from '../../components/HomeHeaderActions';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
+import HymnRowLink from '../../components/HymnRowLink';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { offlineAudio, refreshOfflineAudio } from '../../audio/offline-audio';
 import {
@@ -391,8 +392,10 @@ export default function HomeScreen() {
               {recentHymns.map((hymn, index) => {
                 const isSaved = offline.savedIds.has(String(hymn.id));
                 return (
-                  <TouchableOpacity
+                  <HymnRowLink
                     key={hymn.id}
+                    hymn={hymn}
+                    href={`/hymn/${hymn.id}`}
                     style={[
                       styles.recentItem,
                       index > 0 && {
@@ -401,10 +404,6 @@ export default function HomeScreen() {
                       },
                     ]}
                     activeOpacity={0.8}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push(`/hymn/${hymn.id}`);
-                    }}
                   >
                     <Text
                       style={[styles.recentNum, { color: theme.primary, opacity: 0.65 }]}
@@ -438,7 +437,7 @@ export default function HomeScreen() {
                       color={theme.outline}
                       style={{ opacity: 0.35 }}
                     />
-                  </TouchableOpacity>
+                  </HymnRowLink>
                 );
               })}
             </View>

@@ -22,7 +22,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { MenuView } from '@react-native-menu/menu';
 import { useTheme } from '../../theme/ThemeContext';
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
@@ -76,6 +76,7 @@ export default function HymnDetail() {
   const isFromFavorites = String(source ?? '') === 'favorites';
   const favSortParam = String(sort ?? 'recent');
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { theme, isDarkMode, fontSizeMultiplier, toggleTheme } = useTheme();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const { addRecent } = useRecentHymns();
@@ -254,10 +255,10 @@ export default function HymnDetail() {
     [rawHymn, hymnLanguage],
   );
 
-  // Record this hymn as recently viewed
+  // Record this hymn as recently viewed only when focused (not during long-press Link.Preview peek)
   useEffect(() => {
-    if (hymn) addRecent(String(hymn.id));
-  }, [hymn, addRecent]);
+    if (hymn && isFocused) addRecent(String(hymn.id));
+  }, [hymn, addRecent, isFocused]);
 
   const lyricFontSize = Math.round(22 * fontSizeMultiplier);
   // Theme-reactive coro label colour: Sacred Ink burgundy in light, pure white in dark

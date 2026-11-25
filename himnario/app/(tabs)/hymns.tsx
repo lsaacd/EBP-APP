@@ -48,6 +48,7 @@ import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
+import HymnRowLink from '../../components/HymnRowLink';
 import {
   create as createSearchEngine,
   normalize as normalizeSearch,
@@ -748,13 +749,11 @@ export default function HymnListScreen() {
           }
           renderItem={({ item: hymn }) => (
             <View key={hymn.id}>
-              <TouchableOpacity
+              <HymnRowLink
+                hymn={hymn}
+                href={`/hymn/${hymn.id}`}
                 style={styles.listItem}
                 activeOpacity={0.8}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push(`/hymn/${hymn.id}`);
-                }}
               >
                 <Text
                   style={[styles.listNum, { color: theme.primary }]}
@@ -778,7 +777,7 @@ export default function HymnListScreen() {
                   </Text>
                 </View>
                 {renderHymnBadges(hymn.id)}
-              </TouchableOpacity>
+              </HymnRowLink>
               <View
                 style={[styles.divider, { backgroundColor: theme.outlineVariant + '1A' }]}
               />
@@ -1043,13 +1042,11 @@ export default function HymnListScreen() {
                 }
                 const isSaved = offline.savedIds.has(String(item.hymn.id));
                 return (
-                  <TouchableOpacity
+                  <HymnRowLink
+                    hymn={item.hymn}
+                    href={`/hymn/${item.hymn.id}`}
                     style={[styles.indiceItemRow, { height: 40 * fontScale }]}
                     activeOpacity={0.7}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push(`/hymn/${item.hymn.id}`);
-                    }}
                   >
                     <Text
                       style={[styles.indiceItemTitle, { color: theme.onSurface }]}
@@ -1069,7 +1066,7 @@ export default function HymnListScreen() {
                     <Text style={[styles.indiceItemNumber, { color: theme.onSurface }]}>
                       {item.hymn.number}
                     </Text>
-                  </TouchableOpacity>
+                  </HymnRowLink>
                 );
               }}
               ListFooterComponent={
@@ -1257,9 +1254,15 @@ export default function HymnListScreen() {
         {items.map((result, index) => {
           const { hymn, snippet } = result;
           return (
-            <TouchableOpacity
+            <HymnRowLink
               key={`${keyPrefix}-${hymn.id}`}
+              hymn={hymn}
+              href={`/hymn/${hymn.id}`}
               activeOpacity={0.6}
+              onNavigate={() => {
+                Keyboard.dismiss();
+                searchRef.current?.blur();
+              }}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -1275,12 +1278,6 @@ export default function HymnListScreen() {
                 borderBottomWidth:
                   index < items.length - 1 ? StyleSheet.hairlineWidth : 0,
                 borderBottomColor: theme.outlineVariant + '40',
-              }}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                Keyboard.dismiss();
-                searchRef.current?.blur();
-                router.push(`/hymn/${hymn.id}`);
               }}
             >
               <Text
@@ -1344,7 +1341,7 @@ export default function HymnListScreen() {
                 color={theme.outlineVariant}
                 style={{ marginLeft: 6 }}
               />
-            </TouchableOpacity>
+            </HymnRowLink>
           );
         })}
       </View>

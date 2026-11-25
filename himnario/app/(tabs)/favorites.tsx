@@ -25,7 +25,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
+import { Link, useRouter, useNavigation } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MenuView } from '@react-native-menu/menu';
@@ -55,6 +55,7 @@ import GlassSurface, { GlassGroup } from '../../components/GlassSurface';
 import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import SheetGrabber from '../../components/SheetGrabber';
+import HymnRowLink from '../../components/HymnRowLink';
 import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
 
 const IS_IOS = Platform.OS === 'ios';
@@ -80,7 +81,7 @@ export default function FavoritesScreen() {
   const navigation = useNavigation();
   const { theme, isDarkMode } = useTheme();
   const { favoriteIds, toggleFavorite } = useFavorites();
-  const { playlists, createPlaylist } = usePlaylists();
+  const { playlists, createPlaylist, deletePlaylist } = usePlaylists();
   const { t, language, hymnLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -438,7 +439,14 @@ export default function FavoritesScreen() {
                 ]}
               />
             )}
-            <TouchableOpacity
+            <HymnRowLink
+              hymn={hymn}
+              href={{
+                pathname: '/hymn/[id]',
+                params: { id: idStr, source: 'favorites', sort: favSort },
+              }}
+              queueIds={favoriteHymns.map((item) => String(item.id))}
+              queueLabel={t.myFavorites}
               style={[
                 styles.favRow,
                 isCurrent && {
@@ -446,13 +454,6 @@ export default function FavoritesScreen() {
                 },
               ]}
               activeOpacity={0.78}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push({
-                  pathname: '/hymn/[id]',
-                  params: { id: idStr, source: 'favorites', sort: favSort },
-                });
-              }}
             >
               <View
                 style={[
@@ -531,57 +532,155 @@ export default function FavoritesScreen() {
               >
                 <MaterialIcons name="bookmark" size={23} color={theme.primary} />
               </Pressable>
-            </TouchableOpacity>
+            </HymnRowLink>
           </View>
         );
       })}
     </View>
   );
 
+  const handlePlayPlaylistFromCard = useCallback(
+    (playlistItem: (typeof playlists)[number], shuffle: boolean) => {
+      const playable = playlistItem.hymnIds.filter(hasHymnAudio);
+      if (playable.length === 0) {
+        Alert.alert(playlistItem.name, t.favoritesNoAudioAlert);
+        return;
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const startId = shuffle
+        ? playable[Math.floor(Math.random() * playable.length)]
+        : playable[0];
+      openPlayer(startId, playlistItem.hymnIds, { label: playlistItem.name, shuffle });
+    },
+    [openPlayer, t.favoritesNoAudioAlert],
+  );
+
+  const handleDeletePlaylistFromCard = useCallback(
+    (playlistItem: (typeof playlists)[number]) => {
+      Alert.alert(t.deletePlaylistTitle, t.deletePlaylistConfirm, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.delete,
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            deletePlaylist(playlistItem.id);
+          },
+        },
+      ]);
+    },
+    [deletePlaylist, t.cancel, t.delete, t.deletePlaylistConfirm, t.deletePlaylistTitle],
+  );
+
   const renderPlaylistsRows = () => (
     <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder, marginTop: searchOpen ? 0 : 14 }]}>
-      {sortedPlaylists.map((playlist, index) => (
-        <View key={playlist.id}>
-          {index > 0 && (
-            <View
-              style={[
-                styles.rowDivider,
-                {
-                  marginLeft: 82,
-                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35',
-                },
-              ]}
-            />
-          )}
-          <TouchableOpacity
-            style={styles.playlistRow}
-            activeOpacity={0.78}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push({ pathname: '/playlist/[id]', params: { id: playlist.id } } as any);
-            }}
-          >
-            <LinearGradient
-              colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.playlistThumb}
-            >
-              <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
-            </LinearGradient>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
-                {playlist.name}
-              </Text>
-              <Text style={[styles.playlistMeta, { color: mutedSub }]}>
-                {playlist.hymnIds.length}{' '}
-                {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
-          </TouchableOpacity>
-        </View>
-      ))}
+      {sortedPlaylists.map((playlist, index) => {
+        const playableCount = playlist.hymnIds.filter(hasHymnAudio).length;
+        const playlistHref = { pathname: '/playlist/[id]', params: { id: playlist.id } } as const;
+        return (
+          <View key={playlist.id}>
+            {index > 0 && (
+              <View
+                style={[
+                  styles.rowDivider,
+                  {
+                    marginLeft: 82,
+                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35',
+                  },
+                ]}
+              />
+            )}
+            {IS_IOS ? (
+              <Link href={playlistHref as any} asChild>
+                <Link.Trigger>
+                  <TouchableOpacity
+                    style={styles.playlistRow}
+                    activeOpacity={0.78}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <Link.AppleZoom>
+                      <View style={styles.playlistThumbZoom}>
+                        <LinearGradient
+                          colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.playlistThumbFill}
+                        >
+                          <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
+                        </LinearGradient>
+                      </View>
+                    </Link.AppleZoom>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
+                        {playlist.name}
+                      </Text>
+                      <Text style={[styles.playlistMeta, { color: mutedSub }]}>
+                        {playlist.hymnIds.length}{' '}
+                        {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
+                      </Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
+                  </TouchableOpacity>
+                </Link.Trigger>
+
+                <Link.Menu title={playlist.name}>
+                  <Link.MenuAction
+                    icon="play.fill"
+                    disabled={playableCount === 0}
+                    onPress={() => handlePlayPlaylistFromCard(playlist, false)}
+                  >
+                    {t.favoritesPlay}
+                  </Link.MenuAction>
+                  <Link.MenuAction
+                    icon="shuffle"
+                    disabled={playableCount === 0}
+                    onPress={() => handlePlayPlaylistFromCard(playlist, true)}
+                  >
+                    {t.favoritesShuffle}
+                  </Link.MenuAction>
+                  <Link.MenuAction
+                    icon="trash"
+                    destructive
+                    onPress={() => handleDeletePlaylistFromCard(playlist)}
+                  >
+                    {t.deletePlaylist}
+                  </Link.MenuAction>
+                </Link.Menu>
+              </Link>
+            ) : (
+              <TouchableOpacity
+                style={styles.playlistRow}
+                activeOpacity={0.78}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(playlistHref as any);
+                }}
+              >
+                <LinearGradient
+                  colors={isDarkMode ? ['#58191e', '#280a0d'] : ['#7c1a1e', '#4d0e11']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.playlistThumb}
+                >
+                  <MaterialIcons name="queue-music" size={27} color="rgba(255,255,255,0.94)" />
+                </LinearGradient>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text numberOfLines={1} style={[styles.playlistName, { color: theme.onSurface }]}>
+                    {playlist.name}
+                  </Text>
+                  <Text style={[styles.playlistMeta, { color: mutedSub }]}>
+                    {playlist.hymnIds.length}{' '}
+                    {playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other}
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={23} color={mutedSub} />
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+      })}
     </View>
   );
 
@@ -1290,6 +1389,17 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
+  },
+  playlistThumbZoom: {
+    width: 54,
+    height: 54,
+    borderRadius: 13,
+    overflow: 'hidden',
+  },
+  playlistThumbFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playlistThumb: {
     width: 54,

@@ -857,6 +857,9 @@ export const strings = {
     rateStarsThanks: "¡Muchas gracias! Comparte tu calificación en el App Store.",
     rateStarsImprove: "Gracias por tu opinión. Cuéntanos cómo podemos mejorar.",
     rateStarsPrompt: "Toca una estrella para calificar",
+    contextSaveFavorite: "Guardar en Favoritos",
+    contextRemoveFavorite: "Quitar de Favoritos",
+    contextRemoveFromPlaylist: "Quitar de la lista",
   },
   en: {
     homeMenu: "Hymnal menu",
@@ -1707,6 +1710,9 @@ export const strings = {
     rateStarsThanks: "Thank you so much! Share your rating on the App Store.",
     rateStarsImprove: "Thanks for your input. Tell us how we can make it better.",
     rateStarsPrompt: "Tap a star to rate",
+    contextSaveFavorite: "Save to Favorites",
+    contextRemoveFavorite: "Remove from Favorites",
+    contextRemoveFromPlaylist: "Remove from playlist",
   },
 };
 
