@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #11: Oyelo Native SwiftUI `<BottomSheet>` Glass, Settings Compact Soft Scroll Blur & Larger Preview Title, Sign-In UI Polish & Scrolling Índice Pills
+
+- **Branch & Source:** `sdk-58` branch (commit `f4d687c`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`3ec1e78f-2717-4327-9bb5-d7a53a963b4e`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3ec1e78f-2717-4327-9bb5-d7a53a963b4e)
+  - **iOS Update ID:** `01a21351-66a1-78f6-be9c-a5f6f11d583b`
+  - **Included Changes:**
+    - Upgraded iOS Auth & Account sheet (`components/AuthSheetSwiftUI.tsx`, `components/AuthSheet.tsx`, `app/_layout.tsx`, `app/auth-sheet.tsx`) to present via SwiftUI's native `<BottomSheet>` (`.presentationDetents([.medium, .large])`, `.presentationDragIndicator(.visible)`, `preferredColorScheme`) so iOS 26 renders Oyelo's genuine translucent frosted Liquid Glass sheet and frosted `<Form>` wells in Light Mode at `.medium` detent, smoothly morphing into luminous cards at `.large`. Routed `Share App` and `Help` seamlessly to `/auth-sheet?page=share-app` / `/auth-sheet?page=help` with back returning to the Auth sheet.
+    - Redesigned the Sign-In form (`AuthSheetSwiftUI.tsx`, `LanguageContext.tsx`): floated the chromatic Liquid Glass `Sign In | Create Account` segmented pill cleanly on glass (`listRowBackground('clear')`, zero insets), added leading SF Symbols (`person`, `envelope`, `lock`) on credential fields, replaced the bare `Continue` row with a dedicated full-width prominent Sacred Ink capsule CTA + centered `Forgot password?` button, added a compact 3-row **With an account / Con tu cuenta** benefits strip (`icloud`, `person.2`, `building.columns` — zero crosses), and added a **Quick Access / Acceso rápido** header above app shortcuts.
+    - Removed Settings top dead space (`app/(tabs)/settings/_layout.tsx`: compact transparent inline header with `headerLargeTitle: false`, `headerTransparent: true`, `headerShadowVisible: false`, `scrollEdgeEffects: { top: 'soft', bottom: 'soft' }`) and added `listSectionSpacing('compact')` + `scrollEdgeEffectStyle('soft', 'all')` on `<Form>` in `components/screens/Settings.ios.tsx` for Oyelo's progressive soft scroll-under blur.
+    - Enlarged the Settings live font preview red/burgundy serif title (`¡Cuán Grande es Él!` / `How Great Thou Art!`) from fixed `18pt` to `Math.min(38, Math.max(28, Math.round(currentPx * 1.45)))`.
+    - Moved Índice `Hymns | Choruses` pills (`app/(tabs)/hymns.tsx`) into `<FlatList ListHeaderComponent={indiceToggleHeader}>` so they scroll away smoothly while staying level with the `Himnos` category chips at rest (`paddingTop: 8`, `x = 16`, `indexLayouts` initial offset `52px`).
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on all 8 touched files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, `git diff --check` clean, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #10: Native SwiftUI Chromatic Liquid Glass Segmented Picker on Maps (`map.fill | list.bullet`)
 
 - **Branch & Source:** `sdk-58` branch (commit `8f59624`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
