@@ -37,14 +37,13 @@ type Props = {
   accessoryLeft?: React.ReactNode;
   /** Floats above the sheet's top-right edge and travels with it. */
   accessory?: React.ReactNode;
+  /** Minimum distance (pt) from the bottom edge of the screen for floating accessories when the sheet is collapsed below the viewport. */
+  accessoryFloor?: number;
   /** Place grabber neatly inside the top edge ('inside') or floating above ('floating'). */
   grabberPlacement?: 'floating' | 'inside';
   style?: StyleProp<ViewStyle>;
 };
 
-// Room reserved above the sheet so floating accessories stay inside the touchable
-// bounds of the moving container (views outside their parent get no touches).
-const ACCESSORY_SPACE = 78;
 const OVERSHOOT = 60;
 
 export default function DetentSheet({
@@ -57,6 +56,7 @@ export default function DetentSheet({
   background,
   accessoryLeft,
   accessory,
+  accessoryFloor = 0,
   grabberPlacement = 'floating',
   style,
 }: Props) {
@@ -98,46 +98,56 @@ export default function DetentSheet({
     transform: [{ translateY: maxHeight - height.value }],
   }));
 
+  const accessoryStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -Math.max(accessoryFloor, height.value) }],
+  }), [accessoryFloor]);
+
   return (
-    <Animated.View
-      pointerEvents="box-none"
-      style={[
-        styles.container,
-        { height: maxHeight + OVERSHOOT + ACCESSORY_SPACE, marginBottom: -OVERSHOOT },
-        sheetStyle,
-      ]}
-    >
-      <View
+    <>
+      <Animated.View
         pointerEvents="box-none"
         style={[
-          styles.accessoryRow,
-          accessoryLeft ? styles.accessoryRowSpread : undefined,
+          styles.container,
+          { height: maxHeight + OVERSHOOT, marginBottom: -OVERSHOOT },
+          sheetStyle,
         ]}
       >
-        {accessoryLeft ? <View pointerEvents="box-none">{accessoryLeft}</View> : null}
-        {accessory ? <View pointerEvents="box-none">{accessory}</View> : null}
-      </View>
-      <View style={[styles.sheet, { paddingBottom: OVERSHOOT }, style]}>
-        {background ? (
-          <View pointerEvents="none" style={styles.background}>
-            {background}
-          </View>
-        ) : null}
-        <GestureDetector gesture={gesture}>
-          <View collapsable={false}>
-            {grabberPlacement === 'inside' ? (
-              <View style={styles.insideGrabberWrap}>
-                <View style={styles.insideGrabberPill} />
-              </View>
-            ) : (
-              <SheetGrabber interactive />
-            )}
-            {header}
-          </View>
-        </GestureDetector>
-        <View style={styles.body}>{children}</View>
-      </View>
-    </Animated.View>
+        <View style={[styles.sheet, { paddingBottom: OVERSHOOT }, style]}>
+          {background ? (
+            <View pointerEvents="none" style={styles.background}>
+              {background}
+            </View>
+          ) : null}
+          <GestureDetector gesture={gesture}>
+            <View collapsable={false}>
+              {grabberPlacement === 'inside' ? (
+                <View style={styles.insideGrabberWrap}>
+                  <View style={styles.insideGrabberPill} />
+                </View>
+              ) : (
+                <SheetGrabber interactive />
+              )}
+              {header}
+            </View>
+          </GestureDetector>
+          <View style={styles.body}>{children}</View>
+        </View>
+      </Animated.View>
+
+      {(accessoryLeft || accessory) ? (
+        <Animated.View
+          pointerEvents="box-none"
+          style={[
+            styles.accessoryRow,
+            accessoryLeft ? styles.accessoryRowSpread : undefined,
+            accessoryStyle,
+          ]}
+        >
+          {accessoryLeft ? <View pointerEvents="box-none">{accessoryLeft}</View> : null}
+          {accessory ? <View pointerEvents="box-none">{accessory}</View> : null}
+        </Animated.View>
+      ) : null}
+    </>
   );
 }
 
@@ -149,7 +159,10 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   accessoryRow: {
-    height: ACCESSORY_SPACE,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'flex-end',

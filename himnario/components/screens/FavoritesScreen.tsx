@@ -763,20 +763,27 @@ export default function FavoritesScreen() {
           playlist.hymnIds.length === 1 ? t.songCount_one : t.songCount_other
         }`;
 
+        // Plain flat object required by Expo Router `<Link.AppleZoom>` (Radix `<Slot>`
+        // spreads array styles into `{ 0: ..., 1: ... }` in production, stripping dimensions).
+        const coverCardStyle = {
+          width: gridColumnWidth,
+          height: gridColumnWidth,
+          borderRadius: 14,
+          borderCurve: 'continuous' as const,
+          overflow: 'hidden' as const,
+          position: 'relative' as const,
+          backgroundColor: isDarkMode ? '#1C1C1E' : '#2A1214',
+        };
+
         const coverCard = (
-          <View
-            style={[
-              styles.playlistGridArt,
-              { width: gridColumnWidth, height: gridColumnWidth },
-            ]}
-          >
+          <View style={coverCardStyle}>
             <Image
               source={EBP_HYMN_COVER}
-              style={StyleSheet.absoluteFill}
+              style={{ width: gridColumnWidth, height: gridColumnWidth }}
               resizeMode="cover"
             />
             <LinearGradient
-              colors={[tintWash, 'rgba(0,0,0,0.48)']}
+              colors={[tintWash, 'rgba(0,0,0,0.44)']}
               style={StyleSheet.absoluteFill}
             />
             <View style={styles.playlistArtBadge}>
@@ -798,9 +805,11 @@ export default function FavoritesScreen() {
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
-                    style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
+                    style={styles.playlistGridTrigger}
                   >
-                    <Link.AppleZoom>{coverCard}</Link.AppleZoom>
+                    <View style={styles.playlistGridArtWrap}>
+                      <Link.AppleZoom>{coverCard}</Link.AppleZoom>
+                    </View>
                     <Text numberOfLines={1} style={[styles.playlistGridTitle, { color: primaryInk }]}>
                       {playlist.name}
                     </Text>
@@ -842,7 +851,7 @@ export default function FavoritesScreen() {
                   router.push(playlistHref as any);
                 }}
               >
-                {coverCard}
+                <View style={styles.playlistGridArtWrap}>{coverCard}</View>
                 <Text numberOfLines={1} style={[styles.playlistGridTitle, { color: primaryInk }]}>
                   {playlist.name}
                 </Text>
@@ -1681,6 +1690,13 @@ const styles = StyleSheet.create({
   },
   playlistGridCard: {
     marginBottom: 6,
+  },
+  /** Plain object style required by Expo Router `<Link.Trigger>` / Radix `<Slot>`. */
+  playlistGridTrigger: {
+    width: '100%',
+  },
+  playlistGridArtWrap: {
+    marginBottom: 8,
   },
   playlistGridArt: {
     borderRadius: 14,

@@ -24,7 +24,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MapView, { Marker, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { CameraView, Camera } from "expo-camera";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   cancelAnimation,
@@ -49,10 +50,10 @@ import { fonts } from "../theme/theme";
 import { useCommunityApi, communityError } from "../utils/communityApi";
 import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import * as Haptics from "../utils/haptics";
-import GlassSurface, { GlassGroup } from "../components/GlassSurface";
+import GlassSurface from "../components/GlassSurface";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
-import { isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI";
+import { getExpoSwiftUI, isIOSLiquidGlassAvailable } from "../utils/expoSwiftUI";
 import MapLayersPopover, {
   NIGHT_3D_ANDROID_MAP_STYLE,
   type ChurchMapLayer,
@@ -225,6 +226,13 @@ function haversineMiles(
 
 export default function ChurchesScreen() {
   const router = useRouter();
+  const [isFocused, setIsFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
   const params = useLocalSearchParams<{ id?: string; scan?: string }>();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -1746,6 +1754,8 @@ export default function ChurchesScreen() {
           : `${enrichedChurches.length} verified ${enrichedChurches.length === 1 ? "church" : "churches"}`;
 
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
+  const expoSwiftUI = isIOS ? getExpoSwiftUI() : null;
+  const activeMapSegment: "map" | "list" | "layers" = layersOpen ? "layers" : sheetMode;
   const isDarkMapChrome = isDarkMode || mapLayer !== "standard";
   const mapChromeInk = isDarkMapChrome ? "#FFFFFF" : theme.onSurface;
   const mapChromeMuted = isDarkMapChrome ? "rgba(255,255,255,0.74)" : theme.onSurfaceVariant;
@@ -1858,9 +1868,11 @@ export default function ChurchesScreen() {
           mapType={
             mapLayer === "satellite"
               ? isIOS
-                ? "hybridFlyover"
-                : "hybrid"
-              : "standard"
+                ? "satelliteFlyover"
+                : "satellite"
+              : mapLayer === "night3d" && isIOS
+                ? "mutedStandard"
+                : "standard"
           }
           customMapStyle={
             Platform.OS === "android" && mapLayer === "night3d"
@@ -1949,6 +1961,29 @@ export default function ChurchesScreen() {
           })}
         </MapView>
       ) : null}
+
+      {/* ── Moonlitt-style subtle twilight atmospheric color grade on Satellite imagery ── */}
+      {Platform.OS !== "web" && mapLayer === "satellite" && (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: "rgba(6, 13, 24, 0.16)" },
+          ]}
+        />
+      )}
+
+      {/* ── Dynamic status bar polarity matching active map layer (white on Satellite & Night 3D) ── */}
+      {Platform.OS !== "web" && (
+        <>
+          <Stack.Screen
+            options={{ statusBarStyle: isDarkMapChrome ? "light" : "dark" }}
+          />
+          {isFocused ? (
+            <StatusBar style={isDarkMapChrome ? "light" : "dark"} />
+          ) : null}
+        </>
+      )}
 
       {/* ── Interactive Drop-a-Pin Crosshair Overlay ───────────────────────── */}
       {pinPickerOpen && Platform.OS !== "web" && (
@@ -2101,16 +2136,19 @@ export default function ChurchesScreen() {
         </>
       )}
 
-      {/* ── Subtle top status-bar gradient scrim for readability over bright map tiles ── */}
+      {/* ── Tight status-bar top vignette adapting to active map style (never clouds top glass pills) ── */}
       {Platform.OS !== "web" && (
         <LinearGradient
           pointerEvents="none"
           colors={
-            isDarkMode
-              ? ["rgba(10,10,12,0.72)", "rgba(10,10,12,0.28)", "rgba(10,10,12,0)"]
-              : ["rgba(250,247,241,0.82)", "rgba(250,247,241,0.34)", "rgba(250,247,241,0)"]
+            isDarkMapChrome
+              ? ["rgba(0,0,0,0.44)", "rgba(0,0,0,0.14)", "rgba(0,0,0,0)"]
+              : ["rgba(250,247,241,0.56)", "rgba(250,247,241,0.16)", "rgba(250,247,241,0)"]
           }
-          style={[styles.topStatusScrim, { height: insets.top + 34 }]}
+          style={[
+            styles.topStatusScrim,
+            { height: insets.top + (isDarkMapChrome ? 12 : 8) },
+          ]}
         />
       )}
 
@@ -2119,7 +2157,7 @@ export default function ChurchesScreen() {
         pointerEvents="box-none"
         style={[styles.topChrome, { paddingTop: insets.top + 8 }]}
       >
-        <GlassGroup spacing={8} style={styles.searchRow}>
+        <View style={styles.searchRow}>
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
@@ -2140,7 +2178,7 @@ export default function ChurchesScreen() {
                 ios="chevron.left"
                 android="arrow-back"
                 color={mapChromeInk}
-                size={19}
+                size={21}
                 weight="semibold"
               />
             </Pressable>
@@ -2157,7 +2195,7 @@ export default function ChurchesScreen() {
               ios="magnifyingglass"
               android="search"
               color={mapChromeMuted}
-              size={17}
+              size={18}
               weight="medium"
             />
             <TextInput
@@ -2213,7 +2251,7 @@ export default function ChurchesScreen() {
                   ios="qrcode.viewfinder"
                   android="qr-code-scanner"
                   color={mapChromeInk}
-                  size={19}
+                  size={21}
                   weight="semibold"
                 />
               </Pressable>
@@ -2242,135 +2280,199 @@ export default function ChurchesScreen() {
                 ios="plus"
                 android="add"
                 color={mapChromeInk}
-                size={19}
+                size={21}
                 weight="semibold"
               />
             </Pressable>
           </GlassSurface>
-        </GlassGroup>
+        </View>
 
-        {/* Secondary Pill Bar: Moonlitt-style True iOS 26 3-Icon Liquid Glass Capsule + Near Me */}
+        {/* Secondary Pill Bar: Native iOS 26 Chromatic Liquid Glass 3-Icon Swipe Capsule + Near Me */}
         <View style={styles.pillControlsRow}>
-          {Platform.OS !== "web" && (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={66}
-              forceDark={isDarkMapChrome}
-              style={styles.moonlitMapPill}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.profileMap}
-                accessibilityState={{ selected: sheetMode === "map" && !layersOpen }}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  handleModeChange("map");
-                }}
-                style={({ pressed }) => [
-                  styles.moonlitPillBtn,
-                  sheetMode === "map" && !layersOpen && {
-                    backgroundColor: isDarkMapChrome
-                      ? "rgba(255,255,255,0.20)"
-                      : "rgba(110,22,25,0.13)",
-                  },
-                  pressed && { opacity: 0.72 },
-                ]}
+          {Platform.OS !== "web" &&
+            (isIOS && expoSwiftUI ? (
+              (() => {
+                const { Host, Image: SwiftImage, Picker: SwiftPicker } = expoSwiftUI.ui;
+                const {
+                  accessibilityLabel,
+                  controlSize,
+                  glassEffect,
+                  pickerStyle,
+                  tag,
+                } = expoSwiftUI.modifiers;
+                return (
+                  <Host
+                    style={styles.iosNativeModePickerHost}
+                    colorScheme={isDarkMapChrome ? "dark" : "light"}
+                    seedColor={isDarkMapChrome ? "#FFFFFF" : theme.primary}
+                  >
+                    <SwiftPicker
+                      label={t.profileMap}
+                      selection={activeMapSegment}
+                      onSelectionChange={(next) => {
+                        if (next === "layers") {
+                          Haptics.selectionAsync();
+                          if (sheetMode === "list") {
+                            Keyboard.dismiss();
+                            setSnapIndex(0);
+                          }
+                          setLayersOpen(true);
+                        } else if (next === "map" || next === "list") {
+                          Haptics.selectionAsync();
+                          setLayersOpen(false);
+                          if (next !== sheetMode) {
+                            handleModeChange(next);
+                          }
+                        }
+                      }}
+                      modifiers={[
+                        pickerStyle("segmented"),
+                        controlSize("large"),
+                        glassEffect({
+                          glass: { variant: "regular", interactive: true },
+                          shape: "capsule",
+                        }),
+                      ]}
+                    >
+                      <SwiftImage
+                        systemName="map.fill"
+                        size={22}
+                        modifiers={[tag("map"), accessibilityLabel(t.profileMap)]}
+                      />
+                      <SwiftImage
+                        systemName="list.bullet"
+                        size={22}
+                        modifiers={[tag("list"), accessibilityLabel(t.churchList)]}
+                      />
+                      <SwiftImage
+                        systemName="square.3.layers.3d.top.filled"
+                        size={22}
+                        modifiers={[tag("layers"), accessibilityLabel(t.mapLayersButton)]}
+                      />
+                    </SwiftPicker>
+                  </Host>
+                );
+              })()
+            ) : (
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={66}
+                forceDark={isDarkMapChrome}
+                style={styles.moonlitMapPill}
               >
-                <AppMenuIcon
-                  ios="map.fill"
-                  android="map"
-                  color={
-                    sheetMode === "map" && !layersOpen
-                      ? isDarkMapChrome
-                        ? "#FFFFFF"
-                        : theme.primary
-                      : mapChromeInk
-                  }
-                  size={17}
-                  weight="semibold"
-                />
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.churchList}
-                accessibilityState={{ selected: sheetMode === "list" }}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  handleModeChange("list");
-                }}
-                style={({ pressed }) => [
-                  styles.moonlitPillBtn,
-                  sheetMode === "list" && {
-                    backgroundColor: isDarkMapChrome
-                      ? "rgba(255,255,255,0.20)"
-                      : "rgba(110,22,25,0.13)",
-                  },
-                  pressed && { opacity: 0.72 },
-                ]}
-              >
-                <AppMenuIcon
-                  ios="list.bullet"
-                  android="format-list-bulleted"
-                  color={
-                    sheetMode === "list"
-                      ? isDarkMapChrome
-                        ? "#FFFFFF"
-                        : theme.primary
-                      : mapChromeInk
-                  }
-                  size={17}
-                  weight="semibold"
-                />
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.mapLayersButton}
-                accessibilityState={{ selected: layersOpen }}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  if (sheetMode === "list") {
-                    Keyboard.dismiss();
-                    setSnapIndex(0);
-                  }
-                  setLayersOpen((prev) => !prev);
-                }}
-                style={({ pressed }) => [
-                  styles.moonlitPillBtn,
-                  layersOpen && {
-                    backgroundColor: isDarkMapChrome
-                      ? "rgba(255,255,255,0.22)"
-                      : "rgba(110,22,25,0.14)",
-                  },
-                  pressed && { opacity: 0.72 },
-                ]}
-              >
-                <AppMenuIcon
-                  ios="square.3.layers.3d.top.filled"
-                  android="layers"
-                  color={
-                    layersOpen || mapLayer !== "standard"
-                      ? isDarkMapChrome
-                        ? "#FFFFFF"
-                        : theme.primary
-                      : mapChromeInk
-                  }
-                  size={17}
-                  weight="semibold"
-                />
-                {mapLayer !== "standard" && !layersOpen && (
-                  <View
-                    style={[
-                      styles.moonlitLayerDot,
-                      { backgroundColor: isDarkMapChrome ? "#FFFFFF" : theme.primary },
-                    ]}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.profileMap}
+                  accessibilityState={{ selected: sheetMode === "map" && !layersOpen }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    handleModeChange("map");
+                  }}
+                  style={({ pressed }) => [
+                    styles.moonlitPillBtn,
+                    sheetMode === "map" && !layersOpen && {
+                      backgroundColor: isDarkMapChrome
+                        ? "rgba(255,255,255,0.20)"
+                        : "rgba(110,22,25,0.13)",
+                    },
+                    pressed && { opacity: 0.72 },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="map.fill"
+                    android="map"
+                    color={
+                      sheetMode === "map" && !layersOpen
+                        ? isDarkMapChrome
+                          ? "#FFFFFF"
+                          : theme.primary
+                        : mapChromeInk
+                    }
+                    size={21}
+                    weight="semibold"
                   />
-                )}
-              </Pressable>
-            </GlassSurface>
-          )}
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.churchList}
+                  accessibilityState={{ selected: sheetMode === "list" }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    handleModeChange("list");
+                  }}
+                  style={({ pressed }) => [
+                    styles.moonlitPillBtn,
+                    sheetMode === "list" && {
+                      backgroundColor: isDarkMapChrome
+                        ? "rgba(255,255,255,0.20)"
+                        : "rgba(110,22,25,0.13)",
+                    },
+                    pressed && { opacity: 0.72 },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="list.bullet"
+                    android="format-list-bulleted"
+                    color={
+                      sheetMode === "list"
+                        ? isDarkMapChrome
+                          ? "#FFFFFF"
+                          : theme.primary
+                        : mapChromeInk
+                    }
+                    size={21}
+                    weight="semibold"
+                  />
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.mapLayersButton}
+                  accessibilityState={{ selected: layersOpen }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    if (sheetMode === "list") {
+                      Keyboard.dismiss();
+                      setSnapIndex(0);
+                    }
+                    setLayersOpen((prev) => !prev);
+                  }}
+                  style={({ pressed }) => [
+                    styles.moonlitPillBtn,
+                    layersOpen && {
+                      backgroundColor: isDarkMapChrome
+                        ? "rgba(255,255,255,0.22)"
+                        : "rgba(110,22,25,0.14)",
+                    },
+                    pressed && { opacity: 0.72 },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="square.3.layers.3d.top.filled"
+                    android="layers"
+                    color={
+                      layersOpen || mapLayer !== "standard"
+                        ? isDarkMapChrome
+                          ? "#FFFFFF"
+                          : theme.primary
+                        : mapChromeInk
+                    }
+                    size={21}
+                    weight="semibold"
+                  />
+                  {mapLayer !== "standard" && !layersOpen && (
+                    <View
+                      style={[
+                        styles.moonlitLayerDot,
+                        { backgroundColor: isDarkMapChrome ? "#FFFFFF" : theme.primary },
+                      ]}
+                    />
+                  )}
+                </Pressable>
+              </GlassSurface>
+            ))}
 
           {Platform.OS !== "web" && (
             <GlassSurface
@@ -2401,7 +2503,7 @@ export default function ChurchesScreen() {
                           : theme.primary
                         : mapChromeInk
                     }
-                    size={15}
+                    size={16}
                     weight="semibold"
                   />
                 )}
@@ -2495,15 +2597,14 @@ export default function ChurchesScreen() {
           onIndexChange={handleSheetIndexChange}
           headerGesture={headerSwipe}
           grabberPlacement="floating"
+          accessoryFloor={
+            currentHymnId
+              ? Math.max(insets.bottom, 22) + 74
+              : Math.max(insets.bottom, 16) + 28
+          }
           accessoryLeft={
             Platform.OS !== "web" && snapIndex < snapHeights.length - 1 ? (
-              <GlassGroup
-                spacing={8}
-                style={[
-                  styles.bottomLeftControls,
-                  isIOS && { marginBottom: 18 },
-                ]}
-              >
+              <View style={styles.bottomLeftControls}>
                 <GlassSurface
                   isInteractive
                   glassEffectStyle="regular"
@@ -2563,13 +2664,13 @@ export default function ChurchesScreen() {
                         ios="safari"
                         android="explore"
                         color={mapChromeInk}
-                        size={18}
+                        size={21}
                         weight="semibold"
                       />
                     </Pressable>
                   </GlassSurface>
                 )}
-              </GlassGroup>
+              </View>
             ) : undefined
           }
           style={
@@ -4942,8 +5043,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   iosNativeModePickerHost: {
-    width: 118,
-    height: 40,
+    width: 170,
+    height: 44,
   },
   iosModeSegmentedWrap: {
     width: 192,
@@ -5068,7 +5169,7 @@ const styles = StyleSheet.create({
   },
   map2d3dText: {
     ...fonts.sansBold,
-    fontSize: 13.5,
+    fontSize: 15,
     letterSpacing: -0.2,
   },
   memberAvatarStack: {
