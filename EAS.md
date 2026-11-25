@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #5 (`2.2.0-sdk58-1`): Playlists AppleZoom Card Fix, Moonlitt Map Shade & Top Scrim Fix, Bottom-Left 3D Placement & 3-Icon Native Swipe Bubble
+
+- **Branch & Source:** `sdk-58` branch (feature commit `09afd72`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`5133811c-3b8c-4f40-9b22-fd9d101e6ee1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/5133811c-3b8c-4f40-9b22-fd9d101e6ee1)
+  - **iOS Update ID:** `01a214c1-03d9-7fca-bf27-4c697fc25c50`
+- **Included Changes:**
+  - **Playlists 2-Column Cover Card Fix (`components/screens/FavoritesScreen.tsx`):** Replaced the array style inside `<Link.AppleZoom>` and function style inside `<Link.Trigger>` with plain flat style objects (preventing Radix `<Slot>` in production from stripping `width`/`height`/`overflow: 'hidden'` and overflowing the cover image down the column).
+  - **Moonlitt Satellite Shade, Uniform Smoked Glass & Top Scrim Fix (`app/churches.tsx`):** Switched Satellite to pure `satelliteFlyover` (`satellite` on Android) with a subtle twilight atmospheric color grade (`rgba(6, 13, 24, 0.16)`) and Night 3D on iOS to `mutedStandard` dark; switched `topStatusScrim` to track `isDarkMapChrome` with tight status-bar-only height (`insets.top + 12` dark / `insets.top + 8` light) plus dynamic `<Stack.Screen statusBarStyle>` + focused `<StatusBar>` (crisp white status bar on Satellite & Night 3D); removed `<GlassGroup>` around the top search row and bottom-left controls so every map pill renders uniform dark smoked Liquid Glass.
+  - **Bottom-Left `3D` / Compass Placement (`components/DetentSheet.tsx`, `app/churches.tsx`):** Added animated `accessoryFloor` to `DetentSheet` so the `3D`/`2D` and North compass circles rest cleanly above `Maps Legal` (or above `MiniPlayer` when playing) while collapsed and smoothly track above the church sheet when expanded.
+  - **Native iOS 26 3-Icon Chromatic Swipe-Bubble Capsule & Bigger Icons (`app/churches.tsx`):** Restored SwiftUI `Picker` (`pickerStyle("segmented")`, `controlSize("large")`, interactive capsule `glassEffect`, `170×44`, dark-map-adaptive `colorScheme`) with all 3 larger `22pt` SF Symbols (`map.fill | list.bullet | square.3.layers.3d.top.filled`), and bumped toolbar icons (Back/QR/`+`/Compass `21pt`, Search `18pt`, `Near Me` `16pt`, `3D`/`2D` `15pt` bold).
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 27/27 `scripts/test-church-sheet.cjs` passed, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB` `.hbc`, 129 assets).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #4 (`2.2.0-sdk58-1`): Threads Profile, View As Preview, Moonlitt Map Layers & 2D/3D, Apple Music Favorites/Playlists, Google PFP Recovery & Native SwiftUI Admin Command Center
 
 - **Branch & Source:** `sdk-58` branch (feature commit `18aab5b`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

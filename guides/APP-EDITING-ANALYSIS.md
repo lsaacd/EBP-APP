@@ -1,5 +1,18 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #5 (`2.2.0-sdk58-1`): Playlists AppleZoom Card Fix, Moonlitt Map Shade/Scrim Fix, Bottom-Left 3D Placement & 3-Icon Chromatic Swipe Bubble (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`09afd72`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #5:** Group [`5133811c-3b8c-4f40-9b22-fd9d101e6ee1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/5133811c-3b8c-4f40-9b22-fd9d101e6ee1) · iOS update `01a214c1-03d9-7fca-bf27-4c697fc25c50`.
+- **What Changed:**
+  - **Playlists Cover Card Fix (`himnario/components/screens/FavoritesScreen.tsx`):** Fixed production Radix `<Slot>` array/function style stripping inside `<Link.AppleZoom>` and `<Link.Trigger>` so playlist cover cards render clipped cleanly at `gridColumnWidth × gridColumnWidth` aligned with **New Playlist**.
+  - **Moonlitt Satellite Shade, Uniform Smoked Glass & Top Scrim (`himnario/app/churches.tsx`):** Switched Satellite to pure `satelliteFlyover` with a subtle twilight overlay (`rgba(6, 13, 24, 0.16)`) and Night 3D to `mutedStandard` dark on iOS; updated `topStatusScrim` to track `isDarkMapChrome` with tight status-bar-only height plus dynamic white `<Stack.Screen statusBarStyle>` / focused `<StatusBar>` on dark maps; removed `<GlassGroup>` around the top search row and bottom-left controls so all pills render uniform dark smoked glass.
+  - **Bottom-Left `3D` Placement & 3-Icon Native Swipe Bubble (`himnario/components/DetentSheet.tsx`, `himnario/app/churches.tsx`):** Added animated `accessoryFloor` to `DetentSheet` so `3D`/compass rests cleanly above `Maps Legal` (or `MiniPlayer`) when collapsed and tracks above the sheet when open; restored native SwiftUI `Picker` (`pickerStyle("segmented")`, `controlSize("large")`, `170×44`, interactive capsule `glassEffect`) with larger `22pt` SF Symbols (`map.fill | list.bullet | square.3.layers.3d.top.filled`) and bumped map toolbar icon sizes (`21pt` Back/QR/`+`/Compass, `18pt` Search, `16pt` Near Me, `15pt` bold `3D`/`2D`).
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 27/27 `scripts/test-church-sheet.cjs` passed, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB`, 129 assets).
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #4 (`2.2.0-sdk58-1`): Threads Profile, View As, Moonlitt Map Layers & 2D/3D, Apple Music Favorites/Playlists, Google PFP Recovery & Native SwiftUI Admin Command Center (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`18aab5b`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
