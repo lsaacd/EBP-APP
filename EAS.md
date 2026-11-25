@@ -1,5 +1,25 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Native Build #43 (`2.2.0`, runtime `2.2.0-sdk58-1`): Full Upgrade Suite (Apple/Google OAuth, Daily Verse Widget, Sort Menus, Sanctuary Brightness, What's New, Tactile/Toast Stack, iPad Polish & Store Review)
+
+- **Branch & Source:** `sdk-58` branch (feature commit `36f86af`, `.easignore` commits `f650c50` & `f0e9260`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS Native Build (`production` profile, `version: "2.2.0"`, `buildNumber: 43`, `runtimeVersion: "2.2.0-sdk58-1"`):**
+  - **EAS Build ID:** [`6790dff2-42cc-40fa-a7d4-9e5e99d88894`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/6790dff2-42cc-40fa-a7d4-9e5e99d88894)
+  - **Scheduled Auto-Submit ID:** [`c72875c8-fbb0-41a8-9dc8-607c04fe0b20`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/c72875c8-fbb0-41a8-9dc8-607c04fe0b20) (never run manual `eas submit`)
+  - **Provisioned Targets:** `com.elbuenpastor` (Profile `ZM5HK4A7JT` — `App Groups` `group.com.elbuenpastor` + `Sign In with Apple`) & `com.elbuenpastor.ExpoWidgetsTarget` (Profile `Z3WL2VAXMT` — `App Groups` `group.com.elbuenpastor`). Archive size: `2.6 MB` (`EAS_NO_VCS=1`).
+- **Live Cloudflare Backend Released First:**
+  - **D1 (`ebp-himnario-db`):** `0018_oauth_identities.sql` applied remotely (`num_tables: 22`).
+  - **Worker (`ebp-himnario-sync`):** Version **`046972c7-11e0-4d1f-8802-a678c13376c7`** (`APPLE_CLIENT_IDS` + `GOOGLE_CLIENT_IDS` bound; live `/health` `200`, `/auth/oauth/google` invalid-token check `401`).
+- **Included Changes:**
+  - **Sign in with Apple + Google OAuth (`workers/ebp-auth-sync/oauth.js`, `utils/oauthClient.ts`, `AuthContext.tsx`, `AuthSheetSwiftUI.tsx`, `AuthSheet.tsx`):** Web Crypto RS256 JWKS verification, Apple SHA-256 nonce check, verified-email auto-linking, account-delete `oauth_identities` cleanup (`community.js`), native Apple sign-in, and PKCE Google OAuth (`242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce.apps.googleusercontent.com`).
+  - **`expo-widgets` "Versículo del Día" Widget (`widgets/DailyVerseWidget.tsx`, `utils/widgetSync.ios.ts`, `plugins/withWidgetContainerBackground.js`):** `systemSmall`, `systemMedium`, `systemLarge` (iPhone & iPad), and Lock Screen `accessoryRectangular` with 7-day midnight timeline sync and cross-free `book.pages` icon.
+  - **Native Pull-Down Sort Menus (`components/ListSortMenu.tsx`):** Wired into `hymns.tsx` (Number / A–Z / Audio first), `churches.tsx` (Nearest / A–Z / Region), and `PlaylistDetailScreen.tsx` (Manual / Number / A–Z).
+  - **One-Time `WhatsNewSheet` & SwiftUI `numericText` (`components/WhatsNewSheet.tsx`, `data/whatsNewCatalog.ts`, `Settings.ios.tsx`, `Settings.legacy.tsx`, `text-size-sheet.tsx`, `MyProfileOverview.ios.tsx`):** Cross-free bilingual highlights sheet auto-shown once per major release + rolling digit transitions on font size, offline audio counts, brightness `%`, and profile counters.
+  - **Sanctuary `expo-brightness` Slider (`utils/sanctuaryBrightness.ts`, `app/text-size-sheet.tsx`, `components/TextSizeSheet.tsx`, `app/hymn/_layout.tsx`):** In-reader brightness slider with automatic system-brightness restoration on reader exit or backgrounding.
+  - **Tactile / Keyboard / Toast Stack & Store Review (`pressto`, `react-native-keyboard-controller`, `sonner-native`, `expo-store-review`):** Global `<KeyboardProvider>`, `<PressablesConfig>`, `<Toaster />` (iPad-aware top offset), `TactilePressable`, `utils/toast.ts`, and native in-app `StoreReview.requestReview()` in Settings.
+  - **iPad / Tablet Polish:** Added `ipadTopOffset` + centered `maxWidth: 680` tablet column on `PlaylistDetailScreen.tsx`, capped modal widths on `WhatsNewSheet.tsx` & `TextSizeSheet.tsx`, added `systemLarge` widget family, and cleared iPad floating top tab bar for `<Toaster />`.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 13/13 Node test suites passed (including `scripts/test-oauth-security.cjs`), `npx expo config --type introspect` exit `0`, iOS Hermes export passed (`2,629` modules, `8.8 MB` `.hbc`), all 3 `patch-package` patches verified intact. Physical iPhone + iPad TestFlight verification pending once Build `#43` completes.
+
 ## November 25, 2026 — SDK 58 iOS OTA #14: Swipeable Unclipped Índice Pills & Exact Oyelo `GenerationReviewView` Login/Account Sheet Match
 
 - **Branch & Source:** `sdk-58` branch (commit `4c72b92`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

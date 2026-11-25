@@ -1,5 +1,17 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 (`2.2.0` / `2.2.0-sdk58-1`) Upgrade Suite & Live Cloudflare OAuth Backend (`sdk-58` branch)
+
+### Handoff for continuing on another desktop
+
+- **Branch & Latest Commit:** Start on `sdk-58` (`git fetch origin && git checkout sdk-58 && git pull --ff-only`). Feature code is `36f86af`, `.easignore` updates are `f650c50` & `f0e9260` (all pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Native Build Queued for TestFlight:** iOS `production` **Build `#43` (`2.2.0 (43)`, runtime `2.2.0-sdk58-1`)** — EAS Build [`6790dff2-42cc-40fa-a7d4-9e5e99d88894`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/6790dff2-42cc-40fa-a7d4-9e5e99d88894), auto-submit scheduled ([`c72875c8-fbb0-41a8-9dc8-607c04fe0b20`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/c72875c8-fbb0-41a8-9dc8-607c04fe0b20); never run manual `eas submit`). Targets provisioned on Apple Developer Portal & EAS: `com.elbuenpastor` (Profile `ZM5HK4A7JT` — `App Groups` `group.com.elbuenpastor` + `Sign In with Apple`) and `com.elbuenpastor.ExpoWidgetsTarget` (Profile `Z3WL2VAXMT` — `App Groups`). Previous Build `#39` (`85ea3bf4`, `2.1.0-sdk58-2`, OTA `#14` `46c740a8`) will not receive `2.2.0-sdk58-1` OTAs.
+- **Live Cloudflare Backend:** D1 `ebp-himnario-db` migrated with `0018_oauth_identities.sql` (`num_tables: 22`); Worker `ebp-himnario-sync` deployed as version `046972c7-11e0-4d1f-8802-a678c13376c7` (`APPLE_CLIENT_IDS=com.elbuenpastor`, `GOOGLE_CLIENT_IDS=242867050819-vgirqp4m77rrthvhis46kbiajmcg9qce.apps.googleusercontent.com`; verified live `/health` `200` and `/auth/oauth/google` invalid-token rejection `401`).
+- **What Changed:** Native pull-down Sort Menus (`ListSortMenu.tsx` on Hymns, Churches, Playlist Detail), one-time bilingual `WhatsNewSheet` + SwiftUI `numericText` transitions, Sign in with Apple + Google OAuth (Worker RS256 JWKS + native client PKCE), `expo-widgets` "Versículo del Día" widget (`systemSmall`, `systemMedium`, `systemLarge`, `accessoryRectangular` + 7-day midnight timeline sync + `withWidgetContainerBackground.js`), Sanctuary `expo-brightness` slider with auto-restore, `pressto` + `react-native-keyboard-controller` + `sonner-native` toasts, `expo-store-review`, iPad/tablet clearance & width polish, and root `.easignore`.
+- **Verification & Pending Device Checks:** `tsc --noEmit` (0 errors), ESLint (0 errors), 13/13 Node test suites (including new `scripts/test-oauth-security.cjs`), `expo config --type introspect` clean, iOS Hermes export (`2,629` modules, `8.8 MB`). Once Build `#43` lands on TestFlight, verify on physical **iPhone + iPad**: Sign in with Apple, Google OAuth (add test Gmail in Google Auth Platform → Audience → Test users), Home/Lock Screen `Versículo del Día` widgets (`Small`/`Medium`/`Large`/Lock Screen), Sanctuary brightness slider auto-restore, `WhatsNewSheet`, pull-down Sort Menus, `numericText` animations, and `sonner-native` toasts. Matching Android `2.2.0-sdk58-1` native rebuild also remains before merging `sdk-58` → `main`.
+
+---
+
 ## November 24–25, 2026 — Expo SDK 58 / iOS 26 Native Liquid Glass Polish & TestFlight Build #39 (`sdk-58` branch)
 
 ### Handoff for continuing on another desktop
