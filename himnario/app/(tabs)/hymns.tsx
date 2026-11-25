@@ -326,14 +326,17 @@ export default function HymnListScreen() {
     onPanResponderTerminate: finishScrub,
   }), [queueScrub, finishScrub]);
 
+  const measureSliderTrack = useCallback(() => {
+    sliderTrackRef.current?.measure((_x, _y, _width, height, _pageX, pageY) => {
+      if (height !== undefined && height > 0) setSliderTrackHeight(height);
+      if (pageY !== undefined) sliderTrackY.current = pageY;
+    });
+  }, []);
+
   const onSliderTrackLayout = useCallback((e: LayoutChangeEvent) => {
     setSliderTrackHeight(e.nativeEvent.layout.height);
-    setTimeout(() => {
-      sliderTrackRef.current?.measure((_x, _y, _width, _height, _pageX, pageY) => {
-        if (pageY !== undefined) sliderTrackY.current = pageY;
-      });
-    }, 100);
-  }, []);
+    setTimeout(measureSliderTrack, 100);
+  }, [measureSliderTrack]);
 
   const handleFilterChange = (f: string) => {
     const isAll = f === 'Todos' || f === 'All';
@@ -648,6 +651,27 @@ export default function HymnListScreen() {
     );
   };
 
+  const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
+  const activeMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
+  const resolvedMiniPlayerHeight =
+    miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 58;
+  // Floating iOS 26 Liquid Glass tab bar clears ~60pt above the home-indicator safe area;
+  // iPad keeps tabs at the top so only bottom safe-area breathing room is needed.
+  const bottomNavClearance =
+    Platform.OS === 'ios'
+      ? isPad
+        ? Math.max(insets.bottom, 20)
+        : 60 + insets.bottom
+      : insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
+  const hymnsScrollerBottom =
+    bottomNavClearance + (activeMiniPlayer ? resolvedMiniPlayerHeight + 14 : 8);
+
+  useEffect(() => {
+    if (activeSubTab === 'indice') return;
+    const timer = setTimeout(measureSliderTrack, 90);
+    return () => clearTimeout(timer);
+  }, [activeSubTab, hymnsScrollerBottom, measureSliderTrack]);
+
   const renderHimnos = () => {
     const totalHymns = filtered.length;
     const currentIndex = Math.max(
@@ -863,10 +887,7 @@ export default function HymnListScreen() {
             style={[
               styles.sliderContainer,
               {
-                bottom:
-                  insets.bottom +
-                  (currentHymnId ? 152 : 82) +
-                  (Platform.OS === 'android' ? 50 : 0),
+                bottom: hymnsScrollerBottom,
                 opacity: sliderVisible ? 1 : 0.35,
               },
             ]}
@@ -935,24 +956,16 @@ export default function HymnListScreen() {
     );
   };
 
-  const isPad = Platform.OS === 'ios' && Boolean((Platform as any).isPad);
-  const activeMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
-  const resolvedMiniPlayerHeight =
-    miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 58;
-  const bottomNavClearance =
-    Platform.OS === 'ios'
-      ? isPad
-        ? Math.max(insets.bottom, 22)
-        : 49 + insets.bottom
-      : insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
-  const scrubberTopClearance = 16;
+  // Start below the 52pt [Himnos | Estribillos | Coritos] pill strip and extend
+  // cleanly down to right above the floating bottom tab bar (or active MiniPlayer).
+  const scrubberTopClearance = 54;
   const scrubberBottomClearance =
-    bottomNavClearance + (activeMiniPlayer ? resolvedMiniPlayerHeight + 18 : 16);
+    bottomNavClearance + (activeMiniPlayer ? resolvedMiniPlayerHeight + 14 : 10);
   const scrubberAvailableHeight =
     indiceBodyHeight > 0
       ? Math.max(240, indiceBodyHeight - scrubberTopClearance - scrubberBottomClearance)
-      : 390;
-  const scrubberCapsuleHeight = Math.min(400, scrubberAvailableHeight);
+      : 480;
+  const scrubberCapsuleHeight = Math.min(580, scrubberAvailableHeight);
 
   const measureSidebarTrack = useCallback(() => {
     sidebarTrackRef.current?.measure((_x, _y, _width, height, _pageX, pageY) => {
@@ -1986,9 +1999,9 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     position: 'absolute',
-    top: 130,
-    right: 6,
-    width: 68,
+    top: 58,
+    right: 2,
+    width: 54,
     zIndex: 100,
     alignItems: 'center',
   },
@@ -2012,19 +2025,19 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   sliderPositionGlassPill: {
-    marginTop: 10,
-    minWidth: 58,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    marginTop: 8,
+    minWidth: 50,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.2)',
   },
   sliderPositionAndroidPill: {
-    marginTop: 10,
-    minWidth: 58,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    marginTop: 8,
+    minWidth: 50,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     borderRadius: 10,
     elevation: 2,
   },
@@ -2152,8 +2165,8 @@ const styles = StyleSheet.create({
   },
   alphabetText: {
     ...fonts.sansBold,
-    fontSize: 10.5,
-    lineHeight: 13,
+    fontSize: 11,
+    lineHeight: 14,
     includeFontPadding: false,
   },
 
