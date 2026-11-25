@@ -15,7 +15,7 @@ import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import * as Haptics from '../../utils/haptics';
-import { useTheme, type AppearanceMode } from '../../theme/ThemeContext';
+import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage, type Language } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNowPlaying } from '../../context/NowPlayingContext';
@@ -48,7 +48,6 @@ export default function SettingsScreenIOS() {
   const {
     theme,
     isDarkMode,
-    appearanceMode,
     setAppearanceMode,
     fontSizeMultiplier,
     setFontSizeMultiplier,
@@ -85,6 +84,7 @@ export default function SettingsScreenIOS() {
     Slider,
     Spacer,
     Text,
+    Toggle,
     VStack,
   } = swiftUI.ui;
 
@@ -265,22 +265,20 @@ export default function SettingsScreenIOS() {
 
           {/* ─── Appearance & Typography ─── */}
           <Section title={t.appearanceLabel}>
-            <Picker
-              label={t.appearanceLabel}
-              systemImage="sun.max"
-              selection={appearanceMode}
-              onSelectionChange={(next) => {
-                if (next === 'system' || next === 'light' || next === 'dark') {
-                  Haptics.selectionAsync().catch(() => {});
-                  setAppearanceMode(next as AppearanceMode);
-                }
+            <Toggle
+              isOn={isDarkMode}
+              onIsOnChange={(nextOn) => {
+                Haptics.selectionAsync().catch(() => {});
+                setAppearanceMode(nextOn ? 'dark' : 'light');
               }}
-              modifiers={[pickerStyle('menu')]}
+              modifiers={[tint('#34C759')]}
             >
-              <Text modifiers={[tag('system')]}>{t.appearanceSystem}</Text>
-              <Text modifiers={[tag('light')]}>{t.appearanceLight}</Text>
-              <Text modifiers={[tag('dark')]}>{t.appearanceDark}</Text>
-            </Picker>
+              <Label
+                title={t.darkModeTitle}
+                systemImage={isDarkMode ? 'moon.fill' : 'sun.max'}
+                modifiers={[foregroundStyle(primaryStyle)]}
+              />
+            </Toggle>
 
             <LabeledContent
               label={

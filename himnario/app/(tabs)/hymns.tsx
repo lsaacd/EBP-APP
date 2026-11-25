@@ -47,7 +47,6 @@ import { TOP_HYMNS_FILTER, rankByLikes, useTopHymns } from '../../utils/topHymns
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
 import GlassSurface from '../../components/GlassSurface';
-import AppMenuIcon from '../../components/AppMenuIcon';
 import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
 import {
@@ -1395,112 +1394,54 @@ export default function HymnListScreen() {
             paddingBottom: 4,
           }}
         >
-          {Platform.OS === 'ios' ? (
-            <GlassSurface
-              isInteractive
-              glassEffectStyle="regular"
-              intensity={60}
-              style={[styles.searchRow, styles.searchRowGlass, { marginBottom: 0 }]}
+          <View
+            style={[
+              styles.searchRow,
+              { backgroundColor: theme.surfaceVariants.containerLow, marginBottom: 0 },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => searchRef.current?.focus()}
+              activeOpacity={0.4}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <TouchableOpacity
-                onPress={() => searchRef.current?.focus()}
-                activeOpacity={0.5}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <AppMenuIcon
-                  ios="magnifyingglass"
-                  android="search"
-                  size={20}
-                  containerSize={24}
-                  weight="medium"
-                  color={theme.outline}
-                />
-              </TouchableOpacity>
-              <TextInput
-                ref={searchRef}
-                placeholder={t.searchPlaceholder}
-                placeholderTextColor={theme.outlineVariant + 'AA'}
-                style={[styles.searchInput, { color: theme.onSurface, marginLeft: 8 }]}
-                value={search}
-                onChangeText={handleSearchChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                returnKeyType="search"
-                autoCorrect={true}
-                spellCheck={true}
-                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                enablesReturnKeyAutomatically={true}
+              <MaterialIcons
+                name="search"
+                size={28}
+                color={theme.outline}
+                style={{ marginRight: 8 }}
               />
-              {isSearchActive && (
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    handleSearchChange('');
-                    const defaultAll = t.filterAll;
-                    setSearchFilter(defaultAll);
-                    searchRef.current?.blur();
-                  }}
-                  style={{ padding: 4 }}
-                >
-                  <AppMenuIcon
-                    ios="xmark.circle.fill"
-                    android="cancel"
-                    size={20}
-                    color={theme.outline}
-                  />
-                </TouchableOpacity>
-              )}
-            </GlassSurface>
-          ) : (
-            <View
-              style={[
-                styles.searchRow,
-                { backgroundColor: theme.surfaceVariants.containerLow, marginBottom: 0 },
-              ]}
-            >
+            </TouchableOpacity>
+            <TextInput
+              ref={searchRef}
+              placeholder={t.searchPlaceholder}
+              placeholderTextColor={theme.outlineVariant + 'AA'}
+              style={[styles.searchInput, { color: theme.onSurface }]}
+              value={search}
+              onChangeText={handleSearchChange}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              returnKeyType="search"
+              autoCorrect={true}
+              spellCheck={true}
+              keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+              enablesReturnKeyAutomatically={true}
+            />
+            {isSearchActive && (
               <TouchableOpacity
-                onPress={() => searchRef.current?.focus()}
-                activeOpacity={0.4}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleSearchChange('');
+                  const defaultAll = t.filterAll;
+                  setSearchFilter(defaultAll);
+                  searchRef.current?.blur();
+                }}
+                style={{ padding: 4 }}
               >
-                <MaterialIcons
-                  name="search"
-                  size={28}
-                  color={theme.outline}
-                  style={{ marginRight: 8 }}
-                />
+                <MaterialIcons name="cancel" size={22} color={theme.outline} />
               </TouchableOpacity>
-              <TextInput
-                ref={searchRef}
-                placeholder={t.searchPlaceholder}
-                placeholderTextColor={theme.outlineVariant + 'AA'}
-                style={[styles.searchInput, { color: theme.onSurface }]}
-                value={search}
-                onChangeText={handleSearchChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                returnKeyType="search"
-                autoCorrect={true}
-                spellCheck={true}
-                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                enablesReturnKeyAutomatically={true}
-              />
-              {isSearchActive && (
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    handleSearchChange('');
-                    const defaultAll = t.filterAll;
-                    setSearchFilter(defaultAll);
-                    searchRef.current?.blur();
-                  }}
-                  style={{ padding: 4 }}
-                >
-                  <MaterialIcons name="cancel" size={22} color={theme.outline} />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
         {/* Blur Overlay & Search Results */}
@@ -1894,10 +1835,6 @@ const styles = StyleSheet.create({
   },
   chipIosGlass: {
     borderRadius: 20,
-  },
-  searchRowGlass: {
-    borderRadius: 24,
-    paddingHorizontal: 14,
   },
   chipAndroidNative: {
     borderWidth: 1,
