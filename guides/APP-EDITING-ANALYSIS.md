@@ -1,5 +1,15 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #2 (`2.2.0-sdk58-1`): Longer Hymns Number Scroller & Índice A–Z Glass Carousel (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`33c52e0`, pushed to `origin/sdk-58`).
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #2:** Group [`89a7a35a-6b93-4135-a00e-9ea6f051e8d5`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/89a7a35a-6b93-4135-a00e-9ea6f051e8d5) · iOS update `01a21436-6714-7182-8815-78be6b846d48`.
+- **What Changed (`himnario/app/(tabs)/hymns.tsx`):** Lengthened both the **Himnos/Estribillos vertical number scroller** (`top: 58`, dynamic `bottomNavClearance` + active MiniPlayer offset, slimmer `right: 2`/`width: 54` alignment, automatic track re-measurement) and the **Índice A–Z glass carousel** (`scrubberTopClearance = 54`, `Math.min(580, scrubberAvailableHeight)`, `11pt` letters) so both extend cleanly across the full safe vertical zone without overlapping filter chips, `[Himnos | Estribillos | Coritos]` pills, the floating tab bar, or the MiniPlayer.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, `test-web-search.js` (761 items) passed, `git diff --check` clean, iOS Hermes export clean (`7.6 MB`).
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #1 (`2.2.0-sdk58-1`): Official Sign in with Apple & 4-Color Google Buttons + Cloud-Synced Profile Photos (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`8af1ad4`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

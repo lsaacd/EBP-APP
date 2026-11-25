@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #2 (`2.2.0-sdk58-1`): Longer Hymns Number Scroller & Índice A–Z Glass Carousel Within Safe Clearances
+
+- **Branch & Source:** `sdk-58` branch (feature commit `33c52e0`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`89a7a35a-6b93-4135-a00e-9ea6f051e8d5`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/89a7a35a-6b93-4135-a00e-9ea6f051e8d5)
+  - **iOS Update ID:** `01a21436-6714-7182-8815-78be6b846d48`
+- **Included Changes (`himnario/app/(tabs)/hymns.tsx`):**
+  - **Himnos / Estribillos Number Scroller (`sliderContainer`):** Raised top start from `130pt` → `58pt` (clearing the `46pt` `[↑↓ Número] [Todos] [Más gustados]` filter chips cleanly), extended bottom clearance dynamically using `bottomNavClearance` + active MiniPlayer height (`~+90pt` longer track on iPhone and full-height on iPad), tucked the scroller/pill slimmer along the right edge (`right: 2`, `width: 54`, `minWidth: 50`), and added automatic track re-measurement when MiniPlayer visibility changes.
+  - **Índice A–Z Glass Carousel (`alphabetGlassCapsule`):** Raised max capsule height from `400pt` → `580pt`, starting at `scrubberTopClearance = 54` (just below the `52pt` `[Himnos] [Estribillos] [Coritos]` pills) and ending cleanly above the floating bottom tab bar or active MiniPlayer (`~490pt` tall on iPhone, up to `580pt` on iPad), with slightly crisper `11pt` letter legibility.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, `test-web-search.js` (761 hymns & choruses) passed, `git diff --check` clean, iOS Hermes export clean (`2,633` modules, `7.6 MB` `.hbc`).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #1 (`2.2.0-sdk58-1`): Official Sign in with Apple & 4-Color Google Login Buttons + Cloud-Synced Profile Photos (PFP)
 
 - **Branch & Source:** `sdk-58` branch (feature commit `8af1ad4`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
