@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #7 (`2.2.0-sdk58-1`): iOS 26 Monochrome Member Profile, Favorites/Playlists Top-Left Titles, Full Playlist Detail Icons & Signed-In Churches Quick Access
+
+- **Branch & Source:** `sdk-58` branch (feature commit `05aaa7b`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`f8161256-fe94-4bf5-aa92-f6c0458ccf25`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/f8161256-fe94-4bf5-aa92-f6c0458ccf25)
+  - **iOS Update ID:** `01a214e5-ba3a-7e14-bc42-d37eb59d27e8`
+- **Included Changes:**
+  - **iOS 26 Monochrome Native Member Profile (`app/member/[id].tsx`):** Replaced heavy burgundy accents with a calm Apple system monochrome palette (`#FFFFFF` / `#000000`, neutral secondary fills, slate fallback avatars, red reserved for destructive actions); upgraded the top bar to a `44×44` Liquid Glass `<` circle + unified `44pt` Liquid Glass `[ 🔍 | 🏛️ | ↑ | ··· ]` capsule (morphing into a Liquid Glass search pill); upgraded `"View as others see me"` to a rounded inset card with native SwiftUI `<Picker pickerStyle="segmented">`; switched display name to crisp sans-serif bold (`27pt`), action buttons to full monochrome capsules, and Favorites rows to quiet muted tabular numbers with inset hairlines.
+  - **Favorites & Playlists Top-Left Header Titles (`components/screens/FavoritesScreen.tsx`, `context/LanguageContext.tsx`):** Pinned bold `My Favorites` / `Playlists` on the top-left beside the Liquid Glass capsule, replaced the hero heading under the leather cover with `Saved Hymns` / `Himnos Guardados`, and replaced the duplicate lower Playlists heading with a slim `YOUR PLAYLISTS` / `TUS LISTAS` eyebrow.
+  - **Playlist Detail Full-Size Icons & Cover Clearance (`components/screens/PlaylistDetailScreen.tsx`):** Enlarged the top-right `[ Share | ··· ]` capsule buttons to `44×42` with full `22pt` (`containerSize={26}`, `scale="large"`) Share & `···` icons (matching `<`), added `contentInsetAdjustmentBehavior="never"`, and adjusted `paddingTop` / `topScrim` so the cover sits cleanly below the floating top pills.
+  - **Signed-In Account Quick Access (`components/AuthSheetSwiftUI.tsx`, `components/AuthSheet.tsx`):** Restored **Churches (`Map`)** at the top of **Quick Access** when signed in as well as signed out.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB` `.hbc`, 129 assets).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #6 (`2.2.0-sdk58-1`): Near Me Close-Up Framing Above 52% Half-Sheet & Compact Minimalist Playlists Rows
 
 - **Branch & Source:** `sdk-58` branch (feature commit `7b4ba50`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

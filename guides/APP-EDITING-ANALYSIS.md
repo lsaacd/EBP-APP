@@ -1,5 +1,19 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #7 (`2.2.0-sdk58-1`): iOS 26 Monochrome Member Profile, Favorites/Playlists Top-Left Titles, Full Playlist Detail Icons & Signed-In Churches Quick Access (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`05aaa7b`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #7:** Group [`f8161256-fe94-4bf5-aa92-f6c0458ccf25`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/f8161256-fe94-4bf5-aa92-f6c0458ccf25) · iOS update `01a214e5-ba3a-7e14-bc42-d37eb59d27e8`.
+- **What Changed:**
+  - **iOS 26 Monochrome Member Profile (`himnario/app/member/[id].tsx`):** Switched to a calm Apple system monochrome palette (`#FFFFFF`/`#000000`, neutral chips/avatars, red reserved for destructive actions), added Liquid Glass `<` circle + `[ 🔍 | 🏛️ | ↑ | ··· ]` top capsule + Liquid Glass inline search takeover, native SwiftUI segmented `As a Friend | As Public Member` preview picker, sans-serif bold `27pt` display name, monochrome capsule action buttons, and quiet muted tabular Favorites rows.
+  - **Favorites & Playlists Header Titles (`himnario/components/screens/FavoritesScreen.tsx`, `himnario/context/LanguageContext.tsx`):** Pinned `My Favorites` / `Playlists` on top-left across from the glass capsule, set `Saved Hymns` / `Himnos Guardados` under the leather cover, and switched Playlists' lower heading to a slim `YOUR PLAYLISTS` / `TUS LISTAS` eyebrow.
+  - **Playlist Detail Icons & Clearance (`himnario/components/screens/PlaylistDetailScreen.tsx`):** Enlarged `[ Share | ··· ]` icons to full `22pt` (`containerSize={26}`, `scale="large"`) inside `44×42` targets and added `contentInsetAdjustmentBehavior="never"` + clean cover top padding.
+  - **Signed-In Churches Quick Access (`himnario/components/AuthSheetSwiftUI.tsx`, `himnario/components/AuthSheet.tsx`):** Kept **Churches (`Map`)** at the top of **Quick Access** when signed in.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, `git diff --check` clean, iOS Hermes export clean (`2,640` modules, `7.8 MB`, 129 assets).
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #6 (`2.2.0-sdk58-1`): Near Me Close-Up Above 52% Half-Sheet & Compact Minimalist Playlists Rows (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`7b4ba50`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
