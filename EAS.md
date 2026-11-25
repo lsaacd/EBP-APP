@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 24, 2026 — SDK 58 iOS OTA Polish (Fabric church pins, Settings scroll header, Light-Mode status bar, classic gold 5-star rating)
+
+- **Branch & Source:** `sdk-58` branch (commit `cffa278`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`55086d4d-cb76-46c1-8ad1-cdcf6f7bc46c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/55086d4d-cb76-46c1-8ad1-cdcf6f7bc46c)
+  - **iOS Update ID:** `01a210b7-873e-73ff-9f18-79ee64be588a`
+  - **Included Fixes:**
+    - **Churches Map Pins & UI (`app/churches.tsx`, `components/DetentSheet.tsx`):** Replaced `<Marker image={...}>` (invisible under RN `0.88.1` Bridgeless Fabric where `[RCTBridge currentBridge]` is nil) with a Fabric-safe explicit-sized `<ChurchPinMarker>` child `<Image>`, added initial camera framing for nearest church + user dot, added top status-bar gradient scrim, frosted `DetentSheet` backing in both List & Detail modes, inside sheet grabber, half-sheet default when `<= 3` churches, and iOS `LiquidGlassSegmented` for `Mapa | Lista`.
+    - **Settings Scroll Header & Tab-Bar Minimization (`Settings.ios.tsx`, `app/(tabs)/settings/_layout.tsx`, `app/(tabs)/_layout.tsx`, `app/my-profile.tsx`):** Removed outer wrapper `<View>` / `<KeyboardAvoidingView>` around `<Host><Form>`, enabled `headerLargeTitleEnabled: true` + iOS 26 system background + `headerUserInterfaceStyle` + adaptive black/white titles + monochrome primary row ink + consistent sentence-case section titles + centered signature footer.
+    - **App-Wide Light-Mode Status Bar (`app/_layout.tsx`, `app/(tabs)/settings/_layout.tsx`, `app/hymn/_layout.tsx`):** Added `statusBarStyle` to native `<Stack>` `screenOptions` so status bar clock/battery stay dark in Light Mode even when the iPhone is in System Dark Mode.
+    - **Interactive Classic iOS Gold 5-Star Rating (`Settings.ios.tsx`, `LanguageContext.tsx`):** Replaced the `¿Disfrutas la app?` disclosure button with an interactive warm-gold 5-star SwiftUI card (tapping 4–5 stars prompts App Store review; 1–3 stars prompts direct feedback) plus a dedicated feedback row in Support.
+  - **Verification:** `tsc --noEmit` 0 errors, `196/196` Node tests + `761` search checks passed, `npx expo lint` 0 errors (0 new warnings), `git diff --check` clean, iOS & Android Hermes exports clean. Physical iPhone TestFlight verification pending.
+
 ## November 24, 2026 — iOS 26 Native Liquid Glass & `@expo/ui` TestFlight Build #39 (`sdk-58` branch, `runtimeVersion: "2.1.0-sdk58-2"`)
 
 - **Branch & Source:** `sdk-58` branch (commit `143b1d3`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until TestFlight sign-off).
