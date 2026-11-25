@@ -1,5 +1,20 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #9: Maps Liquid Glass Swipe Bubble + Icons, Classic Índice + Leveled Pills, Apple Music Playlist Tab Bar + EBP Cover Art, Sacred Ink Palette & Split Reader Bar
+
+- **Branch & Source:** `sdk-58` branch (commit `7990c2f`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`47062829-2b76-4500-8441-7511f2c3ec92`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/47062829-2b76-4500-8441-7511f2c3ec92)
+  - **iOS Update ID:** `01a21327-c116-7d85-8800-9a27d1028ad4`
+  - **Included Changes:**
+    - Upgraded Maps `Mapa | Lista` segmented control (`components/LiquidGlassSegmented.tsx`, `app/churches.tsx`) with a genuine outer `GlassSurface` capsule (`glassTrack`), interactive refractive swipe-bubble magnification (`scaleX: 1.1`, `scaleY: 1.22`, `glassEffectStyle: 'clear'` while dragging with edge rubber-band + haptics), and restored classic `map.fill` / `list.bullet` icons.
+    - Leveled the Índice `Himnos | Estribillos` pills directly with the category chips (`paddingTop: 8`, `paddingHorizontal: 16`, `height: 38`) and polished the classic printed-hymnal Índice rows (`--A--` bold serif headers, `19pt` Newsreader titles, inline `offline-pin`, explicit `height: 1` baseline dotted leaders, bold `tabular-nums` serif numbers, synced `indexLayouts`) in `app/(tabs)/hymns.tsx`.
+    - Converted Favorites into a nested tab `<Stack>` (`app/(tabs)/favorites/{_layout.tsx, index.tsx, playlist/[id].tsx}` backed by `components/screens/FavoritesScreen.tsx` & `PlaylistDetailScreen.tsx`, keeping `app/playlist/[id].tsx` as fallback) so the iOS 26 Liquid Glass bottom tab bar & docked `MiniPlayer` stay visible inside Playlists like Apple Music while preserving `Link.AppleZoom`.
+    - Replaced generic playlist gradient/music-note placeholders with official `EBP_HYMN_COVER.png` artwork on both Playlist thumbnails and Playlist Detail hero cards.
+    - Aligned Sacred Ink Light Mode (`#6e1619` dark red) & Dark Mode (`#fdf9f2` warm white + `#010101` ink) across Settings SF Symbols & 5-Star Rate My App card (`Settings.ios.tsx`), My Profile SF Symbols (`MyProfileOverview.ios.tsx`), Auth sheet (`AuthSheetSwiftUI.tsx`, `AuthSheet.tsx`), Maps Pin Picker/Submit (`churches.tsx`), and Church QR (`ChurchQrSheet.tsx`).
+    - Upgraded the iOS Hymn Reader bottom bar (`app/hymn/[id].tsx`, `components/TextSizeSheet.tsx`) to Option A — Apple Books–style split Liquid Glass `<GlassGroup>` (frosted `Texto | Claro/Oscuro` capsule with SF Symbols + detached prominent circular Play button + bottom gradient scrim).
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint on all 16 touched/created files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #8: Fix Row Layout & Single-Tap Close, Flush Reader Dock, Oyelo SwiftUI Auth Sheet & Maps Liquid Glass
 
 - **Branch & Source:** `sdk-58` branch (commit `b1067b6`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
