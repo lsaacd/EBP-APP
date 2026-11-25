@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #13: Centered Índice A–Z Carousel, Coritos Índice Pill (27–124), Settings Large-to-Blur Title, Opaque AuthSheet Cards & Share Sheet / Profile Reopen Fix
+
+- **Branch & Source:** `sdk-58` branch (commit `ac194b9`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`5e9bcc8f-2985-4278-85bc-f8bd60604941`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/5e9bcc8f-2985-4278-85bc-f8bd60604941)
+  - **iOS Update ID:** `01a2138b-4d77-7f6c-8e7b-cc0d4d0abe47`
+  - **Included Changes:**
+    - **Centered Índice A–Z glass carousel (`app/(tabs)/hymns.tsx`):** Removed `flex: 1` top-stretching on `alphabetGlassCapsule`, measured `indiceBody` height dynamically, and bounded the capsule height (`<= 400pt`) centered safely above the bottom tab bar and active `MiniPlayer` (re-measuring touch coordinates whenever `MiniPlayer` state changes).
+    - **Coritos pill in Índice only (`app/(tabs)/hymns.tsx`, `context/LanguageContext.tsx`):** Added a 3rd capsule pill (`[Himnos] [Estribillos] [Coritos]`) inside Índice splitting `Estribillos` (`1–26`, 26 items) and `Coritos` (`27–124`, 98 items) with bilingual titles while keeping the top `Estribillos` sub-tab untouched (all 124 items together).
+    - **Settings big title → blurry compact small title on scroll (`app/(tabs)/settings/_layout.tsx`, `components/screens/Settings.ios.tsx`):** Disabled the empty 44pt UIKit nav-bar dead row (`headerShown: false`), placed a bold `34pt` `Ajustes` title tightly at the top of `<Form>`, and bound `@expo/ui`'s `useScrollGeometryChange` UI-thread worklet to cross-fade in a soft frosted blur bar with small centered `Ajustes` on scroll.
+    - **Opaque Auth/Account inner containers (`components/AuthSheetSwiftUI.tsx`):** Preserved the outer frosted Liquid Glass `<BottomSheet>` chrome while applying solid `listRowBackground(isDarkMode ? '#1C1C1E' : '#FFFFFF')` to all grouped content rows (`Isaac V2`, `Sincronizar`, `Acceso rápido`, sign-in inputs, benefits, and session actions).
+    - **Share App header overlap & Profile reopen white-screen fix (`app/_layout.tsx`, `app/auth-sheet.tsx`, `components/AuthSheet.tsx`, `components/screens/Settings.ios.tsx`):** Switched `/auth-sheet` (`share-app` / `help`) to a native transparent iOS `formSheet` header bar with `contentInsetAdjustmentBehavior="automatic"` (eliminating `Tarjeta | Código QR` overlap) and routed Settings' `Compartir app` to the same sheet; kept SwiftUI's global `<Host><BottomSheet>` permanently mounted (never returning `null` on `!visible` for `swiftui-sheet`), isolated sub-page unmounts from global `closeAuthSheet()`, and increased the `<` back-to-Account reopen delay to `420ms`.
+  - **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors across all 8 modified files, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, iOS Hermes export clean (`7.3 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #12: Account Tap Fix, Tight Oyelo Sheet Top Alignment & Major iOS 26 Native SwiftUI Profile/Coros/Ministries/Admin Overhaul
 
 - **Branch & Source:** `sdk-58` branch (commit `e56cced`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
