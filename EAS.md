@@ -1,5 +1,14 @@
 # Native builds and updates
 
+## November 24, 2026 — SDK 58 iOS OTA: Dark Mode Toggle Sacred Ink Tint
+
+- **Branch & Source:** `sdk-58` branch (commit `aff8654`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`4df30934-e6b0-4217-be0f-7bea42337fe0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/4df30934-e6b0-4217-be0f-7bea42337fe0)
+  - **iOS Update ID:** `01a2110f-da6a-7630-9e4e-d23f9c1816b5`
+  - **Included Change:** Updated the Settings Dark Mode `<Toggle>` tint (`components/screens/Settings.ios.tsx`) from system green to Sacred Ink theme tint (`#525252` in Dark Mode, `#6e1619` in Light Mode), matching `theme.js` and `Settings.legacy.tsx`.
+  - **Verification:** `tsc --noEmit` 0 errors, `git diff --check` clean, `npx expo lint` 0 errors, iOS OTA export clean.
+
 ## November 24, 2026 — SDK 58 iOS OTA: Original Hymn Reader & Hymns Search Bar Restored + Dark Mode Toggle Switch
 
 - **Branch & Source:** `sdk-58` branch (commit `8402ec7`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
