@@ -1,5 +1,18 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #3 (`2.2.0-sdk58-1`): Church Sheets, Mi iglesia, Amistades & Notificaciones UX Simplification (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`4c09d5a`, pushed to `origin/sdk-58`).
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #3:** Group [`a0b1a54b-f50f-4b20-b5f6-04f8fd7be41f`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/a0b1a54b-f50f-4b20-b5f6-04f8fd7be41f) · iOS update `01a21455-d535-71f7-b788-f95e3038c9b9`.
+- **What Changed:**
+  - **Church Detail & Submit Sheets (`himnario/components/churches/ChurchDetailActionBar.tsx`, `himnario/app/churches.tsx`, `himnario/utils/churchSchedule.ts`):** Kept the owner's preferred Liquid Glass sheet backdrops intact; replaced the clipped 2-row action buttons (`Mirar alrededo`, `Código Q`, green-on-green `Tu iglesia`) with a full-width primary `Cómo llegar · <time>` pill + 4 equal icon-over-label Liquid Glass tiles (`Mirar`, `Tu iglesia`/`Mi iglesia`, `QR`, `Más` native menu with Copy Address, Share, Admin Edit/Delete); added live `Hoy` / `Próximo` service pill; fixed `"1 miembros visibles"` singular/plural grammar; gave bottom safe-area breathing room; shortened Add/Edit Church sheet titles (`Nueva iglesia`/`Editar iglesia`/`Revisar iglesia`), removed duplicate bottom `Verificar y publicar` button, and tucked the cloud photo URL input behind a glass-matched `Enlace` toggle.
+  - **Mi iglesia (`himnario/components/screens/ProfileSubPages.ios.tsx`):** Collapsed redundant manual location fields behind native SwiftUI `DisclosureGroup` when linked to a verified church, unified all 3 church-visibility toggles under `VISIBILIDAD` with immediate auto-save, and hid the bottom `Guardar` button unless manual fields are edited.
+  - **Native SwiftUI Amistades & Notificaciones (`himnario/components/screens/FriendsScreen.ios.tsx`, `NotificationsScreen.ios.tsx`, `himnario/app/my-profile.tsx`, `FriendsPanel.tsx`, `NotificationsPanel.tsx`, `LanguageContext.tsx`):** Ported both screens on iOS to native SwiftUI `<Form>` with `ContentUnavailableView` and `SwipeActions`, moved Privacy (4 toggles + note) and Notification Preferences (push status + 3 toggles) behind top-right `shield` / `slider.horizontal.3` buttons opening native Liquid Glass `<BottomSheet>`s, removed the redundant green push-enabled status banner, and aligned Spanish notification copy to `Amistades`.
+- **Verification & Pending Device Checks:** `tsc --noEmit` 0 errors, ESLint 0 errors, 199/199 Node tests passed (`scripts/test-church-sheet.cjs` extended with `getNextServiceSummary`), `test-web-search.js` (761 items) passed, iOS Hermes export clean (`2,636` modules, `7.7 MB`). Physical iPhone TestFlight verification pending on all 5 updated screens.
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #2 (`2.2.0-sdk58-1`): Longer Hymns Number Scroller & Índice A–Z Glass Carousel (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`33c52e0`, pushed to `origin/sdk-58`).
