@@ -338,17 +338,23 @@ function generateAppleAssociation() {
     fs.mkdirSync(wellKnownDir, { recursive: true });
   }
 
-  // Modern Apple App Site Association
+  // Modern Apple App Site Association (iOS 13–27 Universal Links)
   const aasa = {
     applinks: {
       apps: [],
       details: [
         {
-          appID: "VV6BQ35L5N.com.elbuenpastor",
-          paths: [
-            "/h/*",
-            "/hymn/*",
-            "/himno/*"
+          appIDs: ["VV6BQ35L5N.com.elbuenpastor"],
+          components: [
+            { "/": "/h/*", comment: "Short hymn deep links" },
+            { "/": "/hymn/*", comment: "English hymn share links" },
+            { "/": "/himno/*", comment: "Spanish hymn share links" },
+            { "/": "/member/*", comment: "Member profile share links" },
+            { "/": "/member", "?": { "id": "?*" }, comment: "Member profile query links" },
+            { "/": "/member/", "?": { "id": "?*" }, comment: "Member profile query links (trailing slash)" },
+            { "/": "/churches", comment: "Churches map & share links" },
+            { "/": "/churches/", comment: "Churches directory & share links" },
+            { "/": "/churches/*", comment: "Direct church path links" }
           ]
         }
       ]

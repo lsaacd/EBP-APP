@@ -51,6 +51,7 @@ import { getNextServiceSummary, parseServiceTimes } from '../../utils/churchSche
 import { hymnsData, estribillosData } from '../../data/alabanzasPaginas';
 import { getLocalizedHymn } from '../../data/alabanzasEnglish';
 import { getExpoSwiftUI } from '../../utils/expoSwiftUI';
+import { profileShareUrl as buildProfileShareUrl } from '../../utils/deepLinks';
 import { showSuccessToast } from '../../utils/toast';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import GlassSurface from '../../components/GlassSurface';
@@ -470,7 +471,7 @@ export default function MemberProfileScreen() {
     }
   }, [activeTab, effective?.favoritesShared, hasChurchTab]);
 
-  const profileShareUrl = `https://himnarioebp.com`;
+  const profileShareUrl = buildProfileShareUrl(effective?.id || memberId);
 
   const handleShareProfile = useCallback(async () => {
     if (!effective) return;
@@ -481,12 +482,22 @@ export default function MemberProfileScreen() {
       choirLabel,
       churchLabel ? churchLabel : null,
     ].filter(Boolean);
+    const titleLine = `${parts.join(' · ')} — Himnario El Buen Pastor`;
     try {
-      await Share.share({
-        message: `${parts.join(' · ')} — Himnario El Buen Pastor\n${profileShareUrl}`,
-      });
+      await Share.share(
+        isIOS
+          ? {
+              title: effective.name,
+              message: titleLine,
+              url: profileShareUrl,
+            }
+          : {
+              title: effective.name,
+              message: `${titleLine}\n${profileShareUrl}`,
+            },
+      );
     } catch {}
-  }, [choirLabel, churchLabel, effective, ministryLabel, profileShareUrl]);
+  }, [choirLabel, churchLabel, effective, isIOS, ministryLabel, profileShareUrl]);
 
   const handleCopyLink = useCallback(async () => {
     Haptics.selectionAsync();

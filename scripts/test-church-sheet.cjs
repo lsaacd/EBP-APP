@@ -661,3 +661,30 @@ test('getNextServiceSummary picks today active/upcoming service or next weekly s
   assert.equal(getNextServiceSummary([], wedMorning), null);
   assert.equal(getNextServiceSummary(null, wedMorning), null);
 });
+
+test('profileShareUrl and resolveDeepLinkPath normalize Universal Links and custom schemes', () => {
+  const { profileShareUrl, resolveDeepLinkPath } = load('himnario/utils/deepLinks.ts');
+
+  assert.equal(profileShareUrl('usr_42'), 'https://himnarioebp.com/member/?id=usr_42');
+  assert.equal(profileShareUrl('  usr 42 '), 'https://himnarioebp.com/member/?id=usr%2042');
+  assert.equal(profileShareUrl(''), 'https://himnarioebp.com/app/');
+
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/member/usr_42'), '/member/usr_42');
+  assert.equal(resolveDeepLinkPath('https://www.himnarioebp.com/member/usr_42/'), '/member/usr_42');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/member/?id=usr_42'), '/member/usr_42');
+  assert.equal(resolveDeepLinkPath('el-buen-pastor-himnario://member/usr_42'), '/member/usr_42');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/member/'), '/(tabs)/home');
+
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/churches?id=ch_riverbank'), '/churches?id=ch_riverbank');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/churches/ch_riverbank/'), '/churches?id=ch_riverbank');
+  assert.equal(resolveDeepLinkPath('el-buen-pastor-himnario://churches?id=ch_riverbank'), '/churches?id=ch_riverbank');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/churches/'), '/churches');
+
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/hymn/123/'), '/hymn/123');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/himno/c-12/'), '/hymn/c-12');
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/h/45'), '/hymn/45');
+  assert.equal(resolveDeepLinkPath('el-buen-pastor-himnario://hymn/99'), '/hymn/99');
+
+  assert.equal(resolveDeepLinkPath('https://himnarioebp.com/app/'), '/(tabs)/home');
+  assert.equal(resolveDeepLinkPath('trackplayer://notification.click'), '/(tabs)/home');
+});

@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <script>(function(){var m=(location.pathname||'').match(/^\/(member|churches)\/([^\/]+)\/?$/i);if(m){try{location.replace('/'+m[1].toLowerCase()+'/?id='+encodeURIComponent(decodeURIComponent(m[2])));}catch(_){location.replace('/'+m[1].toLowerCase()+'/?id='+encodeURIComponent(m[2]));}}})();</script>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#6e1619">
     <meta name="description"
@@ -38,7 +39,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="css/library.css?v=20261029-release2">
     <link rel="stylesheet" href="css/website.css?v=20261029-release2">
-    <link rel="stylesheet" href="css/refinements.css?v=20261113-dark-cover">
+    <link rel="stylesheet" href="css/refinements.css?v=20261125-share-churches">
     <link rel="stylesheet" href="css/reading-player.css?v=20261112-mobile-ui">
     <link rel="stylesheet" href="css/catalog.css?v=20261112-mobile-ui">
     <script defer src="data/hymns-data.js?v=20261028-reading"></script>
@@ -63,7 +64,7 @@
                     DIGITAL</small></span></a>
         <nav aria-label="Navegación principal"><a data-page="inicio" href="#inicio">Inicio</a><a data-page="himnos"
                 href="#himnos">Himnos</a><a data-page="indice" href="#indice">Índice</a><a data-page="favoritos"
-                href="#favoritos">Favoritos <span id="favorite-count"></span></a></nav>
+                href="#favoritos">Favoritos <span id="favorite-count"></span></a><a href="churches/">Iglesias</a></nav>
         <form id="header-search" role="search"><label class="sr-only" for="quick-search">Buscar en el
                 himnario</label><input id="quick-search" type="search" placeholder="Buscar una alabanza…"><button
                 aria-label="Buscar" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -131,6 +132,12 @@
                     </svg>
                     <h2>Tus favoritos</h2>
                     <p>Guarda tus alabanzas favoritas.</p><span>Abrir favoritos ↗</span>
+                </a><a href="churches/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 18h18M2 21h20M12 3 3 8h18Z" />
+                    </svg>
+                    <h2>Directorio de iglesias</h2>
+                    <p>Encuentra congregaciones verificadas, horarios de culto y cómo llegar.</p><span>Ver iglesias ↗</span>
                 </a></div>
         </section>
         <section id="library" hidden>
@@ -167,7 +174,7 @@
     </main>
     <footer><a class="brand" href="#inicio"><img class="church-logo" src="images/branding/og_ebp.svg" alt=""><span>El
                 Buen Pastor<small>Unidos en una misma alabanza.</small></span></a>
-        <div><a href="feedback.html">Enviar comentarios</a><a href="privacy.html">Política de privacidad</a><a
+        <div><a href="churches/">Iglesias</a><a href="app/">App móvil</a><a href="feedback.html">Enviar comentarios</a><a href="privacy.html">Política de privacidad</a><a
                 href="terms.html">Términos de servicio</a></div>
         <p>© 2026 Himnario El Buen Pastor</p>
     </footer>

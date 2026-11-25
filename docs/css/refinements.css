@@ -204,3 +204,17 @@ body.dark .feature-art{background:#18181a;border-color:rgba(255,255,255,.12);box
 body.dark .book-cover{background:#121214;border-color:#3a3a3e;outline:0;box-shadow:inset 9px 0 14px rgba(0,0,0,.78),inset -5px 0 1px #b8bcc2,5px 4px 0 -1px #2a2c30,6px 5px 0 -1px #7d828a,18px 28px 42px rgba(0,0,0,.85),0 0 48px rgba(255,255,255,.08)}
 body.dark .book-cover::after{background:linear-gradient(90deg,rgba(0,0,0,.55) 0,rgba(255,255,255,.14) 10px,rgba(0,0,0,.32) 15px,transparent 24px,transparent calc(100% - 7px),rgba(205,210,218,.42) calc(100% - 3px),rgba(0,0,0,.35) 100%)}
 body.dark .book-cover img{filter:none}
+
+/* 4-card quick links strip (Himnario, Índice, Favoritos, Iglesias) */
+.home-links{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+@media(max-width:960px) and (min-width:601px){
+  .home-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+  .home-links>a{padding:24px 18px}
+  .home-links>a+a{border-left:0}
+  .home-links>a:nth-child(2n){border-left:1px solid var(--line)}
+  .home-links>a:nth-child(n+3){border-top:1px solid var(--line)}
+}
+@media(max-width:600px){
+  .home-links{grid-template-columns:1fr;gap:0}
+  .home-links>a:nth-child(n+1){border-left:0}
+}

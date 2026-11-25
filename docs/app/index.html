@@ -139,6 +139,58 @@
       background: var(--accent-hover);
       transform: translateY(-1px);
     }
+    .cta-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 340px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .cta-secondary:hover {
+      background: rgba(110, 22, 25, 0.06);
+      border-color: var(--accent);
+    }
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .feature-pill {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(110, 22, 25, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 11px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .feature-pill {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .cta-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+    }
+    .footer-links {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 18px;
+    }
     .badges-row {
       display: flex;
       flex-wrap: wrap;
@@ -189,7 +241,7 @@
       color: var(--muted);
     }
     .web-link {
-      margin-top: 8px;
+      margin-top: 4px;
       font-size: 14px;
       font-weight: 600;
       color: var(--accent);
@@ -208,10 +260,21 @@
     <div class="body">
       <span class="eyebrow">Iglesia El Buen Pastor · App Oficial</span>
       <h1>Lleva tu Himnario Contigo</h1>
-      <p class="subtitle">637 himnos y 124 estribillos con letras, buscador rápido, modo proyector y grabaciones de audio sin conexión.</p>
+      <p class="subtitle">637 himnos y 124 estribillos con audio sin conexión, directorio de iglesias verificadas, amistades, widget del Versículo del Día e inicio con Apple o Google.</p>
+
+      <div class="feature-pills" aria-label="Funciones principales">
+        <span class="feature-pill">Audio sin conexión</span>
+        <span class="feature-pill">Mapa de iglesias</span>
+        <span class="feature-pill">Widget del Versículo</span>
+        <span class="feature-pill">Amistades y listas</span>
+      </div>
 
       <a id="smart-cta" class="cta-primary" href="https://apps.apple.com/app/id6794435414">
         <span id="smart-cta-text">Descargar la Aplicación</span>
+      </a>
+
+      <a class="cta-secondary" href="el-buen-pastor-himnario://">
+        ¿Ya tienes la app? Abrir ahora ↗
       </a>
 
       <div class="badges-row">
@@ -228,7 +291,10 @@
         <span class="qr-caption">Escanea con la cámara de tu teléfono para instalar</span>
       </div>
 
-      <a class="web-link" href="../">Abrir el Himnario en el navegador →</a>
+      <div class="footer-links">
+        <a class="web-link" href="../">Himnario web →</a>
+        <a class="web-link" href="../churches/">Directorio de iglesias →</a>
+      </div>
     </div>
   </main>
 

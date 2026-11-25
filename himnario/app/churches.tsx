@@ -955,9 +955,9 @@ export default function ChurchesScreen() {
         }
       }
 
-      // 2. Check for hymn QR link
+      // 2. Check for hymn QR link (/hymn/<id>, /himno/<id>, /h/<id>, ?hymn=<id>, hymn:<id>)
       const hymnMatch =
-        raw.match(/\/hymn\/([a-zA-Z0-9%_-]+)/i) ||
+        raw.match(/\/(?:hymn|himno|h)\/([a-zA-Z0-9%_-]+)/i) ||
         raw.match(/[?&]hymn=([a-zA-Z0-9%_-]+)/i) ||
         raw.match(/^hymn:([a-zA-Z0-9%_-]+)$/i);
       if (hymnMatch) {
@@ -968,7 +968,18 @@ export default function ChurchesScreen() {
         return;
       }
 
-      // 3. Fallback alert if unrecognized QR
+      // 3. Check for member profile QR link (/member/<id> or /member?id=<id>)
+      const memberMatch =
+        raw.match(/\/member\/([a-zA-Z0-9%_-]+)/i) ||
+        (raw.includes("/member") ? raw.match(/[?&]id=([a-zA-Z0-9%_-]+)/i) : null);
+      if (memberMatch) {
+        const scannedMemberId = safeDecode(memberMatch[1]);
+        if (scannerOnlyVisit) router.replace(`/member/${encodeURIComponent(scannedMemberId)}` as any);
+        else router.push(`/member/${encodeURIComponent(scannedMemberId)}` as any);
+        return;
+      }
+
+      // 4. Fallback alert if unrecognized QR
       Alert.alert(
         t.churchQrCodeScanned,
         t.churchThisQrCodeDoesNotMatch,

@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perfil de Miembro — Himnario El Buen Pastor</title>
+  <meta name="description" content="Conecta con hermanos de la comunidad en la aplicación oficial del Himnario El Buen Pastor.">
+  <meta name="theme-color" content="#6e1619">
+  <meta id="smart-banner-meta" name="apple-itunes-app" content="app-id=6794435414">
+  <link rel="icon" href="/images/branding/fav-ebp.ico">
+
+  <!-- Open Graph / iMessage / WhatsApp -->
+  <meta property="og:site_name" content="Himnario El Buen Pastor">
+  <meta property="og:title" content="Perfil en Himnario El Buen Pastor">
+  <meta property="og:description" content="Abre este perfil en la aplicación oficial del Himnario El Buen Pastor para conectar, ver su congregación y compartir alabanzas.">
+  <meta property="og:type" content="profile">
+  <meta property="og:image" content="https://himnarioebp.com/images/branding/app-share-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Perfil en Himnario El Buen Pastor">
+  <meta name="twitter:description" content="Abre este perfil en la aplicación oficial del Himnario El Buen Pastor.">
+  <meta name="twitter:image" content="https://himnarioebp.com/images/branding/app-share-og.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #FCF9F2;
+      --surface: #FFFFFF;
+      --surface-soft: rgba(120, 120, 128, 0.09);
+      --text: #111113;
+      --muted: rgba(60, 60, 67, 0.65);
+      --accent: #6E1619;
+      --btn-primary-bg: #1C1C1E;
+      --btn-primary-ink: #FFFFFF;
+      --border: rgba(60, 60, 67, 0.12);
+      --shadow: 0 20px 50px rgba(24, 18, 14, 0.08);
+    }
+    body.dark {
+      --bg: #000000;
+      --surface: #141416;
+      --surface-soft: rgba(255, 255, 255, 0.10);
+      --text: #FFFFFF;
+      --muted: rgba(235, 235, 245, 0.62);
+      --accent: #E8A6A9;
+      --btn-primary-bg: #FFFFFF;
+      --btn-primary-ink: #000000;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: 0 24px 56px rgba(0, 0, 0, 0.65);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    .topbar {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+    }
+    .brand img { width: 28px; height: 40px; display: block; }
+    .brand small {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      color: var(--muted);
+    }
+    .tools { display: flex; align-items: center; gap: 8px; }
+    .tool-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      height: 36px;
+      padding: 0 13px;
+      font: 600 13px/1 'Public Sans', sans-serif;
+      cursor: pointer;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 520px;
+      margin: 8px auto 40px;
+      padding: 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: 26px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .identity-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .identity-text { flex: 1; min-width: 0; }
+    .member-name {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.18;
+      word-break: break-word;
+    }
+    .member-sub {
+      margin-top: 5px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .avatar-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+    .avatar-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #636366;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      overflow: hidden;
+    }
+    .avatar-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .verified-badge {
+      position: absolute;
+      left: -2px;
+      bottom: -2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    a.pill:hover { opacity: 0.8; }
+    .meta-line {
+      font-size: 13.5px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .cta-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 46px;
+      border-radius: 999px;
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-ink);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s ease;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .btn-secondary:hover { opacity: 0.82; }
+    .store-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      padding-top: 6px;
+    }
+    .store-row img { height: 40px; width: auto; display: block; }
+    .status-box {
+      text-align: center;
+      padding: 18px 8px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .note-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 18px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--muted);
+      text-align: center;
+    }
+    .note-card a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    footer {
+      text-align: center;
+      padding: 18px 16px 32px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/images/branding/og_ebp.svg" alt="">
+      <span>El Buen Pastor<small>HIMNARIO DIGITAL</small></span>
+    </a>
+    <div class="tools">
+      <button id="lang-btn" class="tool-btn" type="button">EN</button>
+      <button id="theme-btn" class="tool-btn" type="button" aria-label="Cambiar apariencia">◐</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="profile-card" class="card" aria-live="polite">
+      <div id="loading-box" class="status-box">Cargando perfil…</div>
+    </section>
+
+    <div class="note-card" id="app-note">
+      <span id="note-copy">Para enviar solicitud de amistad, ver alabanzas compartidas y explorar el directorio de iglesias, abre este perfil en la app oficial.</span>
+      <div class="store-row" style="margin-top: 12px;">
+        <a href="https://apps.apple.com/app/id6794435414" target="_blank" rel="noopener noreferrer" aria-label="App Store">
+          <img src="/images/branding/app-store-badge-black.png" alt="App Store">
+        </a>
+        <a href="https://play.google.com/apps/testing/com.elbuenpastor.himnario" target="_blank" rel="noopener noreferrer" aria-label="Google Play">
+          <img src="/images/branding/google-play-badge-black.svg" alt="Google Play">
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="/">Himnario</a>
+    <a href="/churches/">Iglesias</a>
+    <a href="/app/">Descargar App</a>
+    <a href="/privacy.html">Privacidad</a>
+    <a href="/terms.html">Términos</a>
+  </footer>
+
+  <script>
+    (function () {
+      var API_BASE = 'https://ebp-himnario-sync.himnario.workers.dev';
+      var MINISTRIES = {
+        obispo: ['Obispo', 'Bishop'],
+        ministro: ['Ministro', 'Minister'],
+        diacono: ['Diácono', 'Deacon'],
+        evangelista: ['Evangelista', 'Evangelist'],
+        maestro: ['Maestro', 'Teacher'],
+        misionero: ['Misionero', 'Missionary'],
+        director_coro: ['Director de Coro', 'Choir Director'],
+        cantor: ['Cantor', 'Singer'],
+        musico: ['Músico', 'Musician'],
+        jovenes: ['Líder de Jóvenes', 'Youth Leader'],
+        hermano: ['Hermano en Cristo', 'Brother in Christ'],
+        hermana: ['Hermana en Cristo', 'Sister in Christ']
+      };
+      var MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      var MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+      var storedTheme = localStorage.getItem('ebp_theme');
+      if (storedTheme === 'dark' || (!storedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark');
+      }
+      document.getElementById('theme-btn').addEventListener('click', function () {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('ebp_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      });
+
+      var lang = (localStorage.getItem('ebp_web_lang') || (navigator.language || 'es')).toLowerCase().startsWith('en') ? 'en' : 'es';
+      var langBtn = document.getElementById('lang-btn');
+      var cachedUser = null;
+      var loadError = false;
+
+      function extractMemberId() {
+        var params = new URLSearchParams(window.location.search);
+        var qId = (params.get('id') || '').trim();
+        if (qId) return qId;
+        var m = window.location.pathname.match(/\/member\/([^/?#]+)/i);
+        if (m && m[1] && m[1].toLowerCase() !== 'index.html') {
+          try { return decodeURIComponent(m[1]).trim(); } catch (_) { return m[1].trim(); }
+        }
+        return '';
+      }
+
+      var memberId = extractMemberId();
+      var appDeepLink = memberId
+        ? 'el-buen-pastor-himnario://member/' + encodeURIComponent(memberId)
+        : 'el-buen-pastor-himnario://';
+      var smartMeta = document.getElementById('smart-banner-meta');
+      if (smartMeta) {
+        smartMeta.setAttribute('content', 'app-id=6794435414, app-argument=' + appDeepLink);
+      }
+
+      function churchDisplayName(name) {
+        var clean = String(name || '').trim();
+        if (!clean) return '';
+        return clean
+          .replace(/^(?:IDDV|I\.D\.D\.V\.?|Iglesia del Dios Vivo(?:,? Columna y Apoyo de la Verdad)?)\s*(?:El Buen Pastor)?\s*[-–—·:,]?\s*/i, '')
+          .replace(/^El Buen Pastor\s*[-–—·:,]?\s*/i, '')
+          .trim() || clean;
+      }
+
+      function formatMemberSince(ym, isEn) {
+        var m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+        if (!m) return '';
+        var monthIdx = parseInt(m[2], 10) - 1;
+        if (monthIdx < 0 || monthIdx > 11) return '';
+        return isEn
+          ? 'Member since ' + MONTHS_EN[monthIdx] + ' ' + m[1]
+          : 'Miembro desde ' + MONTHS_ES[monthIdx] + ' de ' + m[1];
+      }
+
+      function createEl(tag, className, text) {
+        var el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text !== undefined && text !== null) el.textContent = String(text);
+        return el;
+      }
+
+      function render() {
+        var isEn = lang === 'en';
+        document.documentElement.lang = isEn ? 'en' : 'es';
+        langBtn.textContent = isEn ? 'ES' : 'EN';
+        document.getElementById('note-copy').textContent = isEn
+          ? 'To send a friend request, view shared favorites, and explore verified churches, open this profile in the official app.'
+          : 'Para enviar solicitud de amistad, ver alabanzas compartidas y explorar iglesias verificadas, abre este perfil en la app oficial.';
+
+        var card = document.getElementById('profile-card');
+        card.innerHTML = '';
+
+        if (!memberId) {
+          card.appendChild(createEl('div', 'status-box', isEn
+            ? 'Open a shared member link from Himnario El Buen Pastor to view their public profile.'
+            : 'Abre un enlace de perfil compartido desde Himnario El Buen Pastor para ver este perfil público.'));
+          var openBtn = createEl('a', 'btn-primary', isEn ? 'Open in Himnario App' : 'Abrir en la App');
+          openBtn.href = appDeepLink;
+          card.appendChild(openBtn);
+          return;
+        }
+
+        if (loadError) {
+          card.appendChild(createEl('div', 'status-box', isEn
+            ? 'This profile could not be found or is no longer available.'
+            : 'No se encontró este perfil o ya no está disponible.'));
+          var fallbackBtn = createEl('a', 'btn-secondary', isEn ? 'Open Himnario Web' : 'Ir al Himnario Web');
+          fallbackBtn.href = '/';
+          card.appendChild(fallbackBtn);
+          return;
+        }
+
+        if (!cachedUser) {
+          card.appendChild(createEl('div', 'status-box', isEn ? 'Loading profile…' : 'Cargando perfil…'));
+          return;
+        }
+
+        var u = cachedUser;
+        document.title = (u.name || 'Perfil') + ' — Himnario El Buen Pastor';
+
+        var idRow = createEl('div', 'identity-row');
+        var idText = createEl('div', 'identity-text');
+        idText.appendChild(createEl('h1', 'member-name', u.name || 'Miembro'));
+
+        var subParts = [];
+        if (u.location) subParts.push(u.location);
+        var since = formatMemberSince(u.memberSince, isEn);
+        if (since) subParts.push(since);
+        if (subParts.length) {
+          idText.appendChild(createEl('p', 'member-sub', subParts.join(' · ')));
+        }
+        idRow.appendChild(idText);
+
+        var avWrap = createEl('div', 'avatar-wrap');
+        var avCircle = createEl('div', 'avatar-circle');
+        if (u.avatarUrl) {
+          var img = document.createElement('img');
+          img.src = u.avatarUrl;
+          img.alt = u.name || '';
+          img.onerror = function () {
+            avCircle.textContent = u.initials || '—';
+          };
+          avCircle.appendChild(img);
+        } else {
+          avCircle.textContent = u.initials || '—';
+        }
+        avWrap.appendChild(avCircle);
+
+        if (u.badgeVerified && u.ministry === 'obispo') {
+          var seal = createEl('div', 'verified-badge');
+          seal.title = isEn ? 'Verified Bishop' : 'Obispo verificado';
+          seal.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 2.1 3.2-.3.9 3.1 2.7 1.7-.9 3.1.9 3.1-2.7 1.7-.9 3.1-3.2-.3L12 22l-2.4-2.1-3.2.3-.9-3.1-2.7-1.7.9-3.1-.9-3.1 2.7-1.7.9-3.1 3.2.3L12 2zm-1.2 13.4l5.2-5.2-1.4-1.4-3.8 3.8-1.6-1.6-1.4 1.4 3 3z"/></svg>';
+          avWrap.appendChild(seal);
+        }
+        idRow.appendChild(avWrap);
+        card.appendChild(idRow);
+
+        var pills = createEl('div', 'pills');
+        var minPair = u.ministry && MINISTRIES[u.ministry];
+        if (minPair) {
+          pills.appendChild(createEl('span', 'pill', isEn ? minPair[1] : minPair[0]));
+        }
+        if (u.choir) {
+          pills.appendChild(createEl('span', 'pill', '♪ ' + u.choir));
+        }
+        if (u.churchName) {
+          var cLabel = churchDisplayName(u.churchName);
+          if (u.churchId) {
+            var cLink = createEl('a', 'pill', cLabel);
+            cLink.href = '/churches/?id=' + encodeURIComponent(u.churchId);
+            pills.appendChild(cLink);
+          } else {
+            pills.appendChild(createEl('span', 'pill', cLabel));
+          }
+        }
+        if (!pills.children.length) {
+          pills.appendChild(createEl('span', 'pill', isEn ? 'Community Member' : 'Miembro de la comunidad'));
+        }
+        card.appendChild(pills);
+
+        if (typeof u.friendCount === 'number') {
+          var countStr = isEn
+            ? (u.friendCount === 1 ? '1 friend' : u.friendCount + ' friends')
+            : (u.friendCount === 1 ? '1 amistad' : u.friendCount + ' amistades');
+          card.appendChild(createEl('p', 'meta-line', countStr));
+        }
+
+        var ctas = createEl('div', 'cta-stack');
+        var openApp = createEl('a', 'btn-primary', isEn ? 'Open Profile in App' : 'Abrir perfil en la App');
+        openApp.href = appDeepLink;
+        ctas.appendChild(openApp);
+
+        if (u.churchId) {
+          var openChurch = createEl('a', 'btn-secondary', isEn ? 'View Congregation' : 'Ver congregación');
+          openChurch.href = '/churches/?id=' + encodeURIComponent(u.churchId);
+          ctas.appendChild(openChurch);
+        } else {
+          var openWeb = createEl('a', 'btn-secondary', isEn ? 'Explore Hymnal' : 'Explorar el Himnario');
+          openWeb.href = '/';
+          ctas.appendChild(openWeb);
+        }
+        card.appendChild(ctas);
+      }
+
+      langBtn.addEventListener('click', function () {
+        lang = lang === 'en' ? 'es' : 'en';
+        localStorage.setItem('ebp_web_lang', lang);
+        render();
+      });
+
+      render();
+
+      if (memberId) {
+        fetch(API_BASE + '/users/' + encodeURIComponent(memberId) + '/public-profile', { mode: 'cors' })
+          .then(function (res) {
+            if (!res.ok) throw new Error('not_found');
+            return res.json();
+          })
+          .then(function (data) {
+            if (!data || !data.user) throw new Error('not_found');
+            cachedUser = data.user;
+            render();
+          })
+          .catch(function () {
+            loadError = true;
+            render();
+          });
+      }
+    })();
+  </script>
+</body>
+</html>

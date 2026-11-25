@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Directorio de Iglesias — Himnario El Buen Pastor</title>
+  <meta name="description" content="Encuentra congregaciones verificadas de la Iglesia El Buen Pastor, horarios de culto, direcciones y rutas.">
+  <meta name="theme-color" content="#6e1619">
+  <meta id="smart-banner-meta" name="apple-itunes-app" content="app-id=6794435414">
+  <link rel="icon" href="/images/branding/fav-ebp.ico">
+
+  <!-- Open Graph / iMessage / WhatsApp -->
+  <meta property="og:site_name" content="Himnario El Buen Pastor">
+  <meta property="og:title" content="Directorio de Iglesias — Himnario El Buen Pastor">
+  <meta property="og:description" content="Consulta congregaciones verificadas de El Buen Pastor, horarios de culto y cómo llegar desde la app oficial o en la web.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://himnarioebp.com/churches/">
+  <meta property="og:image" content="https://himnarioebp.com/images/branding/app-share-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Directorio de Iglesias — Himnario El Buen Pastor">
+  <meta name="twitter:description" content="Consulta congregaciones verificadas de El Buen Pastor, horarios de culto y cómo llegar.">
+  <meta name="twitter:image" content="https://himnarioebp.com/images/branding/app-share-og.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #FCF9F2;
+      --surface: #FFFFFF;
+      --surface-soft: rgba(120, 120, 128, 0.09);
+      --text: #1A1614;
+      --muted: #6C645E;
+      --accent: #6E1619;
+      --accent-soft: rgba(110, 22, 25, 0.09);
+      --border: rgba(26, 22, 20, 0.10);
+      --shadow: 0 18px 42px rgba(24, 18, 14, 0.07);
+    }
+    body.dark {
+      --bg: #000000;
+      --surface: #141416;
+      --surface-soft: rgba(255, 255, 255, 0.09);
+      --text: #FDF9F2;
+      --muted: rgba(235, 235, 245, 0.62);
+      --accent: #E8A6A9;
+      --accent-soft: rgba(232, 166, 169, 0.14);
+      --border: rgba(255, 255, 255, 0.11);
+      --shadow: 0 22px 48px rgba(0, 0, 0, 0.65);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    .topbar {
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand img { width: 28px; height: 40px; display: block; }
+    .brand small {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      color: var(--muted);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .nav-links a[aria-current="page"] { color: var(--accent); }
+    .tools { display: flex; align-items: center; gap: 8px; }
+    .tool-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      height: 36px;
+      padding: 0 13px;
+      font: 600 13px/1 'Public Sans', sans-serif;
+      cursor: pointer;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 10px 20px 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .hero h1 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(28px, 4.5vw, 42px);
+      line-height: 1.12;
+      font-weight: 700;
+    }
+    .hero p {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.5;
+    }
+    .spotlight {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .spotlight-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .spotlight-title {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      line-height: 1.18;
+    }
+    .spotlight-addr {
+      margin-top: 4px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .spotlight-pastor {
+      margin-top: 6px;
+      font-size: 14.5px;
+      font-weight: 600;
+    }
+    .photos-strip {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .photos-strip img {
+      height: 190px;
+      width: 280px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .schedule-box {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: var(--bg);
+    }
+    .schedule-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .schedule-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-top: 1px solid var(--border);
+      font-size: 14.5px;
+    }
+    .schedule-row:first-of-type { border-top: 0; }
+    .schedule-note { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .schedule-time { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: #6E1619;
+      color: #FFFFFF;
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 0;
+      cursor: pointer;
+    }
+    body.dark .btn-primary { background: #FDF9F2; color: #111113; }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .search-input {
+      width: 100%;
+      height: 46px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 0 16px;
+      font: 400 15px 'Public Sans', sans-serif;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font: 600 13px 'Public Sans', sans-serif;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: #6E1619;
+      border-color: #6E1619;
+      color: #FFFFFF;
+    }
+    body.dark .chip.active {
+      background: #FDF9F2;
+      border-color: #FDF9F2;
+      color: #111113;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 14px;
+    }
+    .church-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease;
+      text-align: left;
+      color: inherit;
+      font-family: inherit;
+    }
+    .church-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+    .church-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .church-card h3 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .church-card .addr { font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+    .church-card .pastor { font-size: 13px; font-weight: 600; }
+    .church-card .tag {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      align-self: flex-start;
+    }
+    .status-msg {
+      text-align: center;
+      color: var(--muted);
+      padding: 36px 12px;
+      font-size: 15px;
+    }
+    footer {
+      text-align: center;
+      padding: 18px 16px 34px;
+      font-size: 12.5px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/images/branding/og_ebp.svg" alt="">
+      <span>El Buen Pastor<small>HIMNARIO DIGITAL</small></span>
+    </a>
+    <nav class="nav-links" aria-label="Navegación">
+      <a href="/#inicio" id="nav-home">Inicio</a>
+      <a href="/#himnos" id="nav-hymns">Himnos</a>
+      <a href="/churches/" aria-current="page" id="nav-churches">Iglesias</a>
+      <a href="/app/" id="nav-app">App</a>
+    </nav>
+    <div class="tools">
+      <button id="lang-btn" class="tool-btn" type="button">EN</button>
+      <button id="theme-btn" class="tool-btn" type="button" aria-label="Cambiar apariencia">◐</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="eyebrow" id="hero-eyebrow">IGLESIA EL BUEN PASTOR · DIRECTORIO VERIFICADO</span>
+      <h1 id="hero-title">Iglesias verificadas</h1>
+      <p id="hero-desc">Consulta direcciones, horarios de culto y rutas hacia nuestras congregaciones, o abre el mapa interactivo en la aplicación móvil.</p>
+    </section>
+
+    <section id="spotlight" class="spotlight" hidden></section>
+
+    <section class="controls">
+      <input id="search-input" class="search-input" type="search" placeholder="Buscar por ciudad, nombre, estado o país…">
+      <div id="country-chips" class="chips"></div>
+    </section>
+
+    <section id="church-grid" class="grid" aria-live="polite">
+      <div class="status-msg" id="loading-msg">Cargando congregaciones…</div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/">Himnario</a>
+    <a href="/app/">Descargar App</a>
+    <a href="/feedback.html">Comentarios</a>
+    <a href="/privacy.html">Privacidad</a>
+    <a href="/terms.html">Términos</a>
+  </footer>
+
+  <script>
+    (function () {
+      var API_BASE = 'https://ebp-himnario-sync.himnario.workers.dev';
+      var storedTheme = localStorage.getItem('ebp_theme');
+      if (storedTheme === 'dark' || (!storedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark');
+      }
+      document.getElementById('theme-btn').addEventListener('click', function () {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('ebp_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      });
+
+      var lang = (localStorage.getItem('ebp_web_lang') || (navigator.language || 'es')).toLowerCase().startsWith('en') ? 'en' : 'es';
+      var churches = [];
+      var selectedId = extractChurchId();
+      var selectedCountry = 'ALL';
+      var query = '';
+      var loaded = false;
+      var loadErr = false;
+
+      function extractChurchId() {
+        var params = new URLSearchParams(window.location.search);
+        var qId = (params.get('id') || '').trim();
+        if (qId) return qId;
+        var m = window.location.pathname.match(/\/churches\/([^/?#]+)/i);
+        if (m && m[1] && m[1].toLowerCase() !== 'index.html') {
+          try { return decodeURIComponent(m[1]).trim(); } catch (_) { return m[1].trim(); }
+        }
+        return '';
+      }
+
+      function churchDisplayName(name, city) {
+        var clean = String(name || '').trim();
+        var stripped = clean
+          .replace(/^(?:IDDV|I\.D\.D\.V\.?|Iglesia del Dios Vivo(?:,? Columna y Apoyo de la Verdad)?)\s*(?:El Buen Pastor)?\s*[-–—·:,]?\s*/i, '')
+          .replace(/^El Buen Pastor\s*[-–—·:,]?\s*/i, '')
+          .trim();
+        return stripped || String(city || '').trim() || clean;
+      }
+
+      function servantDisplayName(raw) {
+        var clean = String(raw || '').trim();
+        if (!clean) return '';
+        var bare = clean.replace(/^(?:S\.?D\.?D\.?\s*)?(?:Hno\.?|Hermano|Pastor)\s+/i, '').trim();
+        return bare ? 'SDD Hno ' + bare : clean;
+      }
+
+      function parseSchedule(text) {
+        var raw = String(text || '').trim();
+        if (!raw) return [];
+        return raw.split(/\s*[·•\n;]\s*/).map(function (seg) {
+          var s = seg.trim();
+          if (!s) return null;
+          var noteMatch = s.match(/\(([^)]+)\)\s*$/);
+          var note = noteMatch ? noteMatch[1].trim() : '';
+          var main = noteMatch ? s.slice(0, noteMatch.index).trim() : s;
+          var idx = main.search(/\d/);
+          if (idx <= 0) return { day: main, time: '', note: note };
+          return { day: main.slice(0, idx).trim(), time: main.slice(idx).trim(), note: note };
+        }).filter(Boolean);
+      }
+
+      function directionsUrl(c) {
+        var ua = navigator.userAgent || '';
+        var isApple = /iPad|iPhone|iPod|Macintosh/i.test(ua);
+        var q = encodeURIComponent([c.address, c.city, c.state, c.country].filter(Boolean).join(', '));
+        if (isApple) {
+          return 'https://maps.apple.com/?daddr=' + encodeURIComponent(c.lat + ',' + c.lng) + '&q=' + q;
+        }
+        return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(c.lat + ',' + c.lng);
+      }
+
+      function createEl(tag, className, text) {
+        var el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text !== undefined && text !== null) el.textContent = String(text);
+        return el;
+      }
+
+      function updateSmartBanner() {
+        var deep = selectedId
+          ? 'el-buen-pastor-himnario://churches?id=' + encodeURIComponent(selectedId)
+          : 'el-buen-pastor-himnario://churches';
+        var meta = document.getElementById('smart-banner-meta');
+        if (meta) meta.setAttribute('content', 'app-id=6794435414, app-argument=' + deep);
+      }
+
+      function renderSpotlight() {
+        var isEn = lang === 'en';
+        var box = document.getElementById('spotlight');
+        var church = selectedId ? churches.find(function (c) { return c.id === selectedId; }) : null;
+        if (!church) {
+          box.hidden = true;
+          box.innerHTML = '';
+          return;
+        }
+        box.hidden = false;
+        box.innerHTML = '';
+
+        var title = churchDisplayName(church.name, church.city);
+        document.title = title + ' — Himnario El Buen Pastor';
+
+        var head = createEl('div', 'spotlight-head');
+        var info = createEl('div');
+        info.appendChild(createEl('span', 'eyebrow', isEn ? 'Verified Congregation' : 'Congregación Verificada'));
+        info.appendChild(createEl('h2', 'spotlight-title', title));
+        var addrParts = [church.address, church.city, church.state, church.postalCode, church.country].filter(Boolean).join(', ');
+        info.appendChild(createEl('p', 'spotlight-addr', addrParts));
+        if (church.pastorName) {
+          info.appendChild(createEl('p', 'spotlight-pastor', servantDisplayName(church.pastorName)));
+        }
+        head.appendChild(info);
+        box.appendChild(head);
+
+        var photos = Array.isArray(church.photoUrls) ? church.photoUrls.filter(Boolean) : [];
+        if (photos.length) {
+          var strip = createEl('div', 'photos-strip');
+          photos.forEach(function (src) {
+            var img = document.createElement('img');
+            img.src = src;
+            img.alt = title;
+            img.loading = 'lazy';
+            strip.appendChild(img);
+          });
+          box.appendChild(strip);
+        }
+
+        var rows = parseSchedule(church.serviceTimes);
+        if (rows.length) {
+          var sched = createEl('div', 'schedule-box');
+          sched.appendChild(createEl('div', 'schedule-label', isEn ? 'Service Times' : 'Horarios de Culto'));
+          rows.forEach(function (r) {
+            var row = createEl('div', 'schedule-row');
+            var left = createEl('div');
+            left.appendChild(createEl('strong', '', r.day));
+            if (r.note) left.appendChild(createEl('span', 'schedule-note', r.note));
+            row.appendChild(left);
+            if (r.time) row.appendChild(createEl('span', 'schedule-time', r.time));
+            sched.appendChild(row);
+          });
+          box.appendChild(sched);
+        }
+
+        var actions = createEl('div', 'actions-row');
+        var openApp = createEl('a', 'btn-primary', isEn ? 'Open in Himnario App' : 'Abrir en la App');
+        openApp.href = 'el-buen-pastor-himnario://churches?id=' + encodeURIComponent(church.id);
+        actions.appendChild(openApp);
+
+        var dirBtn = createEl('a', 'btn-secondary', isEn ? 'Directions' : 'Cómo llegar');
+        dirBtn.href = directionsUrl(church);
+        dirBtn.target = '_blank';
+        dirBtn.rel = 'noopener noreferrer';
+        actions.appendChild(dirBtn);
+
+        var copyBtn = createEl('button', 'btn-secondary', isEn ? 'Copy Address' : 'Copiar dirección');
+        copyBtn.type = 'button';
+        copyBtn.addEventListener('click', function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(addrParts).then(function () {
+              copyBtn.textContent = isEn ? 'Copied!' : '¡Copiada!';
+              setTimeout(function () {
+                copyBtn.textContent = isEn ? 'Copy Address' : 'Copiar dirección';
+              }, 1600);
+            }).catch(function () {});
+          }
+        });
+        actions.appendChild(copyBtn);
+
+        box.appendChild(actions);
+      }
+
+      function render() {
+        var isEn = lang === 'en';
+        document.documentElement.lang = isEn ? 'en' : 'es';
+        document.getElementById('lang-btn').textContent = isEn ? 'ES' : 'EN';
+        document.getElementById('nav-home').textContent = isEn ? 'Home' : 'Inicio';
+        document.getElementById('nav-hymns').textContent = isEn ? 'Hymns' : 'Himnos';
+        document.getElementById('nav-churches').textContent = isEn ? 'Churches' : 'Iglesias';
+        document.getElementById('hero-eyebrow').textContent = isEn ? 'EL BUEN PASTOR CHURCH · VERIFIED DIRECTORY' : 'IGLESIA EL BUEN PASTOR · DIRECTORIO VERIFICADO';
+        document.getElementById('hero-title').textContent = isEn ? 'Verified Churches' : 'Iglesias verificadas';
+        document.getElementById('hero-desc').textContent = isEn
+          ? 'Browse addresses, weekly service times, and directions to verified congregations, or open the interactive map in the mobile app.'
+          : 'Consulta direcciones, horarios de culto y rutas hacia nuestras congregaciones, o abre el mapa interactivo en la aplicación móvil.';
+        document.getElementById('search-input').placeholder = isEn
+          ? 'Search by city, church name, state, or country…'
+          : 'Buscar por ciudad, nombre, estado o país…';
+
+        updateSmartBanner();
+        renderSpotlight();
+
+        var chipsEl = document.getElementById('country-chips');
+        chipsEl.innerHTML = '';
+        var countries = [];
+        churches.forEach(function (c) {
+          var co = String(c.country || '').trim();
+          if (co && countries.indexOf(co) === -1) countries.push(co);
+        });
+        if (countries.length > 1) {
+          var allChip = createEl('button', 'chip' + (selectedCountry === 'ALL' ? ' active' : ''), isEn ? 'All' : 'Todos');
+          allChip.type = 'button';
+          allChip.addEventListener('click', function () { selectedCountry = 'ALL'; render(); });
+          chipsEl.appendChild(allChip);
+          countries.forEach(function (co) {
+            var ch = createEl('button', 'chip' + (selectedCountry === co ? ' active' : ''), co);
+            ch.type = 'button';
+            ch.addEventListener('click', function () { selectedCountry = co; render(); });
+            chipsEl.appendChild(ch);
+          });
+        }
+
+        var grid = document.getElementById('church-grid');
+        grid.innerHTML = '';
+        if (!loaded) {
+          grid.appendChild(createEl('div', 'status-msg', isEn ? 'Loading congregations…' : 'Cargando congregaciones…'));
+          return;
+        }
+        if (loadErr) {
+          grid.appendChild(createEl('div', 'status-msg', isEn ? 'Could not load the directory right now. Please try again shortly.' : 'No se pudo cargar el directorio en este momento. Intenta de nuevo en unos segundos.'));
+          return;
+        }
+
+        var q = query.trim().toLowerCase();
+        var filtered = churches.filter(function (c) {
+          if (selectedCountry !== 'ALL' && String(c.country || '').trim() !== selectedCountry) return false;
+          if (!q) return true;
+          var hay = [c.name, c.city, c.state, c.country, c.address, c.pastorName].filter(Boolean).join(' ').toLowerCase();
+          return hay.indexOf(q) !== -1;
+        });
+
+        if (!filtered.length) {
+          grid.appendChild(createEl('div', 'status-msg', isEn ? 'No matching churches found.' : 'No se encontraron iglesias con esa búsqueda.'));
+          return;
+        }
+
+        filtered.forEach(function (c) {
+          var card = createEl('button', 'church-card' + (c.id === selectedId ? ' selected' : ''));
+          card.type = 'button';
+          card.appendChild(createEl('h3', '', churchDisplayName(c.name, c.city)));
+          card.appendChild(createEl('div', 'addr', [c.address, c.city, c.state].filter(Boolean).join(', ')));
+          if (c.pastorName) {
+            card.appendChild(createEl('div', 'pastor', servantDisplayName(c.pastorName)));
+          }
+          if (c.country) {
+            card.appendChild(createEl('span', 'tag', c.country));
+          }
+          card.addEventListener('click', function () {
+            selectedId = c.id;
+            try {
+              var nextUrl = '/churches/?id=' + encodeURIComponent(c.id);
+              window.history.replaceState(null, '', nextUrl);
+            } catch (_) {}
+            render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+          grid.appendChild(card);
+        });
+      }
+
+      document.getElementById('lang-btn').addEventListener('click', function () {
+        lang = lang === 'en' ? 'es' : 'en';
+        localStorage.setItem('ebp_web_lang', lang);
+        render();
+      });
+      document.getElementById('search-input').addEventListener('input', function (e) {
+        query = e.target.value || '';
+        render();
+      });
+
+      render();
+
+      fetch(API_BASE + '/churches', { mode: 'cors' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('failed');
+          return res.json();
+        })
+        .then(function (data) {
+          churches = Array.isArray(data && data.churches) ? data.churches : [];
+          loaded = true;
+          render();
+        })
+        .catch(function () {
+          loaded = true;
+          loadErr = true;
+          render();
+        });
+    })();
+  </script>
+</body>
+</html>
