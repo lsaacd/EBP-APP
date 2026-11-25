@@ -42,9 +42,9 @@ struct HymnEntity: AppEntity {
 
   init(record: AppIntentEntityRecord) {
     self.id = record.id
-    self.title = record.title
     self.subtitle = record.subtitle
     self.synonyms = record.synonyms
+    self.title = record.title
   }
 
   private var searchableTerms: [String] {
