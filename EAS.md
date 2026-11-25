@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS OTA #6: Native iOS 26 Liquid Glass `formSheet` Auth & Account Sheet
+
+- **Branch & Source:** `sdk-58` branch (commit `1ec5ffe`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.1.0-sdk58-2"` — Build `#39` only):**
+  - **Update Group:** [`77864022-1897-465b-9778-ddc206e1f527`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/77864022-1897-465b-9778-ddc206e1f527)
+  - **iOS Update ID:** `01a212cf-901a-7c8b-a4e1-6c7f0f3fd9c3`
+  - **Included Changes:**
+    - Migrated the entire iOS top-right Auth & Account sheet (both signed-out Login/Register/Recovery and signed-in Account & sub-pages) from a custom React Native `<Modal>` to a native iOS 26 Liquid Glass Expo Router `formSheet` route (`himnario/app/auth-sheet.tsx`, registered in `himnario/app/_layout.tsx` with `sheetGrabberVisible: true`, `sheetAllowedDetents: [0.72, 1.0]`, `headerTransparent: true`, `scrollEdgeEffects: { top: 'soft', bottom: 'soft' }`, and transparent `contentStyle`). Android/Web keep the existing `<Modal>` `AuthSheet`.
+    - Added an edge-triggered `authSheetRequestId` in `himnario/context/AuthContext.tsx` so all existing `openAuthSheet()` / `openAuthSheetToPage()` call sites present `/auth-sheet` on iOS cleanly without swipe-dismiss bounce-back.
+    - Added Oyelo-inspired native `Stack.Toolbar` header buttons (left frosted Liquid Glass `Cancelar` pill when signed out / `chevron.left` on sub-pages; right prominent circular Sacred Ink burgundy Liquid Glass action button `#6e1619` light / `#9E2A32` dark with `key.fill` / `person.badge.plus` / `paperplane.fill` when signed out, and native `xmark` when signed in).
+    - Replaced opaque card surfaces with translucent Liquid Glass inset-grouped cards (`borderRadius: 22`, `borderCurve: 'continuous'`), grouped `AnimatedField` inputs with hairline dividers, and a Sacred Ink burgundy capsule submit CTA.
+  - **Verification:** `tsc --noEmit` 0 errors, `npx expo lint` + ESLint on all touched files 0 errors, all 11 `scripts/test-*.cjs` suites + `test-web-search.js` (761 items) passed, `git diff --check` clean, iOS Hermes export clean (`7.2 MB`, 129 assets). Physical iPhone TestFlight verification pending.
+
 ## November 25, 2026 — SDK 58 iOS OTA #5: No Tab Minimize, Classic Controls, Glass Map Sheet, Favorites Capsule, Burgundy Stars & Liquid Glass Login
 
 - **Branch & Source:** `sdk-58` branch (commit `5a90281`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
