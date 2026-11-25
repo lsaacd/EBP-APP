@@ -37,6 +37,7 @@ import * as Haptics from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { fonts } from '../theme/theme';
 import GlassSurface from './GlassSurface';
+import AppMenuIcon from './AppMenuIcon';
 
 export interface ProjectorStanza {
   isCoro: boolean;
@@ -374,16 +375,45 @@ export default function ProjectorModal({
           {/* Top Bar: Exit button + Stanza counter */}
           {controlsVisible && (
             <View style={[styles.topBar, { paddingTop: topPad }]}>
-              <TouchableOpacity
-                style={[styles.exitBtn, { backgroundColor: chipBg }]}
-                onPress={handleClose}
-                accessibilityLabel={t.projectorExit}
-              >
-                <MaterialIcons name="arrow-back" size={18} color={fg} />
-                <Text style={[styles.exitBtnText, { color: fg }]}>
-                  {t.projectorExit}
-                </Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' ? (
+                <GlassSurface
+                  isInteractive
+                  forceDark={projectorDark}
+                  glassEffectStyle="regular"
+                  intensity={56}
+                  style={styles.exitGlassPill}
+                >
+                  <Pressable
+                    style={({ pressed }) => [styles.exitGlassHit, pressed && { opacity: 0.75 }]}
+                    onPress={handleClose}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.projectorExit}
+                  >
+                    <AppMenuIcon
+                      ios="chevron.left"
+                      android="arrow-back"
+                      size={15}
+                      containerSize={18}
+                      weight="semibold"
+                      color={fg}
+                    />
+                    <Text style={[styles.exitBtnText, { color: fg }]}>
+                      {t.projectorExit}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.exitBtn, { backgroundColor: chipBg }]}
+                  onPress={handleClose}
+                  accessibilityLabel={t.projectorExit}
+                >
+                  <MaterialIcons name="arrow-back" size={18} color={fg} />
+                  <Text style={[styles.exitBtnText, { color: fg }]}>
+                    {t.projectorExit}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <Text style={[styles.counterText, { color: muted }]}>
                 {index + 1} / {stanzas.length}
@@ -506,15 +536,44 @@ export default function ProjectorModal({
                 { bottom: bottomPad + 6 },
               ]}
             >
-              <TouchableOpacity
-                style={[styles.revealBtn, { backgroundColor: chipBg }]}
-                onPress={() => setControlsVisible(true)}
-              >
-                <MaterialIcons name="tune" size={16} color={fg} />
-                <Text style={[styles.revealBtnText, { color: fg }]}>
-                  {t.projectorShowControls}
-                </Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' ? (
+                <GlassSurface
+                  isInteractive
+                  forceDark={projectorDark}
+                  glassEffectStyle="regular"
+                  intensity={56}
+                  style={styles.revealGlassPill}
+                >
+                  <Pressable
+                    style={({ pressed }) => [styles.revealGlassHit, pressed && { opacity: 0.75 }]}
+                    onPress={() => setControlsVisible(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.projectorShowControls}
+                  >
+                    <AppMenuIcon
+                      ios="slider.horizontal.3"
+                      android="tune"
+                      size={15}
+                      containerSize={18}
+                      weight="semibold"
+                      color={fg}
+                    />
+                    <Text style={[styles.revealBtnText, { color: fg }]}>
+                      {t.projectorShowControls}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.revealBtn, { backgroundColor: chipBg }]}
+                  onPress={() => setControlsVisible(true)}
+                >
+                  <MaterialIcons name="tune" size={16} color={fg} />
+                  <Text style={[styles.revealBtnText, { color: fg }]}>
+                    {t.projectorShowControls}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -527,6 +586,7 @@ export default function ProjectorModal({
               ]}
             >
               <GlassSurface
+                isInteractive
                 forceDark={projectorDark}
                 intensity={55}
                 tonalColor={projectorDark ? '#181818' : '#F2ECE1'}
@@ -646,9 +706,12 @@ export default function ProjectorModal({
                       onPress={handleToggleOrientation}
                       accessibilityLabel={t.projectorRotate}
                     >
-                      <MaterialIcons
-                        name="screen-rotation"
-                        size={18}
+                      <AppMenuIcon
+                        ios="rotate.right"
+                        android="screen-rotation"
+                        size={17}
+                        containerSize={20}
+                        weight="medium"
                         color={isLandscape ? chipActiveFg : fg}
                       />
                     </TouchableOpacity>
@@ -669,9 +732,12 @@ export default function ProjectorModal({
                         blank ? t.projectorShowLyrics : t.projectorHideLyrics
                       }
                     >
-                      <MaterialIcons
-                        name={blank ? 'visibility-off' : 'visibility'}
-                        size={18}
+                      <AppMenuIcon
+                        ios={blank ? 'eye.slash' : 'eye'}
+                        android={blank ? 'visibility-off' : 'visibility'}
+                        size={17}
+                        containerSize={20}
+                        weight="medium"
                         color={blank ? chipActiveFg : fg}
                       />
                     </TouchableOpacity>
@@ -685,9 +751,12 @@ export default function ProjectorModal({
                       }}
                       accessibilityLabel={projectorDark ? t.lightModeTitle : t.darkModeTitle}
                     >
-                      <MaterialIcons
-                        name={projectorDark ? 'light-mode' : 'dark-mode'}
-                        size={18}
+                      <AppMenuIcon
+                        ios={projectorDark ? 'sun.max.fill' : 'moon.fill'}
+                        android={projectorDark ? 'light-mode' : 'dark-mode'}
+                        size={17}
+                        containerSize={20}
+                        weight="medium"
                         color={fg}
                       />
                     </TouchableOpacity>
@@ -702,7 +771,14 @@ export default function ProjectorModal({
                       }}
                       accessibilityLabel={t.projectorHideControls}
                     >
-                      <MaterialIcons name="fullscreen" size={20} color={fg} />
+                      <AppMenuIcon
+                        ios="arrow.up.left.and.arrow.down.right"
+                        android="fullscreen"
+                        size={16}
+                        containerSize={20}
+                        weight="medium"
+                        color={fg}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -739,6 +815,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 999,
+  },
+  exitGlassPill: {
+    borderRadius: 20,
+  },
+  exitGlassHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 20,
   },
   exitBtnText: {
     ...fonts.sansSemiBold,
@@ -833,6 +920,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 999,
+  },
+  revealGlassPill: {
+    borderRadius: 20,
+  },
+  revealGlassHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 20,
   },
   revealBtnText: {
     ...fonts.sansSemiBold,

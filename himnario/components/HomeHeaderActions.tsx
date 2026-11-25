@@ -1,8 +1,6 @@
 import { fonts } from '../theme/theme';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { NavigationContext } from 'expo-router/react-navigation';
-import { LinearGradient } from 'expo-linear-gradient';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import Animated, {
   runOnJS,
@@ -73,9 +71,6 @@ export default function HomeHeaderActions({
   const { badgeCount: friendsBadge, refreshIfStale: refreshFriendsIfStale } = useFriends();
   const { unreadCount: notificationsUnread, refreshIfStale: refreshNotificationsIfStale } = useNotifications();
   const isIOS = Platform.OS === 'ios';
-  const navigation = useContext(NavigationContext);
-  const wasBlurredRef = useRef(false);
-  const [glassKey, setGlassKey] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -94,29 +89,6 @@ export default function HomeHeaderActions({
   const searchTranslateY = useSharedValue(0);
   const profileTranslateX = useSharedValue(0);
   const profileTranslateY = useSharedValue(0);
-
-  useEffect(() => {
-    if (!isIOS || !checkLiquidGlassContainer()) return;
-    const unsubBlur = navigation?.addListener('blur', () => {
-      wasBlurredRef.current = true;
-    });
-    const unsubFocus = navigation?.addListener('focus', () => {
-      if (wasBlurredRef.current) {
-        wasBlurredRef.current = false;
-        setGlassKey((k) => k + 1);
-      }
-    });
-    const appStateSub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        setGlassKey((k) => k + 1);
-      }
-    });
-    return () => {
-      unsubBlur?.();
-      unsubFocus?.();
-      appStateSub.remove();
-    };
-  }, [isIOS, navigation]);
 
   const circleButtonStyle = ({ pressed }: { pressed: boolean }) => [
     styles.circleButton,
@@ -268,8 +240,8 @@ export default function HomeHeaderActions({
 
     return (
       <GlassContainerComp
-        key={`glass-container-${glassKey}-${glassEpoch}-${scheme}`}
-        spacing={5}
+        key={glassEpoch > 0 ? `glass-container-${glassEpoch}` : undefined}
+        spacing={8}
         style={styles.actionsRow}
       >
         <AnimatedGlassViewComp
@@ -333,6 +305,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

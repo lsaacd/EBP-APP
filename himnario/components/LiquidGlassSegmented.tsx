@@ -376,6 +376,7 @@ const styles = StyleSheet.create({
     bottom: PAD,
     left: PAD,
     borderRadius: 999,
+    borderCurve: 'continuous',
   },
   fallbackClip: {
     overflow: 'hidden',

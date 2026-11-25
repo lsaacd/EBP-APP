@@ -36,6 +36,7 @@ import { clampMiniPlayerDrag, miniPlayerSwipeDirection } from '../utils/gestureM
 import * as Haptics from '../utils/haptics';
 import WebIcon from './WebIcon';
 import GlassSurface from './GlassSurface';
+import AppMenuIcon from './AppMenuIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const DEFAULT_COVER = require('../assets/images/EBP_HYMN_COVER.png');
@@ -397,7 +398,7 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
               }}
             >
               <TouchableOpacity accessibilityRole="button" accessibilityLabel="Previous hymn" onPress={event => { event.stopPropagation(); skipPrev(); }} hitSlop={8} style={android && { padding: 4 }}>
-                {android ? <WebIcon name="previous" color={controlColor} /> : <MaterialIcons name="skip-previous" size={22} color={controlColor} />}
+                {android ? <WebIcon name="previous" color={controlColor} /> : <AppMenuIcon ios="backward.fill" android="skip-previous" size={18} containerSize={22} color={controlColor} />}
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={event => { event.stopPropagation(); togglePlayPause(); }}
@@ -405,14 +406,16 @@ export default function MiniPlayer({ showWhileExpanded = false, transitionPrevie
                 accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
                 style={[styles.playBtn, android && { width: 46, height: 46, borderRadius: 14 }, { backgroundColor: playBtnBg }]}
               >
-                {android ? <WebIcon name={isPlaying ? 'pause' : 'play'} color={playBtnIcon} /> : <MaterialIcons
-                  name={isPlaying ? 'pause' : 'play-arrow'}
-                  size={22}
+                {android ? <WebIcon name={isPlaying ? 'pause' : 'play'} color={playBtnIcon} /> : <AppMenuIcon
+                  ios={isPlaying ? 'pause.fill' : 'play.fill'}
+                  android={isPlaying ? 'pause' : 'play-arrow'}
+                  size={18}
+                  containerSize={22}
                   color={playBtnIcon}
                 />}
               </TouchableOpacity>
               <TouchableOpacity accessibilityRole="button" accessibilityLabel="Next hymn" onPress={event => { event.stopPropagation(); skipNext(); }} hitSlop={8} style={android && { padding: 4 }}>
-                {android ? <WebIcon name="next" color={controlColor} /> : <MaterialIcons name="skip-next" size={22} color={controlColor} />}
+                {android ? <WebIcon name="next" color={controlColor} /> : <AppMenuIcon ios="forward.fill" android="skip-next" size={18} containerSize={22} color={controlColor} />}
               </TouchableOpacity>
             </View>
           </Pressable>

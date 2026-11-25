@@ -43,7 +43,7 @@ import VerseDiscussionSheet from '../../components/VerseDiscussionSheet';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import WebIcon from '../../components/WebIcon';
 import AndroidReaderControls from '../../components/AndroidReaderControls';
-import GlassSurface from '../../components/GlassSurface';
+import GlassSurface, { GlassGroup } from '../../components/GlassSurface';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import { hasHymnAudio } from '../../data/audioRegistry';
 import { offlineAudio } from '../../audio/offline-audio';
@@ -383,130 +383,325 @@ export default function HymnDetail() {
           { backgroundColor: theme.background, paddingTop: insets.top },
         ]}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, Platform.OS === 'ios' && styles.headerIOS]}>
           {/* ✕ Close — top-left, standard iOS modal position */}
-          <TouchableOpacity style={styles.iconBtn} onPress={handleClose}>
-            <MaterialIcons name="close" size={24} color={theme.outline} />
-          </TouchableOpacity>
+          {Platform.OS === 'ios' ? (
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={58}
+              style={styles.headerGlassCircle}
+            >
+              <Pressable
+                style={({ pressed }) => [styles.headerGlassHit, pressed && { opacity: 0.72 }]}
+                onPress={handleClose}
+                accessibilityRole="button"
+                accessibilityLabel={t.close}
+              >
+                <AppMenuIcon
+                  ios="xmark"
+                  android="close"
+                  size={18}
+                  containerSize={22}
+                  weight="semibold"
+                  color={theme.primary}
+                />
+              </Pressable>
+            </GlassSurface>
+          ) : (
+            <TouchableOpacity style={styles.iconBtn} onPress={handleClose}>
+              <MaterialIcons name="close" size={24} color={theme.outline} />
+            </TouchableOpacity>
+          )}
 
           {/* App title — centred */}
           <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
             Himnario EBP
           </Text>
 
-          {/* Playlist, Bookmark + Share — top-right */}
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setProjectorVisible(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={t.projectHymn}
-            >
-              <MaterialIcons name="present-to-all" size={24} color={theme.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setPlaylistModalVisible(true)}>
-              {Platform.OS === 'android' ? <WebIcon name="list" color={theme.primary} size={26} /> : <MaterialIcons name="playlist-add" size={28} color={theme.primary} />}
-            </TouchableOpacity>
-            <MenuView
-              themeVariant={isDarkMode ? 'dark' : 'light'}
-              shouldOpenOnLongPress={false}
-              actions={[
-                {
-                  id: 'favorite',
-                  title: isFavorite(String(hymn.id))
-                    ? t.offlineAudioBadge
-                    : t.save,
-                  state: isFavorite(String(hymn.id)) ? 'on' : 'off',
-                  image: Platform.select({
-                    ios: isFavorite(String(hymn.id)) ? 'bookmark.fill' : 'bookmark',
-                    default: undefined,
-                  }),
-                  imageColor: isFavorite(String(hymn.id)) ? theme.primary : theme.onSurface,
-                },
-                {
-                  id: 'like',
-                  title: `${t.playerLike}${
-                    hymnSummary.likesCount > 0 ? ` (${hymnSummary.likesCount})` : ''
-                  }`,
-                  state: hymnSummary.myReaction === 1 ? 'on' : 'off',
-                  image: Platform.select({
-                    ios: hymnSummary.myReaction === 1 ? 'hand.thumbsup.fill' : 'hand.thumbsup',
-                    default: undefined,
-                  }),
-                  imageColor: hymnSummary.myReaction === 1 ? theme.primary : theme.onSurface,
-                },
-                {
-                  id: 'dislike',
-                  title: `${t.playerDislike}${
-                    isAdmin &&
-                    typeof hymnSummary.dislikesCount === 'number' &&
-                    hymnSummary.dislikesCount > 0
-                      ? ` (${hymnSummary.dislikesCount})`
-                      : ''
-                  }`,
-                  state: hymnSummary.myReaction === -1 ? 'on' : 'off',
-                  image: Platform.select({
-                    ios: hymnSummary.myReaction === -1 ? 'hand.thumbsdown.fill' : 'hand.thumbsdown',
-                    default: undefined,
-                  }),
-                  imageColor: hymnSummary.myReaction === -1 ? theme.primary : theme.onSurface,
-                },
-                {
-                  id: 'comments',
-                  title: `${t.playerComments}${
-                    hymnSummary.commentsCount > 0 ? ` (${hymnSummary.commentsCount})` : ''
-                  }`,
-                  image: Platform.select({
-                    ios: 'bubble.left',
-                    default: undefined,
-                  }),
-                  imageColor: theme.onSurface,
-                },
-              ]}
-              onPressAction={({ nativeEvent }) => {
-                const action = nativeEvent.event;
-                if (action === 'favorite') {
-                  handleBookmark(hymn);
-                } else if (action === 'like') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  reactToHymn(1);
-                } else if (action === 'dislike') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  reactToHymn(-1);
-                } else if (action === 'comments') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setCommentsOpen(true);
-                }
-              }}
-            >
-              <View
-                style={styles.iconBtn}
-                accessibilityRole="button"
-                accessibilityLabel={t.readerCommunityAndFavorites}
+          {/* Projector, Playlist, Cloud/Community Menu + Share — top-right */}
+          {Platform.OS === 'ios' ? (
+            <GlassGroup spacing={6} style={styles.headerRightIOS}>
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={58}
+                style={styles.headerGlassCircle}
               >
-                <AppMenuIcon
-                  ios={
-                    isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
-                      ? 'cloud.fill'
-                      : 'cloud'
+                <Pressable
+                  style={({ pressed }) => [styles.headerGlassHit, pressed && { opacity: 0.72 }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setProjectorVisible(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.projectHymn}
+                >
+                  <AppMenuIcon
+                    ios="play.tv"
+                    android="present-to-all"
+                    size={17}
+                    containerSize={22}
+                    weight="medium"
+                    color={theme.primary}
+                  />
+                </Pressable>
+              </GlassSurface>
+
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={58}
+                style={styles.headerGlassCircle}
+              >
+                <Pressable
+                  style={({ pressed }) => [styles.headerGlassHit, pressed && { opacity: 0.72 }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setPlaylistModalVisible(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.addToPlaylist}
+                >
+                  <AppMenuIcon
+                    ios="text.badge.plus"
+                    android="playlist-add"
+                    size={18}
+                    containerSize={22}
+                    weight="medium"
+                    color={theme.primary}
+                  />
+                </Pressable>
+              </GlassSurface>
+
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={58}
+                style={styles.headerGlassCircle}
+              >
+                <MenuView
+                  themeVariant={isDarkMode ? 'dark' : 'light'}
+                  shouldOpenOnLongPress={false}
+                  actions={[
+                    {
+                      id: 'favorite',
+                      title: isFavorite(String(hymn.id))
+                        ? t.offlineAudioBadge
+                        : t.save,
+                      state: isFavorite(String(hymn.id)) ? 'on' : 'off',
+                      image: isFavorite(String(hymn.id)) ? 'bookmark.fill' : 'bookmark',
+                      imageColor: isFavorite(String(hymn.id)) ? theme.primary : theme.onSurface,
+                    },
+                    {
+                      id: 'like',
+                      title: `${t.playerLike}${
+                        hymnSummary.likesCount > 0 ? ` (${hymnSummary.likesCount})` : ''
+                      }`,
+                      state: hymnSummary.myReaction === 1 ? 'on' : 'off',
+                      image: hymnSummary.myReaction === 1 ? 'hand.thumbsup.fill' : 'hand.thumbsup',
+                      imageColor: hymnSummary.myReaction === 1 ? theme.primary : theme.onSurface,
+                    },
+                    {
+                      id: 'dislike',
+                      title: `${t.playerDislike}${
+                        isAdmin &&
+                        typeof hymnSummary.dislikesCount === 'number' &&
+                        hymnSummary.dislikesCount > 0
+                          ? ` (${hymnSummary.dislikesCount})`
+                          : ''
+                      }`,
+                      state: hymnSummary.myReaction === -1 ? 'on' : 'off',
+                      image: hymnSummary.myReaction === -1 ? 'hand.thumbsdown.fill' : 'hand.thumbsdown',
+                      imageColor: hymnSummary.myReaction === -1 ? theme.primary : theme.onSurface,
+                    },
+                    {
+                      id: 'comments',
+                      title: `${t.playerComments}${
+                        hymnSummary.commentsCount > 0 ? ` (${hymnSummary.commentsCount})` : ''
+                      }`,
+                      image: 'bubble.left',
+                      imageColor: theme.onSurface,
+                    },
+                  ]}
+                  onPressAction={({ nativeEvent }) => {
+                    const action = nativeEvent.event;
+                    if (action === 'favorite') {
+                      handleBookmark(hymn);
+                    } else if (action === 'like') {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      reactToHymn(1);
+                    } else if (action === 'dislike') {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      reactToHymn(-1);
+                    } else if (action === 'comments') {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setCommentsOpen(true);
+                    }
+                  }}
+                >
+                  <View
+                    style={styles.headerGlassHit}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.readerCommunityAndFavorites}
+                  >
+                    <AppMenuIcon
+                      ios={
+                        isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                          ? 'cloud.fill'
+                          : 'cloud'
+                      }
+                      android={
+                        isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                          ? 'cloud'
+                          : 'cloud-queue'
+                      }
+                      size={18}
+                      containerSize={22}
+                      weight="medium"
+                      color={theme.primary}
+                    />
+                  </View>
+                </MenuView>
+              </GlassSurface>
+
+              <GlassSurface
+                isInteractive
+                glassEffectStyle="regular"
+                intensity={58}
+                style={styles.headerGlassCircle}
+              >
+                <Pressable
+                  style={({ pressed }) => [styles.headerGlassHit, pressed && { opacity: 0.72 }]}
+                  onPress={() => handleShare(hymn)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.shareModalTitle}
+                >
+                  <AppMenuIcon
+                    ios="square.and.arrow.up"
+                    android="share"
+                    size={17}
+                    containerSize={22}
+                    weight="medium"
+                    color={theme.primary}
+                  />
+                </Pressable>
+              </GlassSurface>
+            </GlassGroup>
+          ) : (
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setProjectorVisible(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t.projectHymn}
+              >
+                <MaterialIcons name="present-to-all" size={24} color={theme.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setPlaylistModalVisible(true)}>
+                {Platform.OS === 'android' ? <WebIcon name="list" color={theme.primary} size={26} /> : <MaterialIcons name="playlist-add" size={28} color={theme.primary} />}
+              </TouchableOpacity>
+              <MenuView
+                themeVariant={isDarkMode ? 'dark' : 'light'}
+                shouldOpenOnLongPress={false}
+                actions={[
+                  {
+                    id: 'favorite',
+                    title: isFavorite(String(hymn.id))
+                      ? t.offlineAudioBadge
+                      : t.save,
+                    state: isFavorite(String(hymn.id)) ? 'on' : 'off',
+                    image: Platform.select({
+                      ios: isFavorite(String(hymn.id)) ? 'bookmark.fill' : 'bookmark',
+                      default: undefined,
+                    }),
+                    imageColor: isFavorite(String(hymn.id)) ? theme.primary : theme.onSurface,
+                  },
+                  {
+                    id: 'like',
+                    title: `${t.playerLike}${
+                      hymnSummary.likesCount > 0 ? ` (${hymnSummary.likesCount})` : ''
+                    }`,
+                    state: hymnSummary.myReaction === 1 ? 'on' : 'off',
+                    image: Platform.select({
+                      ios: hymnSummary.myReaction === 1 ? 'hand.thumbsup.fill' : 'hand.thumbsup',
+                      default: undefined,
+                    }),
+                    imageColor: hymnSummary.myReaction === 1 ? theme.primary : theme.onSurface,
+                  },
+                  {
+                    id: 'dislike',
+                    title: `${t.playerDislike}${
+                      isAdmin &&
+                      typeof hymnSummary.dislikesCount === 'number' &&
+                      hymnSummary.dislikesCount > 0
+                        ? ` (${hymnSummary.dislikesCount})`
+                        : ''
+                    }`,
+                    state: hymnSummary.myReaction === -1 ? 'on' : 'off',
+                    image: Platform.select({
+                      ios: hymnSummary.myReaction === -1 ? 'hand.thumbsdown.fill' : 'hand.thumbsdown',
+                      default: undefined,
+                    }),
+                    imageColor: hymnSummary.myReaction === -1 ? theme.primary : theme.onSurface,
+                  },
+                  {
+                    id: 'comments',
+                    title: `${t.playerComments}${
+                      hymnSummary.commentsCount > 0 ? ` (${hymnSummary.commentsCount})` : ''
+                    }`,
+                    image: Platform.select({
+                      ios: 'bubble.left',
+                      default: undefined,
+                    }),
+                    imageColor: theme.onSurface,
+                  },
+                ]}
+                onPressAction={({ nativeEvent }) => {
+                  const action = nativeEvent.event;
+                  if (action === 'favorite') {
+                    handleBookmark(hymn);
+                  } else if (action === 'like') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    reactToHymn(1);
+                  } else if (action === 'dislike') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    reactToHymn(-1);
+                  } else if (action === 'comments') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCommentsOpen(true);
                   }
-                  android={
-                    isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
-                      ? 'cloud'
-                      : 'cloud-queue'
-                  }
-                  size={23}
-                  color={theme.primary}
-                />
-              </View>
-            </MenuView>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => handleShare(hymn)}>
-              {Platform.OS === 'android' ? <WebIcon name="share" color={theme.primary} size={24} /> : <MaterialIcons name="share" size={24} color={theme.primary} />}
-            </TouchableOpacity>
-          </View>
+                }}
+              >
+                <View
+                  style={styles.iconBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.readerCommunityAndFavorites}
+                >
+                  <AppMenuIcon
+                    ios={
+                      isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                        ? 'cloud.fill'
+                        : 'cloud'
+                    }
+                    android={
+                      isFavorite(String(hymn.id)) || hymnSummary.myReaction !== 0
+                        ? 'cloud'
+                        : 'cloud-queue'
+                    }
+                    size={23}
+                    color={theme.primary}
+                  />
+                </View>
+              </MenuView>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => handleShare(hymn)}>
+                {Platform.OS === 'android' ? <WebIcon name="share" color={theme.primary} size={24} /> : <MaterialIcons name="share" size={24} color={theme.primary} />}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
 
@@ -631,8 +826,8 @@ export default function HymnDetail() {
         <AndroidReaderControls onText={() => setTextSizeSheetVisible(true)} onTheme={toggleTheme}
           onAudio={() => handlePlayAudio(hymn)} hasAudio={hymnAudio(hymn)} />
       ) : <View style={[
-        styles.floatWrap, 
-        { bottom: Math.max(insets.bottom, 22) } 
+        styles.floatWrap,
+        { bottom: Math.max(insets.bottom, 22) }
       ]}>
         <GlassSurface
           intensity={55}
@@ -653,7 +848,14 @@ export default function HymnDetail() {
             }
           }}>
             <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
-              <MaterialIcons name="format-size" size={20} color={theme.onSurfaceVariant} />
+              <AppMenuIcon
+                ios="textformat.size"
+                android="format-size"
+                size={18}
+                containerSize={22}
+                weight="semibold"
+                color={theme.onSurfaceVariant}
+              />
             </View>
             <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{t.textSize}</Text>
           </TouchableOpacity>
@@ -666,7 +868,14 @@ export default function HymnDetail() {
             toggleTheme();
           }}>
             <View style={[styles.controlCircle, { backgroundColor: theme.surfaceVariants.containerHigh }]}>
-              <MaterialIcons name={isDarkMode ? "light-mode" : "dark-mode"} size={20} color={theme.onSurfaceVariant} />
+              <AppMenuIcon
+                ios={isDarkMode ? 'sun.max.fill' : 'moon.fill'}
+                android={isDarkMode ? 'light-mode' : 'dark-mode'}
+                size={18}
+                containerSize={22}
+                weight="semibold"
+                color={theme.onSurfaceVariant}
+              />
             </View>
             <Text style={[styles.controlLabel, { color: theme.onSurfaceVariant }]}>{isDarkMode ? t.lightMode : t.darkMode}</Text>
           </TouchableOpacity>
@@ -686,9 +895,12 @@ export default function HymnDetail() {
                   ? theme.surfaceVariants.containerHigh
                   : '#7B1F1D',
             }]}>
-              <MaterialIcons
-                name="play-arrow"
-                size={20}
+              <AppMenuIcon
+                ios="play.fill"
+                android="play-arrow"
+                size={17}
+                containerSize={20}
+                weight="semibold"
                 color={!hymnAudio(hymn)
                   ? theme.onSurfaceVariant + '66'
                   : isDarkMode
@@ -712,40 +924,78 @@ export default function HymnDetail() {
 
 
       {/* ── Prev / Next hymn navigation buttons (bottom edges) ───── */}
-      {prevHymn && (
-        <TouchableOpacity
-          style={[styles.hymnNavBtn, styles.hymnNavBtnLeft, { bottom: navBtnBottom }, navDisabled && { opacity: 0.15 }]}
-          onPress={goToPrev}
-          activeOpacity={0.6}
-          disabled={navDisabled}
-        >
-          <MaterialIcons name="chevron-left" size={20} color={theme.onSurfaceVariant} />
-          <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
-            {prevHymn.number}
-          </Text>
-        </TouchableOpacity>
-      )}
-      {nextHymn && (
-        <TouchableOpacity
-          style={[styles.hymnNavBtn, styles.hymnNavBtnRight, { bottom: navBtnBottom }, navDisabled && { opacity: 0.15 }]}
-          onPress={goToNext}
-          activeOpacity={0.6}
-          disabled={navDisabled}
-        >
-          <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
-            {nextHymn.number}
-          </Text>
-          <MaterialIcons name="chevron-right" size={20} color={theme.onSurfaceVariant} />
-        </TouchableOpacity>
-      )}
+      {prevHymn &&
+        (Platform.OS === 'ios' ? (
+          <GlassSurface
+            isInteractive
+            glassEffectStyle="regular"
+            intensity={54}
+            style={[styles.hymnNavGlassBtn, styles.hymnNavBtnLeft, { bottom: navBtnBottom }, navDisabled && { opacity: 0.25 }]}
+          >
+            <Pressable
+              style={({ pressed }) => [styles.hymnNavGlassHit, pressed && { opacity: 0.72 }]}
+              onPress={goToPrev}
+              disabled={navDisabled}
+            >
+              <AppMenuIcon ios="chevron.left" android="chevron-left" size={14} weight="semibold" color={theme.onSurfaceVariant} />
+              <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+                {prevHymn.number}
+              </Text>
+            </Pressable>
+          </GlassSurface>
+        ) : (
+          <TouchableOpacity
+            style={[styles.hymnNavBtn, styles.hymnNavBtnLeft, { bottom: navBtnBottom }, navDisabled && { opacity: 0.15 }]}
+            onPress={goToPrev}
+            activeOpacity={0.6}
+            disabled={navDisabled}
+          >
+            <MaterialIcons name="chevron-left" size={20} color={theme.onSurfaceVariant} />
+            <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+              {prevHymn.number}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      {nextHymn &&
+        (Platform.OS === 'ios' ? (
+          <GlassSurface
+            isInteractive
+            glassEffectStyle="regular"
+            intensity={54}
+            style={[styles.hymnNavGlassBtn, styles.hymnNavBtnRight, { bottom: navBtnBottom }, navDisabled && { opacity: 0.25 }]}
+          >
+            <Pressable
+              style={({ pressed }) => [styles.hymnNavGlassHit, pressed && { opacity: 0.72 }]}
+              onPress={goToNext}
+              disabled={navDisabled}
+            >
+              <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+                {nextHymn.number}
+              </Text>
+              <AppMenuIcon ios="chevron.right" android="chevron-right" size={14} weight="semibold" color={theme.onSurfaceVariant} />
+            </Pressable>
+          </GlassSurface>
+        ) : (
+          <TouchableOpacity
+            style={[styles.hymnNavBtn, styles.hymnNavBtnRight, { bottom: navBtnBottom }, navDisabled && { opacity: 0.15 }]}
+            onPress={goToNext}
+            activeOpacity={0.6}
+            disabled={navDisabled}
+          >
+            <Text style={[styles.hymnNavBtnText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+              {nextHymn.number}
+            </Text>
+            <MaterialIcons name="chevron-right" size={20} color={theme.onSurfaceVariant} />
+          </TouchableOpacity>
+        ))}
 
       {/* Playback presentation is owned once by the root layout. */}
 
       {/* ─── Add to Playlist Modal ───────────────────────── */}
-      <AddToPlaylistModal 
-        visible={playlistModalVisible} 
-        onClose={() => setPlaylistModalVisible(false)} 
-        hymnId={String(hymn.id)} 
+      <AddToPlaylistModal
+        visible={playlistModalVisible}
+        onClose={() => setPlaylistModalVisible(false)}
+        hymnId={String(hymn.id)}
       />
 
       {/* ─── Text Size Popover / Sheet (Workstream C) ────── */}
@@ -820,8 +1070,21 @@ const styles = StyleSheet.create({
     zIndex: 55,
     opacity: 0.5,
   },
-  hymnNavBtnLeft: { left: 4 },
-  hymnNavBtnRight: { right: 4 },
+  hymnNavGlassBtn: {
+    position: 'absolute',
+    bottom: 100,
+    borderRadius: 18,
+    zIndex: 55,
+  },
+  hymnNavGlassHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  hymnNavBtnLeft: { left: 10 },
+  hymnNavBtnRight: { right: 10 },
   hymnNavBtnText: {
     ...fonts.sansBold,
     fontSize: 13,
@@ -847,6 +1110,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 12,
   },
+  headerIOS: {
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 10,
+    gap: 8,
+  },
   headerTitle: {
     flex: 1,
     ...fonts.bold,
@@ -855,6 +1124,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerRight: { flexDirection: 'row' },
+  headerRightIOS: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerGlassCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  headerGlassHit: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   iconBtn: { padding: 8 },
 
   scroll: {
@@ -976,7 +1262,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 100,
+    borderRadius: 28,
     ...Platform.select({
       android: { elevation: 2 },
       ios: {

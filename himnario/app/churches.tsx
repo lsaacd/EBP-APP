@@ -46,7 +46,7 @@ import { fonts } from "../theme/theme";
 import { useCommunityApi, communityError } from "../utils/communityApi";
 import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import * as Haptics from "../utils/haptics";
-import GlassSurface from "../components/GlassSurface";
+import GlassSurface, { GlassGroup } from "../components/GlassSurface";
 import LiquidGlassSegmented from "../components/LiquidGlassSegmented";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
@@ -1899,7 +1899,7 @@ export default function ChurchesScreen() {
         pointerEvents="box-none"
         style={[styles.topChrome, { paddingTop: insets.top + 8 }]}
       >
-        <View style={styles.searchRow}>
+        <GlassGroup spacing={8} style={styles.searchRow}>
           <GlassSurface
             isInteractive
             glassEffectStyle="regular"
@@ -1926,6 +1926,7 @@ export default function ChurchesScreen() {
           </GlassSurface>
 
           <GlassSurface
+            isInteractive
             glassEffectStyle="regular"
             intensity={64}
             style={styles.searchPill}
@@ -2013,7 +2014,7 @@ export default function ChurchesScreen() {
               />
             </Pressable>
           </GlassSurface>
-        </View>
+        </GlassGroup>
 
         {/* Secondary Pill Bar: Map/List Switcher + Near Me GPS Button */}
         <View style={styles.pillControlsRow}>
@@ -2288,27 +2289,52 @@ export default function ChurchesScreen() {
                     {`${selectedPosition + 1} / ${enrichedChurches.length}`}
                   </Text>
                 )}
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => closeDetail()}
-                  accessibilityLabel={t.close}
-                  style={[
-                    styles.miniCloseBtn,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.10)"
-                        : "rgba(0,0,0,0.06)",
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="xmark"
-                    android="close"
-                    color={theme.onSurface}
-                    size={13}
-                    weight="bold"
-                  />
-                </Pressable>
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={56}
+                    style={styles.miniCloseGlass}
+                  >
+                    <Pressable
+                      hitSlop={10}
+                      onPress={() => closeDetail()}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.close}
+                      style={({ pressed }) => [styles.miniCloseGlassHit, pressed && { opacity: 0.72 }]}
+                    >
+                      <AppMenuIcon
+                        ios="xmark"
+                        android="close"
+                        color={theme.onSurface}
+                        size={14}
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => closeDetail()}
+                    accessibilityLabel={t.close}
+                    style={[
+                      styles.miniCloseBtn,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255,255,255,0.10)"
+                          : "rgba(0,0,0,0.06)",
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="xmark"
+                      android="close"
+                      color={theme.onSurface}
+                      size={13}
+                      weight="bold"
+                    />
+                  </Pressable>
+                )}
               </View>
               </View>
             ) : (
@@ -2335,28 +2361,53 @@ export default function ChurchesScreen() {
                 >
                   {sheetSummary}
                 </Text>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => handleModeChange("map")}
-                  accessibilityRole="button"
-                  accessibilityLabel={t.close}
-                  style={[
-                    styles.miniCloseBtn,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255,255,255,0.10)"
-                        : "rgba(0,0,0,0.06)",
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="xmark"
-                    android="close"
-                    color={theme.onSurface}
-                    size={13}
-                    weight="bold"
-                  />
-                </Pressable>
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={56}
+                    style={styles.miniCloseGlass}
+                  >
+                    <Pressable
+                      hitSlop={10}
+                      onPress={() => handleModeChange("map")}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.close}
+                      style={({ pressed }) => [styles.miniCloseGlassHit, pressed && { opacity: 0.72 }]}
+                    >
+                      <AppMenuIcon
+                        ios="xmark"
+                        android="close"
+                        color={theme.onSurface}
+                        size={14}
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => handleModeChange("map")}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.close}
+                    style={[
+                      styles.miniCloseBtn,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255,255,255,0.10)"
+                          : "rgba(0,0,0,0.06)",
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="xmark"
+                      android="close"
+                      color={theme.onSurface}
+                      size={13}
+                      weight="bold"
+                    />
+                  </Pressable>
+                )}
               </View>
             )
           }
@@ -4315,28 +4366,64 @@ export default function ChurchesScreen() {
                     </View>
                   ))}
                 </ScrollView>
-                <Pressable
-                  onPress={() => setFullscreenPhotoIndex(null)}
-                  style={{
-                    position: "absolute",
-                    top: insets.top + 14,
-                    right: 18,
-                    paddingHorizontal: 16,
-                    paddingVertical: 9,
-                    borderRadius: 999,
-                    backgroundColor: "rgba(255,255,255,0.18)",
-                  }}
-                >
-                  <Text
+                {isIOS ? (
+                  <GlassSurface
+                    isInteractive
+                    forceDark
+                    glassEffectStyle="clear"
+                    intensity={56}
                     style={{
-                      color: "#FFFFFF",
-                      ...fonts.sansSemiBold,
-                      fontSize: 15,
+                      position: "absolute",
+                      top: insets.top + 14,
+                      right: 18,
+                      borderRadius: 20,
                     }}
                   >
-                    {t.done}
-                  </Text>
-                </Pressable>
+                    <Pressable
+                      onPress={() => setFullscreenPhotoIndex(null)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.done}
+                      style={({ pressed }) => ({
+                        paddingHorizontal: 16,
+                        paddingVertical: 9,
+                        opacity: pressed ? 0.72 : 1,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          ...fonts.sansSemiBold,
+                          fontSize: 15,
+                        }}
+                      >
+                        {t.done}
+                      </Text>
+                    </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <Pressable
+                    onPress={() => setFullscreenPhotoIndex(null)}
+                    style={{
+                      position: "absolute",
+                      top: insets.top + 14,
+                      right: 18,
+                      paddingHorizontal: 16,
+                      paddingVertical: 9,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(255,255,255,0.18)",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        ...fonts.sansSemiBold,
+                        fontSize: 15,
+                      }}
+                    >
+                      {t.done}
+                    </Text>
+                  </Pressable>
+                )}
               </>
             );
           })()}
@@ -4383,25 +4470,56 @@ export default function ChurchesScreen() {
               >
                 {t.accountScanQrCode}
               </Text>
-              <Pressable
-                onPress={dismissQrScanner}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: "rgba(0,0,0,0.58)",
-                }}
-              >
-                <Text
+              {isIOS ? (
+                <GlassSurface
+                  isInteractive
+                  forceDark
+                  glassEffectStyle="clear"
+                  intensity={56}
+                  style={{ borderRadius: 20 }}
+                >
+                  <Pressable
+                    onPress={dismissQrScanner}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.close}
+                    style={({ pressed }) => ({
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      opacity: pressed ? 0.72 : 1,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        ...fonts.sansSemiBold,
+                        fontSize: 14.5,
+                      }}
+                    >
+                      {t.close}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
+              ) : (
+                <Pressable
+                  onPress={dismissQrScanner}
                   style={{
-                    color: "#FFFFFF",
-                    ...fonts.sansSemiBold,
-                    fontSize: 14.5,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(0,0,0,0.58)",
                   }}
                 >
-                  {t.close}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      ...fonts.sansSemiBold,
+                      fontSize: 14.5,
+                    }}
+                  >
+                    {t.close}
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
             {/* Center Viewfinder Frame */}
@@ -4473,7 +4591,6 @@ const styles = StyleSheet.create({
   nearMeGlassPill: {
     height: 40,
     borderRadius: 20,
-    overflow: "hidden",
   },
   nearMeGlassHit: {
     height: 40,
@@ -4556,27 +4673,25 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   circleBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    overflow: "hidden",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   circleBtnHit: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
   searchPill: {
     flex: 1,
-    height: 42,
-    borderRadius: 21,
+    height: 44,
+    borderRadius: 22,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    overflow: "hidden",
   },
   searchInput: {
     flex: 1,
@@ -4610,15 +4725,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   nearMePill: {
-    borderRadius: 999,
-    overflow: "hidden",
+    borderRadius: 20,
   },
   nearMeHit: {
+    height: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
   },
   countryChip: {
     paddingHorizontal: 13,
@@ -4832,6 +4946,20 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniCloseGlass: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniCloseGlassHit: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },

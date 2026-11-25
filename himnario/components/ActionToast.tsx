@@ -50,10 +50,10 @@ export default function ActionToast({ toast, topOffset = 18 }: ActionToastProps)
       <GlassSurface
         glassEffectStyle="regular"
         intensity={72}
+        tonalColor={fallbackBg}
         style={[
           styles.pill,
           {
-            backgroundColor: fallbackBg,
             borderColor: stroke,
           },
         ]}

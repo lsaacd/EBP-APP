@@ -39,7 +39,6 @@ import { useFriends } from '../utils/friendsStore';
 import { useNotifications } from '../utils/notificationsStore';
 import CommunityProfile, { type CommunitySubPage } from '../components/CommunityProfile';
 import MyProfileOverview from '../components/screens/MyProfileOverview';
-import GlassSurface from '../components/GlassSurface';
 import AppMenuIcon from '../components/AppMenuIcon';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
 import * as Haptics from '../utils/haptics';

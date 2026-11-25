@@ -1230,7 +1230,8 @@ export default function VerseCard() {
             >
               <GlassSurface
                 isInteractive
-                glassEffectStyle="regular"
+                forceDark={!isDefaultClassic || isDarkMode}
+                glassEffectStyle={isDefaultClassic ? "regular" : "clear"}
                 intensity={56}
                 style={styles.fullCircleBtn}
               >
@@ -1258,7 +1259,8 @@ export default function VerseCard() {
                 >
                   <GlassSurface
                     isInteractive
-                    glassEffectStyle="regular"
+                    forceDark={!isDefaultClassic || isDarkMode}
+                    glassEffectStyle={isDefaultClassic ? "regular" : "clear"}
                     intensity={56}
                     style={styles.fullCircleBtn}
                   >
@@ -1283,7 +1285,8 @@ export default function VerseCard() {
               ) : (
                 <GlassSurface
                   isInteractive
-                  glassEffectStyle="regular"
+                  forceDark={!isDefaultClassic || isDarkMode}
+                  glassEffectStyle={isDefaultClassic ? "regular" : "clear"}
                   intensity={56}
                   style={styles.fullCircleBtn}
                 >

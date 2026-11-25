@@ -29,7 +29,6 @@ import { useRouter, useNavigation } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MenuView } from '@react-native-menu/menu';
-import { requireOptionalNativeModule } from 'expo-modules-core';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, {
   Easing,
@@ -52,7 +51,7 @@ import { fonts } from '../../theme/theme';
 import * as Haptics from '../../utils/haptics';
 import { useNowPlaying } from '../../context/NowPlayingContext';
 import TabSwipeWrapper from '../../components/TabSwipeWrapper';
-import GlassSurface from '../../components/GlassSurface';
+import GlassSurface, { GlassGroup } from '../../components/GlassSurface';
 import LiquidGlassSegmented from '../../components/LiquidGlassSegmented';
 import AppMenuIcon from '../../components/AppMenuIcon';
 import SheetGrabber from '../../components/SheetGrabber';
@@ -63,35 +62,6 @@ const IS_IPAD = IS_IOS && Boolean((Platform as any).isPad);
 
 type FavSort = 'recent' | 'number' | 'alpha';
 type PlaylistSort = 'recent' | 'alpha' | 'count';
-
-let cachedGlassContainerChecked = false;
-let CachedGlassContainer: React.ComponentType<any> | null = null;
-let CachedGlassView: React.ComponentType<any> | null = null;
-
-function getNativeGlassPair() {
-  if (!IS_IOS) return null;
-  if (!cachedGlassContainerChecked) {
-    cachedGlassContainerChecked = true;
-    try {
-      const mod = requireOptionalNativeModule<{
-        isLiquidGlassAvailable?: boolean;
-        isGlassEffectAPIAvailable?: boolean;
-      }>('ExpoGlassEffect');
-      if (mod?.isLiquidGlassAvailable === true && mod.isGlassEffectAPIAvailable === true) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const glassPkg = require('expo-glass-effect');
-        CachedGlassContainer = glassPkg.GlassContainer ?? null;
-        CachedGlassView = glassPkg.GlassView ?? null;
-      }
-    } catch {
-      CachedGlassContainer = null;
-      CachedGlassView = null;
-    }
-  }
-  return CachedGlassContainer && CachedGlassView
-    ? { GlassContainer: CachedGlassContainer, GlassView: CachedGlassView }
-    : null;
-}
 
 export function compareHymnIdsByNumber(aId: string, bId: string): number {
   const aClean = String(aId).trim();
@@ -334,8 +304,6 @@ export default function FavoritesScreen() {
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.10)' : theme.outlineVariant + '45';
   const subtlePillBg = isDarkMode ? 'rgba(255,255,255,0.11)' : theme.primary + '12';
   const mutedSub = isDarkMode ? 'rgba(235,235,245,0.62)' : theme.onSurfaceVariant;
-  const scheme = isDarkMode ? 'dark' : 'light';
-  const glassPair = getNativeGlassPair();
   const menuIconActive = theme.primary;
   const menuIconDefault = theme.onSurface;
 
@@ -675,51 +643,32 @@ export default function FavoritesScreen() {
      * APPLE MUSIC–STYLE TOP NATIVE LIQUID GLASS SEARCH TAKEOVER
      * ══════════════════════════════════════════════════════════════════════════ */
     <Reanimated.View key="search-takeover" entering={FadeIn.duration(160)}>
-      {glassPair ? (
-        <glassPair.GlassContainer key={`fav-search-bar-${scheme}`} spacing={8} style={styles.topSearchRow}>
-          <glassPair.GlassView
-            glassEffectStyle="regular"
-            colorScheme={scheme}
-            isInteractive
-            style={styles.topSearchPill}
-          >
-            {searchInputInner}
-          </glassPair.GlassView>
-          <glassPair.GlassView
-            glassEffectStyle="regular"
-            colorScheme={scheme}
-            isInteractive
-            style={styles.glassCircle}
-          >
-            {cancelSearchBtnInner}
-          </glassPair.GlassView>
-        </glassPair.GlassContainer>
-      ) : (
-        <View style={styles.topSearchRow}>
-          <GlassSurface
-            isInteractive
-            intensity={58}
-            style={[
-              styles.topSearchPill,
-              !IS_IOS && {
-                backgroundColor: cardSurface,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: cardBorder,
-                overflow: 'hidden',
-              },
-            ]}
-          >
-            {searchInputInner}
-          </GlassSurface>
-          <GlassSurface
-            isInteractive
-            intensity={58}
-            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-          >
-            {cancelSearchBtnInner}
-          </GlassSurface>
-        </View>
-      )}
+      <GlassGroup spacing={8} style={styles.topSearchRow}>
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={58}
+          style={[
+            styles.topSearchPill,
+            !IS_IOS && {
+              backgroundColor: cardSurface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: cardBorder,
+              overflow: 'hidden',
+            },
+          ]}
+        >
+          {searchInputInner}
+        </GlassSurface>
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={58}
+          style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
+        >
+          {cancelSearchBtnInner}
+        </GlassSurface>
+      </GlassGroup>
 
       {/* Scope Bar directly beneath the Search Pill (matches Apple Music | Library) */}
       <View style={{ marginBottom: 20 }}>
@@ -815,62 +764,34 @@ export default function FavoritesScreen() {
           </Text>
         </View>
 
-        {glassPair ? (
-          <glassPair.GlassContainer key={`fav-actions-${scheme}-${activeTab}`} spacing={6} style={styles.actionsRow}>
-            {activeTab === 'playlists' ? (
-              <glassPair.GlassView
-                glassEffectStyle="regular"
-                colorScheme={scheme}
-                isInteractive
-                style={styles.glassCircle}
-              >
-                {createTriggerNode}
-              </glassPair.GlassView>
-            ) : null}
-            <glassPair.GlassView
-              glassEffectStyle="regular"
-              colorScheme={scheme}
-              isInteractive
-              style={styles.glassCircle}
-            >
-              {searchTriggerNode}
-            </glassPair.GlassView>
-            <glassPair.GlassView
-              glassEffectStyle="regular"
-              colorScheme={scheme}
-              isInteractive
-              style={styles.glassCircle}
-            >
-              {sortMenuNode}
-            </glassPair.GlassView>
-          </glassPair.GlassContainer>
-        ) : (
-          <View style={styles.actionsRow}>
-            {activeTab === 'playlists' ? (
-              <GlassSurface
-                isInteractive
-                intensity={58}
-                style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-              >
-                {createTriggerNode}
-              </GlassSurface>
-            ) : null}
+        <GlassGroup spacing={8} style={styles.actionsRow}>
+          {activeTab === 'playlists' ? (
             <GlassSurface
               isInteractive
+              glassEffectStyle="regular"
               intensity={58}
               style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
             >
-              {searchTriggerNode}
+              {createTriggerNode}
             </GlassSurface>
-            <GlassSurface
-              isInteractive
-              intensity={58}
-              style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
-            >
-              {sortMenuNode}
-            </GlassSurface>
-          </View>
-        )}
+          ) : null}
+          <GlassSurface
+            isInteractive
+            glassEffectStyle="regular"
+            intensity={58}
+            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
+          >
+            {searchTriggerNode}
+          </GlassSurface>
+          <GlassSurface
+            isInteractive
+            glassEffectStyle="regular"
+            intensity={58}
+            style={[styles.glassCircle, !IS_IOS && styles.androidCircleClip]}
+          >
+            {sortMenuNode}
+          </GlassSurface>
+        </GlassGroup>
       </View>
 
       {/* ── Genuine Liquid Glass Sliding Segmented Control ── */}

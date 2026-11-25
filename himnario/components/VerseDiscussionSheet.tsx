@@ -67,7 +67,7 @@ import {
   mergeThreadPage,
 } from "../utils/verseDiscussionState";
 import type { DailyVerse } from "../data/dailyVerses";
-import GlassSurface from "./GlassSurface";
+import GlassSurface, { GlassGroup } from "./GlassSurface";
 import AppMenuIcon from "./AppMenuIcon";
 import FriendButton from "./FriendButton";
 import { memberSinceLabel, type FriendStatus } from "../utils/friends";
@@ -1179,7 +1179,7 @@ export default function VerseDiscussionSheet({
                       {subtitleOverride ?? `${verse[language].ref} RVR09`}
                     </Text>
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <GlassGroup spacing={6} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <GlassSurface
                       isInteractive
                       glassEffectStyle="regular"
@@ -1224,7 +1224,7 @@ export default function VerseDiscussionSheet({
                         />
                       </Pressable>
                     </GlassSurface>
-                  </View>
+                  </GlassGroup>
                 </View>
 
                 {/* YouTube Music Style Sort Pills: Top / Newest */}

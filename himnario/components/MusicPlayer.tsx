@@ -50,6 +50,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MenuView } from '@react-native-menu/menu';
+import GlassSurface from './GlassSurface';
 import Svg, { Path } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -846,26 +847,84 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
 
           {/* ─── Top Bar (X left · SF Pro header centered · chevron right) ── */}
           <View style={styles.topBar}>
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                clearNowPlaying();
-                onClose();
-              }}
-              style={styles.iconHit}
-              id="music-player-stop"
-            >
-              <MaterialIcons name="close" size={26} color="rgba(255,255,255,0.68)" />
-            </TouchableOpacity>
-            <View style={{ flex: 1, alignItems: 'center' }}>
+            {Platform.OS === 'ios' ? (
+              <GlassSurface
+                isInteractive
+                forceDark
+                glassEffectStyle="clear"
+                intensity={56}
+                style={styles.topGlassCircle}
+              >
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    clearNowPlaying();
+                    onClose();
+                  }}
+                  style={({ pressed }) => [styles.topGlassHit, pressed && { opacity: 0.72 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
+                  id="music-player-stop"
+                >
+                  <AppMenuIcon
+                    ios="xmark"
+                    android="close"
+                    size={18}
+                    containerSize={22}
+                    weight="semibold"
+                    color="rgba(255,255,255,0.92)"
+                  />
+                </Pressable>
+              </GlassSurface>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  clearNowPlaying();
+                  onClose();
+                }}
+                style={styles.iconHit}
+                id="music-player-stop"
+              >
+                <MaterialIcons name="close" size={26} color="rgba(255,255,255,0.68)" />
+              </TouchableOpacity>
+            )}
+            <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 8 }}>
               <Text style={styles.topLabel}>{t.nowPlaying}</Text>
               <Text style={styles.topSubLabel} numberOfLines={1}>
                 {queueLabel || 'Himnario El Buen Pastor'}
               </Text>
             </View>
-            <TouchableOpacity onPress={handleClose} style={styles.iconHit} id="music-player-close">
-              <MaterialIcons name="keyboard-arrow-down" size={32} color="rgba(255,255,255,0.68)" />
-            </TouchableOpacity>
+            {Platform.OS === 'ios' ? (
+              <GlassSurface
+                isInteractive
+                forceDark
+                glassEffectStyle="clear"
+                intensity={56}
+                style={styles.topGlassCircle}
+              >
+                <Pressable
+                  onPress={handleClose}
+                  style={({ pressed }) => [styles.topGlassHit, pressed && { opacity: 0.72 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.close}
+                  id="music-player-close"
+                >
+                  <AppMenuIcon
+                    ios="chevron.down"
+                    android="keyboard-arrow-down"
+                    size={18}
+                    containerSize={22}
+                    weight="semibold"
+                    color="rgba(255,255,255,0.92)"
+                  />
+                </Pressable>
+              </GlassSurface>
+            ) : (
+              <TouchableOpacity onPress={handleClose} style={styles.iconHit} id="music-player-close">
+                <MaterialIcons name="keyboard-arrow-down" size={32} color="rgba(255,255,255,0.68)" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* ─── Album Art Stage (YouTube Music–style horizontal swipe + seamless morph) ── */}
@@ -1081,36 +1140,85 @@ function MusicPlayerInner({ visible, hymnId, onClose, onViewLyrics, miniPlayerBo
               </Pressable>
 
               {/* 5. Single Sleek Sacred Ink Lyrics Pill on Right */}
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  cancelAnimation(lyricsScale);
-                  lyricsScale.value = withSequence(
-                    withTiming(0.88, { duration: 55, easing: Easing.out(Easing.quad) }),
-                    withTiming(1.06, { duration: 90, easing: Easing.out(Easing.cubic) }),
-                    withTiming(1, { duration: 100, easing: Easing.inOut(Easing.quad) }),
-                  );
-                  const lyricsId = currentId;
-                  closeFullPlayer();
-                  onClose();
-                  if (onViewLyrics) onViewLyrics(lyricsId);
-                  else router.replace(`/hymn/${lyricsId}`);
-                }}
-                style={({ pressed }) => [
-                  styles.lyricsCapsule,
-                  pressed && { opacity: 0.8 },
-                ]}
-                id="music-player-lyrics"
-                accessibilityRole="button"
-                accessibilityLabel={t.playerLyrics}
-              >
-                <Animated.View style={lyricsAnimStyle}>
-                  <MaterialIcons name="format-quote" size={22} color="#ffffff" />
-                </Animated.View>
-                <Text style={styles.lyricsCapsuleText} numberOfLines={1}>
-                  {t.playerLyrics}
-                </Text>
-              </Pressable>
+              {Platform.OS === 'ios' ? (
+                <GlassSurface
+                  isInteractive
+                  forceDark
+                  glassEffectStyle="regular"
+                  tintColor="rgba(123, 29, 32, 0.72)"
+                  intensity={56}
+                  style={styles.lyricsGlassPill}
+                >
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      cancelAnimation(lyricsScale);
+                      lyricsScale.value = withSequence(
+                        withTiming(0.88, { duration: 55, easing: Easing.out(Easing.quad) }),
+                        withTiming(1.06, { duration: 90, easing: Easing.out(Easing.cubic) }),
+                        withTiming(1, { duration: 100, easing: Easing.inOut(Easing.quad) }),
+                      );
+                      const lyricsId = currentId;
+                      closeFullPlayer();
+                      onClose();
+                      if (onViewLyrics) onViewLyrics(lyricsId);
+                      else router.replace(`/hymn/${lyricsId}`);
+                    }}
+                    style={({ pressed }) => [
+                      styles.lyricsGlassHit,
+                      pressed && { opacity: 0.78 },
+                    ]}
+                    id="music-player-lyrics"
+                    accessibilityRole="button"
+                    accessibilityLabel={t.playerLyrics}
+                  >
+                    <Animated.View style={lyricsAnimStyle}>
+                      <AppMenuIcon
+                        ios="quote.bubble"
+                        android="format-quote"
+                        size={18}
+                        containerSize={22}
+                        weight="semibold"
+                        color="#ffffff"
+                      />
+                    </Animated.View>
+                    <Text style={styles.lyricsCapsuleText} numberOfLines={1}>
+                      {t.playerLyrics}
+                    </Text>
+                  </Pressable>
+                </GlassSurface>
+              ) : (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    cancelAnimation(lyricsScale);
+                    lyricsScale.value = withSequence(
+                      withTiming(0.88, { duration: 55, easing: Easing.out(Easing.quad) }),
+                      withTiming(1.06, { duration: 90, easing: Easing.out(Easing.cubic) }),
+                      withTiming(1, { duration: 100, easing: Easing.inOut(Easing.quad) }),
+                    );
+                    const lyricsId = currentId;
+                    closeFullPlayer();
+                    onClose();
+                    if (onViewLyrics) onViewLyrics(lyricsId);
+                    else router.replace(`/hymn/${lyricsId}`);
+                  }}
+                  style={({ pressed }) => [
+                    styles.lyricsCapsule,
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  id="music-player-lyrics"
+                  accessibilityRole="button"
+                  accessibilityLabel={t.playerLyrics}
+                >
+                  <Animated.View style={lyricsAnimStyle}>
+                    <MaterialIcons name="format-quote" size={22} color="#ffffff" />
+                  </Animated.View>
+                  <Text style={styles.lyricsCapsuleText} numberOfLines={1}>
+                    {t.playerLyrics}
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
             {/* 3. Progress Bar (isolated component — own position state) */}
@@ -1404,6 +1512,20 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   iconHit: { padding: 8 },
+  topGlassCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topGlassHit: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topLabel: {
     fontFamily: SYSTEM_FONT,
     fontWeight: '700',
@@ -1561,6 +1683,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(123, 29, 32, 0.58)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255, 255, 255, 0.24)',
+  },
+  lyricsGlassPill: {
+    height: 42,
+    borderRadius: 21,
+  },
+  lyricsGlassHit: {
+    height: 42,
+    borderRadius: 21,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    gap: 6,
   },
   lyricsCapsuleText: {
     fontFamily: SYSTEM_FONT,
