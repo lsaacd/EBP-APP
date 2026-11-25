@@ -1,5 +1,17 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #9 (`2.2.0-sdk58-1`): Unified Home Header Liquid Glass Pill Capsule & Full-Bleed Circular Profile Photo (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`b1c8ec1`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #9:** Group [`a2fa380e-ae26-4580-ae91-ffad24ab084d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/a2fa380e-ae26-4580-ae91-ffad24ab084d) · iOS update `01a21500-c8e9-7bf0-9467-03907a86976e`.
+- **What Changed (`himnario/components/HomeHeaderActions.tsx`):**
+  - Combined Home's top-right Search and Profile buttons into a single unified `46pt` (`borderRadius: 23`) interactive `GlassSurface` pill capsule.
+  - Expanded `UserAvatar` to `size={46}` flush to the right semicircular end (`paddingRight: 0`, `borderWidth: 0`) so profile photos fill 100% edge-to-edge inside the circle with no dark ring gap; kept a subtle vertical divider when showing monogram initials or the guest icon, and added a crisp ringed unread badge on the avatar rim.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, iOS Hermes export clean (`2,642` modules, `7.8 MB`, 129 assets).
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #8 (`2.2.0-sdk58-1`) & Cloudflare Pages `e313a270`: Universal Links (`+native-intent`), Shareable Member & Church Web Pages, Homepage/App Upgrade & Updated Legal Policies (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`145565c`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #9 (`2.2.0-sdk58-1`): Unified Home Header Liquid Glass Pill Capsule with Full-Bleed Circular Profile Photo
+
+- **Branch & Source:** `sdk-58` branch (feature commit `b1c8ec1`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA (`production` channel/branch, `runtimeVersion: "2.2.0-sdk58-1"` — Build `#43` only):**
+  - **Update Group:** [`a2fa380e-ae26-4580-ae91-ffad24ab084d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/a2fa380e-ae26-4580-ae91-ffad24ab084d)
+  - **iOS Update ID:** `01a21500-c8e9-7bf0-9467-03907a86976e`
+- **Included Changes (`himnario/components/HomeHeaderActions.tsx`):**
+  - Replaced the two separate Home top-right glass circles with one unified `46pt`-tall (`borderRadius: 23`) interactive Liquid Glass pill capsule holding both the **Search** icon and the **Profile** slot.
+  - Expanded `UserAvatar` from `38pt` to the full `46×46` edge-to-edge circle flush against the right semicircular end of the capsule (`paddingRight: 0`, `borderWidth: 0`) so the entire photo fills the circle with no dark border gap, with a ringed unread dot on the top-right rim when notifications/friend requests are unread and a clean hairline divider fallback when no photo is set.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, iOS Hermes export clean (`2,642` modules, `7.8 MB` `.hbc`, 129 assets).
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #8 (`2.2.0-sdk58-1`) & Cloudflare Pages `e313a270`: Universal Links (`+native-intent`), Shareable Member & Church Web Pages, Homepage/App Upgrade & Updated Legal Policies
 
 - **Branch & Source:** `sdk-58` branch (feature commit `145565c`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
