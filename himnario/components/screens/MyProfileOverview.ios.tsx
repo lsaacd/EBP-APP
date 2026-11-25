@@ -74,6 +74,8 @@ export default function MyProfileOverviewIOS({
   const es = language !== 'en';
   const scheme = isDarkMode ? 'dark' : 'light';
   const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
+  const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
   const hasMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
@@ -128,6 +130,7 @@ export default function MyProfileOverviewIOS({
     highlightDetail = false,
   ) => (
     <Button
+      modifiers={[foregroundStyle(primaryStyle)]}
       onPress={() => {
         Haptics.selectionAsync().catch(() => {});
         onPress();
@@ -154,8 +157,8 @@ export default function MyProfileOverviewIOS({
   );
 
   return (
-    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={accentTint}>
-      <Form modifiers={[refreshable(handleRefresh), tint(accentTint)]}>
+    <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={monochromeInk}>
+      <Form modifiers={[refreshable(handleRefresh), tint(monochromeInk)]}>
         {/* ─── Account (Inkigo Profile Style) ─── */}
         <Section title={t.authAccountTitle}>
           <LabeledContent label={t.authNameLabel}>
@@ -251,7 +254,10 @@ export default function MyProfileOverviewIOS({
 
         {/* ─── Session ─── */}
         <Section>
-          <Button onPress={() => void handleSignOut()}>
+          <Button
+            modifiers={[foregroundStyle(primaryStyle)]}
+            onPress={() => void handleSignOut()}
+          >
             <Label
               title={t.authSignOut}
               systemImage="rectangle.portrait.and.arrow.right"

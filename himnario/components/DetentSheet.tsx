@@ -35,6 +35,8 @@ type Props = {
   background?: React.ReactNode;
   /** Floats above the sheet's top-right edge and travels with it. */
   accessory?: React.ReactNode;
+  /** Place grabber neatly inside the top edge ('inside') or floating above ('floating'). */
+  grabberPlacement?: 'floating' | 'inside';
   style?: StyleProp<ViewStyle>;
 };
 
@@ -52,6 +54,7 @@ export default function DetentSheet({
   headerGesture,
   background,
   accessory,
+  grabberPlacement = 'floating',
   style,
 }: Props) {
   const maxHeight = snapHeights[snapHeights.length - 1];
@@ -112,7 +115,13 @@ export default function DetentSheet({
         ) : null}
         <GestureDetector gesture={gesture}>
           <View collapsable={false}>
-            <SheetGrabber interactive />
+            {grabberPlacement === 'inside' ? (
+              <View style={styles.insideGrabberWrap}>
+                <View style={styles.insideGrabberPill} />
+              </View>
+            ) : (
+              <SheetGrabber interactive />
+            )}
             {header}
           </View>
         </GestureDetector>
@@ -156,5 +165,18 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+  },
+  insideGrabberWrap: {
+    width: '100%',
+    paddingTop: 9,
+    paddingBottom: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insideGrabberPill: {
+    width: 38,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(130, 128, 122, 0.42)',
   },
 });

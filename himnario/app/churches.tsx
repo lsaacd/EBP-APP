@@ -47,8 +47,10 @@ import { useCommunityApi, communityError } from "../utils/communityApi";
 import { buildSheetPanGesture } from "../utils/useSheetBackdropGesture";
 import * as Haptics from "../utils/haptics";
 import GlassSurface from "../components/GlassSurface";
+import LiquidGlassSegmented from "../components/LiquidGlassSegmented";
 import AppMenuIcon from "../components/AppMenuIcon";
 import DetentSheet from "../components/DetentSheet";
+import { LinearGradient } from "expo-linear-gradient";
 import { AnimatedField } from "../components/AnimatedField";
 import ActionToast, { type ActionToastMessage } from "../components/ActionToast";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
@@ -85,6 +87,64 @@ const SUBMIT_SHEET_SPRING = {
 
 const CHURCH_PIN_IMG = require("../assets/images/church-pin.png");
 const CHURCH_PIN_SELECTED_IMG = require("../assets/images/church-pin-selected.png");
+
+/**
+ * Custom Fabric-safe Church Map Marker.
+ *
+ * `react-native-maps@1.29` iOS `AIRMapMarker.setImageSrc:` calls `[RCTBridge currentBridge]`,
+ * which is nil under Bridgeless Fabric (React Native 0.88 / Expo SDK 58), making `<Marker image={...} />`
+ * invisible (0x0). Rendering an explicit-sized `<Image>` child routes through Fabric's image loader
+ * and keeps anchor/bounds rock-solid on both iOS Apple Maps and Android Google Maps.
+ */
+function ChurchPinMarker({
+  church,
+  isSelected,
+  onPress,
+}: {
+  church: VerifiedChurch;
+  isSelected: boolean;
+  onPress: () => void;
+}) {
+  const [androidTrack, setAndroidTrack] = useState(Platform.OS === "android");
+  const pinW = isSelected ? 48 : 40;
+  const pinH = isSelected ? 43 : 36;
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const timer = setTimeout(() => setAndroidTrack(false), 320);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Marker
+      coordinate={{ latitude: church.lat, longitude: church.lng }}
+      anchor={{ x: 0.5, y: 0.88 }}
+      centerOffset={{ x: 0, y: -16 }}
+      tracksViewChanges={Platform.OS === "android" ? androidTrack : false}
+      zIndex={isSelected ? 20 : 1}
+      onPress={(e) => {
+        e.stopPropagation?.();
+        onPress();
+      }}
+    >
+      <View collapsable={false} style={styles.churchPinSlot}>
+        <Image
+          source={isSelected ? CHURCH_PIN_SELECTED_IMG : CHURCH_PIN_IMG}
+          style={{ width: pinW, height: pinH }}
+          resizeMode="contain"
+          fadeDuration={0}
+          onLoadEnd={
+            Platform.OS === "android"
+              ? () => {
+                  setTimeout(() => setAndroidTrack(false), 120);
+                }
+              : undefined
+          }
+        />
+      </View>
+    </Marker>
+  );
+}
 
 export interface VerifiedChurch {
   id: string;
@@ -548,6 +608,45 @@ export default function ChurchesScreen() {
   useEffect(() => {
     void loadChurches();
   }, [loadChurches]);
+
+  // Frame the nearest verified church (and user dot when nearby) once data loads
+  // so markers are immediately visible even when location resolves after mount.
+  useEffect(() => {
+    if (Platform.OS === "web" || loading || churches.length === 0 || params.id) return;
+    if (hasCenteredInitialRef.current || !mapRef.current) return;
+    hasCenteredInitialRef.current = true;
+
+    const origin = userCoords ?? viewerCoords;
+    const nearest = origin ? churches[nearestIndex(origin, churches)] : churches[0];
+    if (!nearest) return;
+
+    if (userCoords && haversineMiles(userCoords.lat, userCoords.lng, nearest.lat, nearest.lng) <= 150) {
+      mapRef.current.fitToCoordinates(
+        [
+          { latitude: userCoords.lat, longitude: userCoords.lng },
+          { latitude: nearest.lat, longitude: nearest.lng },
+        ],
+        {
+          edgePadding: {
+            top: insets.top + TOP_CONTROLS_HEIGHT + 36,
+            right: 64,
+            bottom: 110,
+            left: 64,
+          },
+          animated: false,
+        },
+      );
+      return;
+    }
+
+    const region: Region = {
+      latitude: nearest.lat,
+      longitude: nearest.lng,
+      latitudeDelta: 0.35,
+      longitudeDelta: 0.35,
+    };
+    mapRef.current.animateToRegion(region, 420);
+  }, [churches, insets.top, loading, params.id, userCoords, viewerCoords]);
 
   const requestNearMe = useCallback(
     async (focusMap = true) => {
@@ -1414,21 +1513,26 @@ export default function ChurchesScreen() {
     setSnapIndex(toIndex ?? listSnapBeforeDetailRef.current);
   }, []);
 
-  // Raises the list (search focus or the "Lista" pill).
-  const openListSheet = useCallback(() => {
-    if (selectedChurch) {
-      pendingLinkChurchIdRef.current = null;
-      setSelectedChurch(null);
-      setDetailBodyHeight(0);
-    }
-    setSnapIndex(2);
-  }, [selectedChurch]);
+  // Raises the list (search focus always expands full; tapping "Lista" opens half
+  // when there are only a few churches so the map & pins stay visible above it).
+  const openListSheet = useCallback(
+    (preferFull = false) => {
+      if (selectedChurch) {
+        pendingLinkChurchIdRef.current = null;
+        setSelectedChurch(null);
+        setDetailBodyHeight(0);
+      }
+      const nextSnap = preferFull || enrichedChurches.length > 3 ? 2 : 1;
+      setSnapIndex(nextSnap);
+    },
+    [enrichedChurches.length, selectedChurch],
+  );
 
   const sheetMode: "map" | "list" = !selectedChurch && snapIndex > 0 ? "list" : "map";
 
   const handleModeChange = (mode: "map" | "list") => {
     if (mode === "list") {
-      openListSheet();
+      openListSheet(false);
       return;
     }
     Keyboard.dismiss();
@@ -1649,13 +1753,11 @@ export default function ChurchesScreen() {
             const church = pin.church;
             const isSelected = selectedChurch?.id === church.id;
             return (
-              <Marker
-                key={church.id}
-                coordinate={{ latitude: church.lat, longitude: church.lng }}
-                image={isSelected ? CHURCH_PIN_SELECTED_IMG : CHURCH_PIN_IMG}
-                centerOffset={{ x: 0, y: -4 }}
-                onPress={(e) => {
-                  e.stopPropagation?.();
+              <ChurchPinMarker
+                key={Platform.OS === "android" ? `${church.id}-${isSelected ? "s" : "n"}` : church.id}
+                church={church}
+                isSelected={isSelected}
+                onPress={() => {
                   if (!pinPickerOpen) focusChurchOnMap(church);
                 }}
               />
@@ -1779,6 +1881,19 @@ export default function ChurchesScreen() {
         </>
       )}
 
+      {/* ── Subtle top status-bar gradient scrim for readability over bright map tiles ── */}
+      {Platform.OS !== "web" && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            isDarkMode
+              ? ["rgba(10,10,12,0.72)", "rgba(10,10,12,0.28)", "rgba(10,10,12,0)"]
+              : ["rgba(250,247,241,0.82)", "rgba(250,247,241,0.34)", "rgba(250,247,241,0)"]
+          }
+          style={[styles.topStatusScrim, { height: insets.top + 34 }]}
+        />
+      )}
+
       {/* ── Floating Liquid Glass controls: search, scan, add, Map/List, Near me ── */}
       <View
         pointerEvents="box-none"
@@ -1825,7 +1940,7 @@ export default function ChurchesScreen() {
             <TextInput
               value={search}
               onChangeText={setSearch}
-              onFocus={openListSheet}
+              onFocus={() => openListSheet(true)}
               placeholder={
                 t.churchNameCityOrZip
               }
@@ -1902,48 +2017,59 @@ export default function ChurchesScreen() {
 
         {/* Secondary Pill Bar: Map/List Switcher + Near Me GPS Button */}
         <View style={styles.pillControlsRow}>
-          {Platform.OS !== "web" && (
-            <GlassSurface
-              glassEffectStyle="regular"
-              intensity={62}
-              style={styles.modeSegmented}
-            >
-              {(["map", "list"] as const).map((m) => {
-                const active = sheetMode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      handleModeChange(m);
-                    }}
-                    style={[
-                      styles.modeBtn,
-                      active && { backgroundColor: theme.primary },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios={m === "map" ? "map.fill" : "list.bullet"}
-                      android={m === "map" ? "map" : "format-list-bulleted"}
-                      color={active ? theme.onPrimary : theme.onSurface}
-                      size={14}
-                      weight="semibold"
-                    />
-                    <Text
+          {Platform.OS !== "web" &&
+            (isIOS ? (
+              <View style={styles.iosModeSegmentedWrap}>
+                <LiquidGlassSegmented
+                  compact
+                  value={sheetMode}
+                  onChange={(m) => handleModeChange(m)}
+                  items={[
+                    { key: "map", label: t.profileMap },
+                    { key: "list", label: t.churchList },
+                  ]}
+                />
+              </View>
+            ) : (
+              <GlassSurface
+                glassEffectStyle="regular"
+                intensity={62}
+                style={styles.modeSegmented}
+              >
+                {(["map", "list"] as const).map((m) => {
+                  const active = sheetMode === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        handleModeChange(m);
+                      }}
                       style={[
-                        styles.modeBtnText,
-                        { color: active ? theme.onPrimary : theme.onSurface },
+                        styles.modeBtn,
+                        active && { backgroundColor: theme.primary },
                       ]}
                     >
-                      {m === "map"
-                        ? t.profileMap
-                        : t.churchList}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </GlassSurface>
-          )}
+                      <AppMenuIcon
+                        ios={m === "map" ? "map.fill" : "list.bullet"}
+                        android={m === "map" ? "map" : "format-list-bulleted"}
+                        color={active ? theme.onPrimary : theme.onSurface}
+                        size={14}
+                        weight="semibold"
+                      />
+                      <Text
+                        style={[
+                          styles.modeBtnText,
+                          { color: active ? theme.onPrimary : theme.onSurface },
+                        ]}
+                      >
+                        {m === "map" ? t.profileMap : t.churchList}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </GlassSurface>
+            ))}
 
           {Platform.OS !== "web" && (
             <GlassSurface
@@ -2034,19 +2160,26 @@ export default function ChurchesScreen() {
           index={snapIndex}
           onIndexChange={handleSheetIndexChange}
           headerGesture={headerSwipe}
+          grabberPlacement="inside"
           style={
             isIOS
-              ? { backgroundColor: "transparent", borderColor: "transparent", shadowOpacity: 0 }
+              ? {
+                  backgroundColor: "transparent",
+                  borderColor: isDarkMode
+                    ? "rgba(255,255,255,0.14)"
+                    : "rgba(110,22,25,0.10)",
+                  shadowOpacity: isDarkMode ? 0.34 : 0.14,
+                }
               : { backgroundColor: bgSurface, borderColor: cardBorder }
           }
           background={
             isIOS ? (
               <GlassSurface
                 glassEffectStyle="regular"
-                intensity={70}
-                // A church card carries photos and a schedule: give it the
-                // frosted backing so text never competes with the map.
-                stableBackdrop={Boolean(selectedChurch)}
+                intensity={76}
+                // Always use a frosted backing so list & detail cards stay crisp
+                // and never turn washed-out green over park tiles on the map.
+                stableBackdrop
                 style={StyleSheet.absoluteFill}
               />
             ) : undefined
@@ -2186,7 +2319,7 @@ export default function ChurchesScreen() {
                     height: LIST_HEADER_HEIGHT,
                     flexDirection: "row",
                     alignItems: "center",
-                    paddingTop: 10,
+                    paddingTop: 4,
                     paddingBottom: 6,
                   },
                 ]}
@@ -4391,6 +4524,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   root: { flex: 1 },
+  topStatusScrim: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 15,
+  },
+  churchPinSlot: {
+    width: 50,
+    height: 45,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  iosModeSegmentedWrap: {
+    width: 168,
+  },
   topChrome: {
     position: "absolute",
     top: 0,

@@ -273,10 +273,7 @@ function IOSTabs() {
         <NativeTabs.Trigger.Label>{t.tabFavorites}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger
-        name="settings"
-        disableTransparentOnScrollEdge
-      >
+      <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Icon
           src={{
             default: require('../../assets/images/ios-tabs/tab-settings-outline.png'),

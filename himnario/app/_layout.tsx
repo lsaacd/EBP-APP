@@ -153,18 +153,24 @@ function ThemedStack() {
   const isHymn = pathname.startsWith('/hymn/');
   const isTextSizeSheet = pathname === '/text-size-sheet';
   const isIOSLiquidGlass = isIOSLiquidGlassAvailable();
+  const adaptiveTitleColor = isDarkMode ? '#FFFFFF' : '#000000';
   const profileHeaderOptions = isIOS
     ? {
         headerShown: true,
-        headerTransparent: true,
-        headerBlurEffect: isIOSLiquidGlass
-          ? undefined
-          : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light'),
         headerBackButtonDisplayMode: 'minimal' as const,
-        headerTintColor: isDarkMode ? '#ffffff' : theme.primary,
-        headerLargeStyle: {
-          backgroundColor: 'transparent',
-        },
+        headerTintColor: isDarkMode ? '#FFFFFF' : theme.primary,
+        headerTitleStyle: { color: adaptiveTitleColor },
+        headerLargeTitleStyle: { color: adaptiveTitleColor },
+        headerUserInterfaceStyle: (isDarkMode ? 'dark' : 'light') as 'dark' | 'light',
+        ...(isIOSLiquidGlass
+          ? {}
+          : {
+              headerTransparent: true,
+              headerBlurEffect: (isDarkMode ? 'dark' : 'light') as 'dark' | 'light',
+              headerLargeStyle: {
+                backgroundColor: 'transparent',
+              },
+            }),
       }
     : {
         headerShown: false,
@@ -241,6 +247,7 @@ function ThemedStack() {
       <Stack
         screenOptions={{
           headerShown: false,
+          statusBarStyle: showFullPlayer || isDarkMode ? 'light' : 'dark',
           animation: 'fade_from_bottom',
           fullScreenGestureEnabled: true,
           gestureEnabled: true,
@@ -319,6 +326,8 @@ function ThemedStack() {
               : undefined,
             headerTitle: t.about,
             headerTintColor: isDarkMode ? '#ffffff' : theme.primary,
+            headerTitleStyle: { color: adaptiveTitleColor },
+            headerUserInterfaceStyle: isDarkMode ? 'dark' : 'light',
             contentStyle: {
               backgroundColor: isIOSLiquidGlass
                 ? 'transparent'

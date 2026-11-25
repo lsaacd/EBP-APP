@@ -2,14 +2,16 @@
  * SettingsScreen (iOS 26 Native SwiftUI Form) — Modeled after Oyelo's SettingsView & Inkigo's Form UI.
  *
  * Features:
- * - Inset-grouped SwiftUI Form with monochrome SF Symbols (cross-free)
- * - Inline Liquid Glass hover Pickers for Appearance (System / Light / Dark) & Languages
- * - Compact live hymn preview + native iOS 26 Slider for Font Size
- * - Offline audio status, confirmation download, and delete controls
- * - Inkigo-style expandable DisclosureGroup for Rating & Feedback
+ * - Direct root `<Host><Form>` (no outer `<View>` wrapper) so UIKit binds large-title
+ *   collapse and NativeTabs `minimizeBehavior="onScrollDown"` cleanly to SwiftUI's Form.
+ * - Monochrome SF Symbols & primary-ink action rows matching Oyelo's Settings aesthetic.
+ * - Inline Liquid Glass hover Pickers for Appearance (System / Light / Dark) & Languages.
+ * - Compact live hymn preview + native iOS 26 Slider for Font Size.
+ * - Offline audio status, confirmation download, and delete controls.
+ * - Interactive classic iOS warm-gold 5-star rating card + feedback & about links.
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Alert, Linking, View } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import * as Haptics from '../../utils/haptics';
@@ -32,6 +34,7 @@ import SettingsLegacy from './Settings.legacy';
 const BASE_PX = 22;
 const MIN_PX = 12;
 const MAX_PX = 64;
+const STAR_INDICES = [1, 2, 3, 4, 5] as const;
 
 function formatSize(bytes: number) {
   if (bytes <= 0) return '0 MB';
@@ -55,7 +58,7 @@ export default function SettingsScreenIOS() {
   const { currentHymnId, showFullPlayer } = useNowPlaying();
   const offline = useSyncExternalStore(offlineAudio.subscribe, offlineAudio.getSnapshot);
 
-  const [enjoyingExpanded, setEnjoyingExpanded] = useState(false);
+  const [selectedStars, setSelectedStars] = useState(0);
   const [showShareApp, setShowShareApp] = useState(false);
 
   const currentPx = Math.min(MAX_PX, Math.max(MIN_PX, Math.round(BASE_PX * fontSizeMultiplier)));
@@ -71,7 +74,6 @@ export default function SettingsScreenIOS() {
 
   const {
     Button,
-    DisclosureGroup,
     Form,
     Host,
     HStack,
@@ -87,20 +89,26 @@ export default function SettingsScreenIOS() {
   } = swiftUI.ui;
 
   const {
+    buttonBorderShape,
     buttonStyle,
     controlSize,
     font,
     foregroundStyle,
     monospacedDigit,
     multilineTextAlignment,
+    opacity,
     padding,
     pickerStyle,
+    scaleEffect,
     tag,
     tint,
   } = swiftUI.modifiers;
 
   const scheme = isDarkMode ? 'dark' : 'light';
   const accentTint = isDarkMode ? '#FFFFFF' : theme.primary;
+  const monochromeInk = isDarkMode ? '#FFFFFF' : '#1C1C1E';
+  const starGold = isDarkMode ? '#FFB800' : '#E59A00';
+  const primaryStyle = { type: 'hierarchical' as const, style: 'primary' as const };
   const secondaryStyle = { type: 'hierarchical' as const, style: 'secondary' as const };
   const tertiaryStyle = { type: 'hierarchical' as const, style: 'tertiary' as const };
   const hasMiniPlayer = Boolean(currentHymnId) && !showFullPlayer;
@@ -161,6 +169,20 @@ export default function SettingsScreenIOS() {
     Linking.openURL('https://apps.apple.com/app/id6794435414?action=write-review').catch(() => {});
   };
 
+  const handleStarPress = (star: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setSelectedStars(star);
+  };
+
+  const ratingSubtitle =
+    selectedStars === 0
+      ? t.rateAppSub
+      : selectedStars >= 4
+        ? t.rateStarsThanks
+        : t.rateStarsImprove;
+
+  const showFeedbackCta = selectedStars > 0 && selectedStars <= 3;
+
   const chevron = (
     <SwiftUIImage
       systemName="chevron.right"
@@ -170,20 +192,21 @@ export default function SettingsScreenIOS() {
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <>
       <Host
         style={{ flex: 1 }}
         colorScheme={scheme}
-        seedColor={accentTint}
+        seedColor={monochromeInk}
       >
-        <Form modifiers={[tint(accentTint)]}>
+        <Form modifiers={[tint(monochromeInk)]}>
           {/* ─── Account & Cloud ─── */}
           <Section
-            title={t.authSectionTitle}
+            title={t.accountSectionLabel}
             footer={user ? undefined : <Text>{t.authSettingsCardHint}</Text>}
           >
             {user ? (
               <Button
+                modifiers={[foregroundStyle(primaryStyle)]}
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
                   router.push('/my-profile' as any);
@@ -211,6 +234,7 @@ export default function SettingsScreenIOS() {
               </Button>
             ) : (
               <Button
+                modifiers={[foregroundStyle(primaryStyle)]}
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
                   openAuthSheet();
@@ -271,7 +295,7 @@ export default function SettingsScreenIOS() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setFontSizeMultiplier(1.0);
                     }}
-                    modifiers={[buttonStyle('bordered'), controlSize('mini')]}
+                    modifiers={[buttonStyle('bordered'), controlSize('mini'), tint(accentTint)]}
                   />
                 )}
                 <Text
@@ -292,41 +316,46 @@ export default function SettingsScreenIOS() {
               max={MAX_PX}
               step={1}
               onValueChange={applyFontPx}
+              modifiers={[tint(accentTint)]}
             />
 
-            <VStack
-              alignment="center"
-              spacing={6}
-              modifiers={[padding({ vertical: 8, horizontal: 4 })]}
-            >
-              <Text
-                modifiers={[
-                  font({
-                    design: 'serif',
-                    weight: 'bold',
-                    size: 18,
-                  }),
-                  foregroundStyle({ type: 'color', color: accentTint }),
-                  multilineTextAlignment('center'),
-                ]}
+            <HStack alignment="center">
+              <Spacer />
+              <VStack
+                alignment="center"
+                spacing={6}
+                modifiers={[padding({ vertical: 8, horizontal: 4 })]}
               >
-                {hymnLanguage === 'en' ? 'How Great Thou Art!' : '¡Cuán Grande es Él!'}
-              </Text>
-              <Text
-                modifiers={[
-                  font({
-                    design: 'serif',
-                    weight: 'regular',
-                    size: Math.min(42, currentPx),
-                  }),
-                  multilineTextAlignment('center'),
-                ]}
-              >
-                {hymnLanguage === 'en'
-                  ? 'O Lord my God, when I in awesome wonder…'
-                  : 'Señor, mi Dios, al contemplar los cielos…'}
-              </Text>
-            </VStack>
+                <Text
+                  modifiers={[
+                    font({
+                      design: 'serif',
+                      weight: 'bold',
+                      size: 18,
+                    }),
+                    foregroundStyle({ type: 'color', color: accentTint }),
+                    multilineTextAlignment('center'),
+                  ]}
+                >
+                  {hymnLanguage === 'en' ? 'How Great Thou Art!' : '¡Cuán Grande es Él!'}
+                </Text>
+                <Text
+                  modifiers={[
+                    font({
+                      design: 'serif',
+                      weight: 'regular',
+                      size: Math.min(42, currentPx),
+                    }),
+                    multilineTextAlignment('center'),
+                  ]}
+                >
+                  {hymnLanguage === 'en'
+                    ? 'O Lord my God, when I in awesome wonder…'
+                    : 'Señor, mi Dios, al contemplar los cielos…'}
+                </Text>
+              </VStack>
+              <Spacer />
+            </HStack>
           </Section>
 
           {/* ─── Languages ─── */}
@@ -366,7 +395,7 @@ export default function SettingsScreenIOS() {
 
           {/* ─── Offline Audio ─── */}
           <Section
-            title={t.offlineAudioSection}
+            title={t.offlineAudioSectionLabel}
             footer={
               <Text>
                 {downloading
@@ -398,6 +427,7 @@ export default function SettingsScreenIOS() {
 
             {downloading ? (
               <Button
+                modifiers={[foregroundStyle(primaryStyle)]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   cancelDownloadAll();
@@ -410,6 +440,7 @@ export default function SettingsScreenIOS() {
               </Button>
             ) : !complete ? (
               <Button
+                modifiers={[foregroundStyle(primaryStyle)]}
                 onPress={
                   hasFailed || offline.started
                     ? () => void downloadAllHymnAudio()
@@ -427,74 +458,157 @@ export default function SettingsScreenIOS() {
             )}
           </Section>
 
-          {/* ─── Inkigo-style Enjoying the app DisclosureGroup ─── */}
-          <Section>
-            <DisclosureGroup
-              label={t.enjoyingAppTitle}
-              isExpanded={enjoyingExpanded}
-              onIsExpandedChange={(expanded) => {
-                Haptics.selectionAsync().catch(() => {});
-                setEnjoyingExpanded(expanded);
-              }}
-            >
-              <Text
-                modifiers={[
-                  font({ textStyle: 'subheadline' }),
-                  foregroundStyle(secondaryStyle),
-                ]}
+          {/* ─── Classic iOS Warm-Gold 5-Star Rating Card ─── */}
+          <Section title={t.rateApp}>
+            <HStack alignment="center">
+              <Spacer />
+              <VStack
+                alignment="center"
+                spacing={10}
+                modifiers={[padding({ vertical: 10, horizontal: 6 })]}
               >
-                {t.enjoyingAppBody}
-              </Text>
-              <Button onPress={openRateApp}>
-                <Label title={t.rateAppButton} systemImage="star" />
-              </Button>
-              <Button
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  sendFeedbackEmail(language);
-                }}
-              >
-                <Label title={t.sendFeedback} systemImage="envelope" />
-              </Button>
-            </DisclosureGroup>
+                <HStack alignment="center" spacing={10}>
+                  {STAR_INDICES.map((star) => {
+                    const isFilled = selectedStars === 0 || star <= selectedStars;
+                    const restOpacity = 1 - Math.abs(star - 3) * 0.14;
+                    return (
+                      <Button
+                        key={star}
+                        modifiers={[
+                          buttonStyle('borderless'),
+                          scaleEffect(star === selectedStars ? 1.14 : 1),
+                        ]}
+                        onPress={() => handleStarPress(star)}
+                      >
+                        <SwiftUIImage
+                          systemName={isFilled ? 'star.fill' : 'star'}
+                          size={28}
+                          modifiers={[
+                            foregroundStyle(
+                              isFilled
+                                ? { type: 'color', color: starGold }
+                                : tertiaryStyle,
+                            ),
+                            opacity(selectedStars === 0 ? restOpacity : 1),
+                          ]}
+                        />
+                      </Button>
+                    );
+                  })}
+                </HStack>
+
+                <Text
+                  modifiers={[
+                    font({ design: 'serif', weight: 'bold', size: 19 }),
+                    foregroundStyle(primaryStyle),
+                    multilineTextAlignment('center'),
+                  ]}
+                >
+                  {t.rateApp}
+                </Text>
+
+                <Text
+                  modifiers={[
+                    font({ design: 'serif', textStyle: 'subheadline' }),
+                    foregroundStyle(secondaryStyle),
+                    multilineTextAlignment('center'),
+                  ]}
+                >
+                  {ratingSubtitle}
+                </Text>
+
+                <Button
+                  modifiers={[
+                    buttonStyle('borderedProminent'),
+                    buttonBorderShape('capsule'),
+                    tint(theme.primary),
+                    padding({ top: 4 }),
+                  ]}
+                  onPress={
+                    showFeedbackCta
+                      ? () => {
+                          Haptics.selectionAsync().catch(() => {});
+                          sendFeedbackEmail(language);
+                        }
+                      : openRateApp
+                  }
+                >
+                  <HStack alignment="center" spacing={6} modifiers={[padding({ horizontal: 8, vertical: 2 })]}>
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'subheadline', weight: 'semibold' }),
+                        foregroundStyle({ type: 'color', color: theme.onPrimary }),
+                      ]}
+                    >
+                      {showFeedbackCta ? t.sendFeedback : t.rateAppButton}
+                    </Text>
+                    <SwiftUIImage
+                      systemName={showFeedbackCta ? 'envelope' : 'arrow.up.right'}
+                      size={13}
+                      modifiers={[foregroundStyle({ type: 'color', color: theme.onPrimary })]}
+                    />
+                  </HStack>
+                </Button>
+              </VStack>
+              <Spacer />
+            </HStack>
           </Section>
 
           {/* ─── Support & About ─── */}
           <Section
             title={t.supportSectionTitle}
             footer={
-              <VStack
-                alignment="center"
-                spacing={4}
-                modifiers={[
-                  padding({
-                    top: 12,
-                    bottom: hasMiniPlayer ? 88 : 28,
-                  }),
-                ]}
-              >
-                <Text
+              <HStack alignment="center">
+                <Spacer />
+                <VStack
+                  alignment="center"
+                  spacing={4}
                   modifiers={[
-                    font({ design: 'serif', textStyle: 'body' }),
-                    foregroundStyle(secondaryStyle),
-                    multilineTextAlignment('center'),
+                    padding({
+                      top: 12,
+                      bottom: hasMiniPlayer ? 88 : 28,
+                    }),
                   ]}
                 >
-                  {t.signatureQuote}
-                </Text>
-                <Text
-                  modifiers={[
-                    font({ textStyle: 'footnote' }),
-                    foregroundStyle(tertiaryStyle),
-                    multilineTextAlignment('center'),
-                  ]}
-                >
-                  {`v ${Constants.expoConfig?.version ?? '2.1.0'} — Solo A Dios La Gloria`}
-                </Text>
-              </VStack>
+                  <Text
+                    modifiers={[
+                      font({ design: 'serif', textStyle: 'body' }),
+                      foregroundStyle(secondaryStyle),
+                      multilineTextAlignment('center'),
+                    ]}
+                  >
+                    {t.signatureQuote}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'footnote' }),
+                      foregroundStyle(tertiaryStyle),
+                      multilineTextAlignment('center'),
+                    ]}
+                  >
+                    {`v ${Constants.expoConfig?.version ?? '2.1.0'} — Solo A Dios La Gloria`}
+                  </Text>
+                </VStack>
+                <Spacer />
+              </HStack>
             }
           >
             <Button
+              modifiers={[foregroundStyle(primaryStyle)]}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                sendFeedbackEmail(language);
+              }}
+            >
+              <HStack alignment="center">
+                <Label title={t.sendFeedback} systemImage="envelope" />
+                <Spacer />
+                {chevron}
+              </HStack>
+            </Button>
+
+            <Button
+              modifiers={[foregroundStyle(primaryStyle)]}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
                 setShowShareApp(true);
@@ -508,6 +622,7 @@ export default function SettingsScreenIOS() {
             </Button>
 
             <Button
+              modifiers={[foregroundStyle(primaryStyle)]}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
                 router.push('/about-sheet' as any);
@@ -524,6 +639,6 @@ export default function SettingsScreenIOS() {
       </Host>
 
       <AppShareSheet visible={showShareApp} onClose={() => setShowShareApp(false)} />
-    </View>
+    </>
   );
 }

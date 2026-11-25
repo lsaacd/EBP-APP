@@ -1,13 +1,16 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import { useNowPlaying } from '../../context/NowPlayingContext';
 
 export default function HymnsLayout() {
   const { isDarkMode } = useTheme();
+  const { showFullPlayer } = useNowPlaying();
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
+        statusBarStyle: showFullPlayer || isDarkMode ? 'light' : 'dark',
         contentStyle: {
           backgroundColor: isDarkMode ? '#1a1a16' : '#fcf9f2',
         },

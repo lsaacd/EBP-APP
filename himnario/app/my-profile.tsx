@@ -214,48 +214,66 @@ export default function MyProfileScreen() {
   const useNativeIOSOverview = isIOS && section === 'overview' && Boolean(getExpoSwiftUI());
   const headerAccent = isDarkMode ? '#ffffff' : theme.primary;
 
+  const screenHeaderConfig = (
+    <Stack.Screen
+      options={{
+        title: sectionTitleMap[section],
+        headerLargeTitle: isIOS && section === 'overview',
+        headerLargeTitleEnabled: isIOS && section === 'overview',
+        headerRight:
+          isIOS && section === 'overview'
+            ? () => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.editProfileAction}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    openSection('account-edit');
+                  }}
+                  style={({ pressed }) => [
+                    {
+                      width: 34,
+                      height: 34,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: pressed ? 0.65 : 1,
+                    },
+                  ]}
+                >
+                  <AppMenuIcon
+                    ios="pencil"
+                    android="edit"
+                    color={headerAccent}
+                    size={20}
+                    containerSize={22}
+                    weight="semibold"
+                  />
+                </Pressable>
+              )
+            : undefined,
+      }}
+    />
+  );
+
+  // Return SwiftUI Host directly without wrapper Views so UIKit binds large-title collapse cleanly.
+  if (useNativeIOSOverview) {
+    return (
+      <>
+        {screenHeaderConfig}
+        <MyProfileOverview
+          onOpenSection={openSection}
+          onConfirmDeleteAccount={handleConfirmDeleteAccount}
+        />
+      </>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={isIOS ? 'padding' : undefined}
       style={[styles.root, { backgroundColor: bg }]}
     >
-      <Stack.Screen
-        options={{
-          title: sectionTitleMap[section],
-          headerLargeTitle: isIOS && section === 'overview',
-          headerRight:
-            isIOS && section === 'overview'
-              ? () => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.editProfileAction}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      openSection('account-edit');
-                    }}
-                    style={({ pressed }) => [
-                      {
-                        width: 34,
-                        height: 34,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: pressed ? 0.65 : 1,
-                      },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios="pencil"
-                      android="edit"
-                      color={headerAccent}
-                      size={20}
-                      containerSize={22}
-                      weight="semibold"
-                    />
-                  </Pressable>
-                )
-              : undefined,
-        }}
-      />
+      {screenHeaderConfig}
 
       {/* ── Custom Top Liquid Glass Bar (Android / Web only; iOS uses native Stack header) ── */}
       {!isIOS && (
@@ -314,12 +332,6 @@ export default function MyProfileScreen() {
       </View>
       )}
 
-      {useNativeIOSOverview ? (
-        <MyProfileOverview
-          onOpenSection={openSection}
-          onConfirmDeleteAccount={handleConfirmDeleteAccount}
-        />
-      ) : (
       <ScrollView
         contentInsetAdjustmentBehavior={isIOS ? 'automatic' : undefined}
         showsVerticalScrollIndicator={false}
@@ -586,7 +598,6 @@ export default function MyProfileScreen() {
           </Animated.View>
         )}
       </ScrollView>
-      )}
     </KeyboardAvoidingView>
   );
 }

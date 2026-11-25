@@ -852,6 +852,11 @@ export const strings = {
     textSizePreviewSample: "Señor, mi Dios, al contemplar los cielos…",
     aboutTitleShort: "Acerca",
     hymnalVersionLabel: "Versión",
+    accountSectionLabel: "Cuenta y nube",
+    offlineAudioSectionLabel: "Audio sin conexión",
+    rateStarsThanks: "¡Muchas gracias! Comparte tu calificación en el App Store.",
+    rateStarsImprove: "Gracias por tu opinión. Cuéntanos cómo podemos mejorar.",
+    rateStarsPrompt: "Toca una estrella para calificar",
   },
   en: {
     homeMenu: "Hymnal menu",
@@ -1697,6 +1702,11 @@ export const strings = {
     textSizePreviewSample: "O Lord my God, when I in awesome wonder…",
     aboutTitleShort: "About",
     hymnalVersionLabel: "Version",
+    accountSectionLabel: "Account & Cloud",
+    offlineAudioSectionLabel: "Offline Audio",
+    rateStarsThanks: "Thank you so much! Share your rating on the App Store.",
+    rateStarsImprove: "Thanks for your input. Tell us how we can make it better.",
+    rateStarsPrompt: "Tap a star to rate",
   },
 };
 
