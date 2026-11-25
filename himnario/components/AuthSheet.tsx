@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePathname, useRouter } from 'expo-router';
+import { Stack, router as globalRouter, usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { Asset } from 'expo-asset';
@@ -66,6 +66,7 @@ import { buildSheetPanGesture } from '../utils/useSheetBackdropGesture';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import { AnimatedField } from './AnimatedField';
 import LiquidGlassSegmented from './LiquidGlassSegmented';
+import { isIOSLiquidGlassAvailable } from '../utils/expoSwiftUI';
 
 const APP_SHARE_BANNER = require('../assets/images/app-share-banner.png');
 const APP_SMART_QR = require('../assets/images/ebp-smart-app-qr.png');
@@ -80,12 +81,16 @@ interface AuthSheetProps {
   visible?: boolean;
   onClose?: () => void;
   onOpenShareApp?: () => void;
+  presentationMode?: 'modal' | 'native-sheet';
+  originPathname?: string;
 }
 
 export function AuthSheet({
   visible: propVisible,
   onClose: propOnClose,
   onOpenShareApp,
+  presentationMode = 'modal',
+  originPathname,
 }: AuthSheetProps) {
   const {
     theme,
@@ -135,6 +140,9 @@ export function AuthSheet({
   }, [visible, signedInUserId, refreshFriendsIfStale]);
   const onClose = propOnClose || closeAuthSheet;
   const isIOS = Platform.OS === 'ios';
+  const isNativeSheet = presentationMode === 'native-sheet';
+  const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
+  const isNativeGlassSheet = isNativeSheet && hasIOSGlass;
   const es = language !== 'en';
 
   const [page, setPage] = useState<SheetPage>('account');
@@ -229,7 +237,7 @@ export function AuthSheet({
   }, [mode, userIdKey]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || isNativeSheet) return;
     const showEvent = isIOS ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = isIOS ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSub = Keyboard.addListener(showEvent, (e) => {
@@ -242,7 +250,7 @@ export function AuthSheet({
       showSub.remove();
       hideSub.remove();
     };
-  }, [isIOS, visible]);
+  }, [isIOS, isNativeSheet, visible]);
 
   const travel = Math.max(windowHeight, 560);
   const progress = useSharedValue(1);
@@ -254,47 +262,104 @@ export function AuthSheet({
     overshootClamping: true,
   };
 
-  const onChurchesScreen = usePathname() === '/churches';
+  const currentPathname = usePathname();
+  const onChurchesScreen = (originPathname ?? currentPathname) === '/churches';
+  const dismissingNativeRef = useRef(false);
+  const sawVisibleInNativeRef = useRef(false);
+  const userChurchIdRef = useRef(user?.churchId ?? null);
+  const onChurchesScreenRef = useRef(onChurchesScreen);
+  const onOpenShareAppRef = useRef(onOpenShareApp);
+  const onCloseRef = useRef(onClose);
 
-  const finishClose = useCallback(() => {
+  useEffect(() => {
+    userChurchIdRef.current = user?.churchId ?? null;
+    onChurchesScreenRef.current = onChurchesScreen;
+    onOpenShareAppRef.current = onOpenShareApp;
+    onCloseRef.current = onClose;
+  }, [onChurchesScreen, onClose, onOpenShareApp, user?.churchId]);
+
+  const runPendingPostClose = useCallback(() => {
     const nextAction = pendingPostCloseRef.current;
     pendingPostCloseRef.current = null;
-    onClose();
+    if (!nextAction) return;
+    const churchId = userChurchIdRef.current;
     if (nextAction === 'settings') {
-      router.navigate('/(tabs)/settings');
+      globalRouter.navigate('/(tabs)/settings');
     } else if (nextAction === 'churches') {
       // Already on the map (e.g. this sheet was opened from it): closing the
       // sheet is enough. Pushing again would stack a second map screen.
-      if (!onChurchesScreen) {
-        router.push((user?.churchId ? `/churches?id=${encodeURIComponent(user.churchId)}` : '/churches') as any);
+      if (!onChurchesScreenRef.current) {
+        globalRouter.push((churchId ? `/churches?id=${encodeURIComponent(churchId)}` : '/churches') as any);
       }
     } else if (nextAction === 'scan-qr') {
-      if (onChurchesScreen) router.replace('/churches?scan=1' as any);
-      else router.push('/churches?scan=1' as any);
-    } else if (nextAction === 'share-app' && onOpenShareApp) {
-      onOpenShareApp();
+      if (onChurchesScreenRef.current) globalRouter.replace('/churches?scan=1' as any);
+      else globalRouter.push('/churches?scan=1' as any);
+    } else if (nextAction === 'share-app' && onOpenShareAppRef.current) {
+      onOpenShareAppRef.current();
     } else if (nextAction === 'hymn' && pendingHymnIdRef.current) {
       const hymnId = pendingHymnIdRef.current;
       pendingHymnIdRef.current = null;
-      router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+      globalRouter.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
     } else if (nextAction === 'member' && pendingMemberIdRef.current) {
       const memberId = pendingMemberIdRef.current;
       pendingMemberIdRef.current = null;
-      router.push(`/member/${encodeURIComponent(memberId)}` as any);
+      globalRouter.push(`/member/${encodeURIComponent(memberId)}` as any);
     } else if (nextAction === 'my-profile') {
-      router.push('/my-profile' as any);
+      globalRouter.push('/my-profile' as any);
     } else if (nextAction === 'home') {
-      router.navigate('/(tabs)/home' as any);
+      globalRouter.navigate('/(tabs)/home' as any);
     }
-  }, [onChurchesScreen, onClose, onOpenShareApp, router, user?.churchId]);
+  }, []);
+
+  const finishClose = useCallback(() => {
+    onCloseRef.current();
+    runPendingPostClose();
+  }, [runPendingPostClose]);
+
+  // Keep AuthContext synchronized when native iOS formSheet is dismissed (by swipe or button),
+  // and run any queued navigation cleanly right after the UIKit sheet finishes unmounting.
+  useEffect(() => {
+    if (!isNativeSheet) return;
+    return () => {
+      onCloseRef.current();
+      if (pendingPostCloseRef.current) {
+        setTimeout(() => {
+          runPendingPostClose();
+        }, 60);
+      }
+    };
+  }, [isNativeSheet, runPendingPostClose]);
+
+  // If closeAuthSheet() is called externally while the native formSheet is mounted, dismiss it.
+  useEffect(() => {
+    if (!isNativeSheet) return;
+    if (authSheetVisible) {
+      sawVisibleInNativeRef.current = true;
+    } else if (sawVisibleInNativeRef.current && !dismissingNativeRef.current) {
+      dismissingNativeRef.current = true;
+      if (router.canGoBack()) {
+        router.back();
+      }
+    }
+  }, [authSheetVisible, isNativeSheet, router]);
 
   const animateClose = useCallback(() => {
     Keyboard.dismiss();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isNativeSheet) {
+      if (dismissingNativeRef.current) return;
+      dismissingNativeRef.current = true;
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        finishClose();
+      }
+      return;
+    }
     progress.value = withSpring(1, spring, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-  }, [finishClose, progress]);
+  }, [finishClose, isNativeSheet, progress, router]);
 
   const clearPendingPostClose = useCallback(() => {
     pendingPostCloseRef.current = null;
@@ -664,11 +729,31 @@ export function AuthSheet({
     .replace('{favs}', String(favoriteIds.length))
     .replace('{lists}', String(playlists.length));
 
-  const cardBg = isDarkMode ? '#222225' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '50';
+  const prominentBurgundy = isDarkMode ? '#9E2A32' : '#6e1619';
+  const cardBg = isNativeGlassSheet
+    ? isDarkMode
+      ? 'rgba(255,255,255,0.085)'
+      : 'rgba(255,255,255,0.58)'
+    : isDarkMode
+      ? '#222225'
+      : '#FFFFFF';
+  const cardBorder = isNativeGlassSheet
+    ? isDarkMode
+      ? 'rgba(255,255,255,0.12)'
+      : 'rgba(255,255,255,0.74)'
+    : isDarkMode
+      ? 'rgba(255,255,255,0.08)'
+      : theme.outlineVariant + '50';
   const iconTint = isDarkMode ? '#FFFFFF' : theme.primary;
   const mutedText = isDarkMode ? 'rgba(235,235,245,0.58)' : theme.onSurfaceVariant;
-  const dividerColor = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant;
+  const dividerColor = isNativeGlassSheet
+    ? isDarkMode
+      ? 'rgba(255,255,255,0.11)'
+      : 'rgba(60,48,42,0.11)'
+    : isDarkMode
+      ? 'rgba(255,255,255,0.09)'
+      : theme.outlineVariant;
+  const groupRadiusStyle = isNativeSheet ? styles.nativeGlassGroup : undefined;
 
   const renderMenuRow = (
     label: string,
@@ -734,6 +819,7 @@ export function AuthSheet({
     <View
       style={[
         styles.group,
+        groupRadiusStyle,
         {
           backgroundColor: cardBg,
           borderColor: cardBorder,
@@ -929,6 +1015,7 @@ export function AuthSheet({
         <View
           style={[
             styles.group,
+            groupRadiusStyle,
             {
               backgroundColor: cardBg,
               borderColor: cardBorder,
@@ -954,7 +1041,13 @@ export function AuthSheet({
                   styles.inlineTextInput,
                   {
                     color: theme.onSurface,
-                    backgroundColor: isDarkMode ? '#141416' : theme.surfaceVariants.containerLowest,
+                    backgroundColor: isNativeGlassSheet
+                      ? isDarkMode
+                        ? 'rgba(255,255,255,0.07)'
+                        : 'rgba(255,255,255,0.68)'
+                      : isDarkMode
+                        ? '#141416'
+                        : theme.surfaceVariants.containerLowest,
                     borderColor: cardBorder,
                   },
                 ]}
@@ -995,6 +1088,7 @@ export function AuthSheet({
           <View
             style={[
               styles.group,
+              groupRadiusStyle,
               { backgroundColor: cardBg, borderColor: cardBorder },
             ]}
           >
@@ -1014,6 +1108,7 @@ export function AuthSheet({
         <View
           style={[
             styles.group,
+            groupRadiusStyle,
             { backgroundColor: cardBg, borderColor: cardBorder },
           ]}
         >
@@ -1102,6 +1197,7 @@ export function AuthSheet({
           }}
           style={({ pressed }) => [
             styles.group,
+            groupRadiusStyle,
             {
               backgroundColor: cardBg,
               borderColor: cardBorder,
@@ -1192,6 +1288,7 @@ export function AuthSheet({
             }}
             style={[
               styles.group,
+              groupRadiusStyle,
               {
                 backgroundColor: cardBg,
                 borderColor: cardBorder,
@@ -1215,6 +1312,7 @@ export function AuthSheet({
         <View
           style={[
             styles.group,
+            groupRadiusStyle,
             {
               backgroundColor: cardBg,
               borderColor: cardBorder,
@@ -1311,6 +1409,7 @@ export function AuthSheet({
         <View
           style={[
             styles.group,
+            groupRadiusStyle,
             {
               backgroundColor: cardBg,
               borderColor: cardBorder,
@@ -1325,6 +1424,7 @@ export function AuthSheet({
               try {
                 await signOut();
                 pendingPostCloseRef.current = null;
+                dismissingNativeRef.current = true;
                 onClose();
                 router.dismissTo('/(tabs)/home');
               } catch (err: any) {
@@ -1464,214 +1564,422 @@ export function AuthSheet({
         )}
 
         {/* Auth Form Card */}
-        <Animated.View
-          style={[
-            styles.group,
-            styles.authFormCard,
-            {
-              backgroundColor: isIOS
-                ? isDarkMode
-                  ? 'rgba(255,255,255,0.09)'
-                  : 'rgba(255,255,255,0.72)'
-                : theme.surfaceVariants.containerLow,
-              borderColor: isIOS
-                ? isDarkMode
-                  ? 'rgba(255,255,255,0.14)'
-                  : 'rgba(255,255,255,0.88)'
-                : cardStroke,
-            },
-            formShakeStyle,
-          ]}
-        >
-          {mode === 'register' && (
-            <AnimatedField
-              ref={nameInputRef}
-              label={t.authNameLabel}
-              value={name}
-              onChangeText={setName}
-              placeholder={t.authNamePlaceholder}
-              autoCapitalize="words"
-              textContentType="name"
-              autoComplete="name"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => emailInputRef.current?.focus()}
-            />
-          )}
+        {isNativeSheet ? (
+          <Animated.View style={[styles.nativeFormBlock, formShakeStyle]}>
+            <View
+              style={[
+                styles.group,
+                styles.nativeGlassGroup,
+                {
+                  backgroundColor: cardBg,
+                  borderColor: cardBorder,
+                },
+              ]}
+            >
+              {mode === 'register' && (
+                <AnimatedField
+                  ref={nameInputRef}
+                  grouped
+                  label={t.authNameLabel}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder={t.authNamePlaceholder}
+                  autoCapitalize="words"
+                  textContentType="name"
+                  autoComplete="name"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => emailInputRef.current?.focus()}
+                />
+              )}
 
-          <AnimatedField
-            ref={emailInputRef}
-            label={t.authEmailLabel}
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t.authEmailPlaceholder}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="emailAddress"
-            autoComplete="email"
-            editable={!emailAction && !submitting}
-            returnKeyType={mode === 'recovery' ? 'send' : 'next'}
-            blurOnSubmit={mode === 'recovery'}
-            onSubmitEditing={
-              mode === 'recovery'
-                ? () => handleEmailAction('recovery')
-                : () => passwordInputRef.current?.focus()
-            }
-          />
-
-          {mode !== 'recovery' && (
-            <View style={styles.passwordFieldBlock}>
               <AnimatedField
-                ref={passwordInputRef}
-                label={t.authPasswordLabel}
-                value={password}
-                onChangeText={setPassword}
-                placeholder={
-                  mode === 'register'
-                    ? t.authRegisterPasswordPlaceholder
-                    : t.authLoginPasswordPlaceholder
-                }
-                secureTextEntry={!showPassword}
+                ref={emailInputRef}
+                grouped
+                isLast={mode === 'recovery'}
+                label={t.authEmailLabel}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t.authEmailPlaceholder}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                textContentType={mode === 'login' ? 'password' : 'newPassword'}
-                autoComplete={mode === 'login' ? 'password' : 'new-password'}
-                returnKeyType="done"
-                onSubmitEditing={handleSubmit}
-                rightElement={
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={showPassword ? t.authHidePassword : t.authShowPassword}
-                    hitSlop={8}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setShowPassword((prev) => !prev);
-                    }}
-                    style={styles.passwordEyeBtn}
-                  >
-                    <AppMenuIcon
-                      ios={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                      android={showPassword ? 'visibility-off' : 'visibility'}
-                      color={theme.onSurfaceVariant}
-                      size={20}
-                    />
-                  </Pressable>
+                textContentType="emailAddress"
+                autoComplete="email"
+                editable={!emailAction && !submitting}
+                returnKeyType={mode === 'recovery' ? 'send' : 'next'}
+                blurOnSubmit={mode === 'recovery'}
+                onSubmitEditing={
+                  mode === 'recovery'
+                    ? () => handleEmailAction('recovery')
+                    : () => passwordInputRef.current?.focus()
                 }
               />
 
-              {mode === 'register' && strength > 0 && (
-                <View style={styles.strengthRow} accessibilityLiveRegion="polite">
-                  <View style={styles.strengthBars}>
-                    {[1, 2, 3].map((step) => (
-                      <View
-                        key={step}
-                        style={[
-                          styles.strengthSegment,
-                          {
-                            backgroundColor:
-                              strength >= step
-                                ? strengthColor
-                                : isDarkMode
-                                  ? 'rgba(255,255,255,0.14)'
-                                  : theme.outlineVariant + '60',
-                          },
-                        ]}
+              {mode !== 'recovery' && (
+                <AnimatedField
+                  ref={passwordInputRef}
+                  grouped
+                  isLast
+                  label={t.authPasswordLabel}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={
+                    mode === 'register'
+                      ? t.authRegisterPasswordPlaceholder
+                      : t.authLoginPasswordPlaceholder
+                  }
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType={mode === 'login' ? 'password' : 'newPassword'}
+                  autoComplete={mode === 'login' ? 'password' : 'new-password'}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                  rightElement={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={showPassword ? t.authHidePassword : t.authShowPassword}
+                      hitSlop={8}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setShowPassword((prev) => !prev);
+                      }}
+                      style={styles.passwordEyeBtn}
+                    >
+                      <AppMenuIcon
+                        ios={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                        android={showPassword ? 'visibility-off' : 'visibility'}
+                        color={theme.onSurfaceVariant}
+                        size={20}
                       />
-                    ))}
-                  </View>
-                  <Text style={[styles.strengthLabel, { color: strengthColor }]}>
-                    {strengthLabel}
-                  </Text>
-                </View>
+                    </Pressable>
+                  }
+                />
               )}
             </View>
-          )}
 
-          {!!errorMessage && (
-            <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
-              {errorMessage}
-            </Text>
-          )}
-          {!!infoMessage && (
-            <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
-              {infoMessage}
-            </Text>
-          )}
+            {mode === 'register' && strength > 0 && (
+              <View style={[styles.strengthRow, { paddingHorizontal: 10 }]} accessibilityLiveRegion="polite">
+                <View style={styles.strengthBars}>
+                  {[1, 2, 3].map((step) => (
+                    <View
+                      key={step}
+                      style={[
+                        styles.strengthSegment,
+                        {
+                          backgroundColor:
+                            strength >= step
+                              ? strengthColor
+                              : isDarkMode
+                                ? 'rgba(255,255,255,0.16)'
+                                : theme.outlineVariant + '60',
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.strengthLabel, { color: strengthColor }]}>
+                  {strengthLabel}
+                </Text>
+              </View>
+            )}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              mode === 'recovery'
-                ? t.authSendRecovery
-                : mode === 'register'
-                  ? t.authSubmitRegister
-                  : t.authSubmitSignIn
-            }
-            disabled={submitting || isLoading || !!emailAction}
-            onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              {
-                backgroundColor: theme.primary,
-                opacity: submitting || emailAction ? 0.65 : pressed ? 0.88 : 1,
-              },
-            ]}
-          >
-            {submitting || emailAction ? (
-              <ActivityIndicator size="small" color={theme.onPrimary} />
-            ) : (
-              <Text style={[styles.primaryButtonText, { color: theme.onPrimary }]}>
-                {mode === 'recovery'
+            {!!errorMessage && (
+              <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
+                {errorMessage}
+              </Text>
+            )}
+            {!!infoMessage && (
+              <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
+                {infoMessage}
+              </Text>
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                mode === 'recovery'
                   ? t.authSendRecovery
                   : mode === 'register'
                     ? t.authSubmitRegister
-                    : t.authSubmitSignIn}
+                    : t.authSubmitSignIn
+              }
+              disabled={submitting || isLoading || !!emailAction}
+              onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                styles.nativePrimaryButton,
+                {
+                  backgroundColor: prominentBurgundy,
+                  opacity: submitting || emailAction ? 0.65 : pressed ? 0.86 : 1,
+                },
+              ]}
+            >
+              {submitting || emailAction ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
+                  {mode === 'recovery'
+                    ? t.authSendRecovery
+                    : mode === 'register'
+                      ? t.authSubmitRegister
+                      : t.authSubmitSignIn}
+                </Text>
+              )}
+            </Pressable>
+
+            {mode === 'register' && (
+              <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant, paddingTop: 2 }]}>
+                {t.authRegisterLegalPrefix}
+                <Text
+                  onPress={() => void openExternalLink('https://himnarioebp.com/terms.html')}
+                  style={{ color: theme.primary, ...fonts.sansSemiBold }}
+                >
+                  {t.authTermsLink}
+                </Text>
+                {t.authLegalAnd}
+                <Text
+                  onPress={() => void openExternalLink('https://himnarioebp.com/privacy.html')}
+                  style={{ color: theme.primary, ...fonts.sansSemiBold }}
+                >
+                  {t.authPrivacyLink}
+                </Text>
+                .
               </Text>
             )}
-          </Pressable>
 
-          {mode === 'register' && (
-            <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant, paddingTop: 2 }]}>
-              {t.authRegisterLegalPrefix}
-              <Text
-                onPress={() => void openExternalLink('https://himnarioebp.com/terms.html')}
-                style={{ color: theme.primary, ...fonts.sansSemiBold }}
-              >
-                {t.authTermsLink}
-              </Text>
-              {t.authLegalAnd}
-              <Text
-                onPress={() => void openExternalLink('https://himnarioebp.com/privacy.html')}
-                style={{ color: theme.primary, ...fonts.sansSemiBold }}
-              >
-                {t.authPrivacyLink}
-              </Text>
-              .
-            </Text>
-          )}
+            {(mode === 'login' || mode === 'recovery') && (
+              <View style={styles.secondaryLinksRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={submitting || isLoading}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setPassword('');
+                    setShowPassword(false);
+                    setErrorMessage(null);
+                    switchMode(mode === 'recovery' ? 'login' : 'recovery');
+                  }}
+                  style={styles.textLinkHit}
+                >
+                  <Text style={[styles.textLinkLabel, { color: theme.primary }]}>
+                    {mode === 'recovery' ? t.authBackToSignIn : t.authForgotPassword}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </Animated.View>
+        ) : (
+          <Animated.View
+            style={[
+              styles.group,
+              styles.authFormCard,
+              {
+                backgroundColor: isIOS
+                  ? isDarkMode
+                    ? 'rgba(255,255,255,0.09)'
+                    : 'rgba(255,255,255,0.72)'
+                  : theme.surfaceVariants.containerLow,
+                borderColor: isIOS
+                  ? isDarkMode
+                    ? 'rgba(255,255,255,0.14)'
+                    : 'rgba(255,255,255,0.88)'
+                  : cardStroke,
+              },
+              formShakeStyle,
+            ]}
+          >
+            {mode === 'register' && (
+              <AnimatedField
+                ref={nameInputRef}
+                label={t.authNameLabel}
+                value={name}
+                onChangeText={setName}
+                placeholder={t.authNamePlaceholder}
+                autoCapitalize="words"
+                textContentType="name"
+                autoComplete="name"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => emailInputRef.current?.focus()}
+              />
+            )}
 
-          {(mode === 'login' || mode === 'recovery') && (
-            <View style={styles.secondaryLinksRow}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={submitting || isLoading}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setPassword('');
-                  setShowPassword(false);
-                  setErrorMessage(null);
-                  switchMode(mode === 'recovery' ? 'login' : 'recovery');
-                }}
-                style={styles.textLinkHit}
-              >
-                <Text style={[styles.textLinkLabel, { color: theme.primary }]}>
-                  {mode === 'recovery' ? t.authBackToSignIn : t.authForgotPassword}
+            <AnimatedField
+              ref={emailInputRef}
+              label={t.authEmailLabel}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={t.authEmailPlaceholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="emailAddress"
+              autoComplete="email"
+              editable={!emailAction && !submitting}
+              returnKeyType={mode === 'recovery' ? 'send' : 'next'}
+              blurOnSubmit={mode === 'recovery'}
+              onSubmitEditing={
+                mode === 'recovery'
+                  ? () => handleEmailAction('recovery')
+                  : () => passwordInputRef.current?.focus()
+              }
+            />
+
+            {mode !== 'recovery' && (
+              <View style={styles.passwordFieldBlock}>
+                <AnimatedField
+                  ref={passwordInputRef}
+                  label={t.authPasswordLabel}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={
+                    mode === 'register'
+                      ? t.authRegisterPasswordPlaceholder
+                      : t.authLoginPasswordPlaceholder
+                  }
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType={mode === 'login' ? 'password' : 'newPassword'}
+                  autoComplete={mode === 'login' ? 'password' : 'new-password'}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                  rightElement={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={showPassword ? t.authHidePassword : t.authShowPassword}
+                      hitSlop={8}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setShowPassword((prev) => !prev);
+                      }}
+                      style={styles.passwordEyeBtn}
+                    >
+                      <AppMenuIcon
+                        ios={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                        android={showPassword ? 'visibility-off' : 'visibility'}
+                        color={theme.onSurfaceVariant}
+                        size={20}
+                      />
+                    </Pressable>
+                  }
+                />
+
+                {mode === 'register' && strength > 0 && (
+                  <View style={styles.strengthRow} accessibilityLiveRegion="polite">
+                    <View style={styles.strengthBars}>
+                      {[1, 2, 3].map((step) => (
+                        <View
+                          key={step}
+                          style={[
+                            styles.strengthSegment,
+                            {
+                              backgroundColor:
+                                strength >= step
+                                  ? strengthColor
+                                  : isDarkMode
+                                    ? 'rgba(255,255,255,0.14)'
+                                    : theme.outlineVariant + '60',
+                            },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={[styles.strengthLabel, { color: strengthColor }]}>
+                      {strengthLabel}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {!!errorMessage && (
+              <Text accessibilityLiveRegion="polite" style={[styles.errorBanner, { color: '#D64545' }]}>
+                {errorMessage}
+              </Text>
+            )}
+            {!!infoMessage && (
+              <Text accessibilityLiveRegion="polite" style={[styles.infoBanner, { color: theme.primary }]}>
+                {infoMessage}
+              </Text>
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                mode === 'recovery'
+                  ? t.authSendRecovery
+                  : mode === 'register'
+                    ? t.authSubmitRegister
+                    : t.authSubmitSignIn
+              }
+              disabled={submitting || isLoading || !!emailAction}
+              onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: submitting || emailAction ? 0.65 : pressed ? 0.88 : 1,
+                },
+              ]}
+            >
+              {submitting || emailAction ? (
+                <ActivityIndicator size="small" color={theme.onPrimary} />
+              ) : (
+                <Text style={[styles.primaryButtonText, { color: theme.onPrimary }]}>
+                  {mode === 'recovery'
+                    ? t.authSendRecovery
+                    : mode === 'register'
+                      ? t.authSubmitRegister
+                      : t.authSubmitSignIn}
                 </Text>
-              </Pressable>
-            </View>
-          )}
-        </Animated.View>
+              )}
+            </Pressable>
+
+            {mode === 'register' && (
+              <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant, paddingTop: 2 }]}>
+                {t.authRegisterLegalPrefix}
+                <Text
+                  onPress={() => void openExternalLink('https://himnarioebp.com/terms.html')}
+                  style={{ color: theme.primary, ...fonts.sansSemiBold }}
+                >
+                  {t.authTermsLink}
+                </Text>
+                {t.authLegalAnd}
+                <Text
+                  onPress={() => void openExternalLink('https://himnarioebp.com/privacy.html')}
+                  style={{ color: theme.primary, ...fonts.sansSemiBold }}
+                >
+                  {t.authPrivacyLink}
+                </Text>
+                .
+              </Text>
+            )}
+
+            {(mode === 'login' || mode === 'recovery') && (
+              <View style={styles.secondaryLinksRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={submitting || isLoading}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setPassword('');
+                    setShowPassword(false);
+                    setErrorMessage(null);
+                    switchMode(mode === 'recovery' ? 'login' : 'recovery');
+                  }}
+                  style={styles.textLinkHit}
+                >
+                  <Text style={[styles.textLinkLabel, { color: theme.primary }]}>
+                    {mode === 'recovery' ? t.authBackToSignIn : t.authForgotPassword}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </Animated.View>
+        )}
 
         <Text style={[styles.optionalCaption, { color: theme.onSurfaceVariant }]}>
           {t.authOptionalNote}
@@ -1720,7 +2028,12 @@ export function AuthSheet({
       <View
         style={[
           styles.feedbackCard,
-          { backgroundColor: theme.surfaceVariants.containerLow },
+          groupRadiusStyle,
+          {
+            backgroundColor: isNativeGlassSheet ? cardBg : theme.surfaceVariants.containerLow,
+            borderColor: isNativeGlassSheet ? cardBorder : 'transparent',
+            borderWidth: isNativeGlassSheet ? StyleSheet.hairlineWidth : 0,
+          },
         ]}
       >
         <AppMenuIcon
@@ -1845,6 +2158,96 @@ export function AuthSheet({
         ? t.authForgotPassword
         : t.authSignIn
     : pageTitles[page];
+  const submitActionLabel =
+    mode === 'recovery'
+      ? t.authSendRecovery
+      : mode === 'register'
+        ? t.authSubmitRegister
+        : t.authSubmitSignIn;
+  const submitActionIcon =
+    mode === 'recovery'
+      ? 'paperplane.fill'
+      : mode === 'register'
+        ? 'person.badge.plus'
+        : 'key.fill';
+  const plainToolbarTint = isDarkMode ? '#FFFFFF' : '#1C1C18';
+
+  if (isNativeSheet) {
+    return (
+      <>
+        {/* ScrollView must remain the first child so iOS 26 attaches soft scroll-edge blur under the transparent glass navbar */}
+        <ScrollView
+          key={page}
+          style={[
+            styles.nativeSheetScroll,
+            { backgroundColor: isNativeGlassSheet ? 'transparent' : sheetBg },
+          ]}
+          contentInsetAdjustmentBehavior="automatic"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+          indicatorStyle={isDarkMode ? 'white' : 'black'}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          contentContainerStyle={[
+            styles.nativeScrollContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 18 },
+          ]}
+        >
+          <Animated.View
+            key={page}
+            entering={page === 'account' ? FadeInLeft.duration(170) : FadeInRight.duration(190)}
+            style={styles.nativeSheetBody}
+          >
+            {renderPageContent()}
+          </Animated.View>
+        </ScrollView>
+
+        <Stack.Screen
+          options={{
+            headerTitle: authHeaderTitle,
+            headerTitleStyle: { color: plainToolbarTint },
+          }}
+        />
+
+        <Stack.Toolbar placement="left">
+          <Stack.Toolbar.Button
+            hidden={page === 'account'}
+            icon="chevron.left"
+            tintColor={plainToolbarTint}
+            accessibilityLabel={t.homeMenuBack}
+            onPress={handleBackOrClose}
+          />
+          <Stack.Toolbar.Button
+            hidden={!isSignedOutLogin}
+            tintColor={plainToolbarTint}
+            accessibilityLabel={t.authCancel}
+            onPress={animateClose}
+          >
+            {t.authCancel}
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            hidden={!isSignedOutLogin}
+            icon={submitActionIcon}
+            variant="prominent"
+            tintColor={prominentBurgundy}
+            disabled={submitting || isLoading || !!emailAction}
+            accessibilityLabel={submitActionLabel}
+            onPress={mode === 'recovery' ? () => handleEmailAction('recovery') : handleSubmit}
+          />
+          <Stack.Toolbar.Button
+            hidden={isSignedOutLogin}
+            icon="xmark"
+            tintColor={plainToolbarTint}
+            accessibilityLabel={t.close}
+            onPress={animateClose}
+          />
+        </Stack.Toolbar>
+      </>
+    );
+  }
 
   const headerBar = (
     <View style={[styles.header, isIOS && { paddingTop: 16, paddingBottom: 10, paddingHorizontal: 18 }]}>
@@ -1914,13 +2317,13 @@ export function AuthSheet({
           style={({ pressed }) => [
             styles.headerActionCircle,
             {
-              backgroundColor: isDarkMode ? '#FFFFFF' : theme.primary,
+              backgroundColor: prominentBurgundy,
               opacity: submitting || emailAction ? 0.65 : pressed ? 0.85 : 1,
             },
           ]}
         >
           {submitting || emailAction ? (
-            <ActivityIndicator size="small" color={isDarkMode ? '#141416' : theme.onPrimary} />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <AppMenuIcon
               ios={
@@ -1937,7 +2340,7 @@ export function AuthSheet({
                     ? 'person-add'
                     : 'vpn-key'
               }
-              color={isDarkMode ? '#141416' : theme.onPrimary}
+              color="#FFFFFF"
               size={18}
               weight="semibold"
             />
@@ -2198,6 +2601,28 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 14,
+  },
+  nativeSheetScroll: {
+    flex: 1,
+  },
+  nativeScrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 10,
+  },
+  nativeSheetBody: {
+    gap: 14,
+  },
+  nativeGlassGroup: {
+    borderRadius: 22,
+    borderCurve: 'continuous',
+  },
+  nativeFormBlock: {
+    gap: 12,
+  },
+  nativePrimaryButton: {
+    borderRadius: 999,
+    minHeight: 52,
+    borderCurve: 'continuous',
   },
   leadSubtitle: {
     ...fonts.sansRegular,

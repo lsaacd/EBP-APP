@@ -119,6 +119,7 @@ interface AuthContextType {
   syncBlocked: boolean;
   lastSyncedAt: string | null;
   authSheetVisible: boolean;
+  authSheetRequestId: number;
   pendingAuthSheetPage: AuthSheetInitialPage | null;
   clearPendingAuthSheetPage: () => void;
   openAuthSheet: () => void;
@@ -162,6 +163,7 @@ const AuthContext = createContext<AuthContextType>({
   syncBlocked: true,
   lastSyncedAt: null,
   authSheetVisible: false,
+  authSheetRequestId: 0,
   pendingAuthSheetPage: null,
   clearPendingAuthSheetPage: () => {},
   openAuthSheet: () => {},
@@ -209,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [syncBlocked, setSyncBlocked] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [authSheetVisible, setAuthSheetVisible] = useState(false);
+  const [authSheetRequestId, setAuthSheetRequestId] = useState(0);
   const [pendingAuthSheetPage, setPendingAuthSheetPage] = useState<AuthSheetInitialPage | null>(null);
 
   const mountedRef = useRef(true);
@@ -882,10 +885,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [assertCurrent, clearSession, invalidateRequests, isCurrent]);
 
   const openAuthSheet = useCallback(() => {
+    setAuthSheetRequestId((n) => n + 1);
     setAuthSheetVisible(true);
   }, []);
   const openAuthSheetToPage = useCallback((initialPage: AuthSheetInitialPage) => {
     setPendingAuthSheetPage(initialPage);
+    setAuthSheetRequestId((n) => n + 1);
     setAuthSheetVisible(true);
   }, []);
   const closeAuthSheet = useCallback(() => {
@@ -904,6 +909,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         syncBlocked,
         lastSyncedAt,
         authSheetVisible,
+        authSheetRequestId,
         pendingAuthSheetPage,
         clearPendingAuthSheetPage,
         openAuthSheet,

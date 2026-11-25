@@ -103,7 +103,7 @@ function isIOS26OrLater(): boolean {
 function ThemedStack() {
   const { theme, isDarkMode } = useTheme();
   const { language, t } = useLanguage();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, authSheetRequestId } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
@@ -112,6 +112,8 @@ function ThemedStack() {
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
   const checkingUpdateRef = useRef(false);
+  const lastAuthRequestIdRef = useRef(authSheetRequestId);
+  const [stableSheetMiniPlayerBottom, setStableSheetMiniPlayerBottom] = useState<number | null>(null);
 
   // Configure foreground banner handling and route tapped lock-screen notifications.
   useEffect(() => {
@@ -152,7 +154,21 @@ function ThemedStack() {
   const isMyProfile = pathname === '/my-profile' || pathname.startsWith('/my-profile/');
   const isHymn = pathname.startsWith('/hymn/');
   const isTextSizeSheet = pathname === '/text-size-sheet';
+  const isFormSheetOverlay = pathname === '/auth-sheet' || pathname === '/about-sheet';
   const isIOSLiquidGlass = isIOSLiquidGlassAvailable();
+
+  // On iOS, present the unified Auth/Account sheet as a native Liquid Glass formSheet route.
+  useEffect(() => {
+    if (!isIOS) return;
+    if (authSheetRequestId === lastAuthRequestIdRef.current) return;
+    lastAuthRequestIdRef.current = authSheetRequestId;
+    if (pathname !== '/auth-sheet') {
+      router.push({
+        pathname: '/auth-sheet',
+        params: { from: pathname },
+      } as any);
+    }
+  }, [authSheetRequestId, isIOS, pathname, router]);
   const adaptiveTitleColor = isDarkMode ? '#FFFFFF' : '#000000';
   const profileHeaderOptions = isIOS
     ? {
@@ -223,22 +239,33 @@ function ThemedStack() {
   const pillBottom = isIOS ? Math.max(insets.bottom, 22) : androidBottomInset(insets.bottom);
   const pillHeight = isIOS ? 55 : ANDROID_BOTTOM_BAR_HEIGHT;
 
-  let miniPlayerBottom: number;
+  let computedMiniPlayerBottom: number;
 
   if (isPlaylist || isChurches || isMember || isMyProfile) {
     // Playlist, Churches & Profile pages have no bottom tab bar or tool bar at all
-    miniPlayerBottom = pillBottom;
+    computedMiniPlayerBottom = pillBottom;
   } else if (isIOS && !isHymn && !isTextSizeSheet) {
     // On iPhone, iOS tab bar retains its 49pt height at the bottom (including when formSheet /about-sheet presents above tabs).
     // On iPadOS, NativeTabs renders as a top floating pill so bottom is clear.
-    miniPlayerBottom = isPad ? pillBottom : 49 + insets.bottom;
+    computedMiniPlayerBottom = isPad ? pillBottom : 49 + insets.bottom;
   } else if (!isIOS && !isHymn && !isTextSizeSheet) {
     // Flush Android tabs include the safe inset beneath their 64px icon row.
-    miniPlayerBottom = insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
+    computedMiniPlayerBottom = insets.bottom + ANDROID_BOTTOM_BAR_HEIGHT;
   } else {
     // Android Tabs and all Hymn Lyrics pages (plus /text-size-sheet presented above lyrics) use the floating pill bar
-    miniPlayerBottom = pillBottom + pillHeight;
+    computedMiniPlayerBottom = pillBottom + pillHeight;
   }
+
+  useEffect(() => {
+    if (!isFormSheetOverlay) {
+      setStableSheetMiniPlayerBottom(computedMiniPlayerBottom);
+    }
+  }, [computedMiniPlayerBottom, isFormSheetOverlay]);
+
+  const miniPlayerBottom =
+    isFormSheetOverlay && stableSheetMiniPlayerBottom !== null
+      ? stableSheetMiniPlayerBottom
+      : computedMiniPlayerBottom;
 
   return (
     <View style={{ flex: 1 }}>
@@ -337,6 +364,36 @@ function ThemedStack() {
             },
           }}
         />
+        <Stack.Screen
+          name="auth-sheet"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.72, 1.0],
+            sheetExpandsWhenScrolledToEdge: true,
+            headerShown: isIOS,
+            headerTransparent: true,
+            headerBlurEffect: isIOS
+              ? isIOSLiquidGlass
+                ? undefined
+                : ((isDarkMode ? 'dark' : 'light') as 'dark' | 'light')
+              : undefined,
+            scrollEdgeEffects: isIOSLiquidGlass
+              ? { top: 'soft', bottom: 'soft' }
+              : undefined,
+            headerTitle: '',
+            headerTintColor: isDarkMode ? '#FFFFFF' : '#1C1C18',
+            headerTitleStyle: { color: adaptiveTitleColor },
+            headerUserInterfaceStyle: isDarkMode ? 'dark' : 'light',
+            contentStyle: {
+              backgroundColor: isIOSLiquidGlass
+                ? 'transparent'
+                : isDarkMode
+                  ? '#141416'
+                  : '#F6F3EC',
+            },
+          }}
+        />
       </Stack>
 
       {/* ── Mini Player — floats above all screens ──────────────────────── */}
@@ -369,8 +426,8 @@ function ThemedStack() {
         />
       )}
 
-      {/* ── Global Auth & Unified Account/Menu Sheet ─────────────────────── */}
-      <AuthSheet />
+      {/* ── Global Auth & Unified Account/Menu Sheet (Android/Web modal; iOS uses native /auth-sheet formSheet) ── */}
+      {!isIOS && <AuthSheet />}
     </View>
   );
 }
