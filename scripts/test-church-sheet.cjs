@@ -626,3 +626,38 @@ test('member profile offline cache helper seeds previews and sanitizes public fr
   assert.equal(sanitizeCachedMemberProfile(null), null);
   assert.equal(sanitizeCachedMemberProfile({ id: '', name: 'Bad' }), null);
 });
+
+test('getNextServiceSummary picks today active/upcoming service or next weekly service across week wrap', () => {
+  const { getNextServiceSummary } = schedule;
+  const rows = schedule.parseServiceTimes(
+    'Martes 7:00 PM–8:30 PM · Jueves 7:00 PM–9:00 PM · Viernes 7:00 PM–9:00 PM (Estudio bíblico de jóvenes) · Domingo 3:00 PM–6:00 PM',
+  );
+  // Wednesday 11:42 AM -> next is Thursday 7:00 PM
+  const wedMorning = new Date(2026, 10, 25, 11, 42); // Wed Nov 25 2026
+  const nextFromWed = getNextServiceSummary(rows, wedMorning);
+  assert.ok(nextFromWed);
+  assert.equal(nextFromWed.isToday, false);
+  assert.equal(nextFromWed.dayShortEs, 'Jue');
+  assert.equal(nextFromWed.dayShortEn, 'Thu');
+  assert.equal(nextFromWed.startClock, '7:00 PM');
+
+  // Thursday 6:15 PM -> Today · 7:00 PM
+  const thuBefore = new Date(2026, 10, 26, 18, 15);
+  const nextFromThu = getNextServiceSummary(rows, thuBefore);
+  assert.ok(nextFromThu);
+  assert.equal(nextFromThu.isToday, true);
+  assert.equal(nextFromThu.dayShortEs, 'Jue');
+  assert.equal(nextFromThu.startClock, '7:00 PM');
+
+  // Sunday 7:30 PM (after 3-6 PM service ended) -> wraps to Tuesday 7:00 PM
+  const sunLate = new Date(2026, 10, 29, 19, 30);
+  const nextFromSunLate = getNextServiceSummary(rows, sunLate);
+  assert.ok(nextFromSunLate);
+  assert.equal(nextFromSunLate.isToday, false);
+  assert.equal(nextFromSunLate.dayShortEs, 'Mar');
+  assert.equal(nextFromSunLate.dayShortEn, 'Tue');
+  assert.equal(nextFromSunLate.startClock, '7:00 PM');
+
+  assert.equal(getNextServiceSummary([], wedMorning), null);
+  assert.equal(getNextServiceSummary(null, wedMorning), null);
+});

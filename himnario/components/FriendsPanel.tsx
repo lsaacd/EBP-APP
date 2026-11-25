@@ -79,6 +79,7 @@ export default function FriendsPanel({
   const [deletingSharedId, setDeletingSharedId] = useState<string | null>(null);
   const [actingRequestId, setActingRequestId] = useState<string | null>(null);
   const [savingSwitch, setSavingSwitch] = useState<string | null>(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   useEffect(() => {
     void refresh();
@@ -990,50 +991,83 @@ export default function FriendsPanel({
 
       {user ? (
         <View style={{ gap: 8 }}>
-          <Text style={[styles.sectionHeader, { color: mutedText }]}>{t.friendsPrivacy}</Text>
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            {switchRow(
-              'shareFavoritesWithFriends',
-              t.friendsShareFavorites,
-              t.friendsShareFavoritesSub,
-              user.shareFavoritesWithFriends,
-            )}
-            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
-            {switchRow(
-              'showFriendsList',
-              t.friendsShowList,
-              t.friendsShowListSub,
-              user.showFriendsList,
-            )}
-            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
-            {switchRow(
-              'suggestToChurchMembers',
-              t.friendsSuggestMe,
-              t.friendsSuggestMeSub,
-              user.suggestToChurchMembers,
-            )}
-            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
-            {switchRow(
-              'directoryVisibleToAll',
-              t.friendsDirectoryAll,
-              t.friendsDirectoryAllSub,
-              user.directoryVisibleToAll,
-            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: privacyOpen }}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setPrivacyOpen((prev) => !prev);
+              }}
+              style={({ pressed }) => [
+                styles.rowMainHit,
+                pressed && {
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D',
+                },
+              ]}
+            >
+              <AppMenuIcon ios="shield" android="shield" color={theme.primary} size={20} />
+              <Text style={{ flex: 1, ...fonts.sansSemiBold, fontSize: 15.5, color: theme.onSurface }}>
+                {t.friendsPrivacyTitle}
+              </Text>
+              <AppMenuIcon
+                ios={privacyOpen ? 'chevron.up' : 'chevron.down'}
+                android={privacyOpen ? 'expand-less' : 'expand-more'}
+                color={mutedText}
+                size={13}
+                weight="semibold"
+              />
+            </Pressable>
+
+            {privacyOpen ? (
+              <>
+                <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+                {switchRow(
+                  'shareFavoritesWithFriends',
+                  t.friendsShareFavorites,
+                  t.friendsShareFavoritesSub,
+                  user.shareFavoritesWithFriends,
+                )}
+                <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+                {switchRow(
+                  'showFriendsList',
+                  t.friendsShowList,
+                  t.friendsShowListSub,
+                  user.showFriendsList,
+                )}
+                <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+                {switchRow(
+                  'suggestToChurchMembers',
+                  t.friendsSuggestMe,
+                  t.friendsSuggestMeSub,
+                  user.suggestToChurchMembers,
+                )}
+                <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+                {switchRow(
+                  'directoryVisibleToAll',
+                  t.friendsDirectoryAll,
+                  t.friendsDirectoryAllSub,
+                  user.directoryVisibleToAll,
+                )}
+              </>
+            ) : null}
           </View>
+
+          {privacyOpen ? (
+            <Text
+              style={{
+                ...fonts.sansRegular,
+                fontSize: 12.5,
+                lineHeight: 18,
+                color: mutedText,
+                paddingHorizontal: 14,
+              }}
+            >
+              {t.friendsPrivacyNote}
+            </Text>
+          ) : null}
         </View>
       ) : null}
-
-      <Text
-        style={{
-          ...fonts.sansRegular,
-          fontSize: 12.5,
-          lineHeight: 18,
-          color: mutedText,
-          paddingHorizontal: 14,
-        }}
-      >
-        {t.friendsPrivacyNote}
-      </Text>
     </View>
   );
 }

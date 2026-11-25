@@ -25,6 +25,7 @@ import { useApprovedChoirs } from '../../utils/choirsStore';
 import { churchDisplayName } from '../../utils/churchName';
 import { communityError, useCommunityApi } from '../../utils/communityApi';
 import { getExpoSwiftUI } from '../../utils/expoSwiftUI';
+import { showSuccessToast } from '../../utils/toast';
 
 export type NativeProfileSubPage =
   | 'ministry'
@@ -152,6 +153,10 @@ export default function ProfileSubPagesIOS({
   const [showPublicDraft, setShowPublicDraft] = useState<boolean>(
     user?.showChurchLocation === true,
   );
+  const [manualLocationExpanded, setManualLocationExpanded] = useState<boolean>(
+    !user?.churchId,
+  );
+  const [savingVisibilityKey, setSavingVisibilityKey] = useState<string | null>(null);
   const [savingChurch, setSavingChurch] = useState(false);
   const regionInputRef = useRef<TextFieldRef>(null);
   const churchInputRef = useRef<TextFieldRef>(null);
@@ -195,12 +200,25 @@ export default function ProfileSubPagesIOS({
     setCountryDraft(parsed.countryId);
     setRegionDraft(parsed.region);
     setShowPublicDraft(user.showChurchLocation === true);
+    setManualLocationExpanded(!user.churchId);
     const tId = setTimeout(() => {
       regionInputRef.current?.setText(parsed.region).catch(() => {});
       churchInputRef.current?.setText(user.churchName || '').catch(() => {});
     }, 40);
     return () => clearTimeout(tId);
   }, [section, user]);
+
+  // Populate native SwiftUI TextFields when the user expands manual location editing
+  useEffect(() => {
+    if (section !== 'church-location' || !manualLocationExpanded) return;
+    const tId = setTimeout(() => {
+      regionInputRef.current?.setText(regionDraft).catch(() => {});
+      churchInputRef.current?.setText(churchDraft).catch(() => {});
+    }, 40);
+    return () => clearTimeout(tId);
+    // Intentionally hydrate refs when disclosure opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualLocationExpanded, section]);
 
   // Sync Account Edit display name field
   useEffect(() => {
@@ -489,6 +507,30 @@ export default function ProfileSubPagesIOS({
     t.choirSubmittedToast,
   ]);
 
+  const handleToggleVisibility = useCallback(
+    async (
+      key: 'showChurchLocation' | 'suggestToChurchMembers' | 'directoryVisibleToAll',
+      nextOn: boolean,
+    ) => {
+      if (!user || savingVisibilityKey) return;
+      Haptics.selectionAsync().catch(() => {});
+      if (key === 'showChurchLocation') setShowPublicDraft(nextOn);
+      setSavingVisibilityKey(key);
+      setError(null);
+      try {
+        await updateProfile({ [key]: nextOn });
+        showSuccessToast(t.profileVisibilitySaved);
+      } catch (e) {
+        if (key === 'showChurchLocation') setShowPublicDraft(user.showChurchLocation === true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setError(communityError(e, es));
+      } finally {
+        setSavingVisibilityKey(null);
+      }
+    },
+    [es, savingVisibilityKey, t.profileVisibilitySaved, updateProfile, user],
+  );
+
   const handleSaveChurchLocation = useCallback(async () => {
     if (!user || savingChurch) return;
     setSavingChurch(true);
@@ -614,6 +656,7 @@ export default function ProfileSubPagesIOS({
 
   const {
     Button,
+    DisclosureGroup,
     Form,
     Host,
     HStack,
@@ -1240,6 +1283,69 @@ export default function ProfileSubPagesIOS({
 
   // ── 3. MY CHURCH & LOCATION SUB-PAGE ──────────────────────────────────────
   if (section === 'church-location') {
+    const storedParsed = parseStoredLocation(user.location);
+    const hasLinkedVerifiedChurch = Boolean(user.churchId && user.churchName);
+    const hasManualLocationChanges =
+      countryDraft !== storedParsed.countryId ||
+      regionDraft.trim() !== storedParsed.region.trim() ||
+      churchDraft.trim() !== (user.churchName || '').trim();
+
+    const manualLocationFields = (
+      <>
+        <Picker
+          label={
+            <Label
+              title={t.profileCountry}
+              icon={renderTintedIcon('globe')}
+            />
+          }
+          selection={countryDraft}
+          onSelectionChange={(next) => {
+            if (typeof next === 'string') {
+              Haptics.selectionAsync().catch(() => {});
+              setCountryDraft(next);
+            }
+          }}
+          modifiers={[pickerStyle('menu'), disabled(savingChurch)]}
+        >
+          <Text modifiers={[tag('none')]}>{t.profileNone}</Text>
+          {COUNTRY_OPTIONS.map((c) => (
+            <Text key={c.id} modifiers={[tag(c.id)]}>
+              {es ? c.es : c.en}
+            </Text>
+          ))}
+        </Picker>
+
+        <HStack alignment="center" spacing={10}>
+          {renderLeadingFieldIcon('mappin.and.ellipse')}
+          <TextField
+            ref={regionInputRef}
+            placeholder={t.profileEGRiverbankCa}
+            onTextChange={setRegionDraft}
+            modifiers={[
+              textInputAutocapitalization('words'),
+              submitLabel('next'),
+              disabled(savingChurch),
+            ]}
+          />
+        </HStack>
+
+        <HStack alignment="center" spacing={10}>
+          {renderLeadingFieldIcon('building.columns')}
+          <TextField
+            ref={churchInputRef}
+            placeholder={t.profileEGElBuenPastor}
+            onTextChange={setChurchDraft}
+            modifiers={[
+              textInputAutocapitalization('words'),
+              submitLabel('done'),
+              disabled(savingChurch),
+            ]}
+          />
+        </HStack>
+      </>
+    );
+
     return (
       <Host style={{ flex: 1 }} colorScheme={scheme} seedColor={symbolTint}>
         <Form
@@ -1277,11 +1383,11 @@ export default function ProfileSubPagesIOS({
                           truncationMode('tail'),
                         ]}
                       >
-                        {user.churchId && user.churchName
-                          ? churchDisplayName(user.churchName)
+                        {hasLinkedVerifiedChurch
+                          ? churchDisplayName(user.churchName!)
                           : t.profilePickMyChurchOnTheMap}
                       </Text>
-                      {user.churchId ? (
+                      {hasLinkedVerifiedChurch ? (
                         <SwiftUIImage
                           systemName="checkmark.seal.fill"
                           size={14}
@@ -1289,13 +1395,25 @@ export default function ProfileSubPagesIOS({
                         />
                       ) : null}
                     </HStack>
+                    {hasLinkedVerifiedChurch && user.location ? (
+                      <Text
+                        modifiers={[
+                          font({ textStyle: 'footnote' }),
+                          foregroundStyle(secondaryStyle),
+                          lineLimit(1),
+                          truncationMode('tail'),
+                        ]}
+                      >
+                        {user.location}
+                      </Text>
+                    ) : null}
                     <Text
                       modifiers={[
                         font({ textStyle: 'footnote' }),
                         foregroundStyle(secondaryStyle),
                       ]}
                     >
-                      {user.churchId
+                      {hasLinkedVerifiedChurch
                         ? t.profileOfficialLinkedChurchTapToView
                         : t.profileTapAVerifiedChurchOnThe}
                     </Text>
@@ -1305,72 +1423,48 @@ export default function ProfileSubPagesIOS({
                 {chevron}
               </HStack>
             </Button>
+
+            {hasLinkedVerifiedChurch ? (
+              <DisclosureGroup
+                label={t.profileEditManualLocation}
+                isExpanded={manualLocationExpanded}
+                onIsExpandedChange={setManualLocationExpanded}
+              >
+                {manualLocationFields}
+              </DisclosureGroup>
+            ) : null}
           </Section>
 
-          {/* ── Native Country Menu Picker + City + Local Church ── */}
-          <Section title={t.profileChurchLocation}>
-            <Picker
-              label={
-                <Label
-                  title={t.profileCountry}
-                  icon={renderTintedIcon('globe')}
-                />
-              }
-              selection={countryDraft}
-              onSelectionChange={(next) => {
-                if (typeof next === 'string') {
-                  Haptics.selectionAsync().catch(() => {});
-                  setCountryDraft(next);
-                }
-              }}
-              modifiers={[pickerStyle('menu'), disabled(savingChurch)]}
-            >
-              <Text modifiers={[tag('none')]}>{t.profileNone}</Text>
-              {COUNTRY_OPTIONS.map((c) => (
-                <Text key={c.id} modifiers={[tag(c.id)]}>
-                  {es ? c.es : c.en}
-                </Text>
-              ))}
-            </Picker>
+          {/* ── Unlinked fallback: direct Country + City + Local Church entry ── */}
+          {!hasLinkedVerifiedChurch ? (
+            <Section title={t.profileChurchLocation}>
+              {manualLocationFields}
+            </Section>
+          ) : null}
 
-            <HStack alignment="center" spacing={10}>
-              {renderLeadingFieldIcon('mappin.and.ellipse')}
-              <TextField
-                ref={regionInputRef}
-                placeholder={t.profileEGRiverbankCa}
-                onTextChange={setRegionDraft}
+          {/* ── Unified Church Visibility Toggles (auto-save immediately) ── */}
+          <Section
+            title={t.profileChurchVisibility}
+            footer={
+              <VStack
+                alignment="leading"
                 modifiers={[
-                  textInputAutocapitalization('words'),
-                  submitLabel('next'),
-                  disabled(savingChurch),
+                  padding({ bottom: hasManualLocationChanges ? 0 : bottomPad }),
                 ]}
-              />
-            </HStack>
-
-            <HStack alignment="center" spacing={10}>
-              {renderLeadingFieldIcon('building.columns')}
-              <TextField
-                ref={churchInputRef}
-                placeholder={t.profileEGElBuenPastor}
-                onTextChange={setChurchDraft}
-                modifiers={[
-                  textInputAutocapitalization('words'),
-                  submitLabel('done'),
-                  disabled(savingChurch),
-                ]}
-              />
-            </HStack>
-          </Section>
-
-          {/* ── Public Visibility Toggle ── */}
-          <Section footer={<Text>{t.profileOptionalOnlyShownWhenSomeoneTaps}</Text>}>
+              >
+                <Text>{t.profileOptionalOnlyShownWhenSomeoneTaps}</Text>
+              </VStack>
+            }
+          >
             <Toggle
               isOn={showPublicDraft}
-              onIsOnChange={(nextOn) => {
-                Haptics.selectionAsync().catch(() => {});
-                setShowPublicDraft(nextOn);
-              }}
-              modifiers={[tint(toggleTint), disabled(savingChurch)]}
+              onIsOnChange={(nextOn) =>
+                void handleToggleVisibility('showChurchLocation', nextOn)
+              }
+              modifiers={[
+                tint(toggleTint),
+                disabled(savingChurch || savingVisibilityKey !== null),
+              ]}
             >
               <Label
                 title={t.profileShowOnMyProfile}
@@ -1378,48 +1472,104 @@ export default function ProfileSubPagesIOS({
                 modifiers={[foregroundStyle(primaryStyle)]}
               />
             </Toggle>
+
+            <Toggle
+              isOn={user.suggestToChurchMembers}
+              onIsOnChange={(nextOn) =>
+                void handleToggleVisibility('suggestToChurchMembers', nextOn)
+              }
+              modifiers={[
+                tint(toggleTint),
+                disabled(savingChurch || savingVisibilityKey !== null),
+              ]}
+            >
+              <Label icon={renderTintedIcon('person.2')}>
+                <VStack alignment="leading" spacing={2}>
+                  <Text modifiers={[font({ textStyle: 'body' })]}>
+                    {t.friendsSuggestMe}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'footnote' }),
+                      foregroundStyle(secondaryStyle),
+                    ]}
+                  >
+                    {t.friendsSuggestMeSub}
+                  </Text>
+                </VStack>
+              </Label>
+            </Toggle>
+
+            <Toggle
+              isOn={user.directoryVisibleToAll}
+              onIsOnChange={(nextOn) =>
+                void handleToggleVisibility('directoryVisibleToAll', nextOn)
+              }
+              modifiers={[
+                tint(toggleTint),
+                disabled(savingChurch || savingVisibilityKey !== null),
+              ]}
+            >
+              <Label icon={renderTintedIcon('globe')}>
+                <VStack alignment="leading" spacing={2}>
+                  <Text modifiers={[font({ textStyle: 'body' })]}>
+                    {t.friendsDirectoryAll}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: 'footnote' }),
+                      foregroundStyle(secondaryStyle),
+                    ]}
+                  >
+                    {t.friendsDirectoryAllSub}
+                  </Text>
+                </VStack>
+              </Label>
+            </Toggle>
           </Section>
 
           {renderErrorSection()}
 
-          {/* ── Borderless Prominent Capsule Save CTA ── */}
-          <Section
-            footer={
-              <VStack alignment="leading" modifiers={[padding({ bottom: bottomPad })]}>
-                <Text> </Text>
-              </VStack>
-            }
-          >
-            <Button
-              onPress={() => void handleSaveChurchLocation()}
-              modifiers={[
-                buttonStyle('borderedProminent'),
-                buttonBorderShape('capsule'),
-                controlSize('large'),
-                tint(prominentFill),
-                disabled(savingChurch),
-                listRowBackground('clear'),
-                listRowInsets({ top: 2, leading: 0, bottom: 2, trailing: 0 }),
-              ]}
+          {/* ── Smart Save CTA — only shown when manual text fields have unsaved edits ── */}
+          {hasManualLocationChanges ? (
+            <Section
+              footer={
+                <VStack alignment="leading" modifiers={[padding({ bottom: bottomPad })]}>
+                  <Text> </Text>
+                </VStack>
+              }
             >
-              <HStack alignment="center" spacing={8}>
-                <Spacer />
-                {savingChurch ? (
-                  <ProgressView />
-                ) : (
-                  <Text
-                    modifiers={[
-                      font({ textStyle: 'body', weight: 'semibold' }),
-                      foregroundStyle({ type: 'color', color: prominentInk }),
-                    ]}
-                  >
-                    {savingChurch ? t.profileSaving : t.save}
-                  </Text>
-                )}
-                <Spacer />
-              </HStack>
-            </Button>
-          </Section>
+              <Button
+                onPress={() => void handleSaveChurchLocation()}
+                modifiers={[
+                  buttonStyle('borderedProminent'),
+                  buttonBorderShape('capsule'),
+                  controlSize('large'),
+                  tint(prominentFill),
+                  disabled(savingChurch),
+                  listRowBackground('clear'),
+                  listRowInsets({ top: 2, leading: 0, bottom: 2, trailing: 0 }),
+                ]}
+              >
+                <HStack alignment="center" spacing={8}>
+                  <Spacer />
+                  {savingChurch ? (
+                    <ProgressView />
+                  ) : (
+                    <Text
+                      modifiers={[
+                        font({ textStyle: 'body', weight: 'semibold' }),
+                        foregroundStyle({ type: 'color', color: prominentInk }),
+                      ]}
+                    >
+                      {t.save}
+                    </Text>
+                  )}
+                  <Spacer />
+                </HStack>
+              </Button>
+            </Section>
+          ) : null}
         </Form>
       </Host>
     );

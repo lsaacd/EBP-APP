@@ -90,6 +90,56 @@ export type ScheduleEntry = {
 
 /** Stored day names are Spanish: the directory's congregations are Spanish-speaking. */
 const DAY_NAMES_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DAY_SHORT_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAY_SHORT_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export type NextServiceSummary = {
+  isToday: boolean;
+  row: ScheduleRow;
+  dayShortEs: string;
+  dayShortEn: string;
+  startClock: string;
+};
+
+/**
+ * Picks today's active/upcoming service or the next service in the weekly schedule.
+ * Wraps cleanly around Sunday -> Monday and returns null when there are no parsed rows.
+ */
+export function getNextServiceSummary(
+  rows: ScheduleRow[] | null | undefined,
+  now: Date = new Date(),
+): NextServiceSummary | null {
+  if (!rows || rows.length === 0) return null;
+  const nowDay = now.getDay();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const weekMin = 7 * 1440;
+  const nowTotal = nowDay * 1440 + nowMin;
+
+  let best: { row: ScheduleRow; delta: number; isToday: boolean } | null = null;
+  for (const row of rows) {
+    const startTotal = row.dayIndex * 1440 + row.start;
+    const endMin = row.end !== null && row.end > row.start ? row.end : row.start + 90;
+    const isTodayActiveOrUpcoming = row.dayIndex === nowDay && nowMin <= endMin;
+    let delta: number;
+    if (isTodayActiveOrUpcoming) {
+      delta = Math.max(0, row.start - nowMin);
+    } else {
+      delta = (startTotal - nowTotal + weekMin) % weekMin;
+      if (delta === 0) delta = weekMin;
+    }
+    if (!best || delta < best.delta) {
+      best = { row, delta, isToday: isTodayActiveOrUpcoming };
+    }
+  }
+  if (!best) return null;
+  return {
+    isToday: best.isToday,
+    row: best.row,
+    dayShortEs: DAY_SHORT_ES[best.row.dayIndex] ?? best.row.day.slice(0, 3),
+    dayShortEn: DAY_SHORT_EN[best.row.dayIndex] ?? best.row.day.slice(0, 3),
+    startClock: formatClock(best.row.start),
+  };
+}
 
 export function formatClock(minutes: number): string {
   const total = ((Math.round(minutes) % 1440) + 1440) % 1440;

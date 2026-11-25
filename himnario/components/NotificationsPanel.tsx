@@ -66,6 +66,7 @@ export default function NotificationsPanel({
   const [pushStatus, setPushStatus] = useState<PushPermissionState>('unavailable');
   const [enablingPush, setEnablingPush] = useState(false);
   const [savingSwitch, setSavingSwitch] = useState<string | null>(null);
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
   useEffect(() => {
     void refresh();
@@ -246,13 +247,6 @@ export default function NotificationsPanel({
             {t.notificationsOpenSettings}
           </Text>
         </Pressable>
-      ) : pushStatus === 'granted' ? (
-        <View style={[styles.statusLine, { paddingHorizontal: 6 }]}>
-          <AppMenuIcon ios="checkmark.circle.fill" android="check-circle" color="#34C759" size={16} />
-          <Text style={{ ...fonts.sansRegular, fontSize: 13, color: mutedText }}>
-            {t.notificationsPushEnabled}
-          </Text>
-        </View>
       ) : null}
 
       {/* Notification list */}
@@ -387,34 +381,61 @@ export default function NotificationsPanel({
         </View>
       )}
 
-      {/* Per-category notification switches */}
+      {/* Collapsible notification preferences (tucked cleanly out of the inbox) */}
       {user ? (
-        <View style={{ gap: 8 }}>
-          <Text style={[styles.sectionHeader, { color: mutedText }]}>
-            {t.notificationsPreferences}
-          </Text>
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            {switchRow(
-              'notifyCommentReplies',
-              t.notificationsPrefReplies,
-              t.notificationsPrefRepliesSub,
-              user.notifyCommentReplies,
-            )}
-            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
-            {switchRow(
-              'notifyCommentLikes',
-              t.notificationsPrefLikes,
-              t.notificationsPrefLikesSub,
-              user.notifyCommentLikes,
-            )}
-            <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
-            {switchRow(
-              'notifyFriends',
-              t.notificationsPrefFriends,
-              t.notificationsPrefFriendsSub,
-              user.notifyFriends,
-            )}
-          </View>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: prefsOpen }}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setPrefsOpen((prev) => !prev);
+            }}
+            style={({ pressed }) => [
+              styles.row,
+              pressed && {
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : theme.primary + '0D',
+              },
+            ]}
+          >
+            <AppMenuIcon ios="slider.horizontal.3" android="tune" color={theme.primary} size={19} />
+            <Text style={{ flex: 1, ...fonts.sansSemiBold, fontSize: 15.5, color: theme.onSurface }}>
+              {t.notificationsPrefsTitle}
+            </Text>
+            <AppMenuIcon
+              ios={prefsOpen ? 'chevron.up' : 'chevron.down'}
+              android={prefsOpen ? 'expand-less' : 'expand-more'}
+              color={mutedText}
+              size={13}
+              weight="semibold"
+            />
+          </Pressable>
+
+          {prefsOpen ? (
+            <>
+              <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+              {switchRow(
+                'notifyCommentReplies',
+                t.notificationsPrefReplies,
+                t.notificationsPrefRepliesSub,
+                user.notifyCommentReplies,
+              )}
+              <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+              {switchRow(
+                'notifyCommentLikes',
+                t.notificationsPrefLikes,
+                t.notificationsPrefLikesSub,
+                user.notifyCommentLikes,
+              )}
+              <View style={[styles.divider, { backgroundColor: divider, marginLeft: 14 }]} />
+              {switchRow(
+                'notifyFriends',
+                t.notificationsPrefFriends,
+                t.notificationsPrefFriendsSub,
+                user.notifyFriends,
+              )}
+            </>
+          ) : null}
         </View>
       ) : null}
     </View>

@@ -40,6 +40,8 @@ import { useNotifications } from '../utils/notificationsStore';
 import CommunityProfile, { type CommunitySubPage } from '../components/CommunityProfile';
 import MyProfileOverview from '../components/screens/MyProfileOverview';
 import ProfileSubPages, { type NativeProfileSubPage } from '../components/screens/ProfileSubPages';
+import FriendsScreen from '../components/screens/FriendsScreen';
+import NotificationsScreen from '../components/screens/NotificationsScreen';
 import AppMenuIcon from '../components/AppMenuIcon';
 import UserAvatar from '../components/UserAvatar';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
@@ -95,6 +97,13 @@ export default function MyProfileScreen() {
   const [emailAction, setEmailAction] = useState<'verification' | 'refresh' | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [friendsPrivacyOpen, setFriendsPrivacyOpen] = useState(false);
+  const [notifPrefsOpen, setNotifPrefsOpen] = useState(false);
+
+  useEffect(() => {
+    setFriendsPrivacyOpen(false);
+    setNotifPrefsOpen(false);
+  }, [section]);
 
   const openSection = (next: ProfileSection) => {
     if (next !== section) router.push(`/my-profile/${next}` as any);
@@ -261,7 +270,65 @@ export default function MyProfileScreen() {
                   />
                 </Pressable>
               )
-            : undefined,
+            : isIOS && hasSwiftUI && section === 'friends'
+              ? () => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.friendsPrivacyTitle}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setFriendsPrivacyOpen(true);
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        width: 34,
+                        height: 34,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="shield"
+                      android="shield"
+                      color={headerAccent}
+                      size={20}
+                      containerSize={22}
+                      weight="semibold"
+                    />
+                  </Pressable>
+                )
+              : isIOS && hasSwiftUI && section === 'notifications'
+                ? () => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.notificationsPrefsTitle}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setNotifPrefsOpen(true);
+                      }}
+                      style={({ pressed }) => [
+                        {
+                          width: 34,
+                          height: 34,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: pressed ? 0.65 : 1,
+                        },
+                      ]}
+                    >
+                      <AppMenuIcon
+                        ios="slider.horizontal.3"
+                        android="tune"
+                        color={headerAccent}
+                        size={20}
+                        containerSize={22}
+                        weight="semibold"
+                      />
+                    </Pressable>
+                  )
+                : undefined,
       }}
     />
   );
@@ -274,6 +341,50 @@ export default function MyProfileScreen() {
         <MyProfileOverview
           onOpenSection={openSection}
           onConfirmDeleteAccount={handleConfirmDeleteAccount}
+        />
+      </>
+    );
+  }
+
+  if (hasSwiftUI && section === 'friends') {
+    return (
+      <>
+        {screenHeaderConfig}
+        <FriendsScreen
+          privacySheetOpen={friendsPrivacyOpen}
+          onPrivacySheetOpenChange={setFriendsPrivacyOpen}
+          onOpenChurchesMap={() => {
+            router.push(
+              (user.churchId
+                ? `/churches?id=${encodeURIComponent(user.churchId)}`
+                : '/churches') as any,
+            );
+          }}
+          onOpenHymn={(hymnId) => {
+            router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+          }}
+          onOpenMember={(memberId) => {
+            router.push(`/member/${encodeURIComponent(memberId)}` as any);
+          }}
+        />
+      </>
+    );
+  }
+
+  if (hasSwiftUI && section === 'notifications') {
+    return (
+      <>
+        {screenHeaderConfig}
+        <NotificationsScreen
+          prefsSheetOpen={notifPrefsOpen}
+          onPrefsSheetOpenChange={setNotifPrefsOpen}
+          onNavigate={(dest) => {
+            if (dest.kind === 'friends') {
+              openSection('friends');
+            } else if (dest.kind === 'hymn') {
+              router.push(`/hymn/${encodeURIComponent(dest.hymnId)}` as any);
+            }
+          }}
         />
       </>
     );

@@ -12,12 +12,14 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import MapView, { Marker, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { CameraView, Camera } from "expo-camera";
@@ -57,22 +59,26 @@ import ActionToast, { type ActionToastMessage } from "../components/ActionToast"
 import ListSortMenu, { type ListSortOption } from "../components/ListSortMenu";
 import ChurchScheduleEditor, { canEditSchedule } from "../components/ChurchScheduleEditor";
 import ChurchQrSheet from "../components/ChurchQrSheet";
+import ChurchDetailActionBar from "../components/churches/ChurchDetailActionBar";
 import FriendButton from "../components/FriendButton";
 import { mergeChurchMembers, parseChurchMembers, parseChurchMembersOffset, type ChurchMemberProfile } from "../utils/friends";
 import { seedMemberPreview } from "../utils/memberProfileCache";
 import UserAvatar from "../components/UserAvatar";
 import { MINISTRIES, choirDisplayName } from "../data/communityRules";
 import { useApprovedChoirs } from "../utils/choirsStore";
-import { parseServiceTimes } from "../utils/churchSchedule";
+import { getNextServiceSummary, parseServiceTimes } from "../utils/churchSchedule";
 import { churchDisplayName, servantBareName, servantDisplayName } from "../utils/churchName";
 import {
   buildChurchMapPins,
+  churchShareUrl,
   parseCoordsOrMapsInput,
   formatDistance,
+  formatDriveTime,
   formatDrivingEstimate,
   nearestIndex,
   type MapViewportRegion,
 } from "../utils/churchMapUtils";
+import { showSuccessToast } from "../utils/toast";
 import { pickAndUploadChurchPhotos } from "../utils/churchPhotoUpload";
 import { hasUnsavedChurchDraft, type ChurchFormSnapshot } from "../utils/churchDraft";
 import {
@@ -311,6 +317,7 @@ export default function ChurchesScreen() {
   const [showAddressFields, setShowAddressFields] = useState(false);
   const [showCoordsInput, setShowCoordsInput] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
   const [locationChanged, setLocationChanged] = useState(false);
   const [formToast, setFormToast] = useState<ActionToastMessage | null>(null);
   const formToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1163,6 +1170,7 @@ export default function ChurchesScreen() {
     setShowAddressFields(false);
     setShowCoordsInput(false);
     setShowMoreDetails(false);
+    setShowPhotoUrlInput(false);
     setLocationChanged(false);
     setFormToast(null);
     lastPastedCoordsRef.current = "";
@@ -1224,6 +1232,7 @@ export default function ChurchesScreen() {
     setShowAddressFields(true);
     setShowCoordsInput(false);
     setShowMoreDetails(true);
+    setShowPhotoUrlInput(false);
     setLocationChanged(false);
     setFormToast(null);
     lastPastedCoordsRef.current = initialCoords;
@@ -1520,7 +1529,38 @@ export default function ChurchesScreen() {
   };
 
 
-  const bottomClearance = Math.max(insets.bottom, 18) + (currentHymnId ? 82 : 8);
+  const handleCopyChurchAddress = useCallback((church: VerifiedChurch) => {
+    const fullAddress = [
+      church.address,
+      church.city,
+      church.state,
+      church.postalCode,
+      church.country,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    void Clipboard.setStringAsync(fullAddress)
+      .then(() => {
+        showSuccessToast(t.churchAddressCopied);
+      })
+      .catch(() => {});
+  }, [t.churchAddressCopied]);
+
+  const handleShareChurch = useCallback((church: VerifiedChurch) => {
+    const title = churchDisplayName(church.name, church.city);
+    const addressLine = [church.address, church.city, church.state]
+      .filter(Boolean)
+      .join(", ");
+    const url = churchShareUrl(church.id);
+    const message = `${title}\n${addressLine}\n${url}`;
+    void Share.share(
+      Platform.OS === "ios"
+        ? { title, message, url }
+        : { title, message },
+    ).catch(() => {});
+  }, []);
+
+  const bottomClearance = Math.max(insets.bottom, 18) + (currentHymnId ? 88 : 22);
   const sheetFull = Math.max(360, windowHeight - insets.top - TOP_CONTROLS_HEIGHT);
   // At rest the sheet sits fully below the screen (negative so its grabber hides too).
   const sheetCollapsed = -40;
@@ -2679,11 +2719,67 @@ export default function ChurchesScreen() {
                             </View>
                           );
                         }
+                        const nextService = getNextServiceSummary(rows);
+                        const nextBadgeText = nextService
+                          ? nextService.isToday
+                            ? `${t.churchToday} · ${nextService.startClock}`
+                            : `${t.churchNextService}: ${es ? nextService.dayShortEs : nextService.dayShortEn} ${nextService.startClock}`
+                          : null;
                         return (
                           <View style={[styles.scheduleCard, { backgroundColor: scheduleBg }]}>
-                            <Text style={[styles.sectionEyebrow, { color: mutedText }]}>
-                              {t.churchServiceTimes}
-                            </Text>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 8,
+                                paddingTop: 10,
+                                paddingBottom: 4,
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.sectionEyebrow,
+                                  { color: mutedText, paddingTop: 0, paddingBottom: 0 },
+                                ]}
+                              >
+                                {t.churchServiceTimes}
+                              </Text>
+                              {nextBadgeText ? (
+                                <View
+                                  style={{
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    borderRadius: 999,
+                                    backgroundColor: nextService?.isToday
+                                      ? isDarkMode
+                                        ? "rgba(52,199,89,0.22)"
+                                        : "rgba(52,199,89,0.16)"
+                                      : isDarkMode
+                                        ? "rgba(255,255,255,0.11)"
+                                        : theme.primary + "14",
+                                  }}
+                                >
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{
+                                      color: nextService?.isToday
+                                        ? isDarkMode
+                                          ? "#5EE380"
+                                          : "#1F7A38"
+                                        : isDarkMode
+                                          ? "#FDF9F2"
+                                          : theme.primary,
+                                      ...fonts.sansSemiBold,
+                                      fontSize: 11.5,
+                                      fontVariant: ["tabular-nums"],
+                                    }}
+                                  >
+                                    {nextBadgeText}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
                             {rows.map((row, i) => {
                               const isToday = row.dayIndex === today;
                               const rowColor = isToday ? theme.primary : theme.onSurface;
@@ -2738,310 +2834,32 @@ export default function ChurchesScreen() {
                         );
                       })()}
 
-              <View style={styles.selectedActionsRow}>
-                <Pressable
-                  onPress={() => openDirections(selectedChurch)}
-                  style={({ pressed }) => [
-                    styles.actionBtnPrimary,
-                    {
-                      backgroundColor: theme.primary,
-                      opacity: pressed ? 0.88 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="arrow.triangle.turn.up.right.diamond.fill"
-                    android="directions"
-                    color={theme.onPrimary}
-                    size={17}
-                  />
-                  <Text
-                    style={{
-                      color: theme.onPrimary,
-                      ...fonts.sansSemiBold,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t.churchDirections}
-                  </Text>
-                </Pressable>
-
-                {isIOS ? (
-                  <GlassSurface
-                    isInteractive
-                    glassEffectStyle="regular"
-                    intensity={58}
-                    style={styles.actionBtnSecondaryGlass}
-                  >
-                    <Pressable
-                      disabled={lookingAroundId === selectedChurch.id}
-                      onPress={() => void openStreetPreview(selectedChurch)}
-                      style={({ pressed }) => [
-                        styles.actionBtnSecondaryHit,
-                        { opacity: pressed ? 0.8 : 1 },
-                      ]}
-                    >
-                      {lookingAroundId === selectedChurch.id ? (
-                        <ActivityIndicator size="small" color={theme.primary} />
-                      ) : (
-                        <>
-                          <AppMenuIcon
-                            ios="binoculars.fill"
-                            android="streetview"
-                            color={theme.onSurface}
-                            size={15}
-                          />
-                          <Text
-                            numberOfLines={1}
-                            style={{
-                              color: theme.onSurface,
-                              ...fonts.sansSemiBold,
-                              fontSize: 13.5,
-                            }}
-                          >
-                            {t.churchLookAround}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  </GlassSurface>
-                ) : (
-                  <Pressable
-                    disabled={lookingAroundId === selectedChurch.id}
-                    onPress={() => void openStreetPreview(selectedChurch)}
-                    style={({ pressed }) => [
-                      styles.actionBtnSecondary,
-                      {
-                        backgroundColor: isDarkMode
-                          ? "rgba(255,255,255,0.09)"
-                          : theme.surfaceVariants.containerHighest,
-                        opacity: pressed ? 0.85 : 1,
-                      },
-                    ]}
-                  >
-                    {lookingAroundId === selectedChurch.id ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : (
-                      <>
-                        <AppMenuIcon
-                          ios="binoculars.fill"
-                          android="streetview"
-                          color={theme.onSurface}
-                          size={15}
-                        />
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            color: theme.onSurface,
-                            ...fonts.sansSemiBold,
-                            fontSize: 13.5,
-                          }}
-                        >
-                          {t.churchStreetView}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                )}
-              </View>
-
-                    <View style={styles.selectedActionsRow}>
-                {(() => {
-                  const isMyLinkedChurch =
-                    user?.churchId === selectedChurch.id ||
-                    (!user?.churchId && user?.churchName === selectedChurch.name);
-                  if (isIOS) {
-                    return (
-                      <GlassSurface
-                        isInteractive
-                        glassEffectStyle="regular"
-                        intensity={58}
-                        tintColor={
-                          isMyLinkedChurch
-                            ? isDarkMode
-                              ? "rgba(52,199,89,0.22)"
-                              : "rgba(52,199,89,0.16)"
-                            : undefined
-                        }
-                        style={[
-                          styles.actionBtnSecondaryGlass,
-                          {
-                            flex: 1.35,
-                            borderWidth: isMyLinkedChurch ? 1 : 0,
-                            borderColor: isMyLinkedChurch ? "#34C759" : "transparent",
-                          },
-                        ]}
-                      >
-                        <Pressable
-                          disabled={settingMyChurchId === selectedChurch.id}
-                          onPress={() => void handleSetMyChurch(selectedChurch)}
-                          style={({ pressed }) => [
-                            styles.actionBtnSecondaryHit,
-                            { opacity: pressed ? 0.8 : 1 },
-                          ]}
-                        >
-                          {settingMyChurchId === selectedChurch.id ? (
-                            <ActivityIndicator size="small" color={theme.primary} />
-                          ) : (
-                            <>
-                              <AppMenuIcon
-                                ios={
-                                  isMyLinkedChurch
-                                    ? "checkmark.seal.fill"
-                                    : "building.columns"
-                                }
-                                android={
-                                  isMyLinkedChurch ? "verified" : "account-balance"
-                                }
-                                color={isMyLinkedChurch ? "#34C759" : theme.onSurface}
-                                size={16}
-                              />
-                              <Text
-                                numberOfLines={1}
-                                style={{
-                                  color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
-                                  ...fonts.sansSemiBold,
-                                  fontSize: 13.5,
-                                }}
-                              >
-                                {isMyLinkedChurch
-                                  ? t.churchYourChurch
-                                  : t.churchSetAsMyChurch}
-                              </Text>
-                            </>
-                          )}
-                        </Pressable>
-                      </GlassSurface>
-                    );
-                  }
-                  return (
-                    <Pressable
-                      disabled={settingMyChurchId === selectedChurch.id}
-                      onPress={() => void handleSetMyChurch(selectedChurch)}
-                      style={({ pressed }) => [
-                        styles.actionBtnSecondary,
-                        {
-                          flex: 1.35,
-                          backgroundColor: isMyLinkedChurch
-                            ? isDarkMode
-                              ? "rgba(52,199,89,0.18)"
-                              : "rgba(52,199,89,0.14)"
-                            : isDarkMode
-                              ? "rgba(255,255,255,0.09)"
-                              : theme.surfaceVariants.containerHighest,
-                          borderWidth: isMyLinkedChurch ? 1 : 0,
-                          borderColor: isMyLinkedChurch ? "#34C759" : "transparent",
-                          opacity: pressed ? 0.85 : 1,
-                        },
-                      ]}
-                    >
-                      {settingMyChurchId === selectedChurch.id ? (
-                        <ActivityIndicator size="small" color={theme.primary} />
-                      ) : (
-                        <>
-                          <AppMenuIcon
-                            ios={
-                              isMyLinkedChurch
-                                ? "checkmark.seal.fill"
-                                : "building.columns"
-                            }
-                            android={
-                              isMyLinkedChurch ? "verified" : "account-balance"
-                            }
-                            color={isMyLinkedChurch ? "#34C759" : theme.onSurface}
-                            size={16}
-                          />
-                          <Text
-                            numberOfLines={1}
-                            style={{
-                              color: isMyLinkedChurch ? "#34C759" : theme.onSurface,
-                              ...fonts.sansSemiBold,
-                              fontSize: 13.5,
-                            }}
-                          >
-                            {isMyLinkedChurch
-                              ? t.churchYourChurch
-                              : t.churchSetAsMyChurch}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  );
-                })()}
-
-                {isIOS ? (
-                  <GlassSurface
-                    isInteractive
-                    glassEffectStyle="regular"
-                    intensity={58}
-                    style={[styles.actionBtnSecondaryGlass, { flex: 0.85 }]}
-                  >
-                    <Pressable
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        setQrShareChurch(selectedChurch);
-                      }}
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.actionBtnSecondaryHit,
-                        { opacity: pressed ? 0.8 : 1 },
-                      ]}
-                    >
-                      <AppMenuIcon
-                        ios="qrcode"
-                        android="qr-code-2"
-                        color={theme.onSurface}
-                        size={16}
-                      />
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          color: theme.onSurface,
-                          ...fonts.sansSemiBold,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {t.churchQrCodeAction}
-                      </Text>
-                    </Pressable>
-                  </GlassSurface>
-                ) : (
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setQrShareChurch(selectedChurch);
-                    }}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [
-                      styles.actionBtnSecondary,
-                      {
-                        flex: 0.85,
-                        backgroundColor: isDarkMode
-                          ? "rgba(255,255,255,0.09)"
-                          : theme.surfaceVariants.containerHighest,
-                        opacity: pressed ? 0.85 : 1,
-                      },
-                    ]}
-                  >
-                    <AppMenuIcon
-                      ios="qrcode"
-                      android="qr-code-2"
-                      color={theme.onSurface}
-                      size={16}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        color: theme.onSurface,
-                        ...fonts.sansSemiBold,
-                        fontSize: 13.5,
-                      }}
-                    >
-                      {t.churchQrCodeAction}
-                    </Text>
-                  </Pressable>
-                )}
-                    </View>
+              <ChurchDetailActionBar
+                driveTimeLabel={
+                  selectedDrivingEstimate
+                    ? formatDriveTime(selectedDrivingEstimate.expectedTravelTimeSeconds)
+                    : null
+                }
+                isMyLinkedChurch={
+                  user?.churchId === selectedChurch.id ||
+                  (!user?.churchId && user?.churchName === selectedChurch.name)
+                }
+                isLookingAround={lookingAroundId === selectedChurch.id}
+                isSettingMyChurch={settingMyChurchId === selectedChurch.id}
+                isAdmin={isAdmin}
+                isPending={selectedChurch.status === "pending"}
+                onDirections={() => openDirections(selectedChurch)}
+                onStreetPreview={() => void openStreetPreview(selectedChurch)}
+                onToggleMyChurch={() => void handleSetMyChurch(selectedChurch)}
+                onOpenQr={() => {
+                  Haptics.selectionAsync();
+                  setQrShareChurch(selectedChurch);
+                }}
+                onCopyAddress={() => handleCopyChurchAddress(selectedChurch)}
+                onShareChurch={() => handleShareChurch(selectedChurch)}
+                onEditChurch={() => openEditChurchModal(selectedChurch)}
+                onDeleteChurch={() => handleDeleteChurch(selectedChurch)}
+              />
 
               {(() => {
                 return (
@@ -3119,7 +2937,9 @@ export default function ChurchesScreen() {
                           }}
                         >
                           {user && churchMembersTotal !== null
-                            ? t.churchMembersCount.replace('{n}', String(churchMembersTotal))
+                            ? churchMembersTotal === 1
+                              ? t.churchMembersCountOne
+                              : t.churchMembersCount.replace('{n}', String(churchMembersTotal))
                             : t.churchMembersRowSub}
                         </Text>
                       </View>
@@ -3284,73 +3104,6 @@ export default function ChurchesScreen() {
                 );
               })()}
 
-              {isAdmin && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "flex-end",
-                    gap: 10,
-                    paddingTop: 4,
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: cardBorder,
-                  }}
-                >
-                  <Pressable
-                    onPress={() => openEditChurchModal(selectedChurch)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                    }}
-                  >
-                    <AppMenuIcon
-                      ios="pencil"
-                      android="edit"
-                      color={theme.primary}
-                      size={14}
-                    />
-                    <Text
-                      style={{
-                        color: theme.primary,
-                        ...fonts.sansSemiBold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {selectedChurch.status === "pending"
-                        ? t.churchReviewApprove
-                        : t.churchEditChurch}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => handleDeleteChurch(selectedChurch)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                    }}
-                  >
-                    <AppMenuIcon
-                      ios="trash"
-                      android="delete-outline"
-                      color="#D64545"
-                      size={14}
-                    />
-                    <Text
-                      style={{
-                        color: "#D64545",
-                        ...fonts.sansSemiBold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {t.delete}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
                   </View>
                 </GestureDetector>
               </Animated.View>
@@ -3796,11 +3549,9 @@ export default function ChurchesScreen() {
                     >
                       {editingChurch
                         ? editingChurch.status === "pending"
-                          ? t.churchReviewApproveChurch
-                          : t.churchEditVerifiedChurch
-                        : isAdmin
-                          ? t.churchAddVerifiedChurch
-                          : t.churchSubmitAChurch2}
+                          ? t.churchReviewShortTitle
+                          : t.churchEditShortTitle
+                        : t.churchNewShortTitle}
                     </Text>
                     <Pressable
                       disabled={submitting}
@@ -4402,6 +4153,56 @@ export default function ChurchesScreen() {
                           {t.churchGallery}
                         </Text>
                       </Pressable>
+
+                      <Pressable
+                        disabled={
+                          uploadingPhotos ||
+                          submitting ||
+                          formPhotos.length >= maxPhotos
+                        }
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setShowPhotoUrlInput((v) => !v);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: showPhotoUrlInput }}
+                        style={({ pressed }) => ({
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          paddingHorizontal: 11,
+                          paddingVertical: 10,
+                          borderRadius: 11,
+                          backgroundColor: showPhotoUrlInput
+                            ? theme.primary + "22"
+                            : isDarkMode
+                              ? "rgba(255,255,255,0.09)"
+                              : theme.surfaceVariants.containerHighest,
+                          opacity:
+                            uploadingPhotos || formPhotos.length >= maxPhotos
+                              ? 0.45
+                              : pressed
+                                ? 0.8
+                                : 1,
+                        })}
+                      >
+                        <AppMenuIcon
+                          ios="link"
+                          android="link"
+                          color={showPhotoUrlInput ? theme.primary : theme.onSurface}
+                          size={14}
+                        />
+                        <Text
+                          style={{
+                            color: showPhotoUrlInput ? theme.primary : theme.onSurface,
+                            ...fonts.sansSemiBold,
+                            fontSize: 13,
+                          }}
+                        >
+                          {t.churchPastePhotoUrlAction}
+                        </Text>
+                      </Pressable>
                     </View>
                   )}
 
@@ -4503,8 +4304,8 @@ export default function ChurchesScreen() {
                     </ScrollView>
                   )}
 
-                  {/* Optional Cloud Photo URL input */}
-                  {formPhotos.length < maxPhotos && (
+                  {/* Optional Cloud Photo URL input — glass-harmonized, revealed on demand */}
+                  {formPhotos.length < maxPhotos && (showPhotoUrlInput || Platform.OS === "web") && (
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       <TextInput
                         value={formPhotoUrl}
@@ -4521,7 +4322,9 @@ export default function ChurchesScreen() {
                           styles.formInput,
                           {
                             flex: 1,
-                            backgroundColor: bgSurface,
+                            backgroundColor: isDarkMode
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(255,255,255,0.68)",
                             borderColor: cardBorder,
                             color: theme.onSurface,
                             paddingVertical: 8,
@@ -4546,6 +4349,7 @@ export default function ChurchesScreen() {
                                 : [...prev, clean],
                             );
                             setFormPhotoUrl("");
+                            setShowPhotoUrlInput(false);
                             setFormError("");
                             showFormToast(t.churchPhotoAddedToast, undefined, "photo");
                           }}
@@ -4587,38 +4391,6 @@ export default function ChurchesScreen() {
                     {formError}
                   </Text>
                 )}
-
-                <Pressable
-                  disabled={submitting}
-                  onPress={() => void handleSubmitChurch()}
-                  style={({ pressed }) => [
-                    styles.submitPrimaryBtn,
-                    {
-                      backgroundColor: theme.primary,
-                      opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
-                    },
-                  ]}
-                >
-                  {submitting ? (
-                    <ActivityIndicator size="small" color={theme.onPrimary} />
-                  ) : (
-                    <Text
-                      style={{
-                        color: theme.onPrimary,
-                        ...fonts.sansBold,
-                        fontSize: 16,
-                      }}
-                    >
-                      {isAdmin
-                        ? editingChurch
-                          ? editingChurch.status === "pending"
-                            ? t.churchApprovePublishOnMap
-                            : t.churchSaveChanges
-                          : t.churchVerifyPublish
-                        : t.churchSendRequestForApproval}
-                    </Text>
-                  )}
-                </Pressable>
               </ScrollView>
             </Animated.View>
           </KeyboardAvoidingView>
