@@ -1,5 +1,20 @@
 # App editing
 
+## November 25, 2026 — SDK 58 iOS Build #43 OTA #8 (`2.2.0-sdk58-1`) & Cloudflare Pages `e313a270`: Universal Links (`+native-intent`), Shareable Member & Church Web Pages, Homepage/App Upgrade & Updated Legal Policies (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`145565c`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live Website (Cloudflare Pages `ebp-himnario` -> `https://himnarioebp.com/`):**
+  - **Deployment:** [`e313a270`](https://e313a270.ebp-himnario.pages.dev) (live-verified HTTP 200 on AASA `application/json`, `/member/?id=...`, `/churches/?id=...`, `/privacy.html`, `/terms.html`, `/app/`, and `/`).
+- **Live iOS OTA (`production` branch, `runtimeVersion: "2.2.0-sdk58-1"`, Build `#43` only):**
+  - **OTA #8:** Group [`610c5538-1fe2-4da5-817f-58c23f835fce`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/610c5538-1fe2-4da5-817f-58c23f835fce) · iOS update `01a214f6-efc2-7b8e-a0c1-2c9991c45459`.
+- **What Changed:**
+  - **Universal Links & Share URLs (`himnario/utils/deepLinks.ts`, `himnario/app/+native-intent.tsx`, `himnario/app/member/[id].tsx`, `himnario/app/churches.tsx`):** Fixed member profile sharing to emit real `https://himnarioebp.com/member/?id=<id>` URLs instead of root `https://himnarioebp.com`, added Expo Router `+native-intent.tsx` deep-link normalization for member, church, hymn (`/hymn/`, `/himno/`, `/h/`), `/app`, and `notification.click` URLs, and updated the QR scanner to support `/member`, `/himno/`, and `/h/` links.
+  - **AASA & Dedicated Public Web Pages (`scripts/generate-hymn-pages.js`, `docs/.well-known/apple-app-site-association`, `docs/member/index.html`, `docs/churches/index.html`, `docs/index.html`):** Upgraded AASA to modern iOS 13–27 `appIDs` + `components` covering hymns, `/member/*`, `/member?id=?*`, `/member/?id=?*`, and `/churches*`; shipped bilingual Light/Dark live public Member Profile (`/member/`) and live Verified Churches Directory (`/churches/`) web pages fetching live data from `ebp-himnario-sync` with `Open in App` deep links, Apple Smart App Banner, and store fallback, plus a `<head>` fallback redirect in `docs/index.html` for `/member/<id>` and `/churches/<id>` paths.
+  - **Website UI & Legal Policies (`docs/index.html`, `docs/css/refinements.css`, `docs/app/index.html`, `docs/privacy.html`, `docs/terms.html`):** Added **Iglesias** to nav/footer and a 4th **Directorio de iglesias** card in `.home-links`; added feature pills + `"¿Ya tienes la app? Abrir ahora"` button on `/app/`; updated bilingual Privacy Policy and Terms of Service to **November 25, 2026** covering Apple/Google OAuth, R2 cloud profile photos & Google PFP recovery, iOS Daily Verse Widget (`group.com.elbuenpastor`), and shareable profile/church links + `"View as others see me"`.
+- **Verification & Device Note:** `tsc --noEmit` 0 errors, ESLint 0 errors, 28/28 `scripts/test-church-sheet.cjs` passed, 761/761 `scripts/test-web-search.js` passed, live `curl` checks passed across all Pages endpoints, iOS Hermes export clean (`2,642` modules, `7.8 MB`, 129 assets). Note: Apple's AASA CDN refreshes periodically on already-installed iOS builds; if a device still opens `/member/` in Safari immediately after deploy, reinstalling TestFlight Build `#43` or waiting for Apple's CDN refresh activates Universal Links for the new routes.
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #7 (`2.2.0-sdk58-1`): iOS 26 Monochrome Member Profile, Favorites/Playlists Top-Left Titles, Full Playlist Detail Icons & Signed-In Churches Quick Access (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`05aaa7b`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
