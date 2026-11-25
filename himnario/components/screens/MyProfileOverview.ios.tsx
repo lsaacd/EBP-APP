@@ -174,7 +174,11 @@ export default function MyProfileOverviewIOS({
           icon={
             <SwiftUIImage
               systemName={systemImage}
-              modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+              size={17}
+              modifiers={[
+                foregroundStyle({ type: 'color', color: symbolTint }),
+                frame({ width: 22, alignment: 'center' }),
+              ]}
             />
           }
         />
@@ -311,7 +315,11 @@ export default function MyProfileOverviewIOS({
                 icon={
                   <SwiftUIImage
                     systemName="camera"
-                    modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+                    size={17}
+                    modifiers={[
+                      foregroundStyle({ type: 'color', color: symbolTint }),
+                      frame({ width: 22, alignment: 'center' }),
+                    ]}
                   />
                 }
               />
@@ -319,6 +327,10 @@ export default function MyProfileOverviewIOS({
               {updatingAvatar ? <ProgressView /> : chevron}
             </HStack>
           </Button>
+
+          {navRow(t.profileViewAsAction, 'eye', null, () => {
+            router.push(`/member/${encodeURIComponent(user.id)}?preview=friend` as any);
+          })}
 
           <LabeledContent label={t.accountStatus}>
             <Text
@@ -343,7 +355,7 @@ export default function MyProfileOverviewIOS({
                 foregroundStyle(secondaryStyle),
               ]}
             >
-              {`${favoriteIds.length} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`}
+              {`${favoriteIds.length} · ${playlists.length} ${playlists.length === 1 ? t.playlistsCount_one : t.playlistsCount_other}`}
             </Text>
           </LabeledContent>
 
@@ -448,7 +460,19 @@ export default function MyProfileOverviewIOS({
           }
         >
           <Button role="destructive" onPress={onConfirmDeleteAccount}>
-            <Label title={t.authDeleteAccount} systemImage="trash" />
+            <Label
+              title={t.authDeleteAccount}
+              icon={
+                <SwiftUIImage
+                  systemName="trash"
+                  size={17}
+                  modifiers={[
+                    foregroundStyle({ type: 'color', color: '#FF3B30' }),
+                    frame({ width: 22, alignment: 'center' }),
+                  ]}
+                />
+              }
+            />
           </Button>
         </Section>
       </Form>

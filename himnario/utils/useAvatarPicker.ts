@@ -7,7 +7,7 @@ import { showSuccessToast } from './toast';
 import * as Haptics from './haptics';
 
 export function useAvatarPicker() {
-  const { user, uploadAvatar, removeAvatar } = useAuth();
+  const { user, uploadAvatar, removeAvatar, restoreGoogleAvatar, signInWithGoogle } = useAuth();
   const { t } = useLanguage();
   const [updatingAvatar, setUpdatingAvatar] = useState(false);
 
@@ -71,15 +71,62 @@ export function useAvatarPicker() {
     updatingAvatar,
   ]);
 
+  const runRestoreGoogle = useCallback(async () => {
+    if (updatingAvatar) return;
+    setUpdatingAvatar(true);
+    try {
+      await restoreGoogleAvatar();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showSuccessToast(t.avatarRestoredToast);
+    } catch (err: any) {
+      const code = String(err?.message || '');
+      if (code === 'auth_cancelled') return;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (code === 'google_avatar_expired') {
+        Alert.alert(t.avatarRestoreGoogle, t.avatarGoogleExpired, [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: t.authContinueWithGoogle,
+            onPress: () => {
+              void signInWithGoogle()
+                .then(() => restoreGoogleAvatar())
+                .then(() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  showSuccessToast(t.avatarRestoredToast);
+                })
+                .catch(() => {});
+            },
+          },
+        ]);
+      } else {
+        Alert.alert(t.avatarRestoreGoogle, t.avatarGoogleRestoreFailed);
+      }
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  }, [
+    restoreGoogleAvatar,
+    signInWithGoogle,
+    t.authContinueWithGoogle,
+    t.avatarGoogleExpired,
+    t.avatarGoogleRestoreFailed,
+    t.avatarRestoreGoogle,
+    t.avatarRestoredToast,
+    t.cancel,
+    updatingAvatar,
+  ]);
+
   const openAvatarMenu = useCallback(() => {
     if (updatingAvatar) return;
     Haptics.selectionAsync().catch(() => {});
     promptAvatarAction({
       hasAvatar: Boolean(user?.avatarUrl),
+      hasGoogleAvatar: Boolean(user?.hasGoogleAvatar),
       labels: {
         title: t.avatarChangeAction,
         chooseLibrary: t.avatarChooseLibrary,
         takePhoto: t.avatarTakePhoto,
+        restoreGoogle: t.avatarRestoreGoogle,
         removePhoto: t.avatarRemovePhoto,
         cancel: t.cancel,
       },
@@ -89,6 +136,9 @@ export function useAvatarPicker() {
       onTakePhoto: () => {
         void runPick('camera');
       },
+      onRestoreGoogle: () => {
+        void runRestoreGoogle();
+      },
       onRemove: () => {
         void runRemove();
       },
@@ -96,14 +146,17 @@ export function useAvatarPicker() {
   }, [
     runPick,
     runRemove,
+    runRestoreGoogle,
     t.avatarChangeAction,
     t.avatarChooseLibrary,
     t.avatarRemovePhoto,
+    t.avatarRestoreGoogle,
     t.avatarTakePhoto,
     t.cancel,
     updatingAvatar,
     user?.avatarUrl,
+    user?.hasGoogleAvatar,
   ]);
 
-  return { updatingAvatar, openAvatarMenu, runPick, runRemove };
+  return { updatingAvatar, openAvatarMenu, runPick, runRemove, runRestoreGoogle };
 }

@@ -133,6 +133,18 @@ export function communityError(error: unknown, es: boolean) {
       "La lista no es válida o tiene demasiadas alabanzas.",
       "This playlist is invalid or has too many hymns.",
     ],
+    no_google_avatar: [
+      "No hay una foto de Google guardada para restaurar.",
+      "There is no saved Google photo to restore.",
+    ],
+    google_avatar_expired: [
+      "El enlace anterior de tu foto de Google venció. Inicia sesión con Google nuevamente.",
+      "Your previous Google photo link expired. Please sign in with Google again.",
+    ],
+    google_avatar_fetch_failed: [
+      "No se pudo descargar tu foto de Google. Intenta de nuevo.",
+      "Could not fetch your Google photo. Please try again.",
+    ],
   };
   return (
     messages[code]?.[es ? 0 : 1] ||

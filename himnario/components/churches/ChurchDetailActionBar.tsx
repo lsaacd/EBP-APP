@@ -29,6 +29,7 @@ import * as Haptics from "../../utils/haptics";
 import AppMenuIcon from "../AppMenuIcon";
 import GlassSurface from "../GlassSurface";
 import TactilePressable from "../TactilePressable";
+import { getExpoSwiftUI } from "../../utils/expoSwiftUI";
 
 const HAS_NATIVE_MENU =
   Platform.OS !== "web" && Boolean(UIManager.hasViewManagerConfig?.("MenuView"));
@@ -70,22 +71,26 @@ export default function ChurchDetailActionBar({
   const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const isIOS = Platform.OS === "ios";
+  const swiftUI = isIOS ? getExpoSwiftUI() : null;
 
   const secondaryTileBg = isDarkMode
     ? "rgba(255,255,255,0.10)"
     : theme.surfaceVariants.containerHighest;
 
   const menuActions = useMemo<MenuAction[]>(() => {
+    const iconTint = isDarkMode ? "#FFFFFF" : "#1C1C1E";
     const actions: MenuAction[] = [
       {
         id: "copy-address",
         title: t.churchCopyAddress,
         image: isIOS ? "doc.on.doc" : undefined,
+        imageColor: isIOS ? iconTint : undefined,
       },
       {
         id: "share-church",
         title: t.churchShareAction,
         image: isIOS ? "square.and.arrow.up" : undefined,
+        imageColor: isIOS ? iconTint : undefined,
       },
     ];
     if (isAdmin) {
@@ -94,11 +99,13 @@ export default function ChurchDetailActionBar({
           id: "edit-church",
           title: isPending ? t.churchReviewApprove : t.churchEditChurch,
           image: isIOS ? "pencil" : undefined,
+          imageColor: isIOS ? iconTint : undefined,
         },
         {
           id: "delete-church",
           title: t.delete,
           image: isIOS ? "trash" : undefined,
+          imageColor: isIOS ? "#FF3B30" : undefined,
           attributes: { destructive: true },
         },
       );
@@ -106,6 +113,7 @@ export default function ChurchDetailActionBar({
     return actions;
   }, [
     isAdmin,
+    isDarkMode,
     isIOS,
     isPending,
     t.churchCopyAddress,
@@ -340,10 +348,84 @@ export default function ChurchDetailActionBar({
         {/* More Menu (Copy Address, Share, Admin Edit/Delete) */}
         {renderTileShell(
           "more",
-          HAS_NATIVE_MENU ? (
+          swiftUI?.ui.Menu ? (() => {
+            const {
+              Button: SwiftButton,
+              Host,
+              Image: SwiftImage,
+              Menu: SwiftMenu,
+              Section: SwiftSection,
+              Text: SwiftText,
+              VStack,
+            } = swiftUI.ui;
+            const { contentShape, font, foregroundStyle, frame, shapes } = swiftUI.modifiers;
+            return (
+              <Host
+                style={styles.menuFill}
+                colorScheme={isDarkMode ? "dark" : "light"}
+                seedColor={theme.primary}
+              >
+                <SwiftMenu
+                  label={
+                    <VStack
+                      alignment="center"
+                      spacing={4}
+                      modifiers={[
+                        frame({ maxWidth: 9999, minHeight: 58 }),
+                        contentShape(shapes.rectangle()),
+                      ]}
+                    >
+                      <SwiftImage
+                        systemName="ellipsis"
+                        size={17}
+                        modifiers={[
+                          foregroundStyle({ type: "color", color: theme.onSurface }),
+                        ]}
+                      />
+                      <SwiftText
+                        modifiers={[
+                          font({ size: 11.5, weight: "semibold" }),
+                          foregroundStyle({ type: "color", color: theme.onSurface }),
+                        ]}
+                      >
+                        {t.churchMoreActions}
+                      </SwiftText>
+                    </VStack>
+                  }
+                >
+                  <SwiftButton
+                    label={t.churchCopyAddress}
+                    systemImage="doc.on.doc"
+                    onPress={() => handleMenuEvent("copy-address")}
+                  />
+                  <SwiftButton
+                    label={t.churchShareAction}
+                    systemImage="square.and.arrow.up"
+                    onPress={() => handleMenuEvent("share-church")}
+                  />
+                  {isAdmin ? (
+                    <SwiftSection>
+                      <SwiftButton
+                        label={isPending ? t.churchReviewApprove : t.churchEditChurch}
+                        systemImage="pencil"
+                        onPress={() => handleMenuEvent("edit-church")}
+                      />
+                      <SwiftButton
+                        role="destructive"
+                        label={t.delete}
+                        systemImage="trash"
+                        onPress={() => handleMenuEvent("delete-church")}
+                      />
+                    </SwiftSection>
+                  ) : null}
+                </SwiftMenu>
+              </Host>
+            );
+          })() : HAS_NATIVE_MENU ? (
             <MenuView
-              title={t.churchMoreActions}
               actions={menuActions}
+              shouldOpenOnLongPress={false}
+              themeVariant={isDarkMode ? "dark" : "light"}
               onPressAction={(event) => handleMenuEvent(event.nativeEvent.event)}
               style={styles.menuFill}
             >

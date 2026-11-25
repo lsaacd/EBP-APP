@@ -33,6 +33,8 @@ type Props = {
   headerGesture?: GestureType;
   /** Rendered behind the content, clipped to the sheet's rounded shape. */
   background?: React.ReactNode;
+  /** Floats above the sheet's top-left edge and travels with it. */
+  accessoryLeft?: React.ReactNode;
   /** Floats above the sheet's top-right edge and travels with it. */
   accessory?: React.ReactNode;
   /** Place grabber neatly inside the top edge ('inside') or floating above ('floating'). */
@@ -40,9 +42,9 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Room reserved above the sheet so the accessory stays inside the touchable
+// Room reserved above the sheet so floating accessories stay inside the touchable
 // bounds of the moving container (views outside their parent get no touches).
-const ACCESSORY_SPACE = 58;
+const ACCESSORY_SPACE = 78;
 const OVERSHOOT = 60;
 
 export default function DetentSheet({
@@ -53,6 +55,7 @@ export default function DetentSheet({
   children,
   headerGesture,
   background,
+  accessoryLeft,
   accessory,
   grabberPlacement = 'floating',
   style,
@@ -104,8 +107,15 @@ export default function DetentSheet({
         sheetStyle,
       ]}
     >
-      <View pointerEvents="box-none" style={styles.accessoryRow}>
-        {accessory}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.accessoryRow,
+          accessoryLeft ? styles.accessoryRowSpread : undefined,
+        ]}
+      >
+        {accessoryLeft ? <View pointerEvents="box-none">{accessoryLeft}</View> : null}
+        {accessory ? <View pointerEvents="box-none">{accessory}</View> : null}
       </View>
       <View style={[styles.sheet, { paddingBottom: OVERSHOOT }, style]}>
         {background ? (
@@ -141,9 +151,13 @@ const styles = StyleSheet.create({
   accessoryRow: {
     height: ACCESSORY_SPACE,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'flex-end',
     paddingHorizontal: 14,
+    paddingBottom: 10,
+  },
+  accessoryRowSpread: {
+    justifyContent: 'space-between',
   },
   background: {
     ...StyleSheet.absoluteFill,

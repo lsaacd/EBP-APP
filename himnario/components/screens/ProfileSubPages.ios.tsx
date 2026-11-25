@@ -103,7 +103,7 @@ export default function ProfileSubPagesIOS({
     refresh: refreshApprovedChoirs,
   } = useApprovedChoirs();
   const api = useCommunityApi();
-  const { updatingAvatar, openAvatarMenu, runRemove } = useAvatarPicker();
+  const { updatingAvatar, openAvatarMenu, runRemove, runRestoreGoogle } = useAvatarPicker();
 
   const es = language !== 'en';
   const isAdminUser =
@@ -723,11 +723,25 @@ export default function ProfileSubPagesIOS({
     />
   );
 
-  const renderTintedIcon = (systemImage: SFSymbol, size?: number) => (
+  const renderTintedIcon = (systemImage: SFSymbol, size = 17) => (
     <SwiftUIImage
       systemName={systemImage}
       size={size}
-      modifiers={[foregroundStyle({ type: 'color', color: symbolTint })]}
+      modifiers={[
+        foregroundStyle({ type: 'color', color: symbolTint }),
+        frame({ width: 22, alignment: 'center' }),
+      ]}
+    />
+  );
+
+  const renderDestructiveIcon = (systemImage: SFSymbol, size = 17) => (
+    <SwiftUIImage
+      systemName={systemImage}
+      size={size}
+      modifiers={[
+        foregroundStyle({ type: 'color', color: '#FF3B30' }),
+        frame({ width: 22, alignment: 'center' }),
+      ]}
     />
   );
 
@@ -1580,7 +1594,9 @@ export default function ProfileSubPagesIOS({
     const nameChanged =
       nameDraft.trim().length > 0 &&
       nameDraft.trim() !== (user.displayName || '').trim();
-    const statsSummary = `${favoriteIds.length} ${t.tabFavorites.toLowerCase()} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`;
+    const playlistWord =
+      playlists.length === 1 ? t.playlistsCount_one : t.playlistsCount_other;
+    const statsSummary = `${favoriteIds.length} ${t.tabFavorites.toLowerCase()} · ${playlists.length} ${playlistWord}`;
     const avatarInitials =
       user.initials || computeUserInitials(user.displayName, user.email);
     const avatarBg = isDarkMode ? '#F3EEE8' : '#6e1619';
@@ -1657,13 +1673,36 @@ export default function ProfileSubPagesIOS({
               </HStack>
             </Button>
 
+            {user.hasGoogleAvatar ? (
+              <Button
+                modifiers={[foregroundStyle(primaryStyle), disabled(updatingAvatar)]}
+                onPress={() => void runRestoreGoogle()}
+              >
+                <HStack
+                  alignment="center"
+                  spacing={10}
+                  modifiers={[contentShape(shapes.rectangle())]}
+                >
+                  <Label
+                    title={t.avatarRestoreGoogle}
+                    icon={renderTintedIcon('arrow.counterclockwise')}
+                  />
+                  <Spacer />
+                  {updatingAvatar ? <ProgressView /> : null}
+                </HStack>
+              </Button>
+            ) : null}
+
             {user.avatarUrl ? (
               <Button
                 role="destructive"
                 modifiers={[disabled(updatingAvatar)]}
                 onPress={() => void runRemove()}
               >
-                <Label title={t.avatarRemovePhoto} systemImage="trash" />
+                <Label
+                  title={t.avatarRemovePhoto}
+                  icon={renderDestructiveIcon('trash')}
+                />
               </Button>
             ) : null}
           </Section>
@@ -1795,7 +1834,10 @@ export default function ProfileSubPagesIOS({
             }
           >
             <Button role="destructive" onPress={onConfirmDeleteAccount}>
-              <Label title={t.authDeleteAccount} systemImage="trash" />
+              <Label
+                title={t.authDeleteAccount}
+                icon={renderDestructiveIcon('trash')}
+              />
             </Button>
           </Section>
         </Form>

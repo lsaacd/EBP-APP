@@ -58,6 +58,9 @@ import GlassSurface from '../GlassSurface';
 import SheetGrabber from '../SheetGrabber';
 import HymnRowLink from '../HymnRowLink';
 import ListSortMenu, { type ListSortOption } from '../ListSortMenu';
+import AnimatedEqualizer from '../AnimatedEqualizer';
+import TrackEllipsisMenu from '../TrackEllipsisMenu';
+import { getExpoSwiftUI } from '../../utils/expoSwiftUI';
 import { buildSheetBackdropGesture, buildSheetPanGesture } from '../../utils/useSheetBackdropGesture';
 
 const IS_IOS = Platform.OS === 'ios';
@@ -333,20 +336,63 @@ export default function PlaylistDetailScreen() {
     );
   }
 
+  const canvasBg = isDarkMode ? '#000000' : '#FCF9F2';
+  const primaryInk = isDarkMode ? '#FDF9F2' : '#1A1614';
+  const accentColor = isDarkMode ? '#F4C7C9' : theme.primary;
+  const playPillBg = isDarkMode ? '#FDF9F2' : theme.primary;
+  const playPillInk = isDarkMode ? '#0D0D0F' : '#FFFFFF';
+  const mutedSub = isDarkMode ? 'rgba(235,235,245,0.58)' : '#6C645E';
+  const hairline = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(26,22,20,0.09)';
   const cardSurface = isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : theme.outlineVariant + '45';
   const subtlePillBg = isDarkMode ? 'rgba(255,255,255,0.10)' : theme.primary + '12';
   const playlistIdSet = new Set(playlist.hymnIds);
+  const swiftUI = IS_IOS ? getExpoSwiftUI() : null;
+  const withAudioText = t.favoritesWithAudioCount.replace('{n}', String(playableIds.length));
+
+  const heroCoverScale = scrollY.interpolate({
+    inputRange: [-60, 0, 220],
+    outputRange: [1.06, 1, 0.88],
+    extrapolate: 'clamp',
+  });
+
+  const toCleanCat = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    if (trimmed === trimmed.toUpperCase()) {
+      return trimmed
+        .toLowerCase()
+        .replace(/(^|\s|·|\/)([a-záéíóúñü])/g, (m, p1, p2) => `${p1}${p2.toUpperCase()}`);
+    }
+    return trimmed;
+  };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+    <View style={[styles.root, { backgroundColor: canvasBg }]}>
       <Stack.Screen options={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }} />
+
+      {/* ── Atmospheric Cover Wash ── */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ['rgba(122, 24, 30, 0.58)', 'rgba(54, 12, 16, 0.24)', 'rgba(0, 0, 0, 0)']
+            : ['rgba(110, 22, 25, 0.14)', 'rgba(110, 22, 25, 0.04)', 'rgba(252, 249, 242, 0)']
+        }
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + ipadTopOffset + 360,
+        }}
+        pointerEvents="none"
+      />
 
       {/* ── Floating Apple Music–style Liquid Glass Top Bar ── */}
       <LinearGradient
         colors={[
-          isDarkMode ? 'rgba(1,1,1,0.92)' : 'rgba(250,245,238,0.96)',
-          isDarkMode ? 'rgba(1,1,1,0.0)' : 'rgba(250,245,238,0.0)',
+          isDarkMode ? 'rgba(0,0,0,0.92)' : 'rgba(252,249,242,0.95)',
+          isDarkMode ? 'rgba(0,0,0,0.0)' : 'rgba(252,249,242,0.0)',
         ]}
         style={[styles.topScrim, { height: insets.top + ipadTopOffset + 64 }]}
         pointerEvents="none"
@@ -356,7 +402,7 @@ export default function PlaylistDetailScreen() {
         <GlassSurface
           isInteractive
           glassEffectStyle="regular"
-          intensity={58}
+          intensity={62}
           style={[
             styles.circleGlass,
             !IS_IOS && {
@@ -379,10 +425,9 @@ export default function PlaylistDetailScreen() {
             <AppMenuIcon
               ios="chevron.left"
               android="arrow-back"
-              size={22}
-              containerSize={26}
-              scale="large"
-              color={theme.primary}
+              size={20}
+              containerSize={24}
+              color={primaryInk}
               weight="semibold"
             />
           </Pressable>
@@ -390,86 +435,112 @@ export default function PlaylistDetailScreen() {
 
         <Animated.Text
           numberOfLines={1}
-          style={[styles.floatingHeaderTitle, { color: theme.onSurface, opacity: headerTitleOpacity }]}
+          style={[styles.floatingHeaderTitle, { color: primaryInk, opacity: headerTitleOpacity }]}
         >
           {playlist.name}
         </Animated.Text>
 
-        <MenuView
-          title={t.playlistOptionsTitle}
-          themeVariant={isDarkMode ? 'dark' : 'light'}
-          shouldOpenOnLongPress={false}
-          actions={[
-            ...(playlistHymns.length > 0
-              ? [
-                  {
-                    id: 'share',
-                    title: t.friendsSharePlaylist,
-                    image: IS_IOS ? 'paperplane' : undefined,
-                    imageColor: theme.onSurface,
-                  },
-                ]
-              : []),
-            {
-              id: 'add',
-              title: t.playlistAddHymns,
-              image: IS_IOS ? 'plus' : undefined,
-              imageColor: theme.onSurface,
-            },
-            {
-              id: 'rename',
-              title: t.playlistRenameAction,
-              image: IS_IOS ? 'pencil' : undefined,
-              imageColor: theme.onSurface,
-            },
-            {
-              id: 'delete',
-              title: t.deletePlaylist,
-              attributes: { destructive: true },
-              image: IS_IOS ? 'trash' : undefined,
-              imageColor: '#FF453A',
+        {/* Apple Music Unified Top-Right Capsule: [ Share | ··· ] */}
+        <GlassSurface
+          isInteractive
+          glassEffectStyle="regular"
+          intensity={62}
+          style={[
+            { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, gap: 2 },
+            !IS_IOS && {
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : theme.surfaceVariants.containerLow,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: cardBorder,
+              overflow: 'hidden',
             },
           ]}
-          onPressAction={({ nativeEvent }) => {
-            if (nativeEvent.event === 'share') handleOpenShareWithFriend();
-            else if (nativeEvent.event === 'add') openAddHymnsSheet();
-            else if (nativeEvent.event === 'rename') handleOpenRename();
-            else if (nativeEvent.event === 'delete') handleDeletePlaylist();
-          }}
         >
-          <GlassSurface
-            isInteractive
-            glassEffectStyle="regular"
-            intensity={58}
-            style={[
-              styles.circleGlass,
-              !IS_IOS && {
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : theme.surfaceVariants.containerLow,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: cardBorder,
-                overflow: 'hidden',
-              },
-            ]}
-          >
-            <View style={styles.circleGlassInner} accessibilityRole="button" accessibilityLabel={t.playlistOptionsTitle}>
+          {playlistHymns.length > 0 ? (
+            <Pressable
+              onPress={handleOpenShareWithFriend}
+              accessibilityRole="button"
+              accessibilityLabel={t.friendsSharePlaylist}
+              style={({ pressed }) => [
+                { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+                pressed && { opacity: 0.72 },
+              ]}
+            >
               <AppMenuIcon
-                ios="ellipsis"
-                android="more-horiz"
-                size={22}
-                containerSize={26}
-                scale="large"
-                color={theme.primary}
+                ios="square.and.arrow.up"
+                android="share"
+                size={18}
+                color={primaryInk}
                 weight="semibold"
               />
-            </View>
-          </GlassSurface>
-        </MenuView>
+            </Pressable>
+          ) : null}
+
+          {swiftUI?.ui.Menu ? (() => {
+            const { Button: SwiftButton, Host, Image: SwiftImage, Menu: SwiftMenu, Section: SwiftSection } = swiftUI.ui;
+            const { foregroundStyle, frame } = swiftUI.modifiers;
+            return (
+              <Host
+                style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+                colorScheme={isDarkMode ? 'dark' : 'light'}
+                seedColor={theme.primary}
+              >
+                <SwiftMenu
+                  label={
+                    <SwiftImage
+                      systemName="ellipsis"
+                      size={18}
+                      modifiers={[
+                        foregroundStyle({ type: 'color', color: primaryInk }),
+                        frame({ width: 38, height: 38 }),
+                      ]}
+                    />
+                  }
+                >
+                  <SwiftButton label={t.playlistAddHymns} systemImage="plus" onPress={openAddHymnsSheet} />
+                  {playlistHymns.length > 0 ? (
+                    <SwiftButton label={t.friendsSharePlaylist} systemImage="paperplane" onPress={handleOpenShareWithFriend} />
+                  ) : null}
+                  <SwiftButton label={t.playlistRenameAction} systemImage="pencil" onPress={handleOpenRename} />
+                  <SwiftSection>
+                    <SwiftButton role="destructive" label={t.deletePlaylist} systemImage="trash" onPress={handleDeletePlaylist} />
+                  </SwiftSection>
+                </SwiftMenu>
+              </Host>
+            );
+          })() : (
+            <MenuView
+              themeVariant={isDarkMode ? 'dark' : 'light'}
+              shouldOpenOnLongPress={false}
+              actions={[
+                ...(playlistHymns.length > 0
+                  ? [{ id: 'share', title: t.friendsSharePlaylist, image: IS_IOS ? 'paperplane' : undefined, imageColor: primaryInk }]
+                  : []),
+                { id: 'add', title: t.playlistAddHymns, image: IS_IOS ? 'plus' : undefined, imageColor: primaryInk },
+                { id: 'rename', title: t.playlistRenameAction, image: IS_IOS ? 'pencil' : undefined, imageColor: primaryInk },
+                { id: 'delete', title: t.deletePlaylist, attributes: { destructive: true }, image: IS_IOS ? 'trash' : undefined, imageColor: '#FF453A' },
+              ]}
+              onPressAction={({ nativeEvent }) => {
+                if (nativeEvent.event === 'share') handleOpenShareWithFriend();
+                else if (nativeEvent.event === 'add') openAddHymnsSheet();
+                else if (nativeEvent.event === 'rename') handleOpenRename();
+                else if (nativeEvent.event === 'delete') handleDeletePlaylist();
+              }}
+            >
+              <View
+                style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+                accessibilityRole="button"
+                accessibilityLabel={t.playlistOptionsTitle}
+              >
+                <AppMenuIcon ios="ellipsis" android="more-horiz" size={19} color={primaryInk} weight="semibold" />
+              </View>
+            </MenuView>
+          )}
+        </GlassSurface>
       </View>
 
       <Animated.ScrollView
         contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: insets.top + ipadTopOffset + 66 },
+          { paddingTop: insets.top + ipadTopOffset + 64, flexGrow: 1 },
           isWideTablet && styles.tabletContent,
         ]}
         onScroll={Animated.event(
@@ -479,9 +550,9 @@ export default function PlaylistDetailScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Centered Hero Artwork + Title (Apple Music Style + AppleZoom Target) ── */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroArtworkOuter}>
+        {/* ── Centered Apple Music Hero Artwork + Title + 3-Button Cluster ── */}
+        <View style={[styles.heroSection, { paddingHorizontal: 20 }]}>
+          <Animated.View style={[styles.heroArtworkOuter, { transform: [{ scale: heroCoverScale }] }]}>
             {IS_IOS ? (
               <Link.AppleZoomTarget>
                 <View style={styles.heroArtworkTarget}>
@@ -501,40 +572,38 @@ export default function PlaylistDetailScreen() {
                 />
               </View>
             )}
-          </View>
+          </Animated.View>
 
-          <Text style={[styles.heroTitle, { color: theme.onSurface }]}>{playlist.name}</Text>
-          <Text style={[styles.heroSub, { color: theme.onSurfaceVariant }]}>
-            {playlistHymns.length} {playlistHymns.length === 1 ? t.songCount_one : t.songCount_other}
+          <Text style={[styles.heroTitle, { color: primaryInk }]}>{playlist.name}</Text>
+          <Text style={{ ...fonts.sansMedium, fontSize: 15, color: accentColor, marginTop: 2 }}>
+            {t.appName}
           </Text>
-        </View>
+          <Text
+            style={[
+              styles.heroSub,
+              { color: mutedSub, fontVariant: ['tabular-nums'], marginTop: 5 },
+            ]}
+          >
+            {`${playlistHymns.length} ${playlistHymns.length === 1 ? t.songCount_one : t.songCount_other} · ${withAudioText}`}
+          </Text>
 
-        {/* ── Play & Liquid Glass Shuffle Capsules ── */}
-        {playlistHymns.length > 0 && (
-          <View style={styles.playShuffleRow}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.heroActionBtn, { backgroundColor: theme.primary }]}
-              onPress={() => handlePlayPlaylist(false)}
-            >
-              <AppMenuIcon
-                ios="play.fill"
-                android="play-arrow"
-                size={22}
-                containerSize={22}
-                scale="large"
-                weight="semibold"
-                color={theme.onPrimary}
-              />
-              <Text style={[styles.heroActionText, { color: theme.onPrimary }]}>{t.favoritesPlay}</Text>
-            </TouchableOpacity>
-
+          {/* Signature Apple Music 3-Button Cluster: [Shuffle]  [▶ Play]  [+ Add Hymns] */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 14,
+              marginTop: 18,
+              width: '100%',
+            }}
+          >
             <GlassSurface
               isInteractive
               glassEffectStyle="regular"
-              intensity={58}
+              intensity={62}
               style={[
-                styles.heroActionGlass,
+                { width: 48, height: 48, borderRadius: 24 },
                 !IS_IOS && {
                   backgroundColor: subtlePillBg,
                   borderWidth: StyleSheet.hairlineWidth,
@@ -544,46 +613,81 @@ export default function PlaylistDetailScreen() {
               ]}
             >
               <Pressable
-                style={({ pressed }) => [styles.heroActionGlassInner, pressed && { opacity: 0.78 }]}
+                accessibilityRole="button"
+                accessibilityLabel={t.favoritesShuffle}
                 onPress={() => handlePlayPlaylist(true)}
+                style={({ pressed }) => [
+                  { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+                  pressed && { opacity: 0.72 },
+                ]}
               >
-                <AppMenuIcon
-                  ios="shuffle"
-                  android="shuffle"
-                  size={21}
-                  containerSize={23}
-                  scale="large"
-                  weight="semibold"
-                  color={theme.primary}
-                />
-                <Text style={[styles.heroActionText, { color: theme.primary }]}>
-                  {t.favoritesShuffle}
-                </Text>
+                <AppMenuIcon ios="shuffle" android="shuffle" size={19} weight="semibold" color={primaryInk} />
+              </Pressable>
+            </GlassSurface>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() =>
+                playlistHymns.length > 0 ? handlePlayPlaylist(false) : openAddHymnsSheet()
+              }
+              style={{
+                flex: 1,
+                maxWidth: 196,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: playPillBg,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingHorizontal: 20,
+              }}
+            >
+              <AppMenuIcon
+                ios={playlistHymns.length > 0 ? 'play.fill' : 'plus'}
+                android={playlistHymns.length > 0 ? 'play-arrow' : 'add'}
+                size={18}
+                weight="semibold"
+                color={playPillInk}
+              />
+              <Text style={{ ...fonts.sansSemiBold, fontSize: 16.5, color: playPillInk }}>
+                {playlistHymns.length > 0 ? t.favoritesPlay : t.playlistAddHymns}
+              </Text>
+            </TouchableOpacity>
+
+            <GlassSurface
+              isInteractive
+              glassEffectStyle="regular"
+              intensity={62}
+              style={[
+                { width: 48, height: 48, borderRadius: 24 },
+                !IS_IOS && {
+                  backgroundColor: subtlePillBg,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: cardBorder,
+                  overflow: 'hidden',
+                },
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.playlistAddHymns}
+                onPress={openAddHymnsSheet}
+                style={({ pressed }) => [
+                  { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+                  pressed && { opacity: 0.72 },
+                ]}
+              >
+                <AppMenuIcon ios="plus" android="add" size={20} weight="semibold" color={primaryInk} />
               </Pressable>
             </GlassSurface>
           </View>
-        )}
-
-        {/* ── Apple Music–style "+ Add Hymns" Row ── */}
-        <Pressable
-          onPress={openAddHymnsSheet}
-          style={({ pressed }) => [
-            styles.addHymnsRow,
-            { backgroundColor: cardSurface, borderColor: cardBorder },
-            pressed && { opacity: 0.78 },
-          ]}
-        >
-          <View style={[styles.addHymnsIconBox, { backgroundColor: subtlePillBg }]}>
-            <MaterialIcons name="add" size={24} color={theme.primary} />
-          </View>
-          <Text style={[styles.addHymnsText, { color: theme.onSurface }]}>{t.playlistAddHymns}</Text>
-          <MaterialIcons name="chevron-right" size={22} color={theme.outline} />
-        </Pressable>
+        </View>
 
         {/* ── Sort Header when playlist has multiple hymns ── */}
-        {playlistHymns.length > 1 && (
-          <View style={styles.sortRow}>
-            <Text style={[styles.sortCountLabel, { color: theme.onSurfaceVariant }]}>
+        {playlistHymns.length > 1 ? (
+          <View style={[styles.sortRow, { paddingHorizontal: 20, marginBottom: 6 }]}>
+            <Text style={[styles.sortCountLabel, { color: mutedSub }]}>
               {playlistHymns.length} {t.songCount_other}
             </Text>
             <ListSortMenu
@@ -594,123 +698,190 @@ export default function PlaylistDetailScreen() {
               menuTitle={t.sortMenuTitle}
             />
           </View>
-        )}
+        ) : null}
 
-        {/* ── Hymns List ── */}
+        {/* ── Open Borderless Apple Music Tracklist ── */}
         {playlistHymns.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
+          <View style={[styles.emptyState, { paddingHorizontal: 28 }]}>
+            <Text style={[styles.emptyText, { color: mutedSub }]}>
               {t.playlistEmpty}
             </Text>
           </View>
         ) : (
-          <View style={[styles.listCard, { backgroundColor: cardSurface, borderColor: cardBorder }]}>
+          <View>
+            <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 20, backgroundColor: hairline }} />
             {playlistHymns.map((hymn: any, index: number) => {
               const idStr = String(hymn.id);
               const isCurrent = currentHymnId === idStr;
               const canPlay = hasHymnAudio(idStr);
+              const cleanCat = hymn.categories
+                ? toCleanCat(translateCategories(hymn.categories, language))
+                : '';
+
               return (
                 <View key={idStr}>
-                  {index > 0 && (
+                  {index > 0 ? (
                     <View
-                      style={[
-                        styles.rowDivider,
-                        { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : theme.outlineVariant + '35' },
-                      ]}
+                      style={{
+                        height: StyleSheet.hairlineWidth,
+                        marginLeft: 58,
+                        backgroundColor: hairline,
+                      }}
                     />
-                  )}
-                  <HymnRowLink
-                    hymn={hymn}
-                    href={{ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } }}
-                    queueIds={playlist.hymnIds}
-                    queueLabel={playlist.name}
-                    playlistIdToRemoveFrom={String(playlist.id)}
+                  ) : null}
+                  <View
                     style={[
-                      styles.hymnRow,
+                      {
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingLeft: 14,
+                        paddingRight: 10,
+                        minHeight: 58,
+                      },
                       isCurrent && {
-                        backgroundColor: isDarkMode ? 'rgba(181,69,69,0.16)' : theme.primary + '0B',
+                        backgroundColor: isDarkMode
+                          ? 'rgba(255,255,255,0.06)'
+                          : 'rgba(110,22,25,0.06)',
                       },
                     ]}
-                    activeOpacity={0.78}
                   >
-                    <View
-                      style={[
-                        styles.numBadge,
-                        {
-                          backgroundColor: isCurrent
-                            ? theme.primary
-                            : isDarkMode
-                              ? 'rgba(255,255,255,0.07)'
-                              : theme.primary + '10',
-                        },
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={canPlay ? t.favoritesPlayNow : String(hymn.number)}
+                      onPress={() => {
+                        if (canPlay) {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          openPlayer(idStr, sortedPlaylistIds, { label: playlist.name, shuffle: false });
+                        } else {
+                          Haptics.selectionAsync();
+                          router.push({ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } });
+                        }
+                      }}
+                      style={({ pressed }) => [
+                        { width: 44, height: 54, alignItems: 'center', justifyContent: 'center' },
+                        pressed && { opacity: 0.6 },
                       ]}
                     >
-                      {isCurrent && isPlaying ? (
-                        <MaterialIcons name="graphic-eq" size={21} color={theme.onPrimary} />
+                      {isCurrent ? (
+                        <AnimatedEqualizer playing={isPlaying} color={accentColor} size={16} />
                       ) : (
                         <Text
-                          style={[
-                            styles.numBadgeText,
-                            { color: isCurrent ? theme.onPrimary : theme.primary },
-                          ]}
+                          style={{
+                            ...fonts.sansMedium,
+                            fontSize: 15,
+                            color: mutedSub,
+                            fontVariant: ['tabular-nums'],
+                          }}
                           numberOfLines={1}
                           adjustsFontSizeToFit
-                          minimumFontScale={0.65}
+                          minimumFontScale={0.75}
                         >
                           {hymn.number}
                         </Text>
                       )}
+                    </Pressable>
+
+                    <View style={{ flex: 1 }}>
+                      <HymnRowLink
+                        hymn={hymn}
+                        href={{ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } }}
+                        queueIds={sortedPlaylistIds}
+                        queueLabel={playlist.name}
+                        playlistIdToRemoveFrom={String(playlist.id)}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingRight: 6 }}
+                        activeOpacity={0.72}
+                      >
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              ...(isCurrent ? fonts.sansSemiBold : fonts.sansMedium),
+                              fontSize: 16,
+                              letterSpacing: -0.2,
+                              color: isCurrent ? accentColor : primaryInk,
+                            }}
+                          >
+                            {hymn.title}
+                          </Text>
+                          {cleanCat || canPlay ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              {cleanCat ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={{ ...fonts.sansRegular, fontSize: 12.5, color: mutedSub, flexShrink: 1 }}
+                                >
+                                  {cleanCat}
+                                </Text>
+                              ) : null}
+                              {canPlay ? (
+                                <View
+                                  style={{
+                                    width: 18,
+                                    height: 15,
+                                    borderRadius: 4,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: isDarkMode
+                                      ? 'rgba(255,255,255,0.10)'
+                                      : 'rgba(110,22,25,0.08)',
+                                  }}
+                                >
+                                  <AppMenuIcon ios="waveform" android="graphic-eq" size={10} color={accentColor} weight="semibold" />
+                                </View>
+                              ) : null}
+                            </View>
+                          ) : null}
+                        </View>
+                      </HymnRowLink>
                     </View>
 
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.rowTitle, { color: isCurrent ? theme.primary : theme.onSurface }]}
-                      >
-                        {hymn.title}
-                      </Text>
-                      {hymn.categories ? (
-                        <Text numberOfLines={1} style={[styles.rowSub, { color: theme.onSurfaceVariant }]}>
-                          {translateCategories(hymn.categories, language)}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    {canPlay && (
-                      <Pressable
-                        hitSlop={8}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                          openPlayer(idStr, playlist.hymnIds, { label: playlist.name, shuffle: false });
-                        }}
-                        style={({ pressed }) => [
-                          styles.quickPlayBtn,
-                          { backgroundColor: subtlePillBg },
-                          pressed && { opacity: 0.6 },
-                        ]}
-                      >
-                        <MaterialIcons
-                          name={isCurrent && isPlaying ? 'equalizer' : 'play-arrow'}
-                          size={18}
-                          color={theme.primary}
-                        />
-                      </Pressable>
-                    )}
-
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() => {
+                    <TrackEllipsisMenu
+                      hymnId={idStr}
+                      hymnNumber={hymn.number}
+                      hymnTitle={hymn.title}
+                      canPlay={canPlay}
+                      removeLabel={t.favoritesRemoveFromPlaylist}
+                      removeIcon="minus.circle"
+                      iconColor={mutedSub}
+                      onPlay={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        openPlayer(idStr, sortedPlaylistIds, { label: playlist.name, shuffle: false });
+                      }}
+                      onOpenLyrics={() =>
+                        router.push({ pathname: '/hymn/[id]', params: { id: idStr, playlistId: playlist.id } })
+                      }
+                      onRemove={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         handleRemoveHymn(idStr);
                       }}
-                      style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.6 }]}
-                    >
-                      <MaterialIcons name="remove-circle-outline" size={22} color={theme.outline} />
-                    </Pressable>
-                  </HymnRowLink>
+                    />
+                  </View>
                 </View>
               );
             })}
+
+            {/* Editorial Footer */}
+            <View
+              style={{
+                marginTop: 14,
+                paddingTop: 14,
+                paddingHorizontal: 20,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: hairline,
+                gap: 3,
+              }}
+            >
+              <Text
+                style={{
+                  ...fonts.sansRegular,
+                  fontSize: 13,
+                  color: mutedSub,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {`${playlistHymns.length} ${playlistHymns.length === 1 ? t.songCount_one : t.songCount_other} · ${withAudioText}`}
+              </Text>
+            </View>
           </View>
         )}
 

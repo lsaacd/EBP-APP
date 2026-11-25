@@ -42,6 +42,7 @@ import MyProfileOverview from '../components/screens/MyProfileOverview';
 import ProfileSubPages, { type NativeProfileSubPage } from '../components/screens/ProfileSubPages';
 import FriendsScreen from '../components/screens/FriendsScreen';
 import NotificationsScreen from '../components/screens/NotificationsScreen';
+import ModerationScreen from '../components/screens/ModerationScreen';
 import AppMenuIcon from '../components/AppMenuIcon';
 import UserAvatar from '../components/UserAvatar';
 import { getExpoSwiftUI } from '../utils/expoSwiftUI';
@@ -209,7 +210,8 @@ export default function MyProfileScreen() {
     user.choir ? choirDisplayName(user.choir, es, choirsBySlug) : null,
   ].filter(Boolean);
   const churchLabel = user.churchName ? churchDisplayName(user.churchName) : '';
-  const statsSummary = `${favoriteIds.length} ${t.tabFavorites.toLowerCase()} · ${playlists.length} ${t.playlistsTabShort.toLowerCase()}`;
+  const playlistWord = playlists.length === 1 ? t.playlistsCount_one : t.playlistsCount_other;
+  const statsSummary = `${favoriteIds.length} ${t.tabFavorites.toLowerCase()} · ${playlists.length} ${playlistWord}`;
 
   const sectionTitleMap: Record<ProfileSection, string> = {
     overview: t.myProfileTitle,
@@ -243,32 +245,62 @@ export default function MyProfileScreen() {
         headerRight:
           isIOS && section === 'overview'
             ? () => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.editProfileAction}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    openSection('account-edit');
-                  }}
-                  style={({ pressed }) => [
-                    {
-                      width: 34,
-                      height: 34,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: pressed ? 0.65 : 1,
-                    },
-                  ]}
-                >
-                  <AppMenuIcon
-                    ios="pencil"
-                    android="edit"
-                    color={headerAccent}
-                    size={20}
-                    containerSize={22}
-                    weight="semibold"
-                  />
-                </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.profileViewAsAction}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      router.push(
+                        `/member/${encodeURIComponent(user.id)}?preview=friend` as any,
+                      );
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        width: 34,
+                        height: 34,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="eye"
+                      android="visibility"
+                      color={headerAccent}
+                      size={19}
+                      containerSize={22}
+                      weight="semibold"
+                    />
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.editProfileAction}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      openSection('account-edit');
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        width: 34,
+                        height: 34,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="pencil"
+                      android="edit"
+                      color={headerAccent}
+                      size={20}
+                      containerSize={22}
+                      weight="semibold"
+                    />
+                  </Pressable>
+                </View>
               )
             : isIOS && hasSwiftUI && section === 'friends'
               ? () => (
@@ -390,6 +422,25 @@ export default function MyProfileScreen() {
     );
   }
 
+  if (hasSwiftUI && section === 'moderation') {
+    return (
+      <>
+        {screenHeaderConfig}
+        <ModerationScreen
+          onOpenMember={(memberId) => {
+            router.push(`/member/${encodeURIComponent(memberId)}` as any);
+          }}
+          onOpenChurch={(churchId) => {
+            router.push(`/churches?id=${encodeURIComponent(churchId)}` as any);
+          }}
+          onOpenHymn={(hymnId) => {
+            router.push(`/hymn/${encodeURIComponent(hymnId)}` as any);
+          }}
+        />
+      </>
+    );
+  }
+
   if (isNativeSubPage) {
     return (
       <>
@@ -452,22 +503,42 @@ export default function MyProfileScreen() {
         </Text>
 
         {section === 'overview' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.accountProfileDetails}
-            onPress={() => {
-              Haptics.selectionAsync();
-              openSection('account-edit');
-            }}
-            style={[
-              styles.navCircle,
-              styles.navCircleAndroid,
-              styles.navCircleHit,
-              { backgroundColor: theme.surfaceVariants.containerHigh },
-            ]}
-          >
-            <AppMenuIcon ios="pencil" android="edit" color={theme.primary} size={20} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.profileViewAsAction}
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push(
+                  `/member/${encodeURIComponent(user.id)}?preview=friend` as any,
+                );
+              }}
+              style={[
+                styles.navCircle,
+                styles.navCircleAndroid,
+                styles.navCircleHit,
+                { backgroundColor: theme.surfaceVariants.containerHigh },
+              ]}
+            >
+              <AppMenuIcon ios="eye" android="visibility" color={theme.primary} size={19} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.accountProfileDetails}
+              onPress={() => {
+                Haptics.selectionAsync();
+                openSection('account-edit');
+              }}
+              style={[
+                styles.navCircle,
+                styles.navCircleAndroid,
+                styles.navCircleHit,
+                { backgroundColor: theme.surfaceVariants.containerHigh },
+              ]}
+            >
+              <AppMenuIcon ios="pencil" android="edit" color={theme.primary} size={20} />
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.navCircle} />
         )}

@@ -18,37 +18,56 @@ export interface AvatarActionSheetLabels {
   title: string;
   chooseLibrary: string;
   takePhoto: string;
+  restoreGoogle?: string;
   removePhoto: string;
   cancel: string;
 }
 
 export function promptAvatarAction(options: {
   hasAvatar: boolean;
+  hasGoogleAvatar?: boolean;
   labels: AvatarActionSheetLabels;
   onChooseLibrary: () => void;
   onTakePhoto: () => void;
+  onRestoreGoogle?: () => void;
   onRemove: () => void;
 }): void {
-  const { hasAvatar, labels, onChooseLibrary, onTakePhoto, onRemove } = options;
+  const {
+    hasAvatar,
+    hasGoogleAvatar,
+    labels,
+    onChooseLibrary,
+    onTakePhoto,
+    onRestoreGoogle,
+    onRemove,
+  } = options;
+  const canRestoreGoogle = Boolean(hasGoogleAvatar && labels.restoreGoogle && onRestoreGoogle);
 
   if (Platform.OS === 'ios') {
-    const buttons = hasAvatar
-      ? [labels.chooseLibrary, labels.takePhoto, labels.removePhoto, labels.cancel]
-      : [labels.chooseLibrary, labels.takePhoto, labels.cancel];
-    const cancelButtonIndex = buttons.length - 1;
-    const destructiveButtonIndex = hasAvatar ? 2 : undefined;
+    const entries: { label: string; action?: () => void; destructive?: boolean }[] = [
+      { label: labels.chooseLibrary, action: onChooseLibrary },
+      { label: labels.takePhoto, action: onTakePhoto },
+    ];
+    if (canRestoreGoogle && labels.restoreGoogle && onRestoreGoogle) {
+      entries.push({ label: labels.restoreGoogle, action: onRestoreGoogle });
+    }
+    if (hasAvatar) {
+      entries.push({ label: labels.removePhoto, action: onRemove, destructive: true });
+    }
+    entries.push({ label: labels.cancel });
+
+    const cancelButtonIndex = entries.length - 1;
+    const destructiveIdx = entries.findIndex((e) => e.destructive);
 
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title: labels.title,
-        options: buttons,
+        options: entries.map((e) => e.label),
         cancelButtonIndex,
-        destructiveButtonIndex,
+        destructiveButtonIndex: destructiveIdx >= 0 ? destructiveIdx : undefined,
       },
       (buttonIndex) => {
-        if (buttonIndex === 0) onChooseLibrary();
-        else if (buttonIndex === 1) onTakePhoto();
-        else if (hasAvatar && buttonIndex === 2) onRemove();
+        entries[buttonIndex]?.action?.();
       },
     );
     return;
@@ -58,6 +77,9 @@ export function promptAvatarAction(options: {
     { text: labels.chooseLibrary, onPress: onChooseLibrary },
     { text: labels.takePhoto, onPress: onTakePhoto },
   ];
+  if (canRestoreGoogle && labels.restoreGoogle && onRestoreGoogle) {
+    actions.push({ text: labels.restoreGoogle, onPress: onRestoreGoogle });
+  }
   if (hasAvatar) {
     actions.push({ text: labels.removePhoto, style: 'destructive', onPress: onRemove });
   }

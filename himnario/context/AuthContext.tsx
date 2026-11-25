@@ -54,6 +54,7 @@ export interface AuthUser {
   name?: string;
   initials: string;
   avatarUrl: string | null;
+  hasGoogleAvatar: boolean;
 }
 
 interface SyncPayload {
@@ -101,6 +102,7 @@ function normalizeUser(raw: any): AuthUser {
     name: displayName,
     initials: raw?.initials || computeUserInitials(displayName, email),
     avatarUrl: typeof raw?.avatarUrl === 'string' && raw.avatarUrl.trim() ? raw.avatarUrl.trim() : null,
+    hasGoogleAvatar: raw?.hasGoogleAvatar === true,
   };
 }
 
@@ -156,6 +158,7 @@ interface AuthContextType {
   acceptUgcTerms: () => Promise<void>;
   uploadAvatar: (base64: string) => Promise<void>;
   removeAvatar: () => Promise<void>;
+  restoreGoogleAvatar: () => Promise<void>;
   syncNow: () => Promise<void>;
   resolveSyncConflict: (strategy: 'local' | 'cloud') => Promise<void>;
   signOut: () => Promise<void>;
@@ -189,6 +192,7 @@ const AuthContext = createContext<AuthContextType>({
   acceptUgcTerms: async () => {},
   uploadAvatar: async () => {},
   removeAvatar: async () => {},
+  restoreGoogleAvatar: async () => {},
   syncNow: async () => {},
   resolveSyncConflict: async () => {},
   signOut: async () => {},
@@ -806,53 +810,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfileName = useCallback((name: string) => updateProfile({name: name.trim()}), [updateProfile]);
   const acceptUgcTerms = useCallback(() => updateAccount({version:'2026-11-17'}, '/auth/ugc-terms/accept'), [updateAccount]);
 
-  const mutateAvatar = useCallback(async (method: 'POST' | 'DELETE', base64?: string) => {
-    const activeToken = tokenRef.current;
-    if (!activeToken || !userRef.current) throw new Error('auth_cancelled');
-    const epoch = sessionEpochRef.current;
-    const request = ++profileRequestRef.current;
-    const controller = new AbortController();
-    requestsRef.current.add(controller);
-    try {
-      const res = await fetch(`${AUTH_SYNC_API_URL}/auth/avatar`, {
-        method,
-        headers: {
-          ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
-          Authorization: `Bearer ${activeToken}`,
-          'X-EBP-Client': 'himnario-v2',
-        },
-        ...(method === 'POST' ? { body: JSON.stringify({ base64 }) } : {}),
-        signal: controller.signal,
-      });
-      const data = await res.json().catch(() => ({}));
-      assertCurrent(epoch, activeToken);
-      if (request !== profileRequestRef.current) throw new Error('auth_cancelled');
-      if (res.status === 401) {
-        await clearSession();
-        throw new Error('auth_cancelled');
+  const mutateAvatar = useCallback(
+    async (method: 'POST' | 'DELETE', base64?: string, path = '/auth/avatar') => {
+      const activeToken = tokenRef.current;
+      if (!activeToken || !userRef.current) throw new Error('auth_cancelled');
+      const epoch = sessionEpochRef.current;
+      const request = ++profileRequestRef.current;
+      const controller = new AbortController();
+      requestsRef.current.add(controller);
+      try {
+        const hasBody = method === 'POST' && base64 !== undefined;
+        const res = await fetch(`${AUTH_SYNC_API_URL}${path}`, {
+          method,
+          headers: {
+            ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+            Authorization: `Bearer ${activeToken}`,
+            'X-EBP-Client': 'himnario-v2',
+          },
+          ...(hasBody ? { body: JSON.stringify({ base64 }) } : {}),
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => ({}));
+        assertCurrent(epoch, activeToken);
+        if (request !== profileRequestRef.current) throw new Error('auth_cancelled');
+        if (res.status === 401) {
+          await clearSession();
+          throw new Error('auth_cancelled');
+        }
+        if (!res.ok || !data?.user || data.user.id !== userRef.current?.id) {
+          throw new Error(data?.error || 'avatar_upload_failed');
+        }
+        await saveSession(
+          epoch,
+          activeToken,
+          normalizeUser({
+            ...data.user,
+            emailVerified: data.user.emailVerified === true || userRef.current?.emailVerified,
+          }),
+          lastSyncedAtRef.current,
+        );
+      } catch (error) {
+        assertCurrent(epoch, activeToken);
+        throw error;
+      } finally {
+        requestsRef.current.delete(controller);
       }
-      if (!res.ok || !data?.user || data.user.id !== userRef.current?.id) {
-        throw new Error(data?.error || 'avatar_upload_failed');
-      }
-      await saveSession(
-        epoch,
-        activeToken,
-        normalizeUser({
-          ...data.user,
-          emailVerified: data.user.emailVerified === true || userRef.current?.emailVerified,
-        }),
-        lastSyncedAtRef.current,
-      );
-    } catch (error) {
-      assertCurrent(epoch, activeToken);
-      throw error;
-    } finally {
-      requestsRef.current.delete(controller);
-    }
-  }, [assertCurrent, clearSession, saveSession]);
+    },
+    [assertCurrent, clearSession, saveSession],
+  );
 
   const uploadAvatar = useCallback((base64: string) => mutateAvatar('POST', base64), [mutateAvatar]);
   const removeAvatar = useCallback(() => mutateAvatar('DELETE'), [mutateAvatar]);
+  const restoreGoogleAvatar = useCallback(
+    () => mutateAvatar('POST', undefined, '/auth/avatar/restore-google'),
+    [mutateAvatar],
+  );
 
   const syncNow = useCallback(async () => {
     const activeToken = tokenRef.current;
@@ -1076,6 +1088,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         acceptUgcTerms,
         uploadAvatar,
         removeAvatar,
+        restoreGoogleAvatar,
         syncNow,
         resolveSyncConflict,
         signOut,

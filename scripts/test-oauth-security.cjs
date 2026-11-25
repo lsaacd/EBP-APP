@@ -108,6 +108,7 @@ function makeDeps(db, env, jwksMap) {
       email: u.email,
       name: u.name,
       avatarUrl: u.avatar_url ?? null,
+      hasGoogleAvatar: Boolean(u.google_avatar_url),
       emailVerified: u.email_verified_at != null,
       role: u.role === 'admin' && u.email.toLowerCase() === 'isaacduran167@gmail.com' ? 'admin' : 'member',
     }),
@@ -525,7 +526,7 @@ test('Google PFP auto-import to R2, SSRF guard, and /auth/avatar upload/delete/a
     (err) => err.status === 400 && err.code === 'invalid_photo_format',
   );
 
-  // 6. DELETE /auth/avatar clears avatar_url and deletes R2 object
+  // 6. DELETE /auth/avatar clears avatar_url, records avatar_removed_at, keeps hasGoogleAvatar=true, and deletes R2 object
   const delRes = await handleCommunity(
     new Request('https://api.example/auth/avatar', {
       method: 'DELETE',
@@ -539,7 +540,70 @@ test('Google PFP auto-import to R2, SSRF guard, and /auth/avatar upload/delete/a
   const delBody = await delRes.json();
   assert.equal(delBody.avatarUrl, null);
   assert.equal(delBody.user.avatarUrl, null);
+  assert.equal(delBody.user.hasGoogleAvatar, true);
   assert.equal(r2Store.size, 0);
+
+  // 6b. Repeat Google sign-in after explicit removal respects avatar_removed_at (does NOT silently re-add photo)
+  fetchedUrls = [];
+  const gResAfterDelete = await handleOAuth(
+    new Request('https://api.example/auth/oauth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: googleWithPic }),
+    }),
+    env,
+    null,
+    { ...deps, path: '/auth/oauth/google', fetchAvatar: mockFetchAvatar },
+  );
+  assert.equal(gResAfterDelete.status, 200);
+  const gBodyAfterDelete = await gResAfterDelete.json();
+  assert.equal(gBodyAfterDelete.user.avatarUrl, null);
+  assert.equal(gBodyAfterDelete.user.hasGoogleAvatar, true);
+  assert.equal(fetchedUrls.length, 0);
+
+  // 6c. POST /auth/avatar/restore-google recovers the Google PFP to R2 and clears avatar_removed_at
+  const restoreRes = await handleCommunity(
+    new Request('https://api.example/auth/avatar/restore-google', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gBody.token}` },
+    }),
+    env,
+    null,
+    {
+      path: '/auth/avatar/restore-google',
+      authenticate,
+      serializeUser: deps.serializeUser,
+      json: deps.json,
+      fetchAvatar: mockFetchAvatar,
+    },
+  );
+  assert.equal(restoreRes.status, 200);
+  const restoreBody = await restoreRes.json();
+  assert.ok(restoreBody.avatarUrl.startsWith(`https://audio.himnarioebp.com/avatars/${gBody.user.id}/`));
+  assert.equal(restoreBody.user.avatarUrl, restoreBody.avatarUrl);
+  assert.equal(restoreBody.user.hasGoogleAvatar, true);
+  assert.equal(r2Store.size, 1);
+
+  // 6d. Expired Google avatar returns 410 google_avatar_expired
+  await assert.rejects(
+    () =>
+      handleCommunity(
+        new Request('https://api.example/auth/avatar/restore-google', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${gBody.token}` },
+        }),
+        env,
+        null,
+        {
+          path: '/auth/avatar/restore-google',
+          authenticate,
+          serializeUser: deps.serializeUser,
+          json: deps.json,
+          fetchAvatar: async () => new Response('gone', { status: 404 }),
+        },
+      ),
+    (err) => err.status === 410 && err.code === 'google_avatar_expired',
+  );
 
   // 7. Re-upload and verify deleteCommunityAccount cleans up R2 object
   const uploadRes2 = await handleCommunity(
@@ -556,6 +620,109 @@ test('Google PFP auto-import to R2, SSRF guard, and /auth/avatar upload/delete/a
     { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
   );
   assert.equal(uploadRes2.status, 200);
+  assert.equal(r2Store.size, 1);
+
+  // 8. Admin endpoints: /mod/overview, /mod/users filters, verify-email & clear-avatar
+  db.prepare(
+    `INSERT INTO users (id, email, name, password_hash, password_salt, created_at, email_verified_at, role)
+     VALUES ('admin-mod-1', 'isaacduran167@gmail.com', 'Admin', 'h', 's', ?1, ?1, 'admin')`,
+  ).run(Date.now());
+  db.prepare(
+    `INSERT INTO users (id, email, name, password_hash, password_salt, created_at, email_verified_at, ministry, badge_verified)
+     VALUES ('obispo-u2', 'obispo@example.com', 'Hno Obispo', 'h', 's', ?1, NULL, 'obispo', 0)`,
+  ).run(Date.now());
+  const authAdmin = async (req) => {
+    const h = req.headers.get('Authorization') || '';
+    if (h === 'Bearer admin-tok') {
+      return db.prepare('SELECT * FROM users WHERE id = ?1').get('admin-mod-1');
+    }
+    return authenticate(req);
+  };
+  await assert.rejects(
+    () =>
+      handleCommunity(
+        new Request('https://api.example/mod/overview', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${gBody.token}` },
+        }),
+        env,
+        null,
+        { path: '/mod/overview', authenticate: authAdmin, serializeUser: deps.serializeUser, json: deps.json },
+      ),
+    (err) => err.status === 403 && err.code === 'forbidden',
+  );
+  const ovRes = await handleCommunity(
+    new Request('https://api.example/mod/overview', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer admin-tok' },
+    }),
+    env,
+    null,
+    { path: '/mod/overview', authenticate: authAdmin, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  assert.equal(ovRes.status, 200);
+  const ov = await ovRes.json();
+  assert.equal(ov.totalUsers, 3);
+  assert.equal(ov.pendingObispo, 1);
+  assert.equal(ov.oauthProviders.google, 1);
+
+  const pendObispoRes = await handleCommunity(
+    new Request('https://api.example/mod/users?filter=pending_obispo', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer admin-tok' },
+    }),
+    env,
+    null,
+    { path: '/mod/users', authenticate: authAdmin, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  const pendObispo = await pendObispoRes.json();
+  assert.equal(pendObispo.users.length, 1);
+  assert.equal(pendObispo.users[0].id, 'obispo-u2');
+  assert.equal(pendObispo.users[0].emailVerified, false);
+
+  const verEmailRes = await handleCommunity(
+    new Request('https://api.example/mod/users/obispo-u2/verify-email', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-tok' },
+    }),
+    env,
+    null,
+    { path: '/mod/users/obispo-u2/verify-email', authenticate: authAdmin, serializeUser: deps.serializeUser, json: deps.json },
+  );
+  assert.equal(verEmailRes.status, 200);
+  assert.ok(db.prepare('SELECT email_verified_at FROM users WHERE id = ?1').get('obispo-u2').email_verified_at);
+
+  const clearAvRes = await handleCommunity(
+    new Request(`https://api.example/mod/users/${gBody.user.id}/clear-avatar`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-tok' },
+    }),
+    env,
+    null,
+    {
+      path: `/mod/users/${gBody.user.id}/clear-avatar`,
+      authenticate: authAdmin,
+      serializeUser: deps.serializeUser,
+      json: deps.json,
+    },
+  );
+  assert.equal(clearAvRes.status, 200);
+  assert.equal(r2Store.size, 0, 'Admin clear-avatar must remove R2 avatar object');
+
+  // Re-upload and verify deleteCommunityAccount cleans up R2 object
+  await handleCommunity(
+    new Request('https://api.example/auth/avatar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${gBody.token}`,
+      },
+      body: JSON.stringify({ base64: pngB64 }),
+    }),
+    env,
+    null,
+    { path: '/auth/avatar', authenticate, serializeUser: deps.serializeUser, json: deps.json },
+  );
   assert.equal(r2Store.size, 1);
   await deleteCommunityAccount(env, gBody.user.id);
   assert.equal(r2Store.size, 0, 'Deleting account must remove R2 avatar object');

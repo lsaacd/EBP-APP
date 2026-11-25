@@ -282,3 +282,5 @@ CREATE INDEX IF NOT EXISTS idx_oauth_identities_user ON oauth_identities(user_id
 
 -- Cloud-synced user profile photos (Google OAuth import & custom R2 uploads).
 ALTER TABLE users ADD COLUMN avatar_url TEXT;
+ALTER TABLE users ADD COLUMN google_avatar_url TEXT;
+ALTER TABLE users ADD COLUMN avatar_removed_at INTEGER;

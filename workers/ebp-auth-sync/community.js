@@ -1,4 +1,5 @@
 import { RequestError, parseJsonBody, checkRateLimit } from "./security.js";
+import { isAllowedGoogleAvatarUrl, restoreGoogleAvatarToR2 } from "./oauth.js";
 import {
   MINISTRIES,
   CHOIRS,
@@ -460,13 +461,18 @@ export async function handleCommunity(
   request,
   env,
   ctx,
-  { path, authenticate, serializeUser, json },
+  { path, authenticate, serializeUser, json, fetchAvatar },
 ) {
   if (
     !/^\/(verses|verse-comments|users|mod|choirs|churches|hymns|friends|playlists|notifications)(\/|$)/.test(
       path,
     ) &&
-    !["/auth/profile", "/auth/ugc-terms/accept", "/auth/avatar"].includes(path)
+    ![
+      "/auth/profile",
+      "/auth/ugc-terms/accept",
+      "/auth/avatar",
+      "/auth/avatar/restore-google",
+    ].includes(path)
   )
     return null;
   const method = request.method,
@@ -674,7 +680,7 @@ export async function handleCommunity(
     });
     const newAvatarUrl = `${AVATAR_ORIGIN}${key}`;
     const previousAvatarUrl = user.avatar_url ?? null;
-    await env.DB.prepare("UPDATE users SET avatar_url=?2 WHERE id=?1")
+    await env.DB.prepare("UPDATE users SET avatar_url=?2,avatar_removed_at=NULL WHERE id=?1")
       .bind(user.id, newAvatarUrl)
       .run();
     if (previousAvatarUrl && previousAvatarUrl !== newAvatarUrl) {
@@ -683,15 +689,15 @@ export async function handleCommunity(
     return json({
       ok: true,
       avatarUrl: newAvatarUrl,
-      user: serializeUser({ ...user, avatar_url: newAvatarUrl }),
+      user: serializeUser({ ...user, avatar_url: newAvatarUrl, avatar_removed_at: null }),
     });
   }
   if (path === "/auth/avatar" && method === "DELETE") {
     if (!user) fail(401, "unauthorized");
     await quota(env, `avatar-delete:${user.id}`, 20, 3600000);
     const previousAvatarUrl = user.avatar_url ?? null;
-    await env.DB.prepare("UPDATE users SET avatar_url=NULL WHERE id=?1")
-      .bind(user.id)
+    await env.DB.prepare("UPDATE users SET avatar_url=NULL,avatar_removed_at=?2 WHERE id=?1")
+      .bind(user.id, now)
       .run();
     if (previousAvatarUrl) {
       await deleteUserAvatarObject(env, user.id, previousAvatarUrl);
@@ -699,7 +705,33 @@ export async function handleCommunity(
     return json({
       ok: true,
       avatarUrl: null,
-      user: serializeUser({ ...user, avatar_url: null }),
+      user: serializeUser({ ...user, avatar_url: null, avatar_removed_at: now }),
+    });
+  }
+  if (path === "/auth/avatar/restore-google" && method === "POST") {
+    if (!user) fail(401, "unauthorized");
+    await quota(env, `avatar-restore:${user.id}`, admin ? 40 : 10, 3600000);
+    await quota(env, `avatar-restore-ip:${ip}`, 30, 3600000);
+    const savedGoogleUrl =
+      typeof user.google_avatar_url === "string" ? user.google_avatar_url.trim() : "";
+    if (!savedGoogleUrl || !isAllowedGoogleAvatarUrl(savedGoogleUrl)) {
+      fail(404, "no_google_avatar");
+    }
+    const restored = await restoreGoogleAvatarToR2(env, user.id, savedGoogleUrl, fetchAvatar);
+    if (restored.unavailable) fail(503, "avatar_storage_unavailable");
+    if (restored.expired) fail(410, "google_avatar_expired");
+    if (!restored.url) fail(502, "google_avatar_fetch_failed");
+    const previousAvatarUrl = user.avatar_url ?? null;
+    await env.DB.prepare("UPDATE users SET avatar_url=?2,avatar_removed_at=NULL WHERE id=?1")
+      .bind(user.id, restored.url)
+      .run();
+    if (previousAvatarUrl && previousAvatarUrl !== restored.url) {
+      await deleteUserAvatarObject(env, user.id, previousAvatarUrl);
+    }
+    return json({
+      ok: true,
+      avatarUrl: restored.url,
+      user: serializeUser({ ...user, avatar_url: restored.url, avatar_removed_at: null }),
     });
   }
   const verseRoute = path.match(
@@ -1760,15 +1792,132 @@ export async function handleCommunity(
       ),
     });
   }
+  if (path === "/mod/overview" && method === "GET") {
+    const sevenDaysAgo = now - 7 * 86400000;
+    const [
+      userCounts,
+      oauthRows,
+      openReportsRow,
+      churchCounts,
+      choirCounts,
+      commentsRow,
+      pushRow,
+    ] = await Promise.all([
+      env.DB.prepare(
+        `SELECT
+           COUNT(*) AS total_users,
+           SUM(CASE WHEN email_verified_at IS NOT NULL THEN 1 ELSE 0 END) AS verified_users,
+           SUM(CASE WHEN suspended_at IS NOT NULL THEN 1 ELSE 0 END) AS suspended_users,
+           SUM(CASE WHEN created_at >= ?1 THEN 1 ELSE 0 END) AS new_users_7d,
+           SUM(CASE WHEN ministry='obispo' AND badge_verified=0 AND suspended_at IS NULL THEN 1 ELSE 0 END) AS pending_obispo
+         FROM users`,
+      )
+        .bind(sevenDaysAgo)
+        .first(),
+      all("SELECT provider, COUNT(*) AS n FROM oauth_identities GROUP BY provider"),
+      env.DB.prepare("SELECT COUNT(*) AS n FROM verse_comment_reports WHERE status='open'").first(),
+      env.DB.prepare(
+        `SELECT
+           SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending_churches,
+           SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved_churches
+         FROM churches`,
+      ).first(),
+      env.DB.prepare(
+        `SELECT
+           SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending_choirs,
+           SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved_choirs
+         FROM choirs`,
+      ).first(),
+      env.DB.prepare("SELECT COUNT(*) AS n FROM verse_comments WHERE hidden_at IS NULL").first(),
+      env.DB.prepare("SELECT COUNT(*) AS n FROM push_tokens").first(),
+    ]);
+    const oauthProviders = { apple: 0, google: 0 };
+    for (const row of oauthRows) {
+      if (row.provider === "apple") oauthProviders.apple = Number(row.n || 0);
+      else if (row.provider === "google") oauthProviders.google = Number(row.n || 0);
+    }
+    return json(
+      {
+        totalUsers: Number(userCounts?.total_users || 0),
+        verifiedUsers: Number(userCounts?.verified_users || 0),
+        suspendedUsers: Number(userCounts?.suspended_users || 0),
+        newUsers7d: Number(userCounts?.new_users_7d || 0),
+        pendingObispo: Number(userCounts?.pending_obispo || 0),
+        oauthProviders,
+        openReports: Number(openReportsRow?.n || 0),
+        pendingChurches: Number(churchCounts?.pending_churches || 0),
+        approvedChurches: Number(churchCounts?.approved_churches || 0),
+        pendingChoirs: Number(choirCounts?.pending_choirs || 0),
+        approvedChoirs: Number(choirCounts?.approved_choirs || 0),
+        totalComments: Number(commentsRow?.n || 0),
+        activePushDevices: Number(pushRow?.n || 0),
+      },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
   if (path === "/mod/users" && method === "GET") {
     const q = (url.searchParams.get("q") || "").trim();
     if (q.length > 100) fail(400, "invalid_query");
+    const filter = url.searchParams.get("filter") || (q ? "all" : "recent");
+    if (!["all", "recent", "pending_obispo", "suspended"].includes(filter)) {
+      fail(400, "invalid_filter");
+    }
+    const whereClauses = [];
+    const args = [];
+    if (q) {
+      const like = `%${q}%`;
+      args.push(like, q);
+      const pLike = args.length - 1;
+      const pExact = args.length;
+      whereClauses.push(
+        `(u.name LIKE ?${pLike} OR u.email LIKE ?${pLike} OR COALESCE(u.church_name,'') LIKE ?${pLike} OR u.id=?${pExact})`,
+      );
+    }
+    if (filter === "pending_obispo") {
+      whereClauses.push("u.ministry='obispo' AND u.badge_verified=0 AND u.suspended_at IS NULL");
+    } else if (filter === "suspended") {
+      whereClauses.push("u.suspended_at IS NOT NULL");
+    }
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+    const orderSql =
+      filter === "recent" && !q ? "ORDER BY u.created_at DESC" : "ORDER BY u.name COLLATE NOCASE ASC";
+    const rows = await all(
+      `SELECT u.id,u.name,u.email,u.avatar_url,u.email_verified_at,u.ministry,u.choir,u.church_id,u.church_name,u.location,u.badge_verified,u.suspended_at,u.suspended_reason,u.created_at,
+              (SELECT GROUP_CONCAT(oi.provider) FROM oauth_identities oi WHERE oi.user_id=u.id) AS oauth_providers
+       FROM users u ${whereSql} ${orderSql} LIMIT 60`,
+      ...args,
+    );
     return json({
-      users: await all(
-        "SELECT id,name,ministry,choir,badge_verified,suspended_at FROM users WHERE name LIKE ?1 OR id=?2 ORDER BY name LIMIT 50",
-        `%${q}%`,
-        q,
-      ),
+      users: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        initials: initials(r.name || r.email || "U"),
+        avatar_url: r.avatar_url ?? null,
+        avatarUrl: r.avatar_url ?? null,
+        email_verified_at: r.email_verified_at ?? null,
+        emailVerified: r.email_verified_at != null,
+        ministry: r.ministry ?? null,
+        choir: r.choir ?? null,
+        church_id: r.church_id ?? null,
+        churchId: r.church_id ?? null,
+        church_name: r.church_name ?? null,
+        churchName: r.church_name ?? null,
+        location: r.location ?? null,
+        badge_verified: r.badge_verified ? 1 : 0,
+        badgeVerified: r.ministry === "obispo" && r.badge_verified === 1,
+        suspended_at: r.suspended_at ?? null,
+        suspendedReason: r.suspended_reason ?? null,
+        created_at: r.created_at ?? null,
+        createdAt: r.created_at ?? null,
+        providers: r.oauth_providers
+          ? String(r.oauth_providers)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      })),
     });
   }
   const modComment = path.match(/^\/mod\/comments\/([a-z0-9-]+)\/hide$/);
@@ -1786,7 +1935,7 @@ export async function handleCommunity(
     return json({ ok: true });
   }
   const modUser = path.match(
-    /^\/mod\/users\/([a-z0-9-]+)\/(suspend|restore|verify-obispo)$/,
+    /^\/mod\/users\/([a-z0-9-]+)\/(suspend|restore|verify-obispo|verify-email|clear-avatar)$/,
   );
   if (modUser && method === "POST") {
     const [, id, action] = modUser;
@@ -1804,6 +1953,22 @@ export async function handleCommunity(
       )
         .bind(id, body.verified ? 1 : 0)
         .run();
+    } else if (action === "verify-email") {
+      await env.DB.prepare(
+        "UPDATE users SET email_verified_at=COALESCE(email_verified_at,?2) WHERE id=?1",
+      )
+        .bind(id, now)
+        .run();
+    } else if (action === "clear-avatar") {
+      const previousAvatarUrl = target.avatar_url ?? null;
+      await env.DB.prepare(
+        "UPDATE users SET avatar_url=NULL,avatar_removed_at=?2 WHERE id=?1",
+      )
+        .bind(id, now)
+        .run();
+      if (previousAvatarUrl) {
+        await deleteUserAvatarObject(env, id, previousAvatarUrl);
+      }
     } else {
       const body = await bodyOf(request),
         reason = body.reason ?? "Community moderation";

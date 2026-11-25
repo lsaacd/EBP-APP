@@ -252,15 +252,20 @@ async function readResponseUpTo(response, maxBytes) {
   return out;
 }
 
-async function importGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
-  if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== 'function') return null;
-  if (!isAllowedGoogleAvatarUrl(pictureUrl)) return null;
+export async function restoreGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
+  if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== 'function') {
+    return { url: null, expired: false, unavailable: true };
+  }
+  if (!isAllowedGoogleAvatarUrl(pictureUrl)) {
+    return { url: null, expired: false, unavailable: false };
+  }
 
   const doFetch = typeof fetchAvatar === 'function' ? fetchAvatar : fetch;
   // Request a crisp Retina resolution when Google provides a standard =s96-c suffix,
   // falling back to the exact claim URL if the higher-res variant fails.
   const upgraded = pictureUrl.replace(/=s\d+-c$/, '=s384-c');
   const candidates = upgraded !== pictureUrl ? [upgraded, pictureUrl] : [pictureUrl];
+  let sawExpired = false;
 
   for (const candidateUrl of candidates) {
     if (!isAllowedGoogleAvatarUrl(candidateUrl)) continue;
@@ -284,7 +289,12 @@ async function importGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
           continue;
         }
       }
-      if (!res || !res.ok) continue;
+      if (!res) continue;
+      if (res.status === 404 || res.status === 410) {
+        sawExpired = true;
+        continue;
+      }
+      if (!res.ok) continue;
       const bytes = await readResponseUpTo(res, MAX_GOOGLE_AVATAR_BYTES);
       const fmt = detectAvatarImageFormat(bytes);
       if (!fmt) continue;
@@ -296,14 +306,19 @@ async function importGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
           cacheControl: 'public, max-age=31536000, immutable',
         },
       });
-      return `${AVATAR_CDN_ORIGIN}${key}`;
+      return { url: `${AVATAR_CDN_ORIGIN}${key}`, expired: false, unavailable: false };
     } catch {
-      // Best-effort only: try fallback candidate or continue login cleanly.
+      // Best-effort only: try fallback candidate or return cleanly.
     } finally {
       clearTimeout(timer);
     }
   }
-  return null;
+  return { url: null, expired: sawExpired, unavailable: false };
+}
+
+async function importGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar) {
+  const result = await restoreGoogleAvatarToR2(env, userId, pictureUrl, fetchAvatar);
+  return result.url;
 }
 
 async function resolveOrCreateOAuthUser(env, {
@@ -522,24 +537,34 @@ export async function handleOAuth(request, env, _ctx, deps) {
     safeParseJson,
   });
 
-  if (!user.avatar_url && typeof payload.picture === 'string' && payload.picture.trim()) {
-    const importedAvatarUrl = await importGoogleAvatarToR2(
-      env,
-      user.id,
-      payload.picture.trim(),
-      fetchAvatar,
-    );
-    if (importedAvatarUrl) {
-      const updated = await env.DB.prepare(
-        `UPDATE users SET avatar_url = ?1 WHERE id = ?2 AND avatar_url IS NULL`,
-      )
-        .bind(importedAvatarUrl, user.id)
+  const rawPicture = typeof payload.picture === 'string' ? payload.picture.trim() : '';
+  if (rawPicture && isAllowedGoogleAvatarUrl(rawPicture)) {
+    if (user.google_avatar_url !== rawPicture) {
+      await env.DB.prepare(`UPDATE users SET google_avatar_url = ?1 WHERE id = ?2`)
+        .bind(rawPicture, user.id)
         .run();
-      if (updated?.meta?.changes === 1) {
-        user = { ...user, avatar_url: importedAvatarUrl };
-      } else if (env.MEDIA_BUCKET && typeof env.MEDIA_BUCKET.delete === 'function') {
-        const orphanKey = importedAvatarUrl.slice(AVATAR_CDN_ORIGIN.length);
-        await env.MEDIA_BUCKET.delete(orphanKey).catch(() => {});
+      user = { ...user, google_avatar_url: rawPicture };
+    }
+    // Only auto-import when the user has no avatar AND did not intentionally remove one.
+    if (!user.avatar_url && user.avatar_removed_at == null) {
+      const importedAvatarUrl = await importGoogleAvatarToR2(
+        env,
+        user.id,
+        rawPicture,
+        fetchAvatar,
+      );
+      if (importedAvatarUrl) {
+        const updated = await env.DB.prepare(
+          `UPDATE users SET avatar_url = ?1 WHERE id = ?2 AND avatar_url IS NULL AND avatar_removed_at IS NULL`,
+        )
+          .bind(importedAvatarUrl, user.id)
+          .run();
+        if (updated?.meta?.changes === 1) {
+          user = { ...user, avatar_url: importedAvatarUrl };
+        } else if (env.MEDIA_BUCKET && typeof env.MEDIA_BUCKET.delete === 'function') {
+          const orphanKey = importedAvatarUrl.slice(AVATAR_CDN_ORIGIN.length);
+          await env.MEDIA_BUCKET.delete(orphanKey).catch(() => {});
+        }
       }
     }
   }
