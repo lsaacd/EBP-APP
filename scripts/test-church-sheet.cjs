@@ -709,3 +709,34 @@ test('buildHymnIntentCatalog prioritizes favorites & recents and produces 761 un
   assert.ok(catalog[0].synonyms.includes('Himno 100'));
   assert.ok(catalog[0].synonyms.includes('Hymn 100'));
 });
+
+test('describeCommentTarget resolves hymns, choruses, and daily verses cleanly in ES and EN', () => {
+  const dailyVerses = load('himnario/data/dailyVerses.ts');
+  const alabanzasPaginas = load('himnario/data/alabanzasPaginas.js');
+  const alabanzasEnglish = load('himnario/data/alabanzasEnglish.ts');
+  const { describeCommentTarget, formatModRelativeTime } = load('himnario/utils/modComments.ts', {
+    '../data/dailyVerses': dailyVerses,
+    '../data/alabanzasPaginas': alabanzasPaginas,
+    '../data/alabanzasEnglish': alabanzasEnglish,
+  });
+
+  const hymnEn = describeCommentTarget('hymn-439', 'en', 'Daily Verse');
+  assert.equal(hymnEn.kind, 'hymn');
+  assert.equal(hymnEn.hymnId, '439');
+  assert.ok(hymnEn.label.startsWith('Hymn 439 · '));
+
+  const chorusEs = describeCommentTarget('hymn-e12', 'es', 'Versículo del día');
+  assert.equal(chorusEs.kind, 'hymn');
+  assert.equal(chorusEs.hymnId, 'E12');
+  assert.ok(chorusEs.label.startsWith('Estribillo '));
+
+  const verseEn = describeCommentTarget('mateo-18-20', 'en', 'Daily Verse');
+  assert.equal(verseEn.kind, 'verse');
+  assert.equal(verseEn.hymnId, null);
+  assert.equal(verseEn.label, 'Daily Verse · Matthew 18:20');
+
+  const now = 1_700_000_000_000;
+  assert.equal(formatModRelativeTime(now - 20_000, false, now), 'now');
+  assert.equal(formatModRelativeTime(now - 5 * 60_000, false, now), '5m');
+  assert.equal(formatModRelativeTime(now - 3 * 3_600_000, true, now), '3h');
+});

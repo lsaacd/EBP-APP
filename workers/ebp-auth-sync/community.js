@@ -1786,7 +1786,7 @@ export async function handleCommunity(
       Number(url.searchParams.get("before")) || Number.MAX_SAFE_INTEGER;
     return json({
       reports: await all(
-        "SELECT r.*,c.body,c.user_id,u.name,u.ministry,u.badge_verified,u.suspended_at FROM verse_comment_reports r JOIN verse_comments c ON c.id=r.comment_id LEFT JOIN users u ON u.id=c.user_id WHERE r.status=?1 AND r.created_at<?2 ORDER BY r.created_at DESC LIMIT 50",
+        "SELECT r.*,c.body,c.verse_id,c.user_id,u.name,u.ministry,u.badge_verified,u.suspended_at FROM verse_comment_reports r JOIN verse_comments c ON c.id=r.comment_id LEFT JOIN users u ON u.id=c.user_id WHERE r.status=?1 AND r.created_at<?2 ORDER BY r.created_at DESC LIMIT 50",
         status,
         before,
       ),
@@ -1884,7 +1884,8 @@ export async function handleCommunity(
       filter === "recent" && !q ? "ORDER BY u.created_at DESC" : "ORDER BY u.name COLLATE NOCASE ASC";
     const rows = await all(
       `SELECT u.id,u.name,u.email,u.avatar_url,u.email_verified_at,u.ministry,u.choir,u.church_id,u.church_name,u.location,u.badge_verified,u.suspended_at,u.suspended_reason,u.created_at,
-              (SELECT GROUP_CONCAT(oi.provider) FROM oauth_identities oi WHERE oi.user_id=u.id) AS oauth_providers
+              (SELECT GROUP_CONCAT(oi.provider) FROM oauth_identities oi WHERE oi.user_id=u.id) AS oauth_providers,
+              (SELECT COUNT(*) FROM verse_comments vc WHERE vc.user_id=u.id AND vc.hidden_at IS NULL) AS comments_count
        FROM users u ${whereSql} ${orderSql} LIMIT 60`,
       ...args,
     );
@@ -1911,6 +1912,7 @@ export async function handleCommunity(
         suspendedReason: r.suspended_reason ?? null,
         created_at: r.created_at ?? null,
         createdAt: r.created_at ?? null,
+        commentsCount: Number(r.comments_count || 0),
         providers: r.oauth_providers
           ? String(r.oauth_providers)
               .split(",")
@@ -1920,9 +1922,92 @@ export async function handleCommunity(
       })),
     });
   }
-  const modComment = path.match(/^\/mod\/comments\/([a-z0-9-]+)\/hide$/);
+  if (path === "/mod/comments" && method === "GET") {
+    const filter = (url.searchParams.get("filter") || "active").trim();
+    if (!["active", "hidden", "all"].includes(filter)) {
+      fail(400, "invalid_filter");
+    }
+    const targetUserId = (url.searchParams.get("userId") || "").trim();
+    if (targetUserId && !/^[a-z0-9-]+$/i.test(targetUserId)) {
+      fail(400, "invalid_user_id");
+    }
+    const q = (url.searchParams.get("q") || "").trim();
+    if (q.length > 100) fail(400, "invalid_query");
+    const before =
+      Number(url.searchParams.get("before")) || Number.MAX_SAFE_INTEGER;
+    const whereClauses = ["c.created_at < ?1"];
+    const args = [before];
+    if (filter === "active") {
+      whereClauses.push("c.hidden_at IS NULL");
+    } else if (filter === "hidden") {
+      whereClauses.push("c.hidden_at IS NOT NULL");
+    }
+    if (targetUserId) {
+      args.push(targetUserId);
+      whereClauses.push(`c.user_id = ?${args.length}`);
+    }
+    if (q) {
+      const like = `%${q}%`;
+      args.push(like);
+      const pLike = args.length;
+      whereClauses.push(
+        `(c.body LIKE ?${pLike} OR COALESCE(u.name, c.author_name_snapshot, '') LIKE ?${pLike} OR COALESCE(u.email, '') LIKE ?${pLike} OR c.verse_id LIKE ?${pLike})`,
+      );
+    }
+    const rows = await all(
+      `SELECT c.id, c.verse_id, c.parent_id, c.user_id, c.author_name_snapshot, c.body, c.created_at, c.edited_at, c.hidden_at,
+              u.name AS author_name, u.email AS author_email, u.avatar_url AS author_avatar_url, u.ministry AS author_ministry,
+              u.church_name AS author_church_name, u.suspended_at AS author_suspended_at,
+              p.body AS parent_body, COALESCE(pu.name, p.author_name_snapshot) AS parent_author_name,
+              (SELECT COUNT(*) FROM verse_comment_likes l WHERE l.comment_id = c.id) AS likes_count,
+              (SELECT COUNT(*) FROM verse_comment_reports r WHERE r.comment_id = c.id AND r.status = 'open') AS reports_count
+       FROM verse_comments c
+       LEFT JOIN users u ON u.id = c.user_id
+       LEFT JOIN verse_comments p ON p.id = c.parent_id
+       LEFT JOIN users pu ON pu.id = p.user_id
+       WHERE ${whereClauses.join(" AND ")}
+       ORDER BY c.created_at DESC, c.id DESC
+       LIMIT 80`,
+      ...args,
+    );
+    return json(
+      {
+        comments: rows.map((r) => ({
+          id: r.id,
+          verseId: r.verse_id,
+          parentId: r.parent_id ?? null,
+          parentAuthorName: r.parent_author_name ?? null,
+          parentBody: r.parent_body ? String(r.parent_body).slice(0, 120) : null,
+          userId: r.user_id ?? null,
+          authorName: r.author_name || r.author_name_snapshot || "Miembro",
+          authorEmail: r.author_email ?? null,
+          authorAvatarUrl: r.author_avatar_url ?? null,
+          authorMinistry: r.author_ministry ?? null,
+          authorChurchName: r.author_church_name ?? null,
+          authorSuspended: r.author_suspended_at != null,
+          body: r.body,
+          createdAt: Number(r.created_at || 0),
+          editedAt: r.edited_at != null ? Number(r.edited_at) : null,
+          hiddenAt: r.hidden_at != null ? Number(r.hidden_at) : null,
+          likesCount: Number(r.likes_count || 0),
+          reportsCount: Number(r.reports_count || 0),
+        })),
+      },
+      200,
+      { "Cache-Control": "private, no-store" },
+    );
+  }
+  const modComment = path.match(/^\/mod\/comments\/([a-z0-9-]+)\/(hide|restore)$/);
   if (modComment && method === "POST") {
-    await hideComment(env, modComment[1], user.id, now);
+    if (modComment[2] === "hide") {
+      await hideComment(env, modComment[1], user.id, now);
+    } else {
+      await env.DB.prepare(
+        "UPDATE verse_comments SET hidden_at=NULL,hidden_by=NULL WHERE id=?1 AND hidden_at IS NOT NULL",
+      )
+        .bind(modComment[1])
+        .run();
+    }
     return json({ ok: true });
   }
   const modReport = path.match(/^\/mod\/reports\/([a-z0-9-]+)\/dismiss$/);
