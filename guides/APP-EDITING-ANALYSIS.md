@@ -1,5 +1,18 @@
 # App editing
 
+## November 26, 2026 — SDK 58 `v2.0.0` OTA #2 (`2.0.0-sdk58-1`): Smart Hymns Scroller Pill Labels (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`9b1c4fd`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Published OTAs (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"`):**
+  - **iOS OTA #2 (Build `#47` & Simulator `e2993de9`):** Group [`91894307-fa6f-41ec-b9d3-6b68ec759994`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/91894307-fa6f-41ec-b9d3-6b68ec759994) · update `01a218ff-d8e8-7e5c-9a22-f517552e4459`.
+  - **Android OTA #2 (`versionCode 5`):** Group [`e69b2608-6400-48ea-8d9f-62a94c77c903`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/e69b2608-6400-48ea-8d9f-62a94c77c903) · update `01a21900-9dbc-7cec-a6c0-c801cc19b279`.
+- **What Changed (`himnario/utils/hymnScrollerLabel.ts`, `himnario/app/(tabs)/hymns.tsx`, `scripts/test-church-sheet.cjs`):**
+  - Replaced hardcoded `filtered[last].number` on the Himnos / Estribillos side-scroller pill (which displayed `.../113` in A–Z sort) with `getHymnScrollerLabel()` while keeping the slim vertical slider untouched (Índice remains the dedicated A–Z rail).
+  - **Number sort:** `1/636` · **A–Z sort:** live `A/Z` (`currentLetter/lastLetter`) · **Audio First sort:** `1/609` (`1/48` in Estribillos; switches to `pos/total` below non-audio rows). Also resets scroll fraction to `0` on sort or sub-tab change.
+- **Verification:** 31/31 `scripts/test-church-sheet.cjs` passed, `tsc --noEmit` 0 errors, ESLint 0 errors, iOS & Android OTAs published cleanly.
+
+---
+
 ## November 26, 2026 — SDK 58 `v2.0.0` iOS Build #47 (`2.0.0-sdk58-1`) + Worker `85a01e3e`: Sign in with Apple Fix (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`1123d7d`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`) until store sign-off.**

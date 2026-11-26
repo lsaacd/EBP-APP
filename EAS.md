@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 26, 2026 — SDK 58 `v2.0.0` OTA #2 (`2.0.0-sdk58-1`): Smart Hymns Scroller Pill Labels (A–Z & Audio First)
+
+- **Branch & Source:** `sdk-58` branch (commit `9b1c4fd`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA #2 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — Build `#47` & Simulator `e2993de9`):**
+  - **Update Group:** [`91894307-fa6f-41ec-b9d3-6b68ec759994`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/91894307-fa6f-41ec-b9d3-6b68ec759994)
+  - **iOS Update ID:** `01a218ff-d8e8-7e5c-9a22-f517552e4459` (`https://u.expo.dev/update/01a218ff-d8e8-7e5c-9a22-f517552e4459`)
+- **Android OTA #2 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — `versionCode 5`):**
+  - **Update Group:** [`e69b2608-6400-48ea-8d9f-62a94c77c903`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/e69b2608-6400-48ea-8d9f-62a94c77c903)
+  - **Android Update ID:** `01a21900-9dbc-7cec-a6c0-c801cc19b279` (`https://u.expo.dev/update/01a21900-9dbc-7cec-a6c0-c801cc19b279`)
+- **Included Changes (`himnario/utils/hymnScrollerLabel.ts`, `himnario/app/(tabs)/hymns.tsx`, `scripts/test-church-sheet.cjs`):**
+  - Fixed the Himnos / Estribillos side scroller pill showing `.../113` in **A–Z** sort (previously read `filtered[last].number`) while keeping the compact vertical slider unchanged (no A–Z letter rail copied from Índice).
+  - Pill now displays `1/636` in **Number** sort, live `A/Z` (normalized starting letter / last letter) in **A–Z** sort, and `1/audioCount` (`1/609` Himnos, `1/48` Estribillos; falling back to `pos/total` past non-audio rows) in **Audio First** sort, and resets scroll thumb to `0` on sort/sub-tab change.
+- **Verification:** 31/31 `scripts/test-church-sheet.cjs` tests passed, `tsc --noEmit` 0 errors, ESLint 0 errors, iOS (`2,652` modules) & Android (`2,721` modules) OTAs published cleanly.
+
 ## November 26, 2026 — SDK 58 `v2.0.0` iOS Build #47 (`2.0.0-sdk58-1`) + Worker `85a01e3e`: Sign in with Apple Fix & Full Auth Polish
 
 - **Branch & Source:** `sdk-58` branch (commit `1123d7d`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-store sign-off).
