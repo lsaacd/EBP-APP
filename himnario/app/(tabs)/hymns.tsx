@@ -58,6 +58,7 @@ import {
   type SearchableHymn,
   type SearchResult,
 } from '../../utils/search-engine';
+import { getHymnScrollerLabel } from '../../utils/hymnScrollerLabel';
 
 const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 const SYSTEM_FONT = Platform.OS === 'ios' ? undefined : 'sans-serif';
@@ -290,6 +291,11 @@ export default function HymnListScreen() {
     }
     return base;
   }, [activeSubTab, localizedEstribillosData, localizedHymnsData, hymnSort]);
+
+  const filteredAudioCount = useMemo(
+    () => (hymnSort === 'audio' ? filtered.filter((h) => hasHymnAudio(String(h.id))).length : 0),
+    [filtered, hymnSort],
+  );
 
   const scrubFrame = useRef<number | null>(null);
   const latestScrubFraction = useRef(0);
@@ -608,6 +614,8 @@ export default function HymnListScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveSubTab(nextKey);
     setSearchFilter('Todos');
+    setScrollFraction(0);
+    latestScrubFraction.current = 0;
     chipsScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: false });
@@ -678,8 +686,12 @@ export default function HymnListScreen() {
       0,
       Math.min(totalHymns - 1, Math.round(scrollFraction * (totalHymns - 1)))
     );
-    const currentHymnNumber = filtered[currentIndex]?.number ?? 1;
-    const lastHymnNumber = filtered[totalHymns - 1]?.number ?? totalHymns;
+    const scrollerLabel = getHymnScrollerLabel(
+      filtered,
+      currentIndex,
+      hymnSort,
+      filteredAudioCount,
+    );
 
     return (
       <View style={styles.flex1}>
@@ -716,6 +728,8 @@ export default function HymnListScreen() {
                   value={hymnSort}
                   onChange={(nextSort) => {
                     setHymnSort(nextSort);
+                    setScrollFraction(0);
+                    latestScrubFraction.current = 0;
                     flatListRef.current?.scrollToOffset?.({ offset: 0, animated: false });
                   }}
                   options={hymnSortOptions}
@@ -883,7 +897,7 @@ export default function HymnListScreen() {
             accessibilityLabel={
               t.hymnsHymnNumberScroller
             }
-            accessibilityValue={{ text: `${currentHymnNumber} / ${lastHymnNumber}` }}
+            accessibilityValue={{ text: scrollerLabel }}
             style={[
               styles.sliderContainer,
               {
@@ -930,7 +944,7 @@ export default function HymnListScreen() {
                     { color: isDarkMode ? '#ffffff' : '#6e1619' },
                   ]}
                 >
-                  {currentHymnNumber}/{lastHymnNumber}
+                  {scrollerLabel}
                 </Text>
               </GlassSurface>
             ) : (
@@ -946,7 +960,7 @@ export default function HymnListScreen() {
                     { color: theme.primary },
                   ]}
                 >
-                  {currentHymnNumber}/{lastHymnNumber}
+                  {scrollerLabel}
                 </Text>
               </View>
             )}

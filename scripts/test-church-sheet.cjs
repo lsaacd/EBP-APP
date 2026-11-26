@@ -740,3 +740,35 @@ test('describeCommentTarget resolves hymns, choruses, and daily verses cleanly i
   assert.equal(formatModRelativeTime(now - 5 * 60_000, false, now), '5m');
   assert.equal(formatModRelativeTime(now - 3 * 3_600_000, true, now), '3h');
 });
+
+test('getHymnScrollerLabel adapts cleanly to number, A-Z, and audio-first sort modes', () => {
+  const searchEngine = load('himnario/utils/search-engine.ts');
+  const { getHymnScrollerLabel } = load('himnario/utils/hymnScrollerLabel.ts', {
+    './search-engine': searchEngine,
+  });
+
+  const numItems = [
+    { id: '1', number: 1, title: 'Santo, Santo, Santo' },
+    { id: '250', number: 250, title: 'Grande Es Tu Fidelidad' },
+    { id: '636', number: 636, title: 'Amén' },
+  ];
+  assert.equal(getHymnScrollerLabel(numItems, 0, 'number'), '1/636');
+  assert.equal(getHymnScrollerLabel(numItems, 1, 'number'), '250/636');
+  assert.equal(getHymnScrollerLabel(numItems, 2, 'number'), '636/636');
+
+  // A-Z sort: last hymn alphabetically has number 113, must show A/Z instead of .../113
+  const azItems = [
+    { id: '504', number: 504, title: '¡A Dios Sea la Gloria!' },
+    { id: '12', number: 12, title: 'Él Vive Hoy' },
+    { id: '113', number: 113, title: 'Yo Vivo Señor' },
+  ];
+  assert.equal(getHymnScrollerLabel(azItems, 0, 'az'), 'A/Y');
+  assert.equal(getHymnScrollerLabel(azItems, 1, 'az'), 'E/Y');
+  assert.equal(getHymnScrollerLabel(azItems, 2, 'az'), 'Y/Y');
+
+  // Audio-first sort: shows 1/audioCount inside audio block, then position/total below
+  assert.equal(getHymnScrollerLabel(numItems, 0, 'audio', 2), '1/2');
+  assert.equal(getHymnScrollerLabel(numItems, 1, 'audio', 2), '2/2');
+  assert.equal(getHymnScrollerLabel(numItems, 2, 'audio', 2), '3/3');
+  assert.equal(getHymnScrollerLabel([], 0, 'az'), '0/0');
+});
