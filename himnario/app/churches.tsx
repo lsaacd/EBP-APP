@@ -283,7 +283,7 @@ export default function ChurchesScreen() {
     lng: number;
   } | null>(null);
   const [mapRegion, setMapRegion] = useState<MapViewportRegion>(DEFAULT_REGION);
-  const [mapLayer, setMapLayer] = useState<ChurchMapLayer>("standard");
+  const [mapLayer, setMapLayer] = useState<ChurchMapLayer>("satellite");
   const [layersOpen, setLayersOpen] = useState(false);
   const [is3DMode, setIs3DMode] = useState(false);
   const [mapHeading, setMapHeading] = useState(0);
@@ -1650,7 +1650,7 @@ export default function ChurchesScreen() {
 
   useEffect(() => {
     let active = true;
-    AsyncStorage.getItem("@himnario_church_map_layer_v1")
+    AsyncStorage.getItem("@himnario_church_map_layer_v2")
       .then((saved) => {
         if (!active) return;
         if (saved === "standard" || saved === "night3d" || saved === "satellite") {
@@ -1663,10 +1663,34 @@ export default function ChurchesScreen() {
     };
   }, []);
 
-  const handleSelectMapLayer = useCallback((next: ChurchMapLayer) => {
-    setMapLayer(next);
-    void AsyncStorage.setItem("@himnario_church_map_layer_v1", next).catch(() => {});
-  }, []);
+  const handleSelectMapLayer = useCallback(
+    (next: ChurchMapLayer) => {
+      setMapLayer(next);
+      void AsyncStorage.setItem("@himnario_church_map_layer_v2", next).catch(() => {});
+      if (next === "night3d" && Platform.OS !== "web" && mapRef.current) {
+        setIs3DMode(true);
+        void mapRef.current
+          .getCamera()
+          .then((cam) => {
+            const targetCenter = selectedChurch
+              ? { latitude: selectedChurch.lat, longitude: selectedChurch.lng }
+              : cam.center;
+            const patch: Partial<typeof cam> = {
+              center: targetCenter,
+              pitch: Math.max(cam.pitch ?? 0, 60),
+            };
+            if (Platform.OS === "ios" && (cam.altitude ?? 10000) > 4500) {
+              patch.altitude = 1800;
+            } else if (Platform.OS === "android" && (cam.zoom ?? 10) < 15.5) {
+              patch.zoom = 16.2;
+            }
+            mapRef.current?.animateCamera(patch, { duration: 480 });
+          })
+          .catch(() => {});
+      }
+    },
+    [selectedChurch],
+  );
 
   const handleToggle3D = useCallback(async () => {
     if (Platform.OS === "web" || !mapRef.current) return;
@@ -1781,9 +1805,10 @@ export default function ChurchesScreen() {
   const hasIOSGlass = isIOS && isIOSLiquidGlassAvailable();
   const expoSwiftUI = isIOS ? getExpoSwiftUI() : null;
   const activeMapSegment: "map" | "list" | "layers" = layersOpen ? "layers" : sheetMode;
-  const isDarkMapChrome = isDarkMode || mapLayer !== "standard";
-  const mapChromeInk = isDarkMapChrome ? "#FFFFFF" : theme.onSurface;
-  const mapChromeMuted = isDarkMapChrome ? "rgba(255,255,255,0.74)" : theme.onSurfaceVariant;
+  const isDarkMapChrome = mapLayer !== "standard";
+  const mapChromeInk = isDarkMapChrome ? "#FFFFFF" : "#1C1A19";
+  const mapChromeMuted = isDarkMapChrome ? "rgba(255,255,255,0.76)" : "#5C534E";
+  const mapChromeAccent = isDarkMapChrome ? "#FFFFFF" : "#6e1619";
   const bgSurface = isDarkMode ? "#0D0D0F" : "#F6F3EC";
   const cardBg = hasIOSGlass
     ? isDarkMode
@@ -1895,9 +1920,7 @@ export default function ChurchesScreen() {
               ? isIOS
                 ? "satelliteFlyover"
                 : "satellite"
-              : mapLayer === "night3d" && isIOS
-                ? "mutedStandard"
-                : "standard"
+              : "standard"
           }
           customMapStyle={
             Platform.OS === "android" && mapLayer === "night3d"
@@ -2318,7 +2341,7 @@ export default function ChurchesScreen() {
                   <Host
                     style={styles.iosNativeModePickerHost}
                     colorScheme={isDarkMapChrome ? "dark" : "light"}
-                    seedColor={isDarkMapChrome ? "#FFFFFF" : theme.primary}
+                    seedColor={mapChromeAccent}
                   >
                     <SwiftPicker
                       label={t.profileMap}
@@ -2398,9 +2421,7 @@ export default function ChurchesScreen() {
                     android="map"
                     color={
                       sheetMode === "map" && !layersOpen
-                        ? isDarkMapChrome
-                          ? "#FFFFFF"
-                          : theme.primary
+                        ? mapChromeAccent
                         : mapChromeInk
                     }
                     size={21}
@@ -2431,9 +2452,7 @@ export default function ChurchesScreen() {
                     android="format-list-bulleted"
                     color={
                       sheetMode === "list"
-                        ? isDarkMapChrome
-                          ? "#FFFFFF"
-                          : theme.primary
+                        ? mapChromeAccent
                         : mapChromeInk
                     }
                     size={21}
@@ -2467,20 +2486,18 @@ export default function ChurchesScreen() {
                     ios="square.3.layers.3d.top.filled"
                     android="layers"
                     color={
-                      layersOpen || mapLayer !== "standard"
-                        ? isDarkMapChrome
-                          ? "#FFFFFF"
-                          : theme.primary
+                      layersOpen || mapLayer !== "satellite"
+                        ? mapChromeAccent
                         : mapChromeInk
                     }
                     size={21}
                     weight="semibold"
                   />
-                  {mapLayer !== "standard" && !layersOpen && (
+                  {mapLayer !== "satellite" && !layersOpen && (
                     <View
                       style={[
                         styles.moonlitLayerDot,
-                        { backgroundColor: isDarkMapChrome ? "#FFFFFF" : theme.primary },
+                        { backgroundColor: mapChromeAccent },
                       ]}
                     />
                   )}
@@ -2505,16 +2522,14 @@ export default function ChurchesScreen() {
                 style={styles.nearMeHit}
               >
                 {locating ? (
-                  <ActivityIndicator size="small" color={isDarkMapChrome ? "#FFFFFF" : theme.primary} />
+                  <ActivityIndicator size="small" color={mapChromeAccent} />
                 ) : (
                   <AppMenuIcon
                     ios="location.fill"
                     android="my-location"
                     color={
                       userCoords
-                        ? isDarkMapChrome
-                          ? "#FFFFFF"
-                          : theme.primary
+                        ? mapChromeAccent
                         : mapChromeInk
                     }
                     size={16}
@@ -2645,9 +2660,7 @@ export default function ChurchesScreen() {
                         styles.map2d3dText,
                         {
                           color: is3DMode
-                            ? isDarkMapChrome
-                              ? "#FFFFFF"
-                              : theme.primary
+                            ? mapChromeAccent
                             : mapChromeInk,
                         },
                       ]}
