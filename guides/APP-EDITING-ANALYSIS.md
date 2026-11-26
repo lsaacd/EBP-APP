@@ -1,5 +1,19 @@
 # App editing
 
+## November 25, 2026 — SDK 58 `v2.3.0` OTA #2 (`2.3.0-sdk58-1`) + Worker `bc2bb4d2`: Oyelo Member Profile & Admin Moderation Comments Inspector (`sdk-58` branch)
+
+- **Branch & Commits:** `sdk-58` (`4e36d86` + `58e67db`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `bc2bb4d2-4ff4-4e89-8c95-1f7aecf8a469` (adds admin-only `GET /mod/comments`, `POST /mod/comments/:id/restore`, `c.verse_id` on `GET /mod/reports`, and per-member `commentsCount` on `GET /mod/users`).
+- **Live OTAs (`production` branch, `runtimeVersion: "2.3.0-sdk58-1"`):**
+  - **iOS OTA #2 (Build `#45`):** Group [`30d09a07-46bd-4706-a6cb-828c6c8b0678`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/30d09a07-46bd-4706-a6cb-828c6c8b0678) · update `01a215d8-2cb9-7a87-a860-17532d66f2d6`.
+  - **Android OTA #2 (`versionCode 4`):** Group [`cf43d1ed-b198-4f70-882b-56685c72e060`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/cf43d1ed-b198-4f70-882b-56685c72e060) · update `01a215d8-eead-7805-8947-5c94d9b8bf11`.
+- **What Changed:**
+  - **Oyelo-Consistent Member Profile (`himnario/app/member/[id].tsx`):** Floating Liquid Glass `<` + 2–3 icon capsule (`🔍 👁 •••`), soft scroll-under scrim, compact 1-tap `👁 As a Friend` preview pill, centered `84 pt` avatar + tight-leading centered name + localized clean location (`Riverbank, CA`), centered soft neutral pills, Oyelo `[ Primary Capsule ] [ ○ ]` action row, and native iOS 26 SwiftUI Segmented Picker (`Favorites | Friends | Church`).
+  - **Upgraded Admin Moderation + Live Comments Inspector (`himnario/components/screens/ModerationScreen.{ios,android}.tsx`, `himnario/utils/modComments.ts`, `himnario/context/LanguageContext.tsx`, `workers/ebp-auth-sync/community.js`):** Calm 4-metric summary (`Pending`, `Comments`, `Accounts`, `Churches`), roomy 4-tab switcher (`Inbox | Comments | Members | Insights`), unified Inbox with Recent Comments preview, searchable/filterable Comments feed across Daily Verses & Hymns with per-member `View Comments` filtering, and 1-tap Hide / Restore.
+- **Verification:** `node --check community.js`, `tsc --noEmit` 0 errors, ESLint 0 errors, 30/30 `scripts/test-church-sheet.cjs` passed, 761/761 `scripts/test-web-search.js` passed, Worker deployed (`bc2bb4d2`), and both iOS + Android OTAs published cleanly.
+
+---
+
 ## November 25, 2026 — SDK 58 `v2.3.0` OTA #1 (`2.3.0-sdk58-1`): Moonlitt Satellite Default, Full-Contrast Dark 3D Night Layer & Crisp Map Thumbnails (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`96adf53`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
