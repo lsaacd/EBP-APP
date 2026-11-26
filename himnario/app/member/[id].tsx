@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -76,6 +77,31 @@ type EmbeddedChurch = {
 };
 
 const ADMIN_EMAIL = 'isaacduran167@gmail.com';
+
+function formatProfileLocation(raw: string | null | undefined, es: boolean): string | null {
+  const cleaned = (raw ?? '').trim();
+  if (!cleaned) return null;
+  const parts = cleaned
+    .split('·')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) {
+    const firstLower = parts[0].toLowerCase();
+    if (
+      firstLower === 'estados unidos' ||
+      firstLower === 'united states' ||
+      firstLower === 'usa' ||
+      firstLower === 'us'
+    ) {
+      return parts.slice(1).join(' · ');
+    }
+    return parts.join(' · ');
+  }
+  const lower = cleaned.toLowerCase();
+  if (!es && lower === 'estados unidos') return 'United States';
+  if (es && (lower === 'united states' || lower === 'usa')) return 'Estados Unidos';
+  return cleaned;
+}
 
 export default function MemberProfileScreen() {
   const params = useLocalSearchParams<{ id?: string; preview?: string }>();
@@ -743,6 +769,25 @@ export default function MemberProfileScreen() {
       style?: 'cancel' | 'destructive';
       onPress?: () => void;
     }[] = [{ text: t.profileCopyProfileLink, onPress: () => void handleCopyLink() }];
+    if (effective.churchId) {
+      buttons.push({
+        text: t.profileViewChurch,
+        onPress: handleOpenChurchOnMap,
+      });
+    }
+    if (isSelf) {
+      buttons.push({
+        text: t.profilePrivacyShortcut,
+        onPress: () => router.push('/my-profile/friends' as any),
+      });
+    }
+    if (!isSelf && effective.friendStatus === 'friends') {
+      buttons.push({
+        text: t.friendsRemove,
+        style: 'destructive',
+        onPress: () => confirmRemoveFriend(t.friendsRemoveTitle, t.friendsRemove),
+      });
+    }
     if (!isSelf && user) {
       buttons.push({
         text: t.memberBlockUser,
@@ -775,20 +820,54 @@ export default function MemberProfileScreen() {
     buttons.push({ text: t.cancel, style: 'cancel' });
     Alert.alert(effective.name, undefined, buttons);
   }, [
+    confirmRemoveFriend,
     effective,
     handleAdminAction,
     handleBlockMember,
     handleCopyLink,
+    handleOpenChurchOnMap,
     isAdmin,
     isSelf,
+    router,
     t.cancel,
+    t.friendsRemove,
+    t.friendsRemoveTitle,
     t.memberBlockUser,
     t.profileAdminClearAvatar,
     t.profileAdminRevokeObispo,
     t.profileAdminSuspend,
     t.profileAdminVerifyObispo,
     t.profileCopyProfileLink,
+    t.profilePrivacyShortcut,
+    t.profileViewChurch,
     user,
+  ]);
+
+  const openFallbackPreviewMenu = useCallback(() => {
+    Haptics.selectionAsync();
+    Alert.alert(t.profilePreviewBannerHint, undefined, [
+      {
+        text: `${previewAs === 'friend' ? '✓ ' : ''}${t.profilePreviewAsFriend}`,
+        onPress: () => setPreviewAs('friend'),
+      },
+      {
+        text: `${previewAs === 'public' ? '✓ ' : ''}${t.profilePreviewAsPublic}`,
+        onPress: () => setPreviewAs('public'),
+      },
+      {
+        text: t.profilePrivacyShortcut,
+        onPress: () => router.push('/my-profile/friends' as any),
+      },
+      { text: t.cancel, style: 'cancel' },
+    ]);
+  }, [
+    previewAs,
+    router,
+    t.cancel,
+    t.profilePreviewAsFriend,
+    t.profilePreviewAsPublic,
+    t.profilePreviewBannerHint,
+    t.profilePrivacyShortcut,
   ]);
 
   const openOtherMember = useCallback(
@@ -848,7 +927,10 @@ export default function MemberProfileScreen() {
         ).replace('{n}', String(knownFavorites.length))
       : '';
 
-  const subtitleParts = [effective?.location || null, sinceLabel || null].filter(Boolean);
+  const cleanLocation = useMemo(
+    () => formatProfileLocation(effective?.location, es),
+    [effective?.location, es],
+  );
   const churchScheduleRows = useMemo(
     () => parseServiceTimes(embeddedChurch?.serviceTimes) ?? [],
     [embeddedChurch?.serviceTimes],
@@ -861,15 +943,35 @@ export default function MemberProfileScreen() {
       : `${t.churchNextService}: ${es ? next.dayShortEs : next.dayShortEn} ${next.startClock}`;
   }, [churchScheduleRows, es, t.churchNextService, t.churchToday]);
 
+  const tabItems: { key: ProfileTab; label: string }[] = [
+    { key: 'favorites', label: t.profileTabFavorites },
+    { key: 'friends', label: t.profileTabFriends },
+    ...(hasChurchTab ? [{ key: 'church' as const, label: t.profileTabChurch }] : []),
+  ];
+
+  const floatingHeaderOffset = insets.top + 60;
+
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* ── Native iOS 26 Liquid Glass Top Bar ── */}
+      {/* ── Soft top fade scrim so content melts smoothly under floating Liquid Glass controls ── */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={
+          isDarkMode
+            ? ['rgba(0,0,0,0.94)', 'rgba(0,0,0,0.72)', 'rgba(0,0,0,0)']
+            : ['rgba(255,255,255,0.96)', 'rgba(255,255,255,0.78)', 'rgba(255,255,255,0)']
+        }
+        locations={[0, 0.58, 1]}
+        style={[styles.topScrim, { height: insets.top + 66 }]}
+      />
+
+      {/* ── Floating iOS 26 Liquid Glass Top Bar (Oyelo-style: < on left, 2–3 icons on right) ── */}
       <View
+        pointerEvents="box-none"
         style={[
           styles.topBar,
           {
             paddingTop: insets.top + 8,
-            backgroundColor: bg,
           },
         ]}
       >
@@ -1011,46 +1113,85 @@ export default function MemberProfileScreen() {
                   />
                 </Pressable>
 
-                {/* 2. Church Map shortcut */}
-                {effective?.churchId ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.profileViewChurch}
-                    onPress={handleOpenChurchOnMap}
-                    style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
-                  >
-                    <AppMenuIcon
-                      ios="building.columns"
-                      android="account-balance"
-                      color={primaryInk}
-                      size={19}
-                      containerSize={22}
-                      weight="medium"
-                    />
-                  </Pressable>
+                {/* 2. Self-Preview Audience Menu (Self Only — replaces oversized banner) */}
+                {isSelf && user ? (
+                  swiftUI?.ui.Menu ? (() => {
+                    const {
+                      Button: SwiftButton,
+                      Host,
+                      Image: SwiftImage,
+                      Menu: SwiftMenu,
+                      Section: SwiftSection,
+                    } = swiftUI.ui;
+                    const { font, foregroundStyle, frame } = swiftUI.modifiers;
+                    return (
+                      <Host
+                        style={styles.topIconBtn}
+                        colorScheme={isDarkMode ? 'dark' : 'light'}
+                        seedColor={primaryInk}
+                      >
+                        <SwiftMenu
+                          label={
+                            <SwiftImage
+                              systemName="eye"
+                              size={19}
+                              modifiers={[
+                                font({ size: 19, weight: 'medium' }),
+                                foregroundStyle({ type: 'color', color: primaryInk }),
+                                frame({ width: 40, height: 40 }),
+                              ]}
+                            />
+                          }
+                        >
+                          <SwiftSection title={t.profilePreviewBannerHint}>
+                            <SwiftButton
+                              label={t.profilePreviewAsFriend}
+                              systemImage={previewAs === 'friend' ? 'checkmark' : 'person.2'}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setPreviewAs('friend');
+                              }}
+                            />
+                            <SwiftButton
+                              label={t.profilePreviewAsPublic}
+                              systemImage={previewAs === 'public' ? 'checkmark' : 'globe'}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setPreviewAs('public');
+                              }}
+                            />
+                          </SwiftSection>
+                          <SwiftButton
+                            label={t.profilePrivacyShortcut}
+                            systemImage="lock.shield"
+                            onPress={() => {
+                              Haptics.selectionAsync();
+                              router.push('/my-profile/friends' as any);
+                            }}
+                          />
+                        </SwiftMenu>
+                      </Host>
+                    );
+                  })() : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.profilePreviewBannerHint}
+                      onPress={openFallbackPreviewMenu}
+                      style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      <AppMenuIcon
+                        ios="eye"
+                        android="visibility"
+                        color={primaryInk}
+                        size={19}
+                        containerSize={22}
+                        weight="medium"
+                      />
+                    </Pressable>
+                  )
                 ) : null}
 
-                {/* 3. Share */}
-                {effective ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.profileShareProfile}
-                    onPress={() => void handleShareProfile()}
-                    style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.6 }]}
-                  >
-                    <AppMenuIcon
-                      ios="square.and.arrow.up"
-                      android="share"
-                      color={primaryInk}
-                      size={20}
-                      containerSize={24}
-                      scale="large"
-                      weight="medium"
-                    />
-                  </Pressable>
-                ) : null}
-
-                {/* 4. More Menu (Native SwiftUI Menu with SF Symbols on iOS) */}
+                {/* 3. More Menu (Native SwiftUI Menu with SF Symbols on iOS) */}
                 {effective ? (
                   swiftUI?.ui.Menu ? (() => {
                     const {
@@ -1085,6 +1226,33 @@ export default function MemberProfileScreen() {
                             systemImage="doc.on.doc"
                             onPress={() => void handleCopyLink()}
                           />
+                          {effective.churchId ? (
+                            <SwiftButton
+                              label={t.profileViewChurch}
+                              systemImage="building.columns"
+                              onPress={handleOpenChurchOnMap}
+                            />
+                          ) : null}
+                          {isSelf ? (
+                            <SwiftButton
+                              label={t.profilePrivacyShortcut}
+                              systemImage="lock.shield"
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                router.push('/my-profile/friends' as any);
+                              }}
+                            />
+                          ) : null}
+                          {!isSelf && effective.friendStatus === 'friends' ? (
+                            <SwiftButton
+                              role="destructive"
+                              label={t.friendsRemove}
+                              systemImage="person.badge.minus"
+                              onPress={() =>
+                                confirmRemoveFriend(t.friendsRemoveTitle, t.friendsRemove)
+                              }
+                            />
+                          ) : null}
                           {!isSelf && user ? (
                             <SwiftButton
                               role="destructive"
@@ -1149,134 +1317,6 @@ export default function MemberProfileScreen() {
         )}
       </View>
 
-      {/* ── "View As Others See Me" Native iOS Inset Preview Bar (Self Only) ── */}
-      {isSelf && user ? (
-        <View
-          style={[
-            styles.previewBanner,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(255,255,255,0.07)'
-                : 'rgba(120,120,128,0.08)',
-            },
-          ]}
-        >
-          <View style={styles.previewTopRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-              <AppMenuIcon
-                ios="eye"
-                android="visibility"
-                color={mutedText}
-                size={14}
-              />
-              <Text
-                numberOfLines={1}
-                style={{ ...fonts.sansMedium, fontSize: 12.5, color: mutedText, flex: 1 }}
-              >
-                {t.profilePreviewBannerHint}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push('/my-profile/friends' as any);
-              }}
-              style={({ pressed }) => [
-                { flexDirection: 'row', alignItems: 'center', gap: 2 },
-                pressed && { opacity: 0.6 },
-              ]}
-            >
-              <Text style={{ ...fonts.sansSemiBold, fontSize: 12.5, color: primaryInk }}>
-                {t.profilePrivacyShortcut}
-              </Text>
-              <AppMenuIcon
-                ios="chevron.right"
-                android="chevron-right"
-                color={mutedText}
-                size={11}
-                weight="semibold"
-              />
-            </Pressable>
-          </View>
-
-          {swiftUI?.ui.Picker ? (() => {
-            const { Host, Picker: SwiftPicker, Text: SwiftText } = swiftUI.ui;
-            const { pickerStyle, tag } = swiftUI.modifiers;
-            return (
-              <Host
-                style={styles.previewNativePickerHost}
-                colorScheme={isDarkMode ? 'dark' : 'light'}
-                seedColor={primaryInk}
-              >
-                <SwiftPicker
-                  label={t.profilePreviewBannerHint}
-                  selection={previewAs}
-                  onSelectionChange={(next) => {
-                    if ((next === 'friend' || next === 'public') && next !== previewAs) {
-                      Haptics.selectionAsync();
-                      setPreviewAs(next);
-                    }
-                  }}
-                  modifiers={[pickerStyle('segmented')]}
-                >
-                  <SwiftText modifiers={[tag('friend')]}>
-                    {t.profilePreviewAsFriend}
-                  </SwiftText>
-                  <SwiftText modifiers={[tag('public')]}>
-                    {t.profilePreviewAsPublic}
-                  </SwiftText>
-                </SwiftPicker>
-              </Host>
-            );
-          })() : (
-            <View
-              style={[
-                styles.previewToggleTrack,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(255,255,255,0.10)'
-                    : 'rgba(120,120,128,0.12)',
-                },
-              ]}
-            >
-              {(['friend', 'public'] as const).map((mode) => {
-                const selected = previewAs === mode;
-                return (
-                  <Pressable
-                    key={mode}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setPreviewAs(mode);
-                    }}
-                    style={[
-                      styles.previewTogglePill,
-                      selected && {
-                        backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        ...fonts.sansSemiBold,
-                        fontSize: 12.5,
-                        color: selected ? primaryInk : mutedText,
-                      }}
-                    >
-                      {mode === 'friend'
-                        ? t.profilePreviewAsFriend
-                        : t.profilePreviewAsPublic}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      ) : null}
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
@@ -1285,9 +1325,11 @@ export default function MemberProfileScreen() {
             refreshing={refreshing}
             onRefresh={() => void loadMemberData(true)}
             tintColor={mutedText}
+            progressViewOffset={floatingHeaderOffset}
           />
         }
         contentContainerStyle={{
+          paddingTop: floatingHeaderOffset + 4,
           paddingBottom: Math.max(insets.bottom, 28) + (currentHymnId ? 84 : 20),
         }}
       >
@@ -1339,64 +1381,94 @@ export default function MemberProfileScreen() {
           </View>
         ) : (
           <>
-            {/* ── Clean iOS 26 Asymmetric Identity Header (Zero Boxes) ── */}
+            {/* ── Oyelo-Consistent Centered iOS 26 Editorial Hero ── */}
             <View style={styles.identityBlock}>
-              <View style={styles.identityHeaderRow}>
-                <View style={{ flex: 1, gap: 4, paddingRight: 14 }}>
-                  <Text style={[styles.displayName, { color: primaryInk }]}>
-                    {effective.name}
-                  </Text>
-                  {subtitleParts.length > 0 ? (
-                    <Text
-                      numberOfLines={2}
-                      style={[styles.subtitleLine, { color: mutedText }]}
-                    >
-                      {subtitleParts.join(' · ')}
-                    </Text>
-                  ) : null}
-                </View>
-
+              {/* Compact 1-tap Self-Preview Indicator Pill (replaces 92pt banner) */}
+              {isSelf && user ? (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={!effective.avatarUrl}
+                  accessibilityLabel={t.profilePreviewBannerHint}
                   onPress={() => {
                     Haptics.selectionAsync();
-                    setAvatarLightboxOpen(true);
+                    setPreviewAs((prev) => (prev === 'friend' ? 'public' : 'friend'));
                   }}
-                  style={[
-                    styles.avatarWrap,
-                    {
-                      borderColor: hairline,
-                    },
+                  style={({ pressed }) => [
+                    styles.previewChip,
+                    { backgroundColor: chipBg, opacity: pressed ? 0.68 : 1 },
                   ]}
                 >
-                  <UserAvatar
-                    uri={effective.avatarUrl}
-                    initials={effective.initials}
-                    size={70}
-                    fontSize={24}
-                    backgroundColor={avatarFallbackBg}
-                    textColor="#FFFFFF"
+                  <AppMenuIcon
+                    ios="eye"
+                    android="visibility"
+                    color={mutedText}
+                    size={13}
                   />
-                  {effective.badgeVerified ? (
-                    <View
-                      style={[
-                        styles.verifiedSealOverlay,
-                        { backgroundColor: bg },
-                      ]}
-                    >
-                      <AppMenuIcon
-                        ios="checkmark.seal.fill"
-                        android="verified"
-                        color={verifiedTint}
-                        size={18}
-                      />
-                    </View>
-                  ) : null}
+                  <Text style={[styles.previewChipText, { color: mutedText }]}>
+                    {previewAs === 'friend'
+                      ? t.profilePreviewAsFriend
+                      : t.profilePreviewAsPublic}
+                  </Text>
                 </Pressable>
+              ) : null}
+
+              {/* Centered Avatar */}
+              <Pressable
+                accessibilityRole="button"
+                disabled={!effective.avatarUrl}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setAvatarLightboxOpen(true);
+                }}
+                style={[
+                  styles.avatarWrap,
+                  {
+                    borderColor: hairline,
+                  },
+                ]}
+              >
+                <UserAvatar
+                  uri={effective.avatarUrl}
+                  initials={effective.initials}
+                  size={84}
+                  fontSize={28}
+                  backgroundColor={avatarFallbackBg}
+                  textColor="#FFFFFF"
+                />
+                {effective.badgeVerified ? (
+                  <View
+                    style={[
+                      styles.verifiedSealOverlay,
+                      { backgroundColor: bg },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="checkmark.seal.fill"
+                      android="verified"
+                      color={verifiedTint}
+                      size={19}
+                    />
+                  </View>
+                ) : null}
+              </Pressable>
+
+              {/* Oyelo Eyebrow + Centered Tight-Leading Bold Name */}
+              <View style={styles.mastheadTextBlock}>
+                {sinceLabel ? (
+                  <Text style={[styles.eyebrowLine, { color: mutedText }]}>
+                    {sinceLabel}
+                  </Text>
+                ) : null}
+                <Text style={[styles.displayName, { color: primaryInk }]}>
+                  {effective.name}
+                </Text>
+                {cleanLocation ? (
+                  <Text style={[styles.subtitleLine, { color: mutedText }]}>
+                    {cleanLocation}
+                  </Text>
+                ) : null}
               </View>
 
-              {/* ── Calm Neutral iOS Metadata Pills (Ministry, Coro, Church) ── */}
+              {/* Centered Soft Neutral Capsule Pills (Oyelo metadataChips rhythm) */}
               <View style={styles.pillsRow}>
                 {ministryLabel ? (
                   <View style={[styles.metaPill, { backgroundColor: chipBg }]}>
@@ -1404,7 +1476,7 @@ export default function MemberProfileScreen() {
                       ios={effective.badgeVerified ? 'checkmark.seal.fill' : 'person.fill'}
                       android={effective.badgeVerified ? 'verified' : 'person'}
                       color={effective.badgeVerified ? verifiedTint : mutedText}
-                      size={12.5}
+                      size={13}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
                       {ministryLabel}
@@ -1418,7 +1490,7 @@ export default function MemberProfileScreen() {
                       ios="music.note"
                       android="music-note"
                       color={mutedText}
-                      size={12.5}
+                      size={13}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
                       {choirLabel}
@@ -1442,12 +1514,27 @@ export default function MemberProfileScreen() {
                       ios="building.columns"
                       android="account-balance"
                       color={mutedText}
-                      size={12.5}
+                      size={13}
                     />
                     <Text style={[styles.metaPillText, { color: primaryInk }]}>
                       {churchLabel}
                     </Text>
                   </Pressable>
+                ) : null}
+
+                {!isSelf && effective.friendStatus === 'friends' ? (
+                  <View style={[styles.metaPill, { backgroundColor: chipBg }]}>
+                    <AppMenuIcon
+                      ios="checkmark"
+                      android="check"
+                      color={mutedText}
+                      size={12.5}
+                      weight="bold"
+                    />
+                    <Text style={[styles.metaPillText, { color: primaryInk }]}>
+                      {t.friendsAreFriends}
+                    </Text>
+                  </View>
                 ) : null}
 
                 {!ministryLabel && !choirLabel && !churchLabel ? (
@@ -1456,7 +1543,7 @@ export default function MemberProfileScreen() {
                       ios="person.fill"
                       android="person"
                       color={mutedText}
-                      size={12.5}
+                      size={13}
                     />
                     <Text style={[styles.metaPillText, { color: mutedText }]}>
                       {t.profileCommunityMember}
@@ -1465,333 +1552,344 @@ export default function MemberProfileScreen() {
                 ) : null}
               </View>
 
-              {/* ── Social Proof Line (Overlapping Mini Avatars + Tabular Counts) ── */}
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setActiveTab('friends');
-                }}
-                style={styles.socialProofRow}
-              >
-                {effective.friends.length > 0 ? (
-                  <View style={styles.miniAvatarStack}>
-                    {effective.friends.slice(0, 3).map((fr, idx) => (
-                      <View
-                        key={fr.id}
-                        style={[
-                          styles.miniAvatarRing,
-                          idx > 0 && { marginLeft: -7 },
-                          { borderColor: bg, zIndex: 3 - idx },
-                        ]}
-                      >
-                        <UserAvatar
-                          uri={fr.avatarUrl}
-                          initials={fr.initials}
-                          size={20}
-                          fontSize={8.5}
-                          backgroundColor={avatarFallbackBg}
-                          textColor="#FFFFFF"
-                        />
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-                <Text
-                  style={[
-                    styles.socialProofText,
-                    { color: mutedText, fontVariant: ['tabular-nums'] },
-                  ]}
+              {/* Centered Social Proof Line */}
+              {[friendCountText, favoritesCountText].some(Boolean) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setActiveTab('friends');
+                  }}
+                  style={styles.socialProofRow}
                 >
-                  {[friendCountText, favoritesCountText].filter(Boolean).join(' · ')}
-                </Text>
-              </Pressable>
+                  {effective.friends.length > 0 ? (
+                    <View style={styles.miniAvatarStack}>
+                      {effective.friends.slice(0, 3).map((fr, idx) => (
+                        <View
+                          key={fr.id}
+                          style={[
+                            styles.miniAvatarRing,
+                            idx > 0 && { marginLeft: -7 },
+                            { borderColor: bg, zIndex: 3 - idx },
+                          ]}
+                        >
+                          <UserAvatar
+                            uri={fr.avatarUrl}
+                            initials={fr.initials}
+                            size={20}
+                            fontSize={8.5}
+                            backgroundColor={avatarFallbackBg}
+                            textColor="#FFFFFF"
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.socialProofText,
+                      { color: mutedText, fontVariant: ['tabular-nums'] },
+                    ]}
+                  >
+                    {[friendCountText, favoritesCountText].filter(Boolean).join(' · ')}
+                  </Text>
+                </Pressable>
+              ) : null}
 
-              {/* ── Dual Equal-Width Monochrome iOS Action Pills ── */}
-              <View style={styles.dualBtnRow}>
+              {/* ── Oyelo Primary Action Capsule + Circular Liquid Glass Action Button ── */}
+              <View style={styles.actionRow}>
                 {isSelf ? (
-                  <>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      router.push('/my-profile/account-edit' as any);
+                    }}
+                    style={({ pressed }) => [
+                      styles.primaryCapsuleBtn,
+                      { backgroundColor: accentBtnBg, opacity: pressed ? 0.84 : 1 },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="pencil"
+                      android="edit"
+                      color={accentBtnText}
+                      size={15}
+                      weight="semibold"
+                    />
+                    <Text style={[styles.primaryCapsuleText, { color: accentBtnText }]}>
+                      {t.profileEditButton}
+                    </Text>
+                  </Pressable>
+                ) : effective.friendStatus === 'friends' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setShareSheetOpen(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.primaryCapsuleBtn,
+                      { backgroundColor: accentBtnBg, opacity: pressed ? 0.84 : 1 },
+                    ]}
+                  >
+                    <AppMenuIcon
+                      ios="music.note.list"
+                      android="queue-music"
+                      color={accentBtnText}
+                      size={16}
+                      weight="semibold"
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.primaryCapsuleText, { color: accentBtnText }]}
+                    >
+                      {t.profileSharePlaylist}
+                    </Text>
+                  </Pressable>
+                ) : effective.friendStatus === 'outgoing' ? (
+                  <Pressable
+                    disabled={friendBusy}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      confirmRemoveFriend(
+                        t.friendsCancelRequestTitle,
+                        t.friendsCancelRequest,
+                      )
+                    }
+                    style={({ pressed }) => [
+                      styles.primaryCapsuleBtn,
+                      {
+                        backgroundColor: secondaryFill,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: secondaryBtnBorder,
+                        opacity: pressed ? 0.76 : 1,
+                      },
+                    ]}
+                  >
+                    {friendBusy ? (
+                      <ActivityIndicator size="small" color={primaryInk} />
+                    ) : (
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.primaryCapsuleText, { color: primaryInk }]}
+                      >
+                        {t.friendsRequestSent}
+                      </Text>
+                    )}
+                  </Pressable>
+                ) : effective.friendStatus === 'incoming' ? (
+                  <Pressable
+                    disabled={friendBusy}
+                    accessibilityRole="button"
+                    onPress={() => void handleFriendAction('accept')}
+                    style={({ pressed }) => [
+                      styles.primaryCapsuleBtn,
+                      { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
+                    ]}
+                  >
+                    {friendBusy ? (
+                      <ActivityIndicator size="small" color={accentBtnText} />
+                    ) : (
+                      <>
+                        <AppMenuIcon
+                          ios="checkmark"
+                          android="check"
+                          color={accentBtnText}
+                          size={15}
+                          weight="bold"
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.primaryCapsuleText, { color: accentBtnText }]}
+                        >
+                          {t.friendsAccept}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    disabled={friendBusy}
+                    accessibilityRole="button"
+                    onPress={() => void handleFriendAction('request')}
+                    style={({ pressed }) => [
+                      styles.primaryCapsuleBtn,
+                      { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
+                    ]}
+                  >
+                    {friendBusy ? (
+                      <ActivityIndicator size="small" color={accentBtnText} />
+                    ) : (
+                      <>
+                        <AppMenuIcon
+                          ios="person.badge.plus"
+                          android="person-add"
+                          color={accentBtnText}
+                          size={16}
+                          weight="semibold"
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.primaryCapsuleText, { color: accentBtnText }]}
+                        >
+                          {t.friendsAdd}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+
+                {/* Companion Circular Liquid Glass Button (Decline on incoming, Share otherwise) */}
+                {!isSelf && effective.friendStatus === 'incoming' ? (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={64}
+                    style={[
+                      styles.actionCircleGlass,
+                      !isIOS && {
+                        backgroundColor: secondaryFill,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: secondaryBtnBorder,
+                        overflow: 'hidden',
+                      },
+                    ]}
+                  >
                     <Pressable
+                      disabled={friendBusy}
                       accessibilityRole="button"
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        router.push('/my-profile/account-edit' as any);
-                      }}
+                      accessibilityLabel={t.friendsDecline}
+                      onPress={() => void handleFriendAction('remove')}
                       style={({ pressed }) => [
-                        styles.dualBtnPrimary,
-                        { backgroundColor: accentBtnBg, opacity: pressed ? 0.84 : 1 },
+                        styles.actionCircleHit,
+                        pressed && { opacity: 0.65 },
                       ]}
                     >
-                      <Text style={[styles.dualBtnText, { color: accentBtnText }]}>
-                        {t.profileEditButton}
-                      </Text>
+                      <AppMenuIcon
+                        ios="xmark"
+                        android="close"
+                        color={primaryInk}
+                        size={18}
+                        weight="semibold"
+                      />
                     </Pressable>
+                  </GlassSurface>
+                ) : (
+                  <GlassSurface
+                    isInteractive
+                    glassEffectStyle="regular"
+                    intensity={64}
+                    style={[
+                      styles.actionCircleGlass,
+                      !isIOS && {
+                        backgroundColor: secondaryFill,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: secondaryBtnBorder,
+                        overflow: 'hidden',
+                      },
+                    ]}
+                  >
                     <Pressable
                       accessibilityRole="button"
+                      accessibilityLabel={t.profileShareProfile}
                       onPress={() => void handleShareProfile()}
                       style={({ pressed }) => [
-                        styles.dualBtnSecondary,
-                        {
-                          backgroundColor: secondaryFill,
-                          borderColor: secondaryBtnBorder,
-                          opacity: pressed ? 0.72 : 1,
-                        },
+                        styles.actionCircleHit,
+                        pressed && { opacity: 0.65 },
                       ]}
                     >
-                      <Text style={[styles.dualBtnText, { color: primaryInk }]}>
-                        {t.profileShareProfile}
-                      </Text>
+                      <AppMenuIcon
+                        ios="square.and.arrow.up"
+                        android="share"
+                        color={primaryInk}
+                        size={19}
+                        containerSize={23}
+                        scale="large"
+                        weight="medium"
+                      />
                     </Pressable>
-                  </>
-                ) : (
-                  <>
-                    {/* Left Primary Relationship CTA */}
-                    {effective.friendStatus === 'friends' ? (
-                      <Pressable
-                        disabled={friendBusy}
-                        accessibilityRole="button"
-                        onPress={() =>
-                          confirmRemoveFriend(t.friendsRemoveTitle, t.friendsRemove)
-                        }
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            borderColor: secondaryBtnBorder,
-                            backgroundColor: secondaryFill,
-                            opacity: pressed ? 0.76 : 1,
-                          },
-                        ]}
-                      >
-                        {friendBusy ? (
-                          <ActivityIndicator size="small" color={primaryInk} />
-                        ) : (
-                          <>
-                            <AppMenuIcon
-                              ios="checkmark"
-                              android="check"
-                              color={primaryInk}
-                              size={14}
-                              weight="bold"
-                            />
-                            <Text
-                              numberOfLines={1}
-                              style={[styles.dualBtnText, { color: primaryInk }]}
-                            >
-                              {t.friendsAreFriends}
-                            </Text>
-                          </>
-                        )}
-                      </Pressable>
-                    ) : effective.friendStatus === 'outgoing' ? (
-                      <Pressable
-                        disabled={friendBusy}
-                        accessibilityRole="button"
-                        onPress={() =>
-                          confirmRemoveFriend(
-                            t.friendsCancelRequestTitle,
-                            t.friendsCancelRequest,
-                          )
-                        }
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            backgroundColor: secondaryFill,
-                            borderColor: secondaryBtnBorder,
-                            opacity: pressed ? 0.75 : 1,
-                          },
-                        ]}
-                      >
-                        {friendBusy ? (
-                          <ActivityIndicator size="small" color={primaryInk} />
-                        ) : (
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.dualBtnText, { color: primaryInk }]}
-                          >
-                            {t.friendsRequestSent}
-                          </Text>
-                        )}
-                      </Pressable>
-                    ) : effective.friendStatus === 'incoming' ? (
-                      <Pressable
-                        disabled={friendBusy}
-                        accessibilityRole="button"
-                        onPress={() => void handleFriendAction('accept')}
-                        style={({ pressed }) => [
-                          styles.dualBtnPrimary,
-                          { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
-                        ]}
-                      >
-                        {friendBusy ? (
-                          <ActivityIndicator size="small" color={accentBtnText} />
-                        ) : (
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.dualBtnText, { color: accentBtnText }]}
-                          >
-                            {t.friendsAccept}
-                          </Text>
-                        )}
-                      </Pressable>
-                    ) : (
-                      <Pressable
-                        disabled={friendBusy}
-                        accessibilityRole="button"
-                        onPress={() => void handleFriendAction('request')}
-                        style={({ pressed }) => [
-                          styles.dualBtnPrimary,
-                          { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
-                        ]}
-                      >
-                        {friendBusy ? (
-                          <ActivityIndicator size="small" color={accentBtnText} />
-                        ) : (
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.dualBtnText, { color: accentBtnText }]}
-                          >
-                            {t.friendsAdd}
-                          </Text>
-                        )}
-                      </Pressable>
-                    )}
-
-                    {/* Right Contextual Secondary CTA */}
-                    {effective.friendStatus === 'friends' ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setShareSheetOpen(true);
-                        }}
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            backgroundColor: secondaryFill,
-                            borderColor: secondaryBtnBorder,
-                            opacity: pressed ? 0.72 : 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.dualBtnText, { color: primaryInk }]}
-                        >
-                          {t.profileSharePlaylist}
-                        </Text>
-                      </Pressable>
-                    ) : effective.friendStatus === 'incoming' ? (
-                      <Pressable
-                        disabled={friendBusy}
-                        accessibilityRole="button"
-                        onPress={() => void handleFriendAction('remove')}
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            backgroundColor: secondaryFill,
-                            borderColor: secondaryBtnBorder,
-                            opacity: pressed ? 0.72 : 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.dualBtnText, { color: primaryInk }]}
-                        >
-                          {t.friendsDecline}
-                        </Text>
-                      </Pressable>
-                    ) : effective.churchId ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={handleOpenChurchOnMap}
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            backgroundColor: secondaryFill,
-                            borderColor: secondaryBtnBorder,
-                            opacity: pressed ? 0.72 : 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.dualBtnText, { color: primaryInk }]}
-                        >
-                          {t.profileViewChurch}
-                        </Text>
-                      </Pressable>
-                    ) : (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => void handleShareProfile()}
-                        style={({ pressed }) => [
-                          styles.dualBtnSecondary,
-                          {
-                            backgroundColor: secondaryFill,
-                            borderColor: secondaryBtnBorder,
-                            opacity: pressed ? 0.72 : 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.dualBtnText, { color: primaryInk }]}
-                        >
-                          {t.profileShareProfile}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </>
+                  </GlassSurface>
                 )}
               </View>
             </View>
 
-            {/* ── Full-Width Threads Underline Tab Bar ── */}
-            <View style={[styles.tabBar, { borderBottomColor: hairline }]}>
-              {(
-                [
-                  { key: 'favorites' as const, label: t.profileTabFavorites },
-                  { key: 'friends' as const, label: t.profileTabFriends },
-                  ...(hasChurchTab
-                    ? [{ key: 'church' as const, label: t.profileTabChurch }]
-                    : []),
-                ]
-              ).map((tabItem) => {
-                const active = activeTab === tabItem.key;
+            {/* ── Native iOS 26 SwiftUI Segmented Control (Consistent across Favorites & Churches) ── */}
+            <View style={styles.segmentedWrap}>
+              {swiftUI?.ui.Picker ? (() => {
+                const { Host, Picker: SwiftPicker, Text: SwiftText } = swiftUI.ui;
+                const { pickerStyle, tag } = swiftUI.modifiers;
                 return (
-                  <Pressable
-                    key={tabItem.key}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setActiveTab(tabItem.key);
-                    }}
-                    style={styles.tabBtn}
+                  <Host
+                    style={styles.nativeSegmentedHost}
+                    colorScheme={isDarkMode ? 'dark' : 'light'}
+                    seedColor={primaryInk}
                   >
-                    <Text
-                      style={[
-                        styles.tabText,
-                        {
-                          color: active ? primaryInk : mutedText,
-                          ...(active ? fonts.sansSemiBold : fonts.sansMedium),
-                        },
-                      ]}
+                    <SwiftPicker
+                      label={t.profileTabFavorites}
+                      selection={activeTab}
+                      onSelectionChange={(next) => {
+                        if (
+                          (next === 'favorites' || next === 'friends' || next === 'church') &&
+                          next !== activeTab
+                        ) {
+                          Haptics.selectionAsync();
+                          setActiveTab(next);
+                        }
+                      }}
+                      modifiers={[pickerStyle('segmented')]}
                     >
-                      {tabItem.label}
-                    </Text>
-                    {active ? (
-                      <View
-                        style={[
-                          styles.tabUnderline,
-                          { backgroundColor: primaryInk },
-                        ]}
-                      />
-                    ) : null}
-                  </Pressable>
+                      {tabItems.map((tabItem) => (
+                        <SwiftText key={tabItem.key} modifiers={[tag(tabItem.key)]}>
+                          {tabItem.label}
+                        </SwiftText>
+                      ))}
+                    </SwiftPicker>
+                  </Host>
                 );
-              })}
+              })() : (
+                <View
+                  style={[
+                    styles.fallbackSegmentTrack,
+                    {
+                      backgroundColor: isDarkMode
+                        ? 'rgba(255,255,255,0.10)'
+                        : 'rgba(120,120,128,0.12)',
+                    },
+                  ]}
+                >
+                  {tabItems.map((tabItem) => {
+                    const active = activeTab === tabItem.key;
+                    return (
+                      <Pressable
+                        key={tabItem.key}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setActiveTab(tabItem.key);
+                        }}
+                        style={[
+                          styles.fallbackSegmentPill,
+                          active && {
+                            backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            ...fonts.sansSemiBold,
+                            fontSize: 13.5,
+                            color: active ? primaryInk : mutedText,
+                          }}
+                        >
+                          {tabItem.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             {/* ── Tab 1: Favorites (Borderless Full-Width Hairline List) ── */}
@@ -2155,12 +2253,12 @@ export default function MemberProfileScreen() {
                 ) : null}
 
                 {effective.churchId ? (
-                  <View style={styles.dualBtnRow}>
+                  <View style={styles.actionRow}>
                     <Pressable
                       accessibilityRole="button"
                       onPress={handleOpenChurchOnMap}
                       style={({ pressed }) => [
-                        styles.dualBtnPrimary,
+                        styles.primaryCapsuleBtn,
                         { backgroundColor: accentBtnBg, opacity: pressed ? 0.85 : 1 },
                       ]}
                     >
@@ -2170,7 +2268,7 @@ export default function MemberProfileScreen() {
                         color={accentBtnText}
                         size={15}
                       />
-                      <Text style={[styles.dualBtnText, { color: accentBtnText }]}>
+                      <Text style={[styles.primaryCapsuleText, { color: accentBtnText }]}>
                         {t.profileOpenOnMap}
                       </Text>
                     </Pressable>
@@ -2179,7 +2277,7 @@ export default function MemberProfileScreen() {
                         accessibilityRole="button"
                         onPress={handleOpenDirections}
                         style={({ pressed }) => [
-                          styles.dualBtnSecondary,
+                          styles.secondaryCapsuleBtn,
                           {
                             backgroundColor: secondaryFill,
                             borderColor: secondaryBtnBorder,
@@ -2193,7 +2291,7 @@ export default function MemberProfileScreen() {
                           color={primaryInk}
                           size={15}
                         />
-                        <Text style={[styles.dualBtnText, { color: primaryInk }]}>
+                        <Text style={[styles.primaryCapsuleText, { color: primaryInk }]}>
                           {t.churchDirections}
                         </Text>
                       </Pressable>
@@ -2342,12 +2440,24 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  topScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 15,
+  },
   topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 8,
     minHeight: 54,
   },
   topCircleGlass: {
@@ -2405,41 +2515,9 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     paddingVertical: 0,
   },
-  previewBanner: {
-    marginHorizontal: 16,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    gap: 8,
-  },
-  previewTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  previewNativePickerHost: {
-    width: '100%',
-    height: 32,
-  },
-  previewToggleTrack: {
-    flexDirection: 'row',
-    padding: 3,
-    borderRadius: 10,
-    gap: 3,
-  },
-  previewTogglePill: {
-    flex: 1,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   offlineBanner: {
-    marginHorizontal: 16,
-    marginTop: 10,
+    marginHorizontal: 20,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -2449,62 +2527,84 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   identityBlock: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 18,
+    alignItems: 'center',
     gap: 12,
   },
-  identityHeaderRow: {
+  previewChip: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  previewChipText: {
+    ...fonts.sansMedium,
+    fontSize: 12.5,
+  },
+  avatarWrap: {
+    position: 'relative',
+    borderRadius: 43,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  verifiedSealOverlay: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mastheadTextBlock: {
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+  },
+  eyebrowLine: {
+    ...fonts.sansRegular,
+    fontSize: 13.5,
+    textAlign: 'center',
   },
   displayName: {
     ...fonts.sansBold,
-    fontSize: 27,
-    letterSpacing: -0.6,
-    lineHeight: 32,
+    fontSize: 30,
+    letterSpacing: -0.7,
+    lineHeight: 34,
+    textAlign: 'center',
   },
   subtitleLine: {
     ...fonts.sansRegular,
     fontSize: 14,
     lineHeight: 19,
-  },
-  avatarWrap: {
-    position: 'relative',
-    borderRadius: 36,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  verifiedSealOverlay: {
-    position: 'absolute',
-    left: -2,
-    bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    textAlign: 'center',
   },
   pillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    justifyContent: 'center',
+    gap: 8,
   },
   metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 5.5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 999,
   },
   metaPillText: {
     ...fonts.sansMedium,
-    fontSize: 13,
+    fontSize: 13.5,
   },
   socialProofRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
   miniAvatarStack: {
@@ -2517,61 +2617,73 @@ const styles = StyleSheet.create({
   },
   socialProofText: {
     ...fonts.sansRegular,
-    fontSize: 14,
+    fontSize: 13.5,
   },
-  dualBtnRow: {
+  actionRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 2,
+    marginTop: 4,
   },
-  dualBtnPrimary: {
+  primaryCapsuleBtn: {
     flex: 1,
-    height: 40,
-    borderRadius: 999,
+    height: 44,
+    borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 7,
+    paddingHorizontal: 18,
   },
-  dualBtnSecondary: {
+  secondaryCapsuleBtn: {
     flex: 1,
-    height: 40,
-    borderRadius: 999,
+    height: 44,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 7,
+    paddingHorizontal: 16,
   },
-  dualBtnText: {
+  primaryCapsuleText: {
     ...fonts.sansSemiBold,
-    fontSize: 14.5,
-    letterSpacing: -0.1,
+    fontSize: 15,
+    letterSpacing: -0.15,
   },
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tabBtn: {
-    flex: 1,
+  actionCircleGlass: {
+    width: 44,
     height: 44,
+    borderRadius: 22,
+  },
+  actionCircleHit: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  tabText: {
-    fontSize: 15,
+  segmentedWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
-  tabUnderline: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 0,
-    height: 2,
-    borderRadius: 1,
+  nativeSegmentedHost: {
+    width: '100%',
+    height: 36,
+  },
+  fallbackSegmentTrack: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 12,
+    gap: 3,
+  },
+  fallbackSegmentPill: {
+    flex: 1,
+    height: 32,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyWrap: {
     paddingVertical: 44,
