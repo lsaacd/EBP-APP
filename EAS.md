@@ -1,5 +1,22 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 `v2.3.0` (`2.3.0-sdk58-1`) Native Dual Rebuild: iOS Build #45 (TestFlight) & Android `versionCode 4` (AAB)
+
+- **Branch & Source:** `sdk-58` branch (commits `a096d2c` + `f10ce96`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-device sign-off).
+- **iOS Production Build (`production` profile, `runtimeVersion: "2.3.0-sdk58-1"`, Xcode 27 / SDK 58):**
+  - **Build #45:** [`6fe3cb15-d41a-4d5b-8ea2-dea5188ce86c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/6fe3cb15-d41a-4d5b-8ea2-dea5188ce86c) (`FINISHED`, IPA `fBPfVmBntffAwqhsjex8ZKSOWj6sWJZYdCXIfhKIRGc.ipa`)
+  - **Auto-Submit to TestFlight (`--auto-submit`):** [`edf2e77d-9152-4d32-a8dd-b4198b4039f8`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/edf2e77d-9152-4d32-a8dd-b4198b4039f8) *(never run manual `eas submit` after `--auto-submit`)*
+  - *(Prior Build #44 `f1c1dce2` failed on a 1-line Swift `@Property` init order bug in `HymnEntity.swift`, fixed in `f10ce96`.)*
+- **Android Production Build (`production` profile, `runtimeVersion: "2.3.0-sdk58-1"`, Expo SDK 58):**
+  - **`versionCode 4`:** [`784f9b68-1dff-404a-a7f3-e38b681b8a0c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/784f9b68-1dff-404a-a7f3-e38b681b8a0c) (`FINISHED` on first attempt, AAB `2k5pzC35EqGsL79K1X3IK_tcMiOYb29hwzmXelwy4ig.aab`) — upgrades Android from legacy `2.0.0-securestore-1` to full SDK 58 feature parity!
+- **Included Native & JS Upgrades:**
+  - **Moonlitt-Grade Realistic 3D MapKit Renderer (`himnario/patches/react-native-maps+1.29.11.patch`, `himnario/app/churches.tsx`):** Patched `RNMapsMapView.mm` and `AIRMap.mm` so iOS 16+ uses `MKImageryMapConfiguration(elevationStyle: .realistic)` for Satellite and `MKStandardMapConfiguration(elevationStyle: .realistic)` for Standard/Night 3D (preserving `showsTraffic`, `pointOfInterestFilter`, and `handleMemoryWarning` config), and removed the flat `rgba(6, 13, 24, 0.16)` satellite tint overlay.
+  - **Apple App Intents — Siri, Shortcuts & Spotlight (`expo-app-intents@0.5.18`, `himnario/app-intents/*`, `himnario/utils/appIntentsSync.ts`, `himnario/components/AppIntentHandler.tsx`):** Added native Swift inline module with `HymnEntity` (`IndexedEntity` Spotlight indexing on iOS 18+, `IndexedEntityQuery` on iOS 27), `OpenHymnIntent`, `ShowDailyVerseIntent`, `OpenChurchesIntent`, and bilingual `AppShortcutsProvider`, plus automatic 761-item catalog sync prioritizing user favorites & recents and root invocation routing in `app/_layout.tsx`.
+  - **Android Daily Verse Home Screen Widget (`expo-widgets@~58.0.29`, `enableAndroid: true`, `himnario/widgets/DailyVerseWidget.android.tsx`, `himnario/utils/widgetSync.android.ts`):** Added native Glance/Compose Home Screen Daily Verse widget matching iOS's Sacred Ink light/dark card, verified with `build-layout-registry.mjs`.
+  - **Android Material 3 Expressive Jetpack Compose Parity (`himnario/components/screens/Settings.android.tsx`, `ModerationScreen.android.tsx`, `app/my-profile.tsx`):** Built native `@expo/ui/jetpack-compose` Settings (`Host`, `LazyColumn`, `ListItem`, `Switch`, `Slider`, `SingleChoiceSegmentedButtonRow`, offline audio, in-app StoreReview) and Admin Command Center (live `/mod/overview`, 5 tabs, member search & actions, Hymn Reactions).
+  - **Universal Links, WebCredentials & Android App Links (`himnario/app.json`):** Added `webcredentials:himnarioebp.com` for iOS AutoFill, enabled Android `predictiveBackGestureEnabled: true`, and added Android `intentFilters` for `/h/`, `/hymn/`, `/himno/`, `/member`, and `/churches`.
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 29/29 `scripts/test-church-sheet.cjs` passed (including `buildHymnIntentCatalog` 761-entity check), 761/761 `scripts/test-web-search.js` passed, `expo config --type introspect` clean, dual iOS + Android Hermes exports clean, Android Widget Layout Registry dry-run clean (`1,324 bytes`), and both EAS production builds `FINISHED`.
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #10 (`2.2.0-sdk58-1`): Two Home Liquid Glass Circles with Razor-Thin `1.5pt` Avatar Rim
 
 - **Branch & Source:** `sdk-58` branch (feature commit `24249ae`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

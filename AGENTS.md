@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` TestFlight branch**: SDK 58 / Xcode 27.1 iOS Build #43 `6790dff2` live on TestFlight on `2.2.0-sdk58-1`, latest OTA #10 `c9927961` — previous Build #39 `85ea3bf4` on `2.1.0-sdk58-2` OTA `46c740a8`; Pages `e313a270`; Worker `16659432`; D1 `0020_google_avatar_recovery`).
+> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` branch**: SDK 58 / Xcode 27.1 `v2.3.0` (`2.3.0-sdk58-1`) **iOS Build #45 `6fe3cb15` FINISHED & auto-submitted to TestFlight** + **Android `versionCode 4` `784f9b68` FINISHED** — previous iOS Build #43 `6790dff2` on `2.2.0-sdk58-1` OTA #10 `c9927961`; Pages `e313a270`; Worker `16659432`; D1 `0020_google_avatar_recovery`).
 
 ## Before you start
 
@@ -20,14 +20,14 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 - **Church names** are displayed through `churchDisplayName()` and leaders through `servantDisplayName()` (`himnario/utils/churchName.ts`): "Riverbank", "SDD Hno Azael Tapia". Do not print `church.name` or `pastorName` directly.
 - **Service times** are stored as one text field in the format `utils/churchSchedule.ts` parses. Write them with `serializeSchedule()`; do not invent another format.
 - **`docs/` is the live website, not a documents folder.** Everything in it is served publicly at `himnarioebp.com` (and by a GitHub Pages copy). Internal notes, plans and handoffs belong in `guides/` at the repository root. The repository itself is public, so treat anything committed anywhere as readable by anyone.
-- **Never call `ScreenOrientation.lockAsync` / `unlockAsync` on iOS**, keep all three `patch-package` patches, and never run `eas submit` after `--auto-submit`.
+- **Never call `ScreenOrientation.lockAsync` / `unlockAsync` on iOS**, keep all four `patch-package` patches, and never run `eas submit` after `--auto-submit`.
 - **Ask the owner before** `eas update`, any `production` build, any Cloudflare deploy, or any change to the live database. Say what you published afterwards, with its ID, and record it in [EAS.md](EAS.md).
 
 ## Open work any agent can take
 
 | Task | Where to read | Notes |
 | --- | --- | --- |
-| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | Live on `sdk-58` branch (iOS Build #43 `6790dff2` on `2.2.0-sdk58-1` live on TestFlight, latest OTA #10 `c9927961`; prior Build #39 `85ea3bf4` OTA `46c740a8`). Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) before editing `sdk-58`. Final device sign-off & Android `2.2.0-sdk58-1` rebuild remain before merging to `main`. |
+| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | `v2.3.0` (`2.3.0-sdk58-1`) **BOTH iOS Build #45 (`6fe3cb15`, TestFlight auto-submitted) & Android `versionCode 4` (`784f9b68`, AAB) FINISHED** on `sdk-58`. Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md). Physical iOS + Android device sign-off and Play Console upload remain before merging `sdk-58` into `main`. |
 | **Friends ("Amistades")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Requests, profiles, favourites, church suggestions, and friend counts are live on iOS. The plan's shared-playlist phase still needs confirmation; signed-in two-account device verification remains. |
 | **Antigravity pickup: November 23 release** | [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) | Read the top handoff before touching friends, church directory, coro moderation, or publishing another OTA. iOS is released; signed-in device checks and Android rebuild remain. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |

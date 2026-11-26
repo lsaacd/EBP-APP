@@ -1,5 +1,21 @@
 # App editing
 
+## November 25, 2026 — SDK 58 `v2.3.0` (`2.3.0-sdk58-1`) Native Dual Rebuild: iOS Build #45 (TestFlight) & Android `versionCode 4` (`sdk-58` branch)
+
+- **Branch & Commits:** `sdk-58` (`a096d2c` + `f10ce96`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Native Production Builds (`runtimeVersion: "2.3.0-sdk58-1"`, `production` channel):**
+  - **iOS Build #45 (`FINISHED`):** [`6fe3cb15-d41a-4d5b-8ea2-dea5188ce86c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/6fe3cb15-d41a-4d5b-8ea2-dea5188ce86c) · Auto-submitted to TestFlight [`edf2e77d-9152-4d32-a8dd-b4198b4039f8`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/edf2e77d-9152-4d32-a8dd-b4198b4039f8). *(Prior Build #44 `f1c1dce2` failed on `@Property` init order in `HymnEntity.swift`, fixed immediately in `f10ce96`.)*
+  - **Android `versionCode 4` (`FINISHED`):** [`784f9b68-1dff-404a-a7f3-e38b681b8a0c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/784f9b68-1dff-404a-a7f3-e38b681b8a0c) · AAB ready for Google Play upload (`2k5pzC35EqGsL79K1X3IK_tcMiOYb29hwzmXelwy4ig.aab`).
+- **What Changed:**
+  - **Moonlitt-Grade Native 3D MapKit Patch (`himnario/patches/react-native-maps+1.29.11.patch`, `himnario/app/churches.tsx`):** Patched `RNMapsMapView.mm` & `AIRMap.mm` for iOS 16+ `MKImageryMapConfiguration(elevationStyle: .realistic)` (Satellite) and `MKStandardMapConfiguration(elevationStyle: .realistic)` (Standard/Night 3D), preserving `showsTraffic`, `pointOfInterestFilter`, and `handleMemoryWarning`, and removed the flat `rgba(6, 13, 24, 0.16)` satellite tint overlay.
+  - **Apple App Intents — Siri, Shortcuts & Spotlight (`expo-app-intents@0.5.18`, `himnario/app-intents/*`, `himnario/utils/appIntentsSync.ts`, `himnario/components/AppIntentHandler.tsx`, `himnario/app/_layout.tsx`):** Added Swift inline module with `HymnEntity` (`IndexedEntity` Spotlight indexing on iOS 18+, `IndexedEntityQuery` on iOS 27), `OpenHymnIntent`, `ShowDailyVerseIntent`, `OpenChurchesIntent`, and bilingual `AppShortcutsProvider`, synced with all 761 hymns/choruses (favorites & recents prioritized).
+  - **Android Daily Verse Home Screen Widget (`himnario/widgets/DailyVerseWidget.android.tsx`, `himnario/utils/widgetSync.android.ts`, `himnario/app.json`):** Enabled `expo-widgets` `enableAndroid: true` with a Glance/Compose Sacred Ink Daily Verse widget.
+  - **Android Material 3 Expressive Compose UI (`himnario/components/screens/Settings.android.tsx`, `ModerationScreen.android.tsx`, `himnario/app/my-profile.tsx`):** Added native Jetpack Compose Settings and Admin Command Center screens with full parity to iOS.
+  - **Deep Links, AutoFill & Predictive Back (`himnario/app.json`):** Added `webcredentials:himnarioebp.com` on iOS, enabled Android `predictiveBackGestureEnabled: true`, and added Android `intentFilters` for `/h/`, `/hymn/`, `/himno/`, `/member`, and `/churches`.
+- **Verification & Next Steps:** All checks passed (`tsc`, ESLint, 29/29 Node tests, 761/761 search checks, dual Hermes export, Android widget layout registry dry-run, both EAS production builds `FINISHED`). Pending physical device verification on iOS TestFlight Build `#45` (3D realistic Satellite, Siri/Shortcuts/Spotlight, refreshed Universal Links AASA) and uploading Android AAB `versionCode 4` to Google Play closed testing / production before merging `sdk-58` into `main`.
+
+---
+
 ## November 25, 2026 — SDK 58 iOS Build #43 OTA #10 (`2.2.0-sdk58-1`): Two Home Liquid Glass Circles with Razor-Thin `1.5pt` Avatar Rim (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`24249ae`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
