@@ -1,5 +1,22 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 `v2.0.0` OTA #1 (`2.0.0-sdk58-1`) + Pages `5f5882ea` + iOS Simulator Build `e2993de9`: Password Eye Toggle, Foreground Verification Auto-Refresh & `/account` Headers
+
+- **Branch & Source:** `sdk-58` branch (feature commit `05cd1e3`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **Cloudflare Pages (`ebp-himnario` / `himnarioebp.com`):** Deployment [`5f5882ea`](https://5f5882ea.ebp-himnario.pages.dev) — adds `/account` security headers (`no-store`, `CSP`, `no-referrer`, `noindex`) alongside `/account.html` so Cloudflare's `308` clean-URL redirect preserves full headers, and allows harmless email-client tracking query params in `docs/js/account.js`.
+- **iOS Simulator Release Build (`ios-simulator-release` profile, `2.0.0-sdk58-1`, standalone `.tar.gz`):** [`e2993de9-3bf7-4401-8c34-a190b80f7c2a`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/e2993de9-3bf7-4401-8c34-a190b80f7c2a) (`FINISHED`, identical native fingerprint `05cfe725` to App Store Build `#46`, reusable across Expo Simulators devices).
+- **iOS OTA #1 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — Build `#46` & Simulator `e2993de9`):**
+  - **Update Group:** [`ea2c0ce8-c4ed-4908-8043-f160b3ad2672`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/ea2c0ce8-c4ed-4908-8043-f160b3ad2672)
+  - **iOS Update ID:** `01a216b6-5934-7a97-9929-43beb4a8bd69` (`https://u.expo.dev/update/01a216b6-5934-7a97-9929-43beb4a8bd69`)
+- **Android OTA #1 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — `versionCode 5`):**
+  - **Update Group:** [`228a4d96-ae7c-4e28-adee-1f3fa5a783b1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/228a4d96-ae7c-4e28-adee-1f3fa5a783b1)
+  - **Android Update ID:** `01a216b7-1b09-786b-9a79-b33897e90d89` (`https://u.expo.dev/update/01a216b7-1b09-786b-9a79-b33897e90d89`)
+- **Included Changes (`himnario/components/AuthSheetSwiftUI.tsx`, `himnario/utils/expoSwiftUI.ts`, `himnario/app/_layout.tsx`, `himnario/components/screens/ProfileSubPages.ios.tsx`, `docs/_headers`, `docs/js/account.js`):**
+  - Bound SwiftUI `<SecureField>` and `<TextField>` to a single persistent native `useNativeState` `ObservableState` so tapping the password eye toggle never erases typed text.
+  - Added foreground `AppState` auto-refresh in `_layout.tsx` whenever a signed-in user is still unverified, so returning from Mail/Safari updates verification status automatically without manual taps.
+  - Updated `ProfileSubPages.ios.tsx` status banner to show an amber warning icon (`exclamationmark.circle.fill`) instead of a green checkmark when an account is still unverified.
+- **Verification:** `node --check docs/js/account.js`, 76/76 auth/security/OAuth tests passed, `tsc --noEmit` 0 errors, ESLint 0 errors, live `/account` headers verified (`HTTP 200`, `no-store`, `CSP`, `no-referrer`, `noindex`), iOS & Android OTAs published cleanly.
+
 ## November 25, 2026 — SDK 58 App Store & Play Store `v2.0.0` (`2.0.0-sdk58-1`) Release Builds: iOS Build #46 & Android `versionCode 5`
 
 - **Branch & Source:** `sdk-58` branch (commit `dbe6904`, baking in `v2.3.0` + OTA #1 Moonlitt Satellite default / Night 3D auto-tilt / map thumbnails + OTA #2 Oyelo Member Profile & Admin Comments Inspector + `WHATS_NEW_VERSION: '2.0.0'`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-store sign-off).
