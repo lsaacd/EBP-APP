@@ -6,7 +6,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 import type { MaterialIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 
-export const WHATS_NEW_VERSION = '2.2.0';
+export const WHATS_NEW_VERSION = '2.0.0';
 export const WHATS_NEW_STORAGE_KEY = '@himnario_last_seen_whats_new_v1';
 
 export interface WhatsNewItem {
