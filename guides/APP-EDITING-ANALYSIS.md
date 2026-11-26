@@ -10,6 +10,7 @@
   - Replaced hardcoded `filtered[last].number` on the Himnos / Estribillos side-scroller pill (which displayed `.../113` in A–Z sort) with `getHymnScrollerLabel()` while keeping the slim vertical slider untouched (Índice remains the dedicated A–Z rail).
   - **Number sort:** `1/636` · **A–Z sort:** live `A/Z` (`currentLetter/lastLetter`) · **Audio First sort:** `1/609` (`1/48` in Estribillos; switches to `pos/total` below non-audio rows). Also resets scroll fraction to `0` on sort or sub-tab change.
 - **Verification:** 31/31 `scripts/test-church-sheet.cjs` passed, `tsc --noEmit` 0 errors, ESLint 0 errors, iOS & Android OTAs published cleanly.
+- **Follow-up Fix Committed for `v2.0.1` Native Build (`.easignore`):** Anchored `/ios/`, `/android/`, `/himnario/ios/`, and `/himnario/android/` in root `.easignore` so EAS Build stops stripping `himnario/modules/apple-look-around/ios/` (`AppleLookAroundModule.swift`). The next native iOS build (`v2.0.1`) will automatically restore in-app Apple Look Around (`Mirar`) and Apple Maps road driving time/distance.
 
 ---
 
