@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` branch**: SDK 58 / Xcode 27.1 **`v2.0.0` (`2.0.0-sdk58-1`) App Store / Play Store RC — iOS Build #46 `f5400b46` + Android `versionCode 5` `4953ac9c` + iOS Simulator `e2993de9` + OTA #1 iOS `ea2c0ce8` / Android `228a4d96`**; Pages `5f5882ea`; Worker `bc2bb4d2`; D1 `0020_google_avatar_recovery`).
+> **Last updated:** November 26, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` branch**: SDK 58 / Xcode 27.1 **`v2.0.0` (`2.0.0-sdk58-1`) App Store / Play Store RC — iOS Build #47 `21187e07` + Android `versionCode 5` `4953ac9c` + iOS Simulator `e2993de9` + OTA #1 iOS `ea2c0ce8` / Android `228a4d96`**; Pages `5f5882ea`; Worker `85a01e3e`; D1 `0020_google_avatar_recovery`).
 
 ## Before you start
 

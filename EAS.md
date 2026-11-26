@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 26, 2026 — SDK 58 `v2.0.0` iOS Build #47 (`2.0.0-sdk58-1`) + Worker `85a01e3e`: Sign in with Apple Fix & Full Auth Polish
+
+- **Branch & Source:** `sdk-58` branch (commit `1123d7d`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-store sign-off).
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `85a01e3e-5ff8-4fa1-8b39-67b5e64c9d27` (`https://ebp-himnario-sync.himnario.workers.dev`) — accepts both `rawNonce` and `nonce` (case-insensitive hex SHA-256 check) on `/auth/oauth/apple`, reads both nested `fullName.{givenName,familyName}` and top-level `givenName`/`familyName`, marks email-omitted repeat Apple IDs cleanly verified, and gracefully falls back if malformed `localData` is sent on first OAuth sign-in.
+- **iOS Production Build (`production` profile, `version: "2.0.0"`, `runtimeVersion: "2.0.0-sdk58-1"`, Xcode 27 / SDK 58):**
+  - **Build #47:** [`21187e07-b2c1-4843-84a1-c7bd6afcf365`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/21187e07-b2c1-4843-84a1-c7bd6afcf365) (`FINISHED`, IPA `KI7fQFdIam7B5A-vpR40bWkf6x1KpL1_msuwZ01_0Ak.ipa`)
+  - **Auto-Submit to App Store Connect (`--auto-submit`):** [`343e90b5-39ef-4ae8-80c4-af05e74c572b`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/343e90b5-39ef-4ae8-80c4-af05e74c572b) (`FINISHED` — uploaded to App Store Connect `6794435414`; never run manual `eas submit` after `--auto-submit`).
+- **Baked-In Fixes (resolves App Review Guideline 2.1(a) on iPad Air 11-inch / iPadOS 27.2):**
+  - Fixed Sign in with Apple `invalid_oauth_nonce` (`AuthContext.tsx` now sends both `rawNonce`/`nonce` and `givenName`/`familyName`/`fullName`, matching Worker `85a01e3e`).
+  - Mapped all Worker OAuth error codes (`invalid_oauth_nonce`, `oauth_token_expired`, `oauth_email_unverified`, `oauth_not_configured`) in `AuthSheet.tsx` to localized messages, cleared draft password on OAuth success, and broadened Apple cancel handling in `oauthClient.ts`.
+  - Bakes in OTA #1 fixes directly on launch #1 (SwiftUI password eye toggle via shared `useNativeState`, foreground email verification auto-refresh, amber warning banner icon).
+- **Verification:** `node --check workers/ebp-auth-sync/oauth.js`, 106/106 Node auth/OAuth/church tests passed, 761/761 `scripts/test-web-search.js` passed, `tsc --noEmit` 0 errors, ESLint 0 errors, Worker `/health` verified, Build #47 `FINISHED` & uploaded to App Store Connect.
+
 ## November 25, 2026 — SDK 58 `v2.0.0` OTA #1 (`2.0.0-sdk58-1`) + Pages `5f5882ea` + iOS Simulator Build `e2993de9`: Password Eye Toggle, Foreground Verification Auto-Refresh & `/account` Headers
 
 - **Branch & Source:** `sdk-58` branch (feature commit `05cd1e3`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

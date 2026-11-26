@@ -1,5 +1,20 @@
 # App editing
 
+## November 26, 2026 — SDK 58 `v2.0.0` iOS Build #47 (`2.0.0-sdk58-1`) + Worker `85a01e3e`: Sign in with Apple Fix (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`1123d7d`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`) until store sign-off.**
+- **Cloudflare Worker (`ebp-himnario-sync`):** Version `85a01e3e-5ff8-4fa1-8b39-67b5e64c9d27` (`https://ebp-himnario-sync.himnario.workers.dev`, `/health` verified).
+- **iOS Production Build #47 (`FINISHED` & Auto-Submitted):** [`21187e07-b2c1-4843-84a1-c7bd6afcf365`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/21187e07-b2c1-4843-84a1-c7bd6afcf365) · IPA `KI7fQFdIam7B5A-vpR40bWkf6x1KpL1_msuwZ01_0Ak.ipa` · Auto-Submit [`343e90b5-39ef-4ae8-80c4-af05e74c572b`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/343e90b5-39ef-4ae8-80c4-af05e74c572b) (uploaded to App Store Connect `6794435414`).
+- **What Was Fixed (Resolves App Review Guideline 2.1(a) on iPad Air 11-inch / iPadOS 27.2):**
+  - Fixed Sign in with Apple `invalid_oauth_nonce`: `workers/ebp-auth-sync/oauth.js` now accepts both `body.rawNonce` and `body.nonce` (case-insensitive hex SHA-256) and both `body.givenName`/`familyName` and nested `body.fullName`; `himnario/context/AuthContext.tsx` sends both forms cleanly.
+  - Fixed `oauth.js` edge cases: Apple repeat sign-in without email after account deletion now marks the synthetic `.local` identity verified cleanly, and malformed cached `localData` falls back to empty sync data instead of blocking OAuth signup.
+  - Mapped all Worker OAuth error codes (`invalid_oauth_nonce`, `oauth_token_expired`, `oauth_email_unverified`, `oauth_not_configured`) in `himnario/components/AuthSheet.tsx`, cleared password drafts on OAuth success, and broadened Apple cancel handling in `himnario/utils/oauthClient.ts`.
+  - Bakes in all OTA #1 fixes directly on launch #1 (password eye toggle, foreground verification refresh, amber warning banner).
+- **Verification:** `node --check workers/ebp-auth-sync/oauth.js`, 106/106 Node auth/OAuth/church tests passed, 761/761 `scripts/test-web-search.js` passed, `tsc --noEmit` 0 errors, ESLint 0 errors, Worker deployed & verified, Build #47 `FINISHED` & uploaded to App Store Connect.
+- **Next Steps:** Select **Build `#47`** under version `2.0.0` in App Store Connect once Apple finishes processing (~5–10 min), verify Sign in with Apple once via TestFlight Build `#47`, and re-submit for App Review.
+
+---
+
 ## November 25, 2026 — SDK 58 `v2.0.0` OTA #1 (`2.0.0-sdk58-1`) + Pages `5f5882ea` + iOS Simulator Build `e2993de9` (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`05cd1e3`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
@@ -13,22 +28,6 @@
   - Added automatic `AppState === 'active'` email verification status refresh in `_layout.tsx` for signed-in unverified users returning from email/web verification.
   - Updated `ProfileSubPages.ios.tsx` status banner to show an amber warning icon/haptic instead of a green checkmark when verification is still pending.
 - **Verification:** `node --check docs/js/account.js`, 76/76 auth/security/OAuth tests passed, `tsc --noEmit` 0 errors, ESLint 0 errors, live `/account` headers confirmed (`HTTP 200`, `no-store`, CSP, `no-referrer`), and both iOS + Android OTAs published cleanly.
-
----
-
-## November 25, 2026 — SDK 58 `v2.0.0` OTA #1 (`2.0.0-sdk58-1`) + Pages `5f5882ea` + iOS Simulator `e2993de9`: Password Eye Toggle, Auto Verification Refresh & `/account` Headers (`sdk-58` branch)
-
-- **Branch & Commit:** `sdk-58` (`05cd1e3`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
-- **Cloudflare Pages (`himnarioebp.com`):** Deployment [`5f5882ea`](https://5f5882ea.ebp-himnario.pages.dev) — added `/account` security headers (`no-store`, `CSP`, `no-referrer`, `noindex`) alongside `/account.html` and relaxed harmless email-client query params in `docs/js/account.js`.
-- **iOS Simulator Build (`ios-simulator-release`):** [`e2993de9-3bf7-4401-8c34-a190b80f7c2a`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/e2993de9-3bf7-4401-8c34-a190b80f7c2a) (`FINISHED`, standalone `.tar.gz`, same native fingerprint as Build `#46`).
-- **Live OTAs (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"`):**
-  - **iOS OTA #1 (Build `#46` & Simulator `e2993de9`):** Group [`ea2c0ce8-c4ed-4908-8043-f160b3ad2672`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/ea2c0ce8-c4ed-4908-8043-f160b3ad2672) · update `01a216b6-5934-7a97-9929-43beb4a8bd69`.
-  - **Android OTA #1 (`versionCode 5`):** Group [`228a4d96-ae7c-4e28-adee-1f3fa5a783b1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/228a4d96-ae7c-4e28-adee-1f3fa5a783b1) · update `01a216b7-1b09-786b-9a79-b33897e90d89`.
-- **What Changed:**
-  - Fixed SwiftUI password visibility toggle erasure in `himnario/components/AuthSheetSwiftUI.tsx` using shared `useNativeState` across `<SecureField>` and `<TextField>` (guarded in `himnario/utils/expoSwiftUI.ts`).
-  - Added foreground `AppState` auto-refresh for unverified users in `himnario/app/_layout.tsx` so returning from Mail/Safari refreshes `emailVerified` automatically.
-  - Changed the still-unverified banner icon in `himnario/components/screens/ProfileSubPages.ios.tsx` from a green checkmark to an amber warning icon (`exclamationmark.circle.fill`).
-- **Verification:** `node --check docs/js/account.js`, 76/76 auth/security/OAuth tests passed, `tsc --noEmit` 0 errors, ESLint 0 errors, live `/account` headers verified (`HTTP 200`), Pages + iOS/Android OTAs deployed cleanly.
 
 ---
 
