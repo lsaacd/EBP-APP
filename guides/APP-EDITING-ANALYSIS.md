@@ -1,5 +1,20 @@
 # App editing
 
+## November 25, 2026 — SDK 58 `v2.3.0` OTA #1 (`2.3.0-sdk58-1`): Moonlitt Satellite Default, Full-Contrast Dark 3D Night Layer & Crisp Map Thumbnails (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`96adf53`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Live OTAs (`production` branch, `runtimeVersion: "2.3.0-sdk58-1"`):**
+  - **iOS OTA #1 (Build `#45`):** Group [`3ccb8c23-ee27-4794-a871-848a712e6d49`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3ccb8c23-ee27-4794-a871-848a712e6d49) · update `01a215ae-f8ad-7f4f-9dcf-a0a8bc05f608`.
+  - **Android OTA #1 (`versionCode 4`):** Group [`698f6573-4c72-4685-8098-d4a15f6dcaa3`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/698f6573-4c72-4685-8098-d4a15f6dcaa3) · update `01a215af-b641-7742-a93b-390361e2f254`.
+- **What Changed (`himnario/app/churches.tsx`, `himnario/components/churches/MapLayersPopover.tsx`, `himnario/assets/images/map-layer-*.jpg`):**
+  - Made **Satellite** (`MKImageryMapConfiguration(elevationStyle: .realistic)`) the default Churches map layer on first open (bumped storage key to `@himnario_church_map_layer_v2`).
+  - Fixed **Night 3D** on iOS to use `mapType="standard"` (`MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .default)`) + `userInterfaceStyle="dark"` instead of washed-out `mutedStandard`, and added smooth auto-tilt to `pitch: 60°` (`altitude <= 1800m`) on selection.
+  - Made floating chrome contrast (`isDarkMapChrome = mapLayer !== "standard"`, explicit `mapChromeInk` & `mapChromeAccent`) safe across both Light and Dark app themes so `Standard`, `Night 3D`, and `Satellite` are always visually distinct and legible.
+  - Replaced hand-drawn vector layer preview tiles in `MapLayersPopover` with 3 bundled, cross-free `320×320` Apple-Maps-style thumbnails (`map-layer-standard.jpg`, `map-layer-night3d.jpg`, `map-layer-satellite.jpg`).
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 29/29 `scripts/test-church-sheet.cjs` passed, 761/761 `scripts/test-web-search.js` passed, iOS & Android OTAs published cleanly. Verify on TestFlight Build `#45` after force-quitting & reopening twice to pull OTA #1.
+
+---
+
 ## November 25, 2026 — SDK 58 `v2.3.0` (`2.3.0-sdk58-1`) Native Dual Rebuild: iOS Build #45 (TestFlight) & Android `versionCode 4` (`sdk-58` branch)
 
 - **Branch & Commits:** `sdk-58` (`a096d2c` + `f10ce96`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

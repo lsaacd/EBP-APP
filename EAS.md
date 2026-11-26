@@ -1,5 +1,21 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 `v2.3.0` OTA #1 (`2.3.0-sdk58-1`): Moonlitt Satellite Default, Full-Contrast Dark 3D Night Layer & Crisp Map Thumbnails
+
+- **Branch & Source:** `sdk-58` branch (feature commit `96adf53`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA #1 (`production` branch, `runtimeVersion: "2.3.0-sdk58-1"` — Build `#45`):**
+  - **Update Group:** [`3ccb8c23-ee27-4794-a871-848a712e6d49`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/3ccb8c23-ee27-4794-a871-848a712e6d49)
+  - **iOS Update ID:** `01a215ae-f8ad-7f4f-9dcf-a0a8bc05f608` (`https://u.expo.dev/update/01a215ae-f8ad-7f4f-9dcf-a0a8bc05f608`)
+- **Android OTA #1 (`production` branch, `runtimeVersion: "2.3.0-sdk58-1"` — `versionCode 4`):**
+  - **Update Group:** [`698f6573-4c72-4685-8098-d4a15f6dcaa3`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/698f6573-4c72-4685-8098-d4a15f6dcaa3)
+  - **Android Update ID:** `01a215af-b641-7742-a93b-390361e2f254` (`https://u.expo.dev/update/01a215af-b641-7742-a93b-390361e2f254`)
+- **Included Changes (`himnario/app/churches.tsx`, `himnario/components/churches/MapLayersPopover.tsx`, `himnario/assets/images/map-layer-*.jpg`):**
+  - Switched the default Churches map layer to **`Satellite`** (`MKImageryMapConfiguration(elevationStyle: .realistic)` on iOS) and bumped persisted layer storage key to `@himnario_church_map_layer_v2` so upgrading devices receive the new default cleanly while remembering subsequent choices.
+  - Changed **`Night 3D`** on iOS from `"mutedStandard"` (`emphasisStyle: .muted`) to `"standard"` (`emphasisStyle: .default`) with `userInterfaceStyle="dark"` so Apple Maps renders rich full-contrast Dark 3D buildings & terrain instead of washed-out muted gray, and automatically animates camera tilt to `pitch: 60°` (`altitude <= 1800m`) when selected.
+  - Kept **`Standard`** as crisp daylight Apple Maps (`userInterfaceStyle="light"`) with explicit contrast-safe light/dark floating chrome ink (`mapChromeInk` / `mapChromeAccent`) so all 3 map layers stay visually distinct in both Light and Dark app modes.
+  - Replaced the hand-drawn `<View>` layer previews in `MapLayersPopover` with 3 bundled, cross-free `320×320` Apple-Maps-style map thumbnails (`map-layer-standard.jpg`, `map-layer-night3d.jpg`, `map-layer-satellite.jpg`).
+- **Verification:** `tsc --noEmit` 0 errors, ESLint 0 errors, 29/29 `scripts/test-church-sheet.cjs` passed, 761/761 `scripts/test-web-search.js` passed, iOS (`2,650` modules, 132 assets) & Android (`2,719` modules, 112 assets) OTAs published cleanly.
+
 ## November 25, 2026 — SDK 58 `v2.3.0` (`2.3.0-sdk58-1`) Native Dual Rebuild: iOS Build #45 (TestFlight) & Android `versionCode 4` (AAB)
 
 - **Branch & Source:** `sdk-58` branch (commits `a096d2c` + `f10ce96`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-device sign-off).
