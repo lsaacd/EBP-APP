@@ -1,5 +1,16 @@
 # App editing
 
+## November 25, 2026 — SDK 58 `v2.0.0` (`2.0.0-sdk58-1`) App Store & Play Store Release Builds: iOS Build #46 & Android `versionCode 5` (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`dbe6904`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`) until store release sign-off.**
+- **Store Production Builds (`version: "2.0.0"`, `runtimeVersion: "2.0.0-sdk58-1"`, `production` channel):**
+  - **iOS Build #46 (`FINISHED`):** [`f5400b46-3659-4ce3-92e3-ee44b1702952`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/f5400b46-3659-4ce3-92e3-ee44b1702952) · IPA `H57rUTyt3hkT0LeynCJ9hZmyIvoiozy5P0232AVhfnw.ipa` · **Auto-Submitted & uploaded to App Store Connect** [`2676a4bc-8eaa-4e3f-a238-8f2e907aecb4`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/2676a4bc-8eaa-4e3f-a238-8f2e907aecb4).
+  - **Android `versionCode 5` (`FINISHED`):** [`4953ac9c-a90c-402f-82b6-5db879d305c1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/4953ac9c-a90c-402f-82b6-5db879d305c1) · AAB `dVhmESOlFezxXKZhj0ND9PT6F71gkQHcNhL8chV5Zyg.aab`.
+- **What's Baked In:** All SDK 58 native upgrades (Moonlitt-grade realistic 3D MapKit patch, Apple App Intents for Siri/Shortcuts/Spotlight, Android Daily Verse widget, Android Material 3 Compose Settings & Moderation, Universal Links / App Links / WebCredentials / Predictive Back) plus OTA #1 (Satellite default, full-contrast Dark 3D Night layer with auto-tilt, crisp `320×320` map layer thumbnails) and OTA #2 (Oyelo-aligned Member Profile & upgraded Admin Moderation with live Comments Inspector backed by Worker `bc2bb4d2`), versioned cleanly at **`2.0.0`** (`WHATS_NEW_VERSION: '2.0.0'`).
+- **Next Steps:** Attach Build `#46` (`2.0.0`) to the `2.0.0` release in App Store Connect (`https://appstoreconnect.apple.com/apps/6794435414`), submit for App Review, upload Android `versionCode 5` AAB to Google Play Console, and merge `sdk-58` into `main` once approved.
+
+---
+
 ## November 25, 2026 — SDK 58 `v2.3.0` OTA #2 (`2.3.0-sdk58-1`) + Worker `bc2bb4d2`: Oyelo Member Profile & Admin Moderation Comments Inspector (`sdk-58` branch)
 
 - **Branch & Commits:** `sdk-58` (`4e36d86` + `58e67db`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

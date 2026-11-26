@@ -2,7 +2,7 @@
 
 Shared notes for every coding agent on this project: **Codex, Antigravity and Claude**. Codex and Antigravity both read this file automatically; Claude reads [CLAUDE.md](CLAUDE.md), which holds the full handoff (live state, rules, exact commands). Read CLAUDE.md before changing anything.
 
-> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` branch**: SDK 58 / Xcode 27.1 `v2.3.0` (`2.3.0-sdk58-1`) **iOS Build #45 `6fe3cb15` (TestFlight) latest OTA #2 `30d09a07`** + **Android `versionCode 4` `784f9b68` latest OTA #2 `cf43d1ed`** — previous iOS Build #43 `6790dff2` on `2.2.0-sdk58-1` OTA #10 `c9927961`; Pages `e313a270`; Worker `bc2bb4d2`; D1 `0020_google_avatar_recovery`).
+> **Last updated:** November 25, 2026 (`main`/`app-web-parity`: SDK 54 iOS Build #34 `d1f054c9`, latest OTA `3a5900b7` on `2.0.0-release-5`; **`sdk-58` branch**: SDK 58 / Xcode 27.1 **`v2.0.0` (`2.0.0-sdk58-1`) App Store / Play Store RC — iOS Build #46 `f5400b46` FINISHED & uploaded to App Store Connect + Android `versionCode 5` `4953ac9c` FINISHED** — previous `2.3.0-sdk58-1` iOS Build #45 `6fe3cb15` OTA #2 `30d09a07`; Pages `e313a270`; Worker `bc2bb4d2`; D1 `0020_google_avatar_recovery`).
 
 ## Before you start
 
@@ -27,7 +27,7 @@ Shared notes for every coding agent on this project: **Codex, Antigravity and Cl
 
 | Task | Where to read | Notes |
 | --- | --- | --- |
-| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | `v2.3.0` (`2.3.0-sdk58-1`) **iOS Build #45 (`6fe3cb15`, TestFlight, OTA #2 `30d09a07`) & Android `versionCode 4` (`784f9b68`, AAB, OTA #2 `cf43d1ed`)** live on `sdk-58`. Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md). Physical iOS + Android device sign-off and Play Console upload remain before merging `sdk-58` into `main`. |
+| **Expo SDK 54 → 58 for Xcode 27** | [guides/SDK-58-UPGRADE-PLAN.md](guides/SDK-58-UPGRADE-PLAN.md) | **`v2.0.0` (`2.0.0-sdk58-1`) App Store & Play Store Release Builds FINISHED** on `sdk-58`: **iOS Build #46 (`f5400b46`, uploaded to App Store Connect `2676a4bc`) & Android `versionCode 5` (`4953ac9c`, AAB)**. Read top of [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md). Attach Build #46 to App Store Connect `2.0.0` release, upload Android AAB to Play Console, and merge `sdk-58` into `main` once live. |
 | **Friends ("Amistades")** | [guides/FRIENDS-PLAN.md](guides/FRIENDS-PLAN.md) | Requests, profiles, favourites, church suggestions, and friend counts are live on iOS. The plan's shared-playlist phase still needs confirmation; signed-in two-account device verification remains. |
 | **Antigravity pickup: November 23 release** | [guides/APP-EDITING-ANALYSIS.md](guides/APP-EDITING-ANALYSIS.md) | Read the top handoff before touching friends, church directory, coro moderation, or publishing another OTA. iOS is released; signed-in device checks and Android rebuild remain. |
 | Android native rebuild | CLAUDE.md section 5 | Android is still on runtime `2.0.0-securestore-1` and has none of the November work. |

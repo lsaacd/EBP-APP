@@ -1,5 +1,16 @@
 # Native builds and updates
 
+## November 25, 2026 — SDK 58 App Store & Play Store `v2.0.0` (`2.0.0-sdk58-1`) Release Builds: iOS Build #46 & Android `versionCode 5`
+
+- **Branch & Source:** `sdk-58` branch (commit `dbe6904`, baking in `v2.3.0` + OTA #1 Moonlitt Satellite default / Night 3D auto-tilt / map thumbnails + OTA #2 Oyelo Member Profile & Admin Comments Inspector + `WHATS_NEW_VERSION: '2.0.0'`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-store sign-off).
+- **iOS Production Build (`production` profile, `version: "2.0.0"`, `runtimeVersion: "2.0.0-sdk58-1"`, Xcode 27 / SDK 58):**
+  - **Build #46:** [`f5400b46-3659-4ce3-92e3-ee44b1702952`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/f5400b46-3659-4ce3-92e3-ee44b1702952) (`FINISHED`, IPA `H57rUTyt3hkT0LeynCJ9hZmyIvoiozy5P0232AVhfnw.ipa`)
+  - **Auto-Submit to App Store Connect (`--auto-submit`):** [`2676a4bc-8eaa-4e3f-a238-8f2e907aecb4`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/2676a4bc-8eaa-4e3f-a238-8f2e907aecb4) (`FINISHED` — binary uploaded to App Store Connect `6794435414`; never run manual `eas submit` after `--auto-submit`).
+- **Android Production Build (`production` profile, `version: "2.0.0"`, `runtimeVersion: "2.0.0-sdk58-1"`, Expo SDK 58):**
+  - **`versionCode 5`:** [`4953ac9c-a90c-402f-82b6-5db879d305c1`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/4953ac9c-a90c-402f-82b6-5db879d305c1) (`FINISHED`, AAB `dVhmESOlFezxXKZhj0ND9PT6F71gkQHcNhL8chV5Zyg.aab`) — ready for Google Play upload.
+- **Baked-In Release Scope:** Everything from SDK 58 `v2.3.0` (realistic 3D MapKit patch, Apple App Intents for Siri/Shortcuts/Spotlight, Android Daily Verse widget, Android Material 3 Compose Settings & Moderation, Universal Links/App Links/WebCredentials, Predictive Back) + OTA #1 (Moonlitt Satellite default, full-contrast Dark 3D Night layer with auto-tilt, crisp `320×320` map layer thumbnails) + OTA #2 (Oyelo-aligned Member Profile, redesigned Admin Moderation with live Comments Inspector backed by Worker `bc2bb4d2`), packaged cleanly under public version **`2.0.0`** (`runtimeVersion: "2.0.0-sdk58-1"`).
+- **Verification:** `expo config --type introspect` (`2.0.0` / `2.0.0-sdk58-1`), `tsc --noEmit` 0 errors, 30/30 `scripts/test-church-sheet.cjs` passed, iOS Build #46 `FINISHED` & uploaded to App Store Connect, Android `versionCode 5` `FINISHED`.
+
 ## November 25, 2026 — SDK 58 `v2.3.0` OTA #2 (`2.3.0-sdk58-1`) + Worker `bc2bb4d2`: Oyelo Member Profile & Admin Moderation Comments Inspector
 
 - **Branch & Source:** `sdk-58` branch (feature commits `4e36d86` + `58e67db`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
