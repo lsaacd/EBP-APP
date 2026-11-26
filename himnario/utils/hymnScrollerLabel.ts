@@ -17,13 +17,12 @@ function getSortLetter(title: string | undefined): string {
  * Formats the compact side-scroller pill label for Himnos / Estribillos:
  * - `'number'`: current hymn number / last hymn number (e.g. `1/636`)
  * - `'az'`: current normalized starting letter / last letter (e.g. `A/Z`)
- * - `'audio'`: `1/audioCount` while inside hymns with audio, then `pos/total` below
+ * - `'audio'`: `1/total` across the audio-only filtered list (e.g. `1/609`, `1/48`)
  */
 export function getHymnScrollerLabel(
   items: readonly ScrollerHymnItem[],
   currentIndex: number,
   sortMode: HymnListSortMode,
-  audioCount = 0,
 ): string {
   const total = items.length;
   if (total === 0) return '0/0';
@@ -36,11 +35,7 @@ export function getHymnScrollerLabel(
   }
 
   if (sortMode === 'audio') {
-    const pos = safeIdx + 1;
-    if (audioCount > 0 && safeIdx < audioCount) {
-      return `${pos}/${audioCount}`;
-    }
-    return `${pos}/${total}`;
+    return `${safeIdx + 1}/${total}`;
   }
 
   const currentNum = items[safeIdx]?.number ?? safeIdx + 1;

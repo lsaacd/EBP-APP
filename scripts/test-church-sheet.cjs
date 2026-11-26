@@ -766,9 +766,9 @@ test('getHymnScrollerLabel adapts cleanly to number, A-Z, and audio-first sort m
   assert.equal(getHymnScrollerLabel(azItems, 1, 'az'), 'E/Y');
   assert.equal(getHymnScrollerLabel(azItems, 2, 'az'), 'Y/Y');
 
-  // Audio-first sort: shows 1/audioCount inside audio block, then position/total below
-  assert.equal(getHymnScrollerLabel(numItems, 0, 'audio', 2), '1/2');
-  assert.equal(getHymnScrollerLabel(numItems, 1, 'audio', 2), '2/2');
-  assert.equal(getHymnScrollerLabel(numItems, 2, 'audio', 2), '3/3');
+  // Audio-only mode: steady 1/total across filtered audio items
+  assert.equal(getHymnScrollerLabel(numItems, 0, 'audio'), '1/3');
+  assert.equal(getHymnScrollerLabel(numItems, 1, 'audio'), '2/3');
+  assert.equal(getHymnScrollerLabel(numItems, 2, 'audio'), '3/3');
   assert.equal(getHymnScrollerLabel([], 0, 'az'), '0/0');
 });

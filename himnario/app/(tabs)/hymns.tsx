@@ -282,20 +282,12 @@ export default function HymnListScreen() {
       );
     }
     if (hymnSort === 'audio') {
-      return [...base].sort((a, b) => {
-        const aAudio = hasHymnAudio(String(a.id)) ? 0 : 1;
-        const bAudio = hasHymnAudio(String(b.id)) ? 0 : 1;
-        if (aAudio !== bAudio) return aAudio - bAudio;
-        return Number(a.number) - Number(b.number);
-      });
+      return base
+        .filter((h) => hasHymnAudio(String(h.id)))
+        .sort((a, b) => Number(a.number) - Number(b.number));
     }
     return base;
   }, [activeSubTab, localizedEstribillosData, localizedHymnsData, hymnSort]);
-
-  const filteredAudioCount = useMemo(
-    () => (hymnSort === 'audio' ? filtered.filter((h) => hasHymnAudio(String(h.id))).length : 0),
-    [filtered, hymnSort],
-  );
 
   const scrubFrame = useRef<number | null>(null);
   const latestScrubFraction = useRef(0);
@@ -690,7 +682,6 @@ export default function HymnListScreen() {
       filtered,
       currentIndex,
       hymnSort,
-      filteredAudioCount,
     );
 
     return (
