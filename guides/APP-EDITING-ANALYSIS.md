@@ -1,5 +1,19 @@
 # App editing
 
+## November 26, 2026 — SDK 58 `v2.0.0` OTA #3 (`2.0.0-sdk58-1`): Audio-Only Filter & Steady Scroller Count (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`46a53c5`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
+- **Published OTAs (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"`):**
+  - **iOS OTA #3 (Build `#47` & Simulator `e2993de9`):** Group [`ddbaef75-bea4-406a-ae89-a7245d94f7d0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/ddbaef75-bea4-406a-ae89-a7245d94f7d0) · update `01a21983-4d5c-77de-a396-0b0816bdc048`.
+  - **Android OTA #3 (`versionCode 5`):** Group [`60894b28-b22e-4a4d-ad68-493f71f6fb5d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/60894b28-b22e-4a4d-ad68-493f71f6fb5d) · update `01a21984-1413-7e68-a63b-0fc7e66836d4`.
+- **What Changed (`himnario/app/(tabs)/hymns.tsx`, `himnario/utils/hymnScrollerLabel.ts`, `himnario/context/LanguageContext.tsx`, `scripts/test-church-sheet.cjs`):**
+  - Switched **Audio** mode in Himnos & Estribillos from "audio first, then non-audio" to strictly filtering to items with audio (`hasHymnAudio`), sorted by hymn/chorus number.
+  - Simplified `getHymnScrollerLabel()` so the side-scroller pill stays steady from start to finish (`1/609 → 609/609` in Himnos, `1/48 → 48/48` in Estribillos) instead of jumping from `48` to `124` (or `609` to `636`).
+  - Updated sort menu labels to `"Solo con audio"` / `"With audio only"` (compact chip remains `"Audio"`).
+- **Verification:** 31/31 `scripts/test-church-sheet.cjs` passed, `tsc --noEmit` 0 errors, ESLint 0 errors, iOS & Android OTAs published cleanly.
+
+---
+
 ## November 26, 2026 — SDK 58 `v2.0.0` OTA #2 (`2.0.0-sdk58-1`): Smart Hymns Scroller Pill Labels (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`9b1c4fd`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**

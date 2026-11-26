@@ -1,5 +1,19 @@
 # Native builds and updates
 
+## November 26, 2026 — SDK 58 `v2.0.0` OTA #3 (`2.0.0-sdk58-1`): Audio-Only Filter & Steady Scroller Count
+
+- **Branch & Source:** `sdk-58` branch (commit `46a53c5`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
+- **iOS OTA #3 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — Build `#47` & Simulator `e2993de9`):**
+  - **Update Group:** [`ddbaef75-bea4-406a-ae89-a7245d94f7d0`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/ddbaef75-bea4-406a-ae89-a7245d94f7d0)
+  - **iOS Update ID:** `01a21983-4d5c-77de-a396-0b0816bdc048` (`https://u.expo.dev/update/01a21983-4d5c-77de-a396-0b0816bdc048`)
+- **Android OTA #3 (`production` branch, `runtimeVersion: "2.0.0-sdk58-1"` — `versionCode 5`):**
+  - **Update Group:** [`60894b28-b22e-4a4d-ad68-493f71f6fb5d`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/updates/60894b28-b22e-4a4d-ad68-493f71f6fb5d)
+  - **Android Update ID:** `01a21984-1413-7e68-a63b-0fc7e66836d4` (`https://u.expo.dev/update/01a21984-1413-7e68-a63b-0fc7e66836d4`)
+- **Included Changes (`himnario/app/(tabs)/hymns.tsx`, `himnario/utils/hymnScrollerLabel.ts`, `himnario/context/LanguageContext.tsx`, `scripts/test-church-sheet.cjs`):**
+  - Changed the **Audio** sort option in Himnos & Estribillos so it filters strictly to hymns/choruses that have audio (`hasHymnAudio`), ordered by number (`1/609 → 609/609` in Himnos; `1/48 → 48/48` in Estribillos), eliminating the scroller pill denominator jumping from `48` to `124` (or `609` to `636`) when scrolling past non-audio items.
+  - Updated sort menu labels to `"Solo con audio"` / `"With audio only"` while keeping the compact pill `"Audio"`.
+- **Verification:** 31/31 `scripts/test-church-sheet.cjs` tests passed, `tsc --noEmit` 0 errors, ESLint 0 errors, iOS (`132` assets) & Android (`112` assets / `2,721` modules) OTAs published cleanly.
+
 ## November 26, 2026 — SDK 58 `v2.0.0` OTA #2 (`2.0.0-sdk58-1`): Smart Hymns Scroller Pill Labels (A–Z & Audio First)
 
 - **Branch & Source:** `sdk-58` branch (commit `9b1c4fd`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).
