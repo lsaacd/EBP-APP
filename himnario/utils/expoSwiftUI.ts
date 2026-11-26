@@ -28,7 +28,7 @@ export function getExpoSwiftUI(): ExpoSwiftUIBundle | null {
       const ui = require('@expo/ui/swift-ui');
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const modifiers = require('@expo/ui/swift-ui/modifiers');
-      if (ui?.Host && ui?.Picker && modifiers?.pickerStyle) {
+      if (ui?.Host && ui?.Picker && ui?.useNativeState && modifiers?.pickerStyle) {
         cachedBundle = { ui, modifiers };
         return cachedBundle;
       }

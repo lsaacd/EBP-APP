@@ -62,6 +62,18 @@ token.json
 # example
 app-example
 
+# Website, backend worker, scripts, and internal docs at repo root (not used by mobile build)
+/docs/
+/workers/
+/guides/
+/scripts/
+/icon-composer-svgs/
+/.cloudflare-pages-stage/
+/.wrangler/
+/.wrangler-cache/
+
 # Audio recordings (both iOS and Android stream from Cloudflare R2 and cache on device)
 assets/audio/
 assets/audio/**/*
+himnario/assets/audio/
+himnario/assets/audio/**/*

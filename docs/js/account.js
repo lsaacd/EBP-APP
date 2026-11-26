@@ -39,7 +39,6 @@
     }
     const keys = [...params.keys()];
     validLink = cleaned && validEnvironment && fragment.length <= 256
-      && [...search.keys()].every(key => key === 'env')
       && keys.length === (fragmentEnvs.length ? 4 : 3)
       && new Set(keys).size === keys.length
       && keys.every(key => ['action', 'token', 'lang', 'env'].includes(key))

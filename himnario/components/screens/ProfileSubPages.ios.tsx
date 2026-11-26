@@ -121,7 +121,11 @@ export default function ProfileSubPagesIOS({
     choir: 0,
   });
   const [error, setError] = useState<string | null>(null);
-  const [infoBanner, setInfoBanner] = useState<{ title: string; subtitle?: string } | null>(null);
+  const [infoBanner, setInfoBanner] = useState<{
+    title: string;
+    subtitle?: string;
+    tone?: 'success' | 'warning';
+  } | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Choir Admin Edit & Suggest/Add Form state ──
@@ -172,14 +176,17 @@ export default function ProfileSubPagesIOS({
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
-  const flashBanner = useCallback((title: string, subtitle?: string) => {
-    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-    setInfoBanner({ title, subtitle });
-    bannerTimerRef.current = setTimeout(() => {
-      setInfoBanner(null);
-      bannerTimerRef.current = null;
-    }, 3000);
-  }, []);
+  const flashBanner = useCallback(
+    (title: string, subtitle?: string, tone: 'success' | 'warning' = 'success') => {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      setInfoBanner({ title, subtitle, tone });
+      bannerTimerRef.current = setTimeout(() => {
+        setInfoBanner(null);
+        bannerTimerRef.current = null;
+      }, 3500);
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -605,14 +612,18 @@ export default function ProfileSubPagesIOS({
       try {
         if (kind === 'verification') {
           await requestEmailVerification();
-          flashBanner(t.authVerificationRequested);
+          flashBanner(t.authVerificationRequested, undefined, 'success');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
           const refreshed = await refreshUser();
-          flashBanner(
-            refreshed.emailVerified ? t.authEmailVerified : t.authVerificationPending,
-          );
+          if (refreshed.emailVerified) {
+            flashBanner(t.authEmailVerified, undefined, 'success');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } else {
+            flashBanner(t.authVerificationPending, undefined, 'warning');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          }
         }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (err: any) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setError(err?.message || t.churchError);
@@ -761,9 +772,18 @@ export default function ProfileSubPagesIOS({
       <Section>
         <HStack alignment="center" spacing={10}>
           <SwiftUIImage
-            systemName="checkmark.circle.fill"
+            systemName={
+              infoBanner.tone === 'warning'
+                ? 'exclamationmark.circle.fill'
+                : 'checkmark.circle.fill'
+            }
             size={18}
-            modifiers={[foregroundStyle({ type: 'color', color: '#2E9E56' })]}
+            modifiers={[
+              foregroundStyle({
+                type: 'color',
+                color: infoBanner.tone === 'warning' ? '#D9822B' : '#2E9E56',
+              }),
+            ]}
           />
           <VStack alignment="leading" spacing={2}>
             <Text modifiers={[font({ textStyle: 'subheadline', weight: 'semibold' })]}>

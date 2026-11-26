@@ -112,7 +112,7 @@ function isIOS26OrLater(): boolean {
 function ThemedStack() {
   const { theme, isDarkMode } = useTheme();
   const { language, t } = useLanguage();
-  const { user, isLoading, authSheetVisible, authSheetRequestId } = useAuth();
+  const { user, isLoading, authSheetVisible, authSheetRequestId, refreshUser } = useAuth();
   const { syncPushToken, refreshIfStale: refreshNotifications } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
@@ -187,7 +187,9 @@ function ThemedStack() {
     });
   }, [router]);
 
-  // Silently refresh Expo push token & language for signed-in users who already granted OS permission.
+  // Silently refresh Expo push token & language for signed-in users who already granted OS permission,
+  // and auto-check email verification status when returning from the browser/mail app.
+  const lastVerifyAutoRefreshRef = useRef(0);
   useEffect(() => {
     if (!user?.id) return;
     const lang = language === 'en' ? 'en' : 'es';
@@ -196,10 +198,17 @@ function ThemedStack() {
       if (state === 'active') {
         void syncPushToken(lang, false);
         void refreshNotifications(15000);
+        if (!user.emailVerified) {
+          const now = Date.now();
+          if (now - lastVerifyAutoRefreshRef.current > 4000) {
+            lastVerifyAutoRefreshRef.current = now;
+            void refreshUser().catch(() => {});
+          }
+        }
       }
     });
     return () => sub.remove();
-  }, [language, refreshNotifications, syncPushToken, user?.id]);
+  }, [language, refreshNotifications, refreshUser, syncPushToken, user?.emailVerified, user?.id]);
 
   const resolvedMiniPlayerHeight =
     miniPlayerHeight > 0 ? miniPlayerHeight : Platform.OS === 'android' ? 74 : 57;

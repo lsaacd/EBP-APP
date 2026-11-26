@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import type { TextFieldRef, SecureFieldRef } from '@expo/ui/swift-ui';
 import type { SFSymbol } from 'sf-symbols-typescript';
-import { getExpoSwiftUI } from '../utils/expoSwiftUI';
+import { getExpoSwiftUI, type ExpoSwiftUIBundle } from '../utils/expoSwiftUI';
 import { useLanguage } from '../context/LanguageContext';
 import { getPasswordStrength } from '../utils/passwordStrength';
 import OAuthButtonsStack from './OAuthButtonsStack';
@@ -85,7 +85,14 @@ export interface AuthSheetSwiftUIProps {
   onDeleteAccount: () => void;
 }
 
-export default function AuthSheetSwiftUI({
+export default function AuthSheetSwiftUI(props: AuthSheetSwiftUIProps) {
+  const swiftUI = getExpoSwiftUI();
+  if (!swiftUI) return null;
+  return <AuthSheetSwiftUIContent {...props} swiftUI={swiftUI} />;
+}
+
+function AuthSheetSwiftUIContent({
+  swiftUI,
   presentation = 'embedded',
   isPresented = true,
   onDismiss,
@@ -130,58 +137,8 @@ export default function AuthSheetSwiftUI({
   onOpenPrivacy,
   onSignOut,
   onDeleteAccount,
-}: AuthSheetSwiftUIProps) {
-  const swiftUI = getExpoSwiftUI();
+}: AuthSheetSwiftUIProps & { swiftUI: ExpoSwiftUIBundle }) {
   const { t } = useLanguage();
-
-  const nameRef = useRef<TextFieldRef>(null);
-  const emailRef = useRef<TextFieldRef>(null);
-  const securePasswordRef = useRef<SecureFieldRef>(null);
-  const plainPasswordRef = useRef<TextFieldRef>(null);
-
-  const focusEmailField = useCallback(() => {
-    emailRef.current?.focus().catch(() => {});
-  }, []);
-
-  const handleEmailFieldSubmit = useCallback(() => {
-    if (mode === 'recovery') {
-      onSendRecovery();
-    } else if (showPassword) {
-      plainPasswordRef.current?.focus().catch(() => {});
-    } else {
-      securePasswordRef.current?.focus().catch(() => {});
-    }
-  }, [mode, onSendRecovery, showPassword]);
-
-  // Sync native field value when toggling password visibility, reopening, or clearing after submit/mode change
-  useEffect(() => {
-    if (presentation === 'bottom-sheet' && !isPresented) return;
-    if (showPassword) {
-      plainPasswordRef.current?.setText(password).catch(() => {});
-    } else {
-      securePasswordRef.current?.setText(password).catch(() => {});
-    }
-    // Intentionally sync on presentation/showPassword/mode transitions or when cleared to empty
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [presentation, isPresented, showPassword, mode, password === '']);
-
-  useEffect(() => {
-    if (presentation === 'bottom-sheet' && !isPresented) return;
-    if (email) {
-      emailRef.current?.setText(email).catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [presentation, isPresented, mode]);
-
-  useEffect(() => {
-    if (presentation === 'bottom-sheet' && !isPresented) return;
-    if (mode === 'register' && name) {
-      nameRef.current?.setText(name).catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [presentation, isPresented, mode]);
-
-  if (!swiftUI) return null;
 
   const {
     BottomSheet,
@@ -206,7 +163,100 @@ export default function AuthSheetSwiftUI({
     ToolbarItem,
     VStack,
     ZStack,
+    useNativeState,
   } = swiftUI.ui;
+
+  const nameRef = useRef<TextFieldRef>(null);
+  const emailRef = useRef<TextFieldRef>(null);
+  const securePasswordRef = useRef<SecureFieldRef>(null);
+  const plainPasswordRef = useRef<TextFieldRef>(null);
+
+  // Persistent native ObservableStates so toggling SecureField <-> TextField
+  // (or switching auth modes) shares the exact native string on frame 0 without
+  // async setText() races or erasing the user's password.
+  const nameState = useNativeState<string>(name);
+  const emailState = useNativeState<string>(email);
+  const passwordState = useNativeState<string>(password);
+
+  const lastNativeNameRef = useRef(name);
+  const lastNativeEmailRef = useRef(email);
+  const lastNativePasswordRef = useRef(password);
+
+  const handleNameChange = useCallback(
+    (next: string) => {
+      lastNativeNameRef.current = next;
+      onChangeName(next);
+    },
+    [onChangeName],
+  );
+
+  const handleEmailChange = useCallback(
+    (next: string) => {
+      lastNativeEmailRef.current = next;
+      onChangeEmail(next);
+    },
+    [onChangeEmail],
+  );
+
+  const handlePasswordChange = useCallback(
+    (next: string) => {
+      lastNativePasswordRef.current = next;
+      onChangePassword(next);
+    },
+    [onChangePassword],
+  );
+
+  const handleToggleShowPassword = useCallback(() => {
+    const live = passwordState.get();
+    if (typeof live === 'string' && live !== lastNativePasswordRef.current) {
+      lastNativePasswordRef.current = live;
+      onChangePassword(live);
+    }
+    onToggleShowPassword();
+  }, [onChangePassword, onToggleShowPassword, passwordState]);
+
+  const focusEmailField = useCallback(() => {
+    emailRef.current?.focus().catch(() => {});
+  }, []);
+
+  const handleEmailFieldSubmit = useCallback(() => {
+    if (mode === 'recovery') {
+      onSendRecovery();
+    } else if (showPassword) {
+      plainPasswordRef.current?.focus().catch(() => {});
+    } else {
+      securePasswordRef.current?.focus().catch(() => {});
+    }
+  }, [mode, onSendRecovery, showPassword]);
+
+  // Only push JS -> native when JS programmatically clears a field (e.g. after sign-in or
+  // switching to recovery), never fighting active native typing or showPassword toggles.
+  useEffect(() => {
+    if (password === '' && lastNativePasswordRef.current !== '') {
+      lastNativePasswordRef.current = '';
+      if (passwordState.get() !== '') {
+        passwordState.set('');
+      }
+    }
+  }, [password, passwordState]);
+
+  useEffect(() => {
+    if (email === '' && lastNativeEmailRef.current !== '') {
+      lastNativeEmailRef.current = '';
+      if (emailState.get() !== '') {
+        emailState.set('');
+      }
+    }
+  }, [email, emailState]);
+
+  useEffect(() => {
+    if (name === '' && lastNativeNameRef.current !== '') {
+      lastNativeNameRef.current = '';
+      if (nameState.get() !== '') {
+        nameState.set('');
+      }
+    }
+  }, [name, nameState]);
 
   const {
     accessibilityLabel,
@@ -653,8 +703,9 @@ export default function AuthSheetSwiftUI({
                     {renderFieldLeadingIcon('person', 16)}
                     <TextField
                       ref={nameRef}
+                      text={nameState}
                       placeholder={t.authNamePlaceholder}
-                      onTextChange={onChangeName}
+                      onTextChange={handleNameChange}
                       modifiers={[
                         textContentType('name'),
                         textInputAutocapitalization('words'),
@@ -674,8 +725,9 @@ export default function AuthSheetSwiftUI({
                   {renderFieldLeadingIcon('envelope', 15)}
                   <TextField
                     ref={emailRef}
+                    text={emailState}
                     placeholder={t.authEmailPlaceholder}
-                    onTextChange={onChangeEmail}
+                    onTextChange={handleEmailChange}
                     modifiers={[
                       keyboardType('email-address'),
                       textContentType('emailAddress'),
@@ -697,13 +749,15 @@ export default function AuthSheetSwiftUI({
                     {renderFieldLeadingIcon('lock', 16)}
                     {showPassword ? (
                       <TextField
+                        key="password-plain"
                         ref={plainPasswordRef}
+                        text={passwordState}
                         placeholder={
                           mode === 'register'
                             ? t.authRegisterPasswordPlaceholder
                             : t.authLoginPasswordPlaceholder
                         }
-                        onTextChange={onChangePassword}
+                        onTextChange={handlePasswordChange}
                         modifiers={[
                           textContentType(mode === 'login' ? 'password' : 'newPassword'),
                           textInputAutocapitalization('never'),
@@ -715,13 +769,15 @@ export default function AuthSheetSwiftUI({
                       />
                     ) : (
                       <SecureField
+                        key="password-secure"
                         ref={securePasswordRef}
+                        text={passwordState}
                         placeholder={
                           mode === 'register'
                             ? t.authRegisterPasswordPlaceholder
                             : t.authLoginPasswordPlaceholder
                         }
-                        onTextChange={onChangePassword}
+                        onTextChange={handlePasswordChange}
                         modifiers={[
                           textContentType(mode === 'login' ? 'password' : 'newPassword'),
                           textInputAutocapitalization('never'),
@@ -733,7 +789,7 @@ export default function AuthSheetSwiftUI({
                       />
                     )}
                     <Button
-                      onPress={onToggleShowPassword}
+                      onPress={handleToggleShowPassword}
                       modifiers={[
                         buttonStyle('plain'),
                         foregroundStyle(secondaryStyle),
