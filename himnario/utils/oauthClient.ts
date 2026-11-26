@@ -109,7 +109,14 @@ export async function performAppleSignIn(): Promise<AppleOAuthPayload> {
         : null,
     };
   } catch (err: any) {
-    if (err?.code === 'ERR_REQUEST_CANCELED' || err?.message === 'auth_cancelled') {
+    const code = String(err?.code || '');
+    const msg = String(err?.message || '');
+    if (
+      code === 'ERR_REQUEST_CANCELED' ||
+      code === 'ERR_CANCELED' ||
+      msg === 'auth_cancelled' ||
+      /cancel(?:ed|led)/i.test(msg)
+    ) {
       throw new Error('auth_cancelled');
     }
     throw err instanceof Error ? err : new Error('oauth_failed');

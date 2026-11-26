@@ -572,10 +572,17 @@ export function AuthSheet({
     else if (message === 'invalid_email') setErrorMessage(t.authErrorEmailRequired);
     else if (message === 'weak_password') setErrorMessage(t.authErrorWeakPassword);
     else if (message === 'account_suspended') setErrorMessage(t.authErrorAccountSuspended);
-    else if (message === 'oauth_provider_unavailable') setErrorMessage(t.authOAuthProviderUnavailable);
     else if (
+      message === 'oauth_provider_unavailable' ||
+      message === 'oauth_not_configured'
+    ) {
+      setErrorMessage(t.authOAuthProviderUnavailable);
+    } else if (
       message === 'oauth_failed' ||
       message === 'invalid_oauth_token' ||
+      message === 'invalid_oauth_nonce' ||
+      message === 'oauth_token_expired' ||
+      message === 'oauth_email_unverified' ||
       message === 'unverified_oauth_email' ||
       message === 'oauth_email_required' ||
       message === 'invalid_nonce'
@@ -686,6 +693,8 @@ export function AuthSheet({
       } else {
         await signInWithGoogle();
       }
+      setPassword('');
+      setShowPassword(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showSuccessToast(t.toastSynced);
     } catch (err: any) {

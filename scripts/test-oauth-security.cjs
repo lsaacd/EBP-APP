@@ -361,6 +361,92 @@ test('Apple & Google OAuth verification, account linking, nonce checks, and reje
       ),
     (err) => err.status === 401 && err.code === 'oauth_email_unverified',
   );
+
+  // 7. Mobile client payload shape: `nonce` (without `rawNonce`) + nested `fullName` + malformed localData
+  const mobileNonce = 'mobile-apple-nonce-uuid-9876';
+  const mobileHashedNonce = await sha256Hex(mobileNonce);
+  const appleMobileToken = await signJwt(
+    {
+      iss: 'https://appleid.apple.com',
+      aud: 'com.elbuenpastor',
+      sub: 'apple-sub-mobile-002',
+      email: 'maria@privaterelay.appleid.com',
+      email_verified: 'true',
+      nonce: mobileHashedNonce,
+      iat: nowSec,
+      exp: nowSec + 600,
+    },
+    appleKey.privateKey,
+    appleKey.kid,
+  );
+  const resMobile = await handleOAuth(
+    new Request('https://api.example/auth/oauth/apple', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identityToken: appleMobileToken,
+        nonce: mobileNonce,
+        fullName: { givenName: 'María', familyName: 'García' },
+        localData: { favorites: ['<invalid>'], playlists: 'bad', recents: [], preferences: {} },
+      }),
+    }),
+    env,
+    null,
+    { ...deps, path: '/auth/oauth/apple' },
+  );
+  assert.equal(resMobile.status, 200);
+  const bodyMobile = await resMobile.json();
+  assert.equal(bodyMobile.user.name, 'María García');
+  assert.equal(bodyMobile.user.email, 'maria@privaterelay.appleid.com');
+  assert.equal(bodyMobile.user.emailVerified, true);
+  assert.deepEqual(bodyMobile.data.favorites, []);
+
+  // Reject missing nonce when JWT contains nonce
+  await assert.rejects(
+    () =>
+      handleOAuth(
+        new Request('https://api.example/auth/oauth/apple', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identityToken: appleMobileToken }),
+        }),
+        env,
+        null,
+        { ...deps, path: '/auth/oauth/apple' },
+      ),
+    (err) => err.status === 401 && err.code === 'invalid_oauth_nonce',
+  );
+
+  // Apple repeat sign-in after deletion where Apple omits email -> synthetic address marked verified
+  const appleNoEmailToken = await signJwt(
+    {
+      iss: 'https://appleid.apple.com',
+      aud: 'com.elbuenpastor',
+      sub: 'apple-sub-no-email-003',
+      nonce: mobileHashedNonce,
+      iat: nowSec,
+      exp: nowSec + 600,
+    },
+    appleKey.privateKey,
+    appleKey.kid,
+  );
+  const resNoEmail = await handleOAuth(
+    new Request('https://api.example/auth/oauth/apple', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identityToken: appleNoEmailToken,
+        nonce: mobileNonce,
+      }),
+    }),
+    env,
+    null,
+    { ...deps, path: '/auth/oauth/apple' },
+  );
+  assert.equal(resNoEmail.status, 200);
+  const bodyNoEmail = await resNoEmail.json();
+  assert.equal(bodyNoEmail.user.emailVerified, true);
+  assert.ok(bodyNoEmail.user.email.endsWith('@oauth.himnarioebp.local'));
 });
 
 test('Google PFP auto-import to R2, SSRF guard, and /auth/avatar upload/delete/account cleanup', async () => {

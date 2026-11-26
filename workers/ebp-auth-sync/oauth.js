@@ -159,7 +159,12 @@ async function verifyAppleNonce(tokenNonce, rawNonce) {
   );
   const shaHex = uint8ArrayToHex(digest);
   const shaB64Url = uint8ArrayToBase64Url(digest);
-  if (tokenNonce !== shaHex && tokenNonce !== shaB64Url && tokenNonce !== rawNonce) {
+  const normalizedTokenNonce = String(tokenNonce);
+  if (
+    normalizedTokenNonce.toLowerCase() !== shaHex &&
+    normalizedTokenNonce !== shaB64Url &&
+    normalizedTokenNonce !== rawNonce
+  ) {
     throw new RequestError(401, 'invalid_oauth_nonce');
   }
 }
@@ -385,15 +390,22 @@ async function resolveOrCreateOAuthUser(env, {
     const dummySalt = randomHex(16);
     const dummyHash = `oauth:${randomHex(32)}`;
     const safeName = cleanDisplayName(displayName, normalizedEmail);
-    const merged = validateSync(
-      localData || { favorites: [], playlists: [], recents: [], preferences: {} },
-    );
+    let merged;
+    try {
+      merged = validateSync(
+        localData || { favorites: [], playlists: [], recents: [], preferences: {} },
+      );
+    } catch {
+      merged = validateSync({ favorites: [], playlists: [], recents: [], preferences: {} });
+    }
+    const verifiedAt =
+      emailVerified || (provider === 'apple' && !normalizedEmail) ? now : null;
 
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO users (id, email, name, password_hash, password_salt, created_at, email_verified_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-      ).bind(userId, accountEmail, safeName, dummyHash, dummySalt, now, emailVerified ? now : null),
+      ).bind(userId, accountEmail, safeName, dummyHash, dummySalt, now, verifiedAt),
       env.DB.prepare(
         `INSERT INTO oauth_identities (provider, provider_user_id, user_id, email, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5)`,
@@ -485,9 +497,15 @@ export async function handleOAuth(request, env, _ctx, deps) {
       validAudiences,
       fetchJwks,
     });
-    await verifyAppleNonce(payload.nonce, body.rawNonce);
+    const suppliedNonce =
+      typeof body.rawNonce === 'string' && body.rawNonce.trim()
+        ? body.rawNonce
+        : body.nonce;
+    await verifyAppleNonce(payload.nonce, suppliedNonce);
 
-    const fullName = [body.givenName, body.familyName]
+    const givenName = body.givenName ?? body.fullName?.givenName;
+    const familyName = body.familyName ?? body.fullName?.familyName;
+    const fullName = [givenName, familyName]
       .filter((part) => typeof part === 'string' && part.trim())
       .join(' ')
       .trim();

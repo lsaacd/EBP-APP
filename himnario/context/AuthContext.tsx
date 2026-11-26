@@ -655,8 +655,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const applePayload = await performAppleSignIn();
     await completeOAuth('apple', {
       identityToken: applePayload.identityToken,
+      rawNonce: applePayload.nonce,
       nonce: applePayload.nonce,
       email: applePayload.email,
+      givenName: applePayload.fullName?.givenName ?? null,
+      familyName: applePayload.fullName?.familyName ?? null,
       fullName: applePayload.fullName,
     });
   }, [completeOAuth]);
