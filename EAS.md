@@ -1,5 +1,18 @@
 # Native builds and updates
 
+## November 27, 2026 — SDK 58 `v2.0.0` iOS Build #49 (`2.0.0-sdk58-1`): Localized iOS Permissions, OS UI Language Auto-Detection & Restored Native `AppleLookAround`
+
+- **Branch & Source:** `sdk-58` branch (commit `0f6e767`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5` until post-store sign-off). *(Build number `48` was skipped on EAS remote autoIncrement after cancelling an oversized archive upload; fixed `.git/` → `.git` in root `.easignore` bringing the EAS tarball from `1.3 GB` down to `2.8 MB`.)*
+- **iOS Production Build (`production` profile, `version: "2.0.0"`, `runtimeVersion: "2.0.0-sdk58-1"`, Xcode 27 / SDK 58):**
+  - **Build #49:** [`953d1c0e-d391-45e3-a2a1-76dac2499eca`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/953d1c0e-d391-45e3-a2a1-76dac2499eca) (`FINISHED`, IPA `CssLiVqmshm3uPZ90tq6a5p0ICe64s28LH6649MnYWU.ipa`)
+  - **Auto-Submit to App Store Connect (`--auto-submit`):** [`4c4e7cb7-d2a4-4c38-bb35-445e1f59235c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/4c4e7cb7-d2a4-4c38-bb35-445e1f59235c) (`FINISHED` — uploaded to App Store Connect `6794435414`; never run manual `eas submit` after `--auto-submit`).
+- **Baked-In Fixes (resolves App Review Guideline 4 on iPad Air 11-inch / iPadOS 27.2):**
+  - Added native `en.lproj/InfoPlist.strings` and `es.lproj/InfoPlist.strings` via `himnario/locales/{en,es}.json`, `expo.locales`, `CFBundleAllowMixedLocalizations: true`, and `CFBundleLocalizations: ["en", "es"]` in `himnario/app.json` for `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, and `NSLocationWhenInUseUsageDescription`.
+  - Added first-launch OS language auto-detection in `himnario/context/LanguageContext.tsx` so English devices open in English matching English system permission dialogs and Spanish devices open in Spanish (hymn lyrics stay Spanish by default; manual switcher in Settings preserved).
+  - Restored native **Apple Look Around (`Mirar`)** and **Apple Maps `MKDirections` driving ETA** (`AppleLookAroundModule.swift`) via anchored `/ios/` + `.git` rules in root `.easignore`.
+  - Bakes in OTA #3 (Audio-only filter & steady scroller count) directly on launch #1.
+- **Verification:** `expo config --type introspect`, resolved `en`/`es` `InfoPlist.strings`, `tsc --noEmit` 0 errors, ESLint 0 errors, 31/31 church tests, 2/2 OAuth tests, 761/761 search tests, and **compiled `.ipa` binary verified**: `en.lproj/InfoPlist.strings` present, `es.lproj/InfoPlist.strings` present, `HAS_AppleLookAround=True`, `HAS_presentLookAround=True`, `HAS_getDrivingEstimate=True`.
+
 ## November 26, 2026 — SDK 58 `v2.0.0` OTA #3 (`2.0.0-sdk58-1`): Audio-Only Filter & Steady Scroller Count
 
 - **Branch & Source:** `sdk-58` branch (commit `46a53c5`; `main` and `app-web-parity` remain on SDK 54 / `2.0.0-release-5`).

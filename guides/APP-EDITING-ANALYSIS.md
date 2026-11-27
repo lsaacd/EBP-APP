@@ -1,5 +1,19 @@
 # App editing
 
+## November 27, 2026 — SDK 58 `v2.0.0` iOS Build #49 (`2.0.0-sdk58-1`): Localized iOS Permissions, OS Language Auto-Detection & Restored Native Look Around (`sdk-58` branch)
+
+- **Branch & Commit:** `sdk-58` (`0f6e767`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`) until store sign-off.**
+- **iOS Production Build #49 (`FINISHED` & Auto-Submitted):** [`953d1c0e-d391-45e3-a2a1-76dac2499eca`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/builds/953d1c0e-d391-45e3-a2a1-76dac2499eca) · IPA `CssLiVqmshm3uPZ90tq6a5p0ICe64s28LH6649MnYWU.ipa` · Auto-Submit [`4c4e7cb7-d2a4-4c38-bb35-445e1f59235c`](https://expo.dev/accounts/isaacduran/projects/ElBuenPastorHimnario/submissions/4c4e7cb7-d2a4-4c38-bb35-445e1f59235c) (uploaded to App Store Connect `6794435414`; build #48 skipped after cancelling an oversized `.git` tarball).
+- **What Changed (`.easignore`, `himnario/locales/en.json`, `himnario/locales/es.json`, `himnario/app.json`, `himnario/context/LanguageContext.tsx`):**
+  - Fixed App Review Guideline 4 localization rejection: added `en.lproj/InfoPlist.strings` and `es.lproj/InfoPlist.strings` via `expo.locales` + `CFBundleAllowMixedLocalizations: true` + `CFBundleLocalizations: ["en", "es"]` covering Camera, Photo Library, and Location permission descriptions.
+  - Added first-launch OS language auto-detection in `LanguageContext.tsx` so new installs match the device's OS language (and therefore iOS system permission popups) while keeping hymn lyrics Spanish by default and keeping Settings manual selection.
+  - Restored native **in-app Apple Look Around (`Mirar`)** and **Apple Maps driving time/distance** (`AppleLookAroundModule.swift`) and fixed `.git` exclusion in root `.easignore` (reducing EAS archive upload from `1.3 GB` to `2.8 MB`).
+  - Bakes in OTA #3 (Audio-only filter & steady scroller) directly into the binary.
+- **Verification:** Compiled `.ipa` unpacked and verified directly: `Payload/HimnarioElBuenPastor.app/en.lproj/InfoPlist.strings` and `es.lproj/InfoPlist.strings` both present with all 3 keys, `HAS_AppleLookAround=True`, `HAS_presentLookAround=True`, `HAS_getDrivingEstimate=True`.
+- **Next Steps:** Select **Build `#49`** under version `2.0.0` in App Store Connect (`https://appstoreconnect.apple.com/apps/6794435414`) once Apple finishes processing (~5–10 min), reply to the Guideline 4 thread, and resubmit for App Review.
+
+---
+
 ## November 26, 2026 — SDK 58 `v2.0.0` OTA #3 (`2.0.0-sdk58-1`): Audio-Only Filter & Steady Scroller Count (`sdk-58` branch)
 
 - **Branch & Commit:** `sdk-58` (`46a53c5`, pushed to `origin/sdk-58`). **`main` and `app-web-parity` remain untouched on Expo SDK 54 (`2.0.0-release-5`, Build `#34`).**
