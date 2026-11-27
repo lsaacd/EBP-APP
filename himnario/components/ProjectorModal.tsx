@@ -351,7 +351,11 @@ export default function ProjectorModal({
       animationType="fade"
       presentationStyle="fullScreen"
       statusBarTranslucent
-      supportedOrientations={['portrait']}
+      supportedOrientations={
+        Platform.OS === 'ios' && (Platform as any).isPad
+          ? ['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']
+          : ['portrait']
+      }
       onRequestClose={handleClose}
     >
       <KeepAwakeGuard />

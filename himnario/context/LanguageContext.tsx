@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Language = 'es' | 'en';
@@ -553,8 +554,10 @@ export const strings = {
     appShareBanner: "Tarjeta",
     appShareInPersonQr: "Código QR",
     appShareAvailableFreeForIphoneAndroid: "Disponible gratis para iPhone y Android",
+    appShareAvailableFreeForIos: "Disponible gratis para iPhone y iPad",
     appShareScanToDownload: "Escanea para descargar",
     appShareAskSomeoneNearbyToPointTheir: "Pídele a un hermano que apunte con la cámara de su teléfono para instalar la app en iPhone o Android.",
+    appShareAskSomeoneNearbyToPointTheirIos: "Pídele a un hermano que apunte con la cámara de su dispositivo para instalar la app.",
     appShareShareApp: "Compartir Aplicación",
     accountAccountDetails: "Cuenta y perfil",
     accountShareApp: "Compartir app",
@@ -1606,8 +1609,10 @@ export const strings = {
     appShareBanner: "Banner",
     appShareInPersonQr: "In-Person QR",
     appShareAvailableFreeForIphoneAndroid: "Available free for iPhone & Android",
+    appShareAvailableFreeForIos: "Available free for iPhone & iPad",
     appShareScanToDownload: "Scan to download",
     appShareAskSomeoneNearbyToPointTheir: "Ask someone nearby to point their phone camera here to install on iPhone or Android.",
+    appShareAskSomeoneNearbyToPointTheirIos: "Ask someone nearby to point their camera here to install the app.",
     appShareShareApp: "Share App",
     accountAccountDetails: "Account Details",
     accountShareApp: "Share App",
@@ -2219,8 +2224,34 @@ const LanguageContext = createContext<LanguageContextType>({
   setHymnLanguage: () => { },
 });
 
+function detectSystemLanguage(): Language {
+  try {
+    if (Platform.OS === 'ios') {
+      const settings = NativeModules.SettingsManager?.settings;
+      const rawLocale =
+        settings?.AppleLocale ||
+        (Array.isArray(settings?.AppleLanguages) ? settings.AppleLanguages[0] : '');
+      if (typeof rawLocale === 'string' && rawLocale.length > 0) {
+        return rawLocale.toLowerCase().startsWith('es') ? 'es' : 'en';
+      }
+    } else if (Platform.OS === 'android') {
+      const rawLocale = NativeModules.I18nManager?.localeIdentifier;
+      if (typeof rawLocale === 'string' && rawLocale.length > 0) {
+        return rawLocale.toLowerCase().startsWith('es') ? 'es' : 'en';
+      }
+    }
+    const intlLocale = Intl?.DateTimeFormat?.().resolvedOptions?.().locale;
+    if (typeof intlLocale === 'string' && intlLocale.length > 0) {
+      return intlLocale.toLowerCase().startsWith('es') ? 'es' : 'en';
+    }
+  } catch {
+    // Fall back to Spanish if OS locale APIs are unavailable
+  }
+  return 'es';
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('es');
+  const [language, setLanguageState] = useState<Language>(() => detectSystemLanguage());
   const [hymnLanguage, setHymnLanguageState] = useState<Language>('es');
   const uiMutatedRef = React.useRef(false);
   const hymnMutatedRef = React.useRef(false);

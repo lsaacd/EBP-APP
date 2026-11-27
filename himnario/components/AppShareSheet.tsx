@@ -339,7 +339,9 @@ export function AppShareContent({
                 style={[styles.bannerFooterTitle, { color: theme.onSurface }]}
                 numberOfLines={1}
               >
-                {t.appShareAvailableFreeForIphoneAndroid}
+                {Platform.OS === 'ios'
+                  ? t.appShareAvailableFreeForIos
+                  : t.appShareAvailableFreeForIphoneAndroid}
               </Text>
             </View>
             <MaterialIcons
@@ -375,7 +377,9 @@ export function AppShareContent({
             {t.appShareScanToDownload}
           </Text>
           <Text style={[styles.qrSubtitle, { color: theme.onSurfaceVariant }]}>
-            {t.appShareAskSomeoneNearbyToPointTheir}
+            {Platform.OS === 'ios'
+              ? t.appShareAskSomeoneNearbyToPointTheirIos
+              : t.appShareAskSomeoneNearbyToPointTheir}
           </Text>
         </View>
       )}

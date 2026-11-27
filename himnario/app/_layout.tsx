@@ -120,13 +120,10 @@ function ThemedStack() {
     showFullPlayer,
     closeFullPlayer,
     currentHymnId,
-    isPlaying,
     miniPlayerHeight,
     setMiniPlayerHeight,
   } = useNowPlaying();
   const insets = useSafeAreaInsets();
-  const isPlayingRef = useRef(isPlaying);
-  isPlayingRef.current = isPlaying;
   const checkingUpdateRef = useRef(false);
   const lastAuthRequestIdRef = useRef(authSheetRequestId);
   const [stableSheetMiniPlayerBottom, setStableSheetMiniPlayerBottom] = useState<number | null>(null);
@@ -273,11 +270,8 @@ function ThemedStack() {
       try {
         const result = await Updates.checkForUpdateAsync();
         if (result.isAvailable) {
-          const fetched = await Updates.fetchUpdateAsync();
-          // Apply immediately unless hymn audio is actively playing
-          if (fetched.isNew && !isPlayingRef.current) {
-            await Updates.reloadAsync();
-          }
+          // Download silently in the background; Expo applies the verified bundle on next launch.
+          await Updates.fetchUpdateAsync();
         }
       } catch {
         // Ignore transient offline or update check errors

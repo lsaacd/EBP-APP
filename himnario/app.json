@@ -18,13 +18,15 @@
         "UIBackgroundModes": [
           "audio"
         ],
+        "CFBundleAllowMixedLocalizations": true,
         "CFBundleLocalizations": [
-          "es",
-          "en"
+          "en",
+          "es"
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
-        "NSPhotoLibraryUsageDescription": "Permite adjuntar fotos existentes del templo desde tu galería al sugerir o actualizar una iglesia en el directorio."
+        "NSCameraUsageDescription": "Allows taking photos of a church building to suggest or verify a church in the directory and scanning hymn or church QR codes.",
+        "NSPhotoLibraryUsageDescription": "Allows attaching existing photos from your photo library when updating your profile photo or suggesting a church in the directory.",
+        "NSLocationWhenInUseUsageDescription": "Allows finding verified El Buen Pastor churches near your location."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
@@ -138,7 +140,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Permite encontrar iglesias verificadas El Buen Pastor cerca de tu ubicación.",
+          "locationWhenInUsePermission": "Allows finding verified El Buen Pastor churches near your location.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "isIosBackgroundLocationEnabled": false,
@@ -148,7 +150,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
+          "cameraPermission": "Allows taking photos of a church building to suggest or verify a church in the directory and scanning hymn or church QR codes.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
@@ -156,8 +158,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permite adjuntar fotos existentes del templo desde tu galería al sugerir o actualizar una iglesia en el directorio.",
-          "cameraPermission": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
+          "photosPermission": "Allows attaching existing photos from your photo library when updating your profile photo or suggesting a church in the directory.",
+          "cameraPermission": "Allows taking photos of a church building to suggest or verify a church in the directory and scanning hymn or church QR codes.",
           "microphonePermission": false
         }
       ],
@@ -224,6 +226,10 @@
     },
     "owner": "isaacduran",
     "runtimeVersion": "2.0.0-sdk58-1",
+    "locales": {
+      "en": "./locales/en.json",
+      "es": "./locales/es.json"
+    },
     "updates": {
       "url": "https://u.expo.dev/74ef3b4c-fe90-4c2c-8521-b52f4b6a5441"
     }

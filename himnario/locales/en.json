@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Allows taking photos of a church building to suggest or verify a church in the directory and scanning hymn or church QR codes.",
+    "NSPhotoLibraryUsageDescription": "Allows attaching existing photos from your photo library when updating your profile photo or suggesting a church in the directory.",
+    "NSLocationWhenInUseUsageDescription": "Allows finding verified El Buen Pastor churches near your location."
+  }
+}

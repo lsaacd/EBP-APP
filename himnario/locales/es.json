@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Permite tomar fotos del templo para sugerir o verificar una iglesia en el directorio y escanear códigos QR de himnos o iglesias.",
+    "NSPhotoLibraryUsageDescription": "Permite adjuntar fotos existentes desde tu fototeca para tu foto de perfil o al sugerir una iglesia en el directorio.",
+    "NSLocationWhenInUseUsageDescription": "Permite encontrar iglesias verificadas El Buen Pastor cerca de tu ubicación."
+  }
+}
