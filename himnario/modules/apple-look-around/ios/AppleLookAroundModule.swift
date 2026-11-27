@@ -97,7 +97,7 @@ public class AppleLookAroundModule: Module {
   @available(iOS 16.0, *)
   private static func present(scene: MKLookAroundScene, promise: Promise) {
     DispatchQueue.main.async {
-      guard let topVC = Self.topViewController(), !topVC.isBeingDismissed else {
+      guard let topVC = Self.topViewController() else {
         promise.resolve(false)
         return
       }
@@ -113,11 +113,9 @@ public class AppleLookAroundModule: Module {
 
   private static func topViewController() -> UIViewController? {
     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-    let activeScenes = scenes.filter { $0.activationState == .foregroundActive }
-    let searchScenes = activeScenes.isEmpty ? scenes : activeScenes
-    let keyWindow = searchScenes
+    let keyWindow = scenes
       .flatMap { $0.windows }
-      .first { $0.isKeyWindow } ?? searchScenes.flatMap { $0.windows }.first
+      .first { $0.isKeyWindow } ?? scenes.flatMap { $0.windows }.first
     var top = keyWindow?.rootViewController
     while let presented = top?.presentedViewController {
       top = presented

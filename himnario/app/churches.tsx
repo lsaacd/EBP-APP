@@ -896,16 +896,7 @@ export default function ChurchesScreen() {
           Alert.alert(
             t.churchCameraPermission,
             t.churchEnableCameraPermissionInSettingsTo,
-            [
-              { text: t.cancel, style: "cancel", onPress: () => router.back() },
-              {
-                text: t.notificationsOpenSettings,
-                onPress: () => {
-                  void Linking.openSettings().catch(() => {});
-                  router.back();
-                },
-              },
-            ],
+            [{ text: "OK", onPress: () => router.back() }],
           );
         }
       })();
@@ -1185,13 +1176,6 @@ export default function ChurchesScreen() {
         Alert.alert(
           t.churchCameraPermission,
           t.churchEnableCameraPermissionInSettingsTo2,
-          [
-            { text: t.cancel, style: "cancel" },
-            {
-              text: t.notificationsOpenSettings,
-              onPress: () => void Linking.openSettings().catch(() => {}),
-            },
-          ],
         );
         return;
       }

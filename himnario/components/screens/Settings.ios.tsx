@@ -716,29 +716,6 @@ function SettingsSwiftUIContent({ swiftUI }: { swiftUI: ExpoSwiftUIBundle }) {
                     />
                   </HStack>
                 </Button>
-
-                {showFeedbackCta && (
-                  <Button
-                    modifiers={[buttonStyle('borderless'), padding({ top: 2 })]}
-                    onPress={openRateApp}
-                  >
-                    <HStack alignment="center" spacing={4}>
-                      <Text
-                        modifiers={[
-                          font({ textStyle: 'footnote', weight: 'medium' }),
-                          foregroundStyle(secondaryStyle),
-                        ]}
-                      >
-                        {t.rateAppButton}
-                      </Text>
-                      <SwiftUIImage
-                        systemName="arrow.up.right"
-                        size={11}
-                        modifiers={[foregroundStyle(secondaryStyle)]}
-                      />
-                    </HStack>
-                  </Button>
-                )}
               </VStack>
               <Spacer />
             </HStack>

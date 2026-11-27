@@ -2,6 +2,7 @@
 # the live website (docs/), R2-streamed audio recordings, and git history.
 
 # Git & local caches
+.git
 .git/
 .wrangler/
 .wrangler-cache/
